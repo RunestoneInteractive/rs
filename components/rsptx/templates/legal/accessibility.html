@@ -1,0 +1,149 @@
+{% extends "legal/_legal_base.html" %}
+
+{% block legal_css %}
+<style>
+    .vpat-download {
+        display: inline-block;
+        margin: 4px 0 8px;
+        padding: 10px 18px;
+        background: #1565c0;
+        color: #fff !important;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .vpat-download:hover { background: #0d47a1; text-decoration: none; }
+    .vpat-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.95rem; }
+    .vpat-table th, .vpat-table td {
+        border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top;
+    }
+    .vpat-table th { background: #f4f4f4; }
+    .vpat-conf { font-weight: 600; white-space: nowrap; }
+    .vpat-conf.supports { color: #1b7a2f; }
+    .vpat-conf.partial { color: #a06a00; }
+    .vpat-meta { margin: 0.25rem 0; }
+    .vpat-scroll { overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block legal_content %}
+<h2>Our Commitment to Accessibility</h2>
+<p>
+    Runestone Academy's mission is to make high-quality, interactive educational
+    materials available to <em>everyone</em>. Accessibility is central to that mission.
+    We strive to conform to the
+    <a href="https://www.w3.org/WAI/standards-guidelines/wcag/">Web Content
+    Accessibility Guidelines (WCAG) 2.1</a> at Level AA, and to the applicable
+    requirements of Section 508 of the Rehabilitation Act. Accessibility is an ongoing
+    process, and we continue to improve support for users with disabilities.
+</p>
+
+<h2>Voluntary Product Accessibility Template (VPAT)</h2>
+<p>
+    Our VPAT &mdash; also known as an Accessibility Conformance Report (ACR) &mdash;
+    documents how our platform measures up against WCAG 2.1 Level AA success criteria.
+    The full report is summarized below and is also available as a PDF for procurement
+    and adoption reviews.
+</p>
+{% if vpat_url %}
+<p><a class="vpat-download" href="{{ vpat_url }}">&#8681; Download the VPAT/ACR (PDF)</a></p>
+{% endif %}
+
+<h3>Report Summary</h3>
+<p class="vpat-meta"><strong>Product:</strong> Runestone Academy Website</p>
+<p class="vpat-meta"><strong>Conformance target:</strong> WCAG 2.1 &mdash; Level AA</p>
+<p class="vpat-meta"><strong>Report date:</strong> January 2026</p>
+
+<h3>Scope of Evaluation</h3>
+<p>
+    This report covers a representative sample of publicly accessible pages on the
+    Runestone Academy website, including marketing content, authentication workflows,
+    and interactive textbook content rendered via JavaScript. It represents a
+    best-effort conformance assessment based on manual review, not a formal
+    certification.
+</p>
+
+<h3>Conformance Levels</h3>
+<ul>
+    <li><strong>Supports</strong> &mdash; the criterion is met with no known issues.</li>
+    <li><strong>Partially Supports</strong> &mdash; some aspects meet the criterion; others may require improvement or verification.</li>
+    <li><strong>Does Not Support</strong> &mdash; the criterion is not met.</li>
+    <li><strong>Not Applicable</strong> &mdash; the criterion does not apply to this product.</li>
+</ul>
+
+<h3>WCAG 2.1 Conformance Table</h3>
+<div class="vpat-scroll">
+<table class="vpat-table">
+    <thead>
+        <tr><th>WCAG Criterion</th><th>Conformance</th><th>Remarks</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1.1.1 Non-text Content</td><td class="vpat-conf partial">Partially Supports</td><td>Images and icons include visible text alternatives where applicable. Some dynamically rendered interactive content (e.g., exercises, math) may require additional ARIA labeling or verification with assistive technologies.</td></tr>
+        <tr><td>1.3.1 Info and Relationships</td><td class="vpat-conf partial">Partially Supports</td><td>Pages use headings, lists, and semantic HTML. Consistency of heading hierarchy within interactive book pages should be verified.</td></tr>
+        <tr><td>1.3.2 Meaningful Sequence</td><td class="vpat-conf supports">Supports</td><td>Reading order appears logical in linearized views.</td></tr>
+        <tr><td>1.4.3 Contrast (Minimum)</td><td class="vpat-conf partial">Partially Supports</td><td>Text is generally readable; formal contrast ratio verification is recommended to confirm AA compliance in all areas.</td></tr>
+        <tr><td>1.4.5 Images of Text</td><td class="vpat-conf supports">Supports</td><td>Text content is rendered as text rather than images, except where mathematical notation is rendered programmatically.</td></tr>
+        <tr><td>2.1.1 Keyboard</td><td class="vpat-conf partial">Partially Supports</td><td>Core navigation and forms are keyboard accessible. Interactive textbook components require further keyboard-only testing.</td></tr>
+        <tr><td>2.1.2 No Keyboard Trap</td><td class="vpat-conf supports">Supports</td><td>No keyboard traps observed in primary navigation and forms.</td></tr>
+        <tr><td>2.4.1 Bypass Blocks</td><td class="vpat-conf supports">Supports</td><td>&ldquo;Skip to main content&rdquo; links are present on authentication pages; consistent use across all pages is recommended.</td></tr>
+        <tr><td>2.4.2 Page Titled</td><td class="vpat-conf supports">Supports</td><td>Pages have descriptive and unique titles.</td></tr>
+        <tr><td>2.4.6 Headings and Labels</td><td class="vpat-conf supports">Supports</td><td>Headings and labels are generally descriptive and informative.</td></tr>
+        <tr><td>3.1.1 Language of Page</td><td class="vpat-conf supports">Supports</td><td>Page language is programmatically declared.</td></tr>
+        <tr><td>3.3.2 Labels or Instructions</td><td class="vpat-conf supports">Supports</td><td>Form fields include visible labels and instructions.</td></tr>
+        <tr><td>4.1.1 Parsing</td><td class="vpat-conf supports">Supports</td><td>Markup appears well-formed in tested pages.</td></tr>
+        <tr><td>4.1.2 Name, Role, Value</td><td class="vpat-conf partial">Partially Supports</td><td>Standard UI elements expose appropriate accessibility semantics; custom interactive elements may require additional ARIA roles and states.</td></tr>
+    </tbody>
+</table>
+</div>
+
+<h3>Known Strengths</h3>
+<ul>
+    <li>Clear page titles and navigation structure</li>
+    <li>Labeled form fields on login and user workflows</li>
+    <li>Semantic HTML used for core layout and navigation</li>
+    <li>Consistent navigation across pages</li>
+</ul>
+
+<h3>Known Limitations and Areas for Improvement</h3>
+<ul>
+    <li><strong>Interactive Content:</strong> Coding exercises, quizzes, and mathematical content rendered via JavaScript should be verified with screen readers and keyboard-only navigation.</li>
+    <li><strong>ARIA Enhancements:</strong> Some custom widgets may benefit from additional ARIA roles, states, or descriptions.</li>
+    <li><strong>Contrast Verification:</strong> Automated contrast testing is recommended to confirm full WCAG 2.1 AA compliance.</li>
+</ul>
+
+<h3>Testing Methodology</h3>
+<p>Accessibility testing is performed using a combination of manual review, automated tooling, and functional testing:</p>
+<ul>
+    <li><strong>Manual structural review</strong> of page structure, headings, landmarks, semantic HTML, form labels, and page titles.</li>
+    <li><strong>Keyboard navigation testing</strong> of core workflows, including focus order and checks for keyboard traps.</li>
+    <li><strong>Automated and assisted tooling</strong> using the WAVE Accessibility Evaluation Tool, with results reviewed manually to distinguish actionable issues from false positives.</li>
+    <li><strong>Authenticated page evaluation</strong> of dashboards, interactive exercises, group-work, and instructor interfaces after logging in as a standard user.</li>
+</ul>
+<p>
+    Due to the dynamic nature of interactive educational content, not all possible user
+    paths are evaluated during each review cycle. Issues identified through testing are
+    prioritized and addressed as part of ongoing development and maintenance.
+</p>
+
+<h3>Assumptions and Disclaimers</h3>
+<p>
+    This VPAT is based on a limited manual review of representative public pages and does
+    not constitute a legal guarantee of accessibility compliance. Accessibility is an
+    ongoing process, and Runestone Academy continues to improve support for users with
+    disabilities.
+</p>
+
+<h2>Reporting an Accessibility Barrier</h2>
+<p>
+    If you encounter an accessibility barrier, need content in an alternative format, or
+    have a procurement or accommodation request, please let us know. Include the page URL
+    and a description of the problem so we can reproduce and address it.
+</p>
+
+<div class="legal-contact">
+    <p style="margin:0;">
+        <strong>Accessibility contact:</strong>
+        <a href="mailto:info@runestone.academy">info@runestone.academy</a>
+    </p>
+</div>
+{% endblock %}

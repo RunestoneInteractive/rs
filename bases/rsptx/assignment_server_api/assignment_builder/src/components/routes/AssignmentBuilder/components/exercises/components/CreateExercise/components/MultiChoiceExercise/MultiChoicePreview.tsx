@@ -1,5 +1,4 @@
 import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreview";
-import parse from "html-react-parser";
 
 import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
 

@@ -1093,6 +1093,9 @@ class TraceBack(Base, IdMixin):
     post_body = Column(String(1024))
     hash = Column(String(128))
     hostname = Column(String(128))
+    # Per-frame local variables for the last few stack frames, stored as
+    # [{"name": <frame>, "local_vars": {<var>: <json-safe value>}}, ...].
+    local_vars = Column(JSON)
 
 
 class Library(Base, IdMixin):
@@ -1302,3 +1305,37 @@ class DomainApprovals(Base):
     __tablename__ = "domain_approvals"
     domain_name = Column(String(512), primary_key=True)
     lti1p3 = Column(Web2PyBoolean, default=False)
+
+
+# Sender-side telemetry state. A single row holds this install's stable,
+# anonymous id and the time of the last successful check-in. See
+# ``components/rsptx/db/crud/telemetry.py`` and the book server's
+# ``telemetry`` module.
+class TelemetryState(Base, IdMixin):
+    __tablename__ = "telemetry_state"
+    # A random UUIDv4 generated once, used only to de-duplicate check-ins.
+    instance_id = Column(String(36), nullable=False, unique=True)
+    last_sent = Column(DateTime, nullable=True)
+
+
+TelemetryStateValidator: TypeAlias = sqlalchemy_to_pydantic(TelemetryState)  # type: ignore
+
+
+# Receiver-side record of a known Runestone installation. Populated on the
+# central runestone.academy server from the anonymous check-ins. Holds NO
+# personal data and NO IP address -- location is the install's self-declared
+# region only.
+class Installation(Base, IdMixin):
+    __tablename__ = "installation"
+    instance_id = Column(String(36), nullable=False, unique=True, index=True)
+    region = Column(String(128))
+    version = Column(String(64))
+    base_courses = Column(Text)  # JSON-encoded list of base course names
+    course_count_bucket = Column(String(32))
+    student_count_bucket = Column(String(32))
+    institution = Column(String(512))
+    first_seen = Column(DateTime, nullable=False)
+    last_seen = Column(DateTime, nullable=False)
+
+
+InstallationValidator: TypeAlias = sqlalchemy_to_pydantic(Installation)  # type: ignore

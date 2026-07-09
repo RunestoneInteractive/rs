@@ -130,7 +130,7 @@ export async function renderRunestoneComponent(
               let resp = await response.json();
               if (resp.success === true) {
                 flagButton.textContent = "Question Flagged";
-                flagButton.style.backgroundColor = "#22c55e";
+                flagButton.style.backgroundColor = "var(--rs-success)";
                 flagButton.style.color = "white";
                 flagButton.disabled = true;
               } else {

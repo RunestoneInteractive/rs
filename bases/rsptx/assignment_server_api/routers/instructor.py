@@ -43,9 +43,12 @@ from rsptx.db.crud import (
     create_assignment_question,
     create_deadline_exception,
     delete_deadline_exception,
+    update_deadline_exception,
+    upsert_deadline_exception,
     create_question,
     fetch_course,
     fetch_users_for_course,
+    create_code_entry,
     fetch_subchapters,
     create_assignment,
     fetch_questions_for_chapter_subchapter,
@@ -56,7 +59,9 @@ from rsptx.db.crud import (
     update_assignment_exercises,
     update_assignment,
     update_question,
+    fetch_question_by_id,
     fetch_one_assignment,
+    fetch_late_students_for_assignment,
     get_peer_votes,
     search_exercises,
     create_api_token,
@@ -79,6 +84,7 @@ from rsptx.db.crud.assignment import (
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
+from rsptx.response_helpers import construct_course_url
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -88,6 +94,7 @@ from rsptx.response_helpers.core import (
 from rsptx.db.models import (
     AssignmentQuestionValidator,
     AssignmentValidator,
+    CodeValidator,
     QuestionValidator,
 )
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -109,8 +116,6 @@ from rsptx.data_types.which_to_grade import WhichToGradeOptions
 from rsptx.data_types.autograde import AutogradeOptions
 from rsptx.data_types.language import LanguageOptions
 from rsptx.data_types.question_type import QuestionType
-
-from .student import get_course_url
 
 # Routing
 # =======
@@ -135,7 +140,7 @@ async def review_peer_assignment(
 
     if assignment_id is None:
         rslogger.error("BAD ASSIGNMENT = %s assignment %s", course, assignment_id)
-        return RedirectResponse("/runestone/peer/instructor.html")
+        return RedirectResponse("/assignment/peer/instructor")
 
     # Check if the user is an instructor
     user_is_instructor = await is_instructor(request, user=user)
@@ -159,14 +164,14 @@ async def review_peer_assignment(
             course,
             user.username,
         )
-        return RedirectResponse("/runestone/peer/instructor.html")
+        return RedirectResponse("/assignment/peer/instructor")
 
     if not is_assignment_visible_to_students(assignment):
         if not user_is_instructor:
             rslogger.error(
                 f"Attempt to access invisible assignment {assignment_id} by {user.username}"
             )
-            return RedirectResponse("/runestone/peer/instructor.html")
+            return RedirectResponse("/assignment/peer/instructor")
 
     # Fetch questions within the assignment
     questions = await fetch_assignment_questions(assignment_id)
@@ -178,9 +183,11 @@ async def review_peer_assignment(
             # This replacement is to render images
             bts = q.Question.htmlsrc
             htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + get_course_url(course, "_static/")
+                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
             )
-            htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
+            htmlsrc = htmlsrc.replace(
+                "../_images", construct_course_url(course, "_images")
+            )
 
             # Rewrite xref links and knowls in fillintheblank questions
             if "fillintheblank" in htmlsrc:
@@ -333,6 +340,101 @@ async def get_assignment_gb(
         eng,
         params=(classid, classid),
     )
+
+    # Spaced practice grading, copied from the old gradebook logic.
+    # Get the spaced practice settings for this course.
+    practice_setting = pd.read_sql(
+        """
+        select spacing, day_points, max_practice_days, question_points, max_practice_questions
+        from course_practice
+        where course_name = %s
+          and end_date is not null
+        order by id desc
+        limit 1
+        """,
+        eng,
+        params=(course.course_name,),
+    )
+
+    # This dictionary will store each user's practice grade by user_id.
+    practice_by_user_id = {}
+    show_practice = False
+    practice_total_points = 0.0
+
+    def format_practice_grade(points_received, total_possible_points):
+        # If there are no possible points, return an empty string to avoid division by zero.
+        if not total_possible_points:
+            return ""
+        # Format the grade based on whether we are showing points or percentage.
+        if show_points:
+            return "{0:.2f}".format(points_received)
+
+        return "{0:.2f}".format(100 * points_received / total_possible_points)
+
+    # Only calculate practice grades if this course has practice settings
+    if not practice_setting.empty:
+        show_practice = True
+        ps = practice_setting.iloc[0]
+
+        # If spacing is 1, grade practice based on completed practice days.
+        if ps.spacing == 1:
+            practice_counts = pd.read_sql(
+                """
+                select user_id, count(*) as practice_completion_count
+                from user_topic_practice_completion
+                where course_name = %s
+                group by user_id
+                """,
+                eng,
+                params=(course.course_name,),
+            )
+
+            # Calculate the total possible points for practice days.
+            practice_total_points = float(ps.day_points or 0) * float(
+                ps.max_practice_days or 0
+            )
+
+            # Loop through each student with completed practice questions and calculate
+            # their spaced practice grade based on the number of questions they completed.
+            max_days = int(ps.max_practice_days or 0)
+            points_per_day = float(ps.day_points or 0)
+            for _, prow in practice_counts.iterrows():
+                completion_count = int(prow.practice_completion_count or 0)
+                points_received = points_per_day * min(completion_count, max_days)
+                practice_by_user_id[prow.user_id] = format_practice_grade(
+                    points_received, practice_total_points
+                )
+
+        # Otherwise, grade practice based on the number of completed questions.
+        else:
+            practice_counts = pd.read_sql(
+                """
+                select user_id, count(*) as practice_completion_count
+                from user_topic_practice_log
+                where course_name = %s
+                  and q != 0
+                  and q != -1
+                group by user_id
+                """,
+                eng,
+                params=(course.course_name,),
+            )
+            practice_total_points = float(ps.question_points or 0) * float(
+                ps.max_practice_questions or 0
+            )
+
+            # Loop through each student with completed practice questions and calculate
+            # their spaced practice grade based on the number of questions they completed.
+            max_questions = int(ps.max_practice_questions or 0)
+            points_per_question = float(ps.question_points or 0)
+            for _, prow in practice_counts.iterrows():
+                completion_count = int(prow.practice_completion_count or 0)
+                points_received = points_per_question * min(
+                    completion_count, max_questions
+                )
+                practice_by_user_id[prow.user_id] = format_practice_grade(
+                    points_received, practice_total_points
+                )
     apoints = {}
     for ix, row in assignments.iterrows():
         rslogger.debug(f"AROW = {row['name']}, {row.points}")
@@ -340,6 +442,8 @@ async def get_assignment_gb(
 
     assignments.index = assignments.id
     aname = assignments.name.to_dict()
+    # Reverse lookup so we can map a rendered column back to its assignment id.
+    aid_by_name = {name: aid for aid, name in aname.items()}
     students["full_name"] = students.first_name + " " + students.last_name
     students.index = students.id
     sfirst = students.first_name.to_dict()
@@ -350,9 +454,17 @@ async def get_assignment_gb(
         columns=aname
     )
 
+    # Add all students, including students who only have spaced practice.
+    pt = pt.reindex(index=students.index)
+    # Make sure reset_index() creates a sid column later.
+    pt.index.name = "sid"
+
     cols = pt.columns.to_list()
     display_cols = []
     formatter_map = {}
+    # Map each rendered assignment column header to its assignment id so the
+    # gradebook can request the late-work list for whichever column is clicked.
+    assignment_id_by_column = {}
 
     def format_percent(value):
         return "" if pd.isna(value) else f"{value:.2f}"
@@ -367,11 +479,27 @@ async def get_assignment_gb(
                 pt[c] = (pt[c] / points * 100).round(2)
             formatter_map[display_name] = format_percent
         display_cols.append(display_name)
+        if c in aid_by_name:
+            assignment_id_by_column[display_name] = aid_by_name[c]
 
     pt["first_name"] = pt.index.map(sfirst)
     pt["last_name"] = pt.index.map(slast)
     pt["email"] = pt.index.map(semail)
     pt["username"] = pt.index.map(suser)
+
+    # These are the columns that should always show first.
+    base_cols = ["first_name", "last_name", "email", "username"]
+
+    # Only add the Practice column if spaced practice is actually configured.
+    if show_practice:
+        if show_points:
+            practice_col = f"Practice ({practice_total_points:g} pts)"
+        else:
+            practice_col = "Practice (%)"
+
+        pt[practice_col] = pt.index.map(lambda sid: practice_by_user_id.get(sid, ""))
+        base_cols.append(practice_col)
+
     pt["_last_name_missing"] = pt["last_name"].fillna("").str.strip().eq("")
     pt["_first_name_missing"] = pt["first_name"].fillna("").str.strip().eq("")
     pt = pt.sort_values(
@@ -379,7 +507,7 @@ async def get_assignment_gb(
         na_position="last",
     )
     pt = pt.drop(columns=["_last_name_missing", "_first_name_missing"])
-    pt = pt[["first_name", "last_name", "email", "username"] + cols]
+    pt = pt[base_cols + cols]
     pt = pt.reset_index()
     pt = pt.drop(columns=["sid"], axis=1)
     pt.columns.name = None
@@ -400,7 +528,7 @@ async def get_assignment_gb(
         {
             "table_html": pt.to_html(
                 table_id="table",
-                columns=["first_name", "last_name", "email", "username"] + display_cols,
+                columns=base_cols + display_cols,
                 index=False,
                 na_rep="",
                 formatters=formatter_map,
@@ -411,6 +539,7 @@ async def get_assignment_gb(
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": False,
+            "assignment_id_by_column": json.dumps(assignment_id_by_column),
         },
     )
 
@@ -433,13 +562,54 @@ async def get_assignments(
 
 @router.get("/assignments/{assignment_id}")
 @instructor_role_required()
-async def get_assignment(request: Request, assignment_id: int):
+@with_course()
+async def get_assignment(request: Request, assignment_id: int, course=None):
     # todo: update fetch to only get new style??
     assignment = await fetch_one_assignment(assignment_id)
+    # Only allow reading an assignment that belongs to the instructor's course.
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
     rslogger.debug(f"Got assignment: {assignment}")
 
     return make_json_response(
         status=status.HTTP_200_OK, detail={"assignment": assignment}
+    )
+
+
+@router.get("/assignments/{assignment_id}/late_students")
+@instructor_role_required()
+@with_course()
+async def get_late_students(request: Request, assignment_id: int, course=None):
+    """Return the students who have saved work for ``assignment_id`` after the
+    (accommodation adjusted) deadline.
+
+    Used by the gradebook to show, on demand, who turned in late work for a
+    single assignment so the full gradebook does not have to compute this for
+    every student up front.
+    """
+    assignment = await fetch_one_assignment(assignment_id)
+    # Only expose data for an assignment that belongs to the instructor's course.
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    students = await fetch_late_students_for_assignment(assignment_id)
+    for s in students:
+        first = (s.get("first_name") or "").strip()
+        last = (s.get("last_name") or "").strip()
+        s["name"] = (f"{first} {last}").strip() or s["username"]
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_id": assignment_id,
+            "assignment_name": assignment.name,
+            "enforce_due": bool(assignment.enforce_due),
+            "students": students,
+        },
     )
 
 
@@ -487,6 +657,15 @@ async def do_update_assignment(
     request_data: AssignmentValidator,
     course=None,
 ):
+    # Verify the assignment being updated already belongs to the instructor's
+    # course before mutating it. update_assignment keys by id, so without this
+    # an instructor could overwrite (and re-stamp into their own course) an
+    # assignment from another course by supplying its id.
+    existing = await fetch_one_assignment(request_data.id)
+    if not existing or existing.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
     request_data.course = course.id
     rslogger.debug(f"Updating assignment: {request_data}")
     if request_data.current_index is None:
@@ -591,6 +770,15 @@ async def do_update_question(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
     course = await fetch_course(user.course_name)
+    # Verify the question being updated belongs to the instructor's base course.
+    # update_question keys by id and this endpoint stamps base_course with the
+    # caller's course, so without this check an instructor could overwrite (and
+    # re-home) a question belonging to another book by supplying its id.
+    existing = await fetch_question_by_id(request_data.id)
+    if not existing or existing.base_course != course.base_course:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Question not found"
+        )
     rslogger.debug(f"Updating question: {request_data}")
     if request_data.author is None:
         request_data.author = user.first_name + " " + user.last_name
@@ -624,12 +812,24 @@ async def do_update_question(
 
 
 @router.post("/new_assignment_q")
+@instructor_role_required()
+@with_course()
 async def new_assignment_question(
     request_data: AssignmentQuestionIncoming,
     request: Request,
-    user=Depends(auth_manager),
+    course=None,
     response_class=JSONResponse,
 ):
+    # Verify the target assignment belongs to the instructor's own course before
+    # attaching a question to it. Without this an instructor (or any logged-in
+    # user, prior to the decorators above) could modify assignments in other
+    # courses by supplying an arbitrary assignment_id.
+    assignment = await fetch_one_assignment(request_data.assignment_id)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     new_aq = AssignmentQuestionValidator(
         **request_data.model_dump(),
         timed=False,
@@ -671,6 +871,13 @@ async def get_assignment_questions(
     if not user_is_instructor:
         return make_json_response(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
+        )
+
+    # Only allow reading questions for an assignment in the instructor's course.
+    assignment = await fetch_one_assignment(request_data.assignment)
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
 
     res = await fetch_assignment_questions(request_data.assignment)
@@ -1109,6 +1316,7 @@ async def process_invoice_request(
 
 
 @router.get("/course_roster")
+@instructor_role_required()
 async def get_course_roster(
     request: Request, user=Depends(auth_manager), response_class=JSONResponse
 ):
@@ -1460,11 +1668,20 @@ async def get_add_token_page(
     # Fetch all tokens for the course
     tokens = await fetch_all_api_tokens(course.id)
 
-    # Count tokens by provider
-    token_counts = {}
+    # Build the itemized token list for the template
+    token_list = []
     for token in tokens:
-        provider = token.provider
-        token_counts[provider] = token_counts.get(provider, 0) + 1
+        token_list.append(
+            {
+                "id": token.id,
+                "provider": token.provider,
+                "masked_token": (
+                    token.token[:4] + "****" + token.token[-4:]
+                    if len(token.token) > 8
+                    else "****"
+                ),
+            }
+        )
 
     total_tokens = len(tokens)
 
@@ -1476,7 +1693,7 @@ async def get_add_token_page(
         "is_instructor": True,
         "student_page": False,
         "total_tokens": total_tokens,
-        "token_counts": token_counts,
+        "token_list": token_list,
     }
 
     return templates.TemplateResponse("assignment/instructor/add_token.html", context)
@@ -1511,6 +1728,46 @@ async def delete_course_tokens(
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error deleting tokens: {str(e)}",
+        )
+
+
+@router.delete("/delete_token/{token_id}")
+@instructor_role_required()
+@with_course()
+async def delete_single_token(
+    token_id: int,
+    request: Request,
+    course=None,
+):
+    """
+    Delete a specific API token for the instructor's course.
+
+    :param token_id: ID of the token to delete
+    :param course: Course object from decorator
+    :return: JSON response with success status
+    """
+    try:
+        deleted = await delete_api_token(course_id=course.id, token_id=token_id)
+        if deleted:
+            return make_json_response(
+                status=status.HTTP_200_OK,
+                detail={
+                    "status": "success",
+                    "message": "Token deleted successfully",
+                },
+            )
+        else:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail="Token not found",
+            )
+    except Exception as e:
+        rslogger.error(
+            f"Error deleting API token {token_id} for course {course.id}: {e}"
+        )
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error deleting token: {str(e)}",
         )
 
 
@@ -1648,6 +1905,93 @@ async def delete_accommodations(request: Request, accommodation_id: int, course=
         return make_json_response(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error deleting accommodation: {str(e)}",
+        )
+
+
+class AccommodationPayload(BaseModel):
+    sids: List[str]
+    assignment_id: Optional[int] = None
+    duedate: Optional[int] = None
+    time_limit: Optional[float] = None
+    visible: Optional[bool] = None
+    allowLink: Optional[bool] = None
+
+
+class AccommodationUpdatePayload(BaseModel):
+    duedate: Optional[int] = None
+    time_limit: Optional[float] = None
+    visible: Optional[bool] = None
+    allowLink: Optional[bool] = None
+
+
+@router.post("/accommodation")
+@instructor_role_required()
+@with_course()
+async def create_or_update_accommodation(
+    request: Request, payload: AccommodationPayload, course=None
+):
+    """
+    Create or update a deadline exception (extra time / extension) for one or
+    more students. A NULL assignment_id applies the exception to every
+    assignment for the student.
+    """
+    try:
+        results = []
+        for sid in payload.sids:
+            entry = await upsert_deadline_exception(
+                course_id=course.id,
+                username=sid,
+                time_limit=payload.time_limit,
+                deadline=payload.duedate,
+                visible=payload.visible,
+                assignment_id=payload.assignment_id,
+                allowLink=payload.allowLink,
+            )
+            results.append(entry.dict() if entry else None)
+        return make_json_response(
+            status=status.HTTP_200_OK, detail={"accommodations": results}
+        )
+    except Exception as e:
+        rslogger.error(f"Error creating accommodation: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error creating accommodation: {str(e)}",
+        )
+
+
+@router.put("/accommodation/{accommodation_id}")
+@instructor_role_required()
+@with_course()
+async def update_accommodation(
+    request: Request,
+    accommodation_id: int,
+    payload: AccommodationUpdatePayload,
+    course=None,
+):
+    """
+    Update an existing deadline exception by its id.
+    """
+    try:
+        entry = await update_deadline_exception(
+            entry_id=accommodation_id,
+            time_limit=payload.time_limit,
+            deadline=payload.duedate,
+            visible=payload.visible,
+            allowLink=payload.allowLink,
+        )
+        if entry is None:
+            return make_json_response(
+                status=status.HTTP_404_NOT_FOUND,
+                detail=f"Accommodation {accommodation_id} not found",
+            )
+        return make_json_response(
+            status=status.HTTP_200_OK, detail={"accommodation": entry.dict()}
+        )
+    except Exception as e:
+        rslogger.error(f"Error updating accommodation {accommodation_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error updating accommodation: {str(e)}",
         )
 
 
@@ -1981,3 +2325,70 @@ async def get_datafile_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error fetching datafile: {str(e)}",
         )
+
+
+# Comment prefix by language, used when sharing instructor scratch code.
+BROADCAST_COMMENT_MAP = {
+    "sql": "--",
+    "python": "#",
+    "java": "//",
+    "javascript": "//",
+    "c": "//",
+    "cpp": "//",
+}
+
+
+class BroadcastCodeRequest(BaseModel):
+    divid: str
+    code: str
+    lang: str
+
+
+@router.post("/broadcast_code")
+@instructor_role_required()
+@with_course()
+async def broadcast_code(
+    request_data: BroadcastCodeRequest,
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Share the instructor's scratch activecode with every student in the course by
+    inserting a copy into each student's saved code for the given activecode (divid).
+
+    Ported from the legacy web2py ``ajax/broadcast_code`` endpoint.
+    """
+    students = await fetch_users_for_course(course.course_name)
+    prefix = BROADCAST_COMMENT_MAP.get(request_data.lang, "#")
+    now = canonical_utcnow()
+    shared_code = (
+        f"{prefix} Instructor shared code on {now.date()}\n{request_data.code}"
+    )
+
+    share_count = 0
+    for student in students:
+        if student.id == user.id:
+            continue
+        try:
+            await create_code_entry(
+                CodeValidator(
+                    sid=student.username,
+                    acid=request_data.divid,
+                    code=shared_code,
+                    emessage="",
+                    timestamp=now,
+                    course_id=course.id,
+                    language=request_data.lang,
+                    comment="Instructor shared code",
+                )
+            )
+        except Exception as e:
+            rslogger.error(f"Failed to insert instructor code: {e}")
+            return make_json_response(
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"mess": "failed"},
+            )
+        share_count += 1
+
+    return JSONResponse(content={"mess": "success", "share_count": share_count})

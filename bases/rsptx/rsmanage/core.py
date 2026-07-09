@@ -23,7 +23,7 @@ import subprocess
 
 # third party imports
 import redis
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
 import psycopg2
@@ -33,6 +33,8 @@ from psycopg2.sql import Identifier, SQL
 # our own package imports
 
 from rsptx.db.crud import (
+    build_checkin_payload,
+    set_last_sent,
     copy_course_attributes,
     create_initial_courses_users,
     create_book_author,
@@ -309,7 +311,7 @@ async def addcourse(
     """Create a course in the database"""
 
     if not basecourse:
-        basecourse = click.prompt("Base Course: ")
+        basecourse = await click.prompt("Base Course: ")
     bookrec = await fetch_library_book(basecourse)
     if not bookrec:
         click.echo(
@@ -329,27 +331,27 @@ async def addcourse(
         use_defaults = False
     while not done:
         if not course_name:
-            course_name = click.prompt("Course Name")
+            course_name = await click.prompt("Course Name")
         if not re.match(regex, course_name):
             click.echo("Course name must be alphanumeric or underscore")
             course_name = None
             continue
         if not python3 and not use_defaults:
             python3 = (
-                "T" if click.confirm("Use Python3 style syntax?", default="T") else "F"
+                "T" if click.confirm("Use Python3 style syntax?", default=True) else "F"
             )
         else:
             python3 = "T" if python3 else "F"
         if not basecourse and not use_defaults:
-            basecourse = click.prompt("Base Course")
+            basecourse = await click.prompt("Base Course")
         if not start_date and not use_defaults:
-            start_date = click.prompt("Start Date YYYY-MM-DD")
+            start_date = await click.prompt("Start Date YYYY-MM-DD")
         if not institution and not use_defaults:
-            institution = click.prompt("Your institution")
+            institution = await click.prompt("Your institution")
         # TODO: these prompts make no sense -- only ask for them if the option was False??? Looks like a copy-and-paste error.
         if not login_required and not use_defaults:
             login_required = (
-                "T" if click.confirm("Require users to log in", default="T") else "F"
+                "T" if click.confirm("Require users to log in", default=True) else "F"
             )
         else:
             login_required = "T" if login_required else "F"
@@ -484,12 +486,6 @@ async def adduser(
 ):
     """Add a user (or users from a csv file)"""
 
-    mess = [
-        "Success",
-        "Value Error -- check the format of your CSV file",
-        "Duplicate User -- Check your data or use --ignore_dupes if you are adding students to an existing CSV",
-        "Unknown Error -- check the format of your CSV file",
-    ]
     if fromfile:
         # if fromfile then be sure to get the full path name NOW.
         # csv file should be username, email first_name, last_name, password, course
@@ -525,19 +521,23 @@ async def adduser(
             )
             res = await create_user(newUser)
             if not res:
-                click.echo(f"Failed to create user {line[0]} error {mess[res]}")
+                click.echo(
+                    f"Failed to create user {line[0]} -- check your data or use --verbose for more detail"
+                )
                 exit(1)
             else:
                 exit(0)
 
     else:
         userinfo = {}
-        userinfo["username"] = username or click.prompt("Username")
-        userinfo["password"] = password or click.prompt("Password", hide_input=True)
-        userinfo["first_name"] = first_name or click.prompt("First Name")
-        userinfo["last_name"] = last_name or click.prompt("Last Name")
-        userinfo["email"] = email or click.prompt("email address")
-        userinfo["course_name"] = course or click.prompt(
+        userinfo["username"] = username or await click.prompt("Username")
+        userinfo["password"] = password or await click.prompt(
+            "Password", hide_input=True
+        )
+        userinfo["first_name"] = first_name or await click.prompt("First Name")
+        userinfo["last_name"] = last_name or await click.prompt("Last Name")
+        userinfo["email"] = email or await click.prompt("email address")
+        userinfo["course_name"] = course or await click.prompt(
             "course name (blank for none)", default="boguscourse", show_default=False
         )
         course = await fetch_course(userinfo["course_name"])
@@ -577,8 +577,8 @@ async def adduser(
 async def resetpw(config, username, password):
     """Utility to change a users password. Useful If they can't do it through the normal mechanism"""
     userinfo = {}
-    username = username or click.prompt("Username")
-    userinfo["password"] = password or click.prompt("Password", hide_input=True)
+    username = username or await click.prompt("Username")
+    userinfo["password"] = password or await click.prompt("Password", hide_input=True)
 
     res = await fetch_user(username)
     if not res:
@@ -595,7 +595,7 @@ async def resetpw(config, username, password):
 async def rmuser(config, username):
     """Utility to remove a user from the system completely."""
 
-    sid = username or click.prompt("Username")
+    sid = username or await click.prompt("Username")
     await delete_user(sid)
 
 
@@ -645,8 +645,8 @@ async def addinstructor(config, username, course):
     Add an existing user as an instructor for a course
     """
 
-    username = username or click.prompt("Username")
-    course = course or click.prompt("Course name")
+    username = username or await click.prompt("Username")
+    course = course or await click.prompt("Course name")
 
     res = await fetch_user(username)
     if res:
@@ -709,8 +709,8 @@ async def addeditor(config, username, basecourse):
     Add an existing user as an editor for a given base course
     """
 
-    username = username or click.prompt("Username")
-    basecourse = basecourse or click.prompt("Base Course name")
+    username = username or await click.prompt("Username")
+    basecourse = basecourse or await click.prompt("Base Course name")
     res = await fetch_user(username)
     if res:
         userid = res.id
@@ -767,7 +767,7 @@ async def courseinfo(config, name):
     """
 
     if not name:
-        name = click.prompt("What course do you want info about?")
+        name = await click.prompt("What course do you want info about?")
 
     course = await fetch_course(name)
     if not course:
@@ -805,7 +805,7 @@ async def studentinfo(config, student):
     """
 
     if not student:
-        student = click.prompt("Student Id: ")
+        student = await click.prompt("Student Id: ")
 
     student = await fetch_user(student)
     courses = await fetch_courses_for_user(student.id)
@@ -831,9 +831,9 @@ async def addattribute(config, course, attr, value):
     Add an attribute to the `course_attributes` table
 
     """
-    course = course or click.prompt("Name of the course ")
-    attr = attr or click.prompt("Attribute to set: ")
-    value = value or click.prompt(f"Value of {attr}: ")
+    course = course or await click.prompt("Name of the course ")
+    attr = attr or await click.prompt("Attribute to set: ")
+    value = value or await click.prompt(f"Value of {attr}: ")
 
     res = await fetch_course(course)
     if res:
@@ -859,7 +859,7 @@ async def showattrs(config, course):
     Show all attributes for a course
 
     """
-    course = course or click.prompt("Name of the course ")
+    course = course or await click.prompt("Name of the course ")
 
     res = await fetch_course(course)
     if res:
@@ -904,7 +904,7 @@ async def approvedomain(config, domain):
     if domain:
         print(f"Domain approval for {domain}")
     else:
-        domain = click.prompt("Domain to approve")
+        domain = await click.prompt("Domain to approve")
 
     res = None
     try:
@@ -931,13 +931,13 @@ async def approvedomain(config, domain):
 )
 @click.option("--pset", help="Database ID of the Problem Set")
 @pass_config
-def grade(config, course, pset, enforce):
+async def grade(config, course, pset, enforce):
     """Grade a problem set; hack for long-running grading processes"""
     os.chdir(findProjectRoot())
 
     userinfo = {}
-    userinfo["course"] = course if course else click.prompt("Name of course")
-    userinfo["pset"] = pset if pset else click.prompt("Problem Set ID")
+    userinfo["course"] = course if course else await click.prompt("Name of course")
+    userinfo["pset"] = pset if pset else await click.prompt("Problem Set ID")
     userinfo["enforce_deadline"] = (
         enforce if enforce else click.confirm("Enforce deadline?", default=True)
     )
@@ -964,9 +964,9 @@ def grade(config, course, pset, enforce):
 async def datashop(config, basecourse, sample_size, course_list, preserve_user_ids):
     """Export the course data to the datashop format"""
     if not sample_size:
-        sample_size = click.prompt("Sample size", default=0)
+        sample_size = await click.prompt("Sample size", default=0)
     if not course_list and sample_size == 0:
-        course_list = click.prompt("Course list")
+        course_list = await click.prompt("Course list")
     if course_list:
         course_list = [c.strip() for c in course_list.split(",")]
     if course_list and len(course_list) == 1:
@@ -1001,7 +1001,9 @@ def db(config):
     """
     Connect to the database based on the current configuration
     """
-    sys.exit(subprocess.run(["pgcli", f"{config.dburl.replace('+asyncpg', '')}"]))
+    sys.exit(
+        subprocess.run(["pgcli", f"{config.dburl.replace('+asyncpg', '')}"]).returncode
+    )
 
 
 @cli.command()
@@ -1015,7 +1017,7 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
     Show students answers for a given assignment
 
     """
-    course_name = course_name or click.prompt("Name of the course ")
+    course_name = course_name or await click.prompt("Name of the course ")
 
     course = await fetch_course(course_name)
     if course:
@@ -1037,13 +1039,16 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
             click.echo(f"{assign.name}")
         sys.exit(-1)
     engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    conn = engine.connect()
     if sid:
         sid = f"and useinfo.sid = '{sid}'"
     else:
         sid = ""
 
-    aqs = engine.execute(
-        f"select question_id, reading_assignment from assignment_questions where assignment_id = {current_assignment.id}"
+    aqs = conn.execute(
+        text(
+            f"select question_id, reading_assignment from assignment_questions where assignment_id = {current_assignment.id}"
+        )
     )
     has_readings = False
     qlist = []
@@ -1052,14 +1057,16 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
             has_readings = True
             qlist.append(q.question_id)
 
-    res = engine.execute(
-        f"""
-    select useinfo.timestamp as ts,name,sid,event,act from assignment_questions 
-        join questions ON questions.id = assignment_questions.question_id 
-        join useinfo on questions.name = useinfo.div_id 
+    res = conn.execute(
+        text(
+            f"""
+    select useinfo.timestamp as ts,name,sid,event,act from assignment_questions
+        join questions ON questions.id = assignment_questions.question_id
+        join useinfo on questions.name = useinfo.div_id
         where assignment_id = {current_assignment.id} {sid if sid else ""}
         order by sid, useinfo.timestamp
                    """
+        )
     )
     click.echo(
         f"Assignment ({current_assignment.id}) Due: {current_assignment.duedate}"
@@ -1081,28 +1088,34 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
 
     if has_readings:
         click.echo("\n\nReading Assignment Questions")
-        qres = engine.execute(
-            f"""
+        qres = conn.execute(
+            text(
+                f"""
         select chapter, subchapter from questions where id in ({','.join([str(q) for q in qlist])})
         """
+            )
         )
         div_ids = []
         for row in qres:
-            alist = engine.execute(
-                f"""
+            alist = conn.execute(
+                text(
+                    f"""
                 select name from questions where chapter = '{row.chapter}' and subchapter = '{row.subchapter}' and base_course = '{course.base_course}' and id not in ({','.join([str(q) for q in qlist])})
                 """
+                )
             )
             for a in alist:
                 div_ids.append(a.name)
         if div_ids:
-            res = engine.execute(
-                f"""
-    select useinfo.timestamp as ts,div_id,sid,event,act 
-    from useinfo 
-    where div_id in ({','.join([f"'{d}'" for d in div_ids])}) {sid} and course_id = '{course.course_name}' 
+            res = conn.execute(
+                text(
+                    f"""
+    select useinfo.timestamp as ts,div_id,sid,event,act
+    from useinfo
+    where div_id in ({','.join([f"'{d}'" for d in div_ids])}) {sid} and course_id = '{course.course_name}'
     order by sid, useinfo.timestamp
                 """
+                )
             )
         for row in res:
             if (row.ts + dd) > current_assignment.duedate:
@@ -1116,6 +1129,7 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
                 click.echo(
                     f"< {row.ts} {row.sid:<15} {row.div_id:<40} {row.event:<10} {row.act:<30}"
                 )
+    conn.close()
 
 
 #
@@ -1193,9 +1207,12 @@ def findProjectRoot():
 
 
 def check_db_for_useinfo(config):
-    eng = create_engine(config.dburl)
-    res = eng.execute("select count(*) from pg_class where relname = 'useinfo'")
-    count = res.first()[0]
+    eng = create_engine(config.dburl.replace("+asyncpg", ""))
+    with eng.connect() as conn:
+        res = conn.execute(
+            text("select count(*) from pg_class where relname = 'useinfo'")
+        )
+        count = res.scalar()
     return count
 
 
@@ -1223,8 +1240,8 @@ async def addbookauthor(config, book, author, github):
     The name of the book must match the document-id as defined in the docinfo section
     of the book's PreTeXt source.
     """
-    book = book or click.prompt("document-id or basecourse ")
-    author = author or click.prompt("Runestone username of an author or admin: ")
+    book = book or await click.prompt("document-id or basecourse ")
+    author = author or await click.prompt("Runestone username of an author or admin: ")
 
     a_row = await fetch_user(author)
     if not a_row:
@@ -1269,7 +1286,7 @@ async def addbookauthor(config, book, author, github):
             # check to see if book exists under $BOOK_PATH
             github = find_github_url(book)
             if not github:
-                book_path = click.prompt(
+                book_path = await click.prompt(
                     f"Could not find a GitHub URL for {book}. Please provide the path to the repository on your local machine relative to $BOOK_PATH, or leave blank if it is not cloned locally",
                     default="",
                 )
@@ -1409,7 +1426,7 @@ async def library_repo_path(ctx, book, path):
     Set the repo_path for the book in the library
     """
     if not path:
-        path = click.prompt(
+        path = await click.prompt(
             "Please provide the path to the book on your local machine relative to $BOOK_PATH"
         )
     print(f"Setting the repo_path to {path} for {book} in the library")
@@ -1436,10 +1453,59 @@ async def library_github(ctx, book, url):
     Set the github_url for the book in the library
     """
     if not url:
-        url = click.prompt("Please provide the GitHub URL of the book repository")
+        url = await click.prompt("Please provide the GitHub URL of the book repository")
     print(f"Setting the github_url to {url} for {book} in the library")
     bookrec = await fetch_library_book(book)
     await update_library_book(bookrec.id, dict(github_url=url))
+
+
+@cli.command()
+@click.option("--send", is_flag=True, help="Actually send the check-in now")
+@pass_config
+async def telemetry(config, send):
+    """Preview (default) or send the anonymous usage check-in.
+
+    By default this only prints the exact payload that would be sent so you can
+    see precisely what leaves your server. Use --send to transmit it now.
+    Telemetry is opt-out: set TELEMETRY_ENABLED=false to turn it off entirely.
+    """
+    await init_models()
+    try:
+        payload = await build_checkin_payload()
+        click.echo("Anonymous usage check-in payload (no personal data, no IP):")
+        click.echo(json.dumps(payload, indent=2, default=str))
+        click.echo(f"\nTelemetry enabled: {settings.telemetry_enabled}")
+        click.echo(f"Destination: {settings.telemetry_url}")
+
+        if not send:
+            click.echo("\nNothing sent. Re-run with --send to transmit.")
+            return
+
+        # Use the standard library for this one-shot POST so rsmanage doesn't
+        # need an HTTP client dependency.
+        import urllib.error
+        import urllib.request
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            settings.telemetry_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                status_code = resp.status
+        except urllib.error.HTTPError as e:
+            status_code = e.code
+
+        if status_code < 400:
+            await set_last_sent(canonical_utcnow())
+            click.echo(f"\nSent. Server responded HTTP {status_code}.")
+        else:
+            click.echo(f"\nServer responded HTTP {status_code}; not recorded.")
+    finally:
+        await term_models()
 
 
 if __name__ == "__main__":

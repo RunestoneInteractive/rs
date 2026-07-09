@@ -1,5 +1,5 @@
-import { createAsyncThunk, createSlice, createSelector } from "@reduxjs/toolkit";
-import { toast } from "react-hot-toast";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { notify } from "@components/ui/notify";
 
 export const fetchClassRoster = createAsyncThunk(
   "student/fetchClassRoster",
@@ -19,10 +19,7 @@ export const fetchClassRoster = createAsyncThunk(
 
     if (!resp.ok) {
       console.warn("Error fetching student roster");
-      toast("Error fetching students", {
-        icon: "🔥",
-        duration: 5000
-      });
+      notify.error("Couldn't load students. Try again.");
 
       return;
     }
@@ -52,50 +49,42 @@ export const saveException = createAsyncThunk("student/saveException", async (ex
 
   if (!resp.ok) {
     console.warn("Error saving exception");
-    toast("Error saving exception", {
-      icon: "🔥"
-    });
+    notify.error("Couldn't save the exception. Try again.");
     return;
   }
   let result = await resp.json();
 
   if (result.detail.success) {
     console.log("exception saved");
-    toast("Exception saved", { icon: "🎉" });
+    notify.success("Exception saved");
     return result.detail.success;
   }
 });
 
-export const fetchAccommodations = createAsyncThunk(
-  "student/fetchAccommodations",
-  async () => {
-    let jsheaders = new Headers({
-      "Content-type": "application/json; charset=utf-8",
-      Accept: "application/json"
-    });
-    let data = {
-      headers: jsheaders,
-      method: "GET"
-    };
-    let resp = await fetch("/assignment/instructor/accommodations", data);
+export const fetchAccommodations = createAsyncThunk("student/fetchAccommodations", async () => {
+  let jsheaders = new Headers({
+    "Content-type": "application/json; charset=utf-8",
+    Accept: "application/json"
+  });
+  let data = {
+    headers: jsheaders,
+    method: "GET"
+  };
+  let resp = await fetch("/assignment/instructor/accommodations", data);
 
-    if (!resp.ok) {
-      console.warn("Error fetching accommodations");
-      toast("Error fetching accommodations", {
-        icon: "🔥",
-        duration: 5000
-      });
-      return [];
-    }
-    let result = await resp.json();
-
-    if (result.detail.accommodations) {
-      console.log("accommodations fetched");
-      return result.detail.accommodations;
-    }
+  if (!resp.ok) {
+    console.warn("Error fetching accommodations");
+    notify.error("Couldn't load accommodations. Try again.");
     return [];
   }
-);
+  let result = await resp.json();
+
+  if (result.detail.accommodations) {
+    console.log("accommodations fetched");
+    return result.detail.accommodations;
+  }
+  return [];
+});
 
 export const deleteAccommodations = createAsyncThunk(
   "student/deleteAccommodations",
@@ -106,21 +95,17 @@ export const deleteAccommodations = createAsyncThunk(
     });
     let data = {
       headers: jsheaders,
-      method: "DELETE",
+      method: "DELETE"
     };
     for (let id of idList) {
-
       let resp = await fetch(`/assignment/instructor/accommodation/${id}`, data);
 
       if (!resp.ok) {
         console.warn("Error deleting accommodation id ", id);
-        toast(`Error deleting accommodation ${id}`, {
-          icon: "🔥",
-          duration: 5000
-        });
+        notify.error(`Couldn't delete accommodation ${id}. Try again.`);
       }
     }
-    
+
     return idList;
   }
 );
@@ -156,8 +141,7 @@ export const studentSlice = createSlice({
       })
       .addCase(fetchAccommodations.rejected, (state, action) => {
         console.warn("Fetching Accommodations failed", action.error.message);
-      })
-      
+      });
   }
 });
 

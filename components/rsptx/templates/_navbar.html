@@ -1,0 +1,66 @@
+<nav class="navbar navbar-expand-sm sticky-top navbar-light bg-light">
+<!-- logo -- back to xxx  -- create course                    user scratch help -->
+<a class="navbar-brand" href="https://runestone.academy"><img src="/staticAssets/RAIcon.png" height="30px" alt="Runestone Logo"/></a>
+<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      {% if not student_page or is_instructor == True or is_instructor | lower == "true" %}
+      <li class="nav-item">
+        <a class="nav-link" href="/ns/books/published/{{ course.course_name }}/index.html">Back to {{ back_to | default(course.course_name, true) }} <span class="sr-only">(current)</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/admin/instructor/create_course"><span class="caption-wrap"><i class="ti ti-pencil-plus"></i><span>Create Course</span></span></a>
+      </li>
+      <li class="nav-item">
+          <a class="nav-link" href="https://blog.runestone.academy"><span class="caption-wrap"><i class="ti ti-news"></i><span></i>Runestone News</span></span></a>
+        </li>
+      {% endif %}
+      {{ navitems | default('') | safe }}
+
+    </ul>
+    <div class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <span class="caption-wrap"><i class="ti ti-user ti-big"></i><span>User</span></span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+          {% if user %}
+          <span class="dropdown-item">logged in: {{user.username}}</span>
+          <div class="dropdown-divider"></div>
+          {% endif %}
+          <a class="dropdown-item" href="/ns/course/index"><span class="caption-wrap"><i class="ti ti-home"></i><span>Course Home</span></span></a>
+          <a class="dropdown-item" href="/assignment/student/chooseAssignment"><span class="caption-wrap"><i class="ti ti-pencil"></i><span>Assignments</span></span></a>
+          <a class="dropdown-item" href="/runestone/assignments/practice"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Practice</span></span></a>
+          <a class="dropdown-item" href="/assignment/peer/student"><span class="caption-wrap"><i class="ti ti-users-group"></i><span>Peer Instruction (Student)</span></span></a>
+          <a class="dropdown-item" href="/assignment/student/studentreport"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Progress</span></span></a>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-divider"></div>
+          {% if is_instructor == True or is_instructor | lower == "true" %}
+          <a class="dropdown-item" href="/admin/instructor/menu"><span class="caption-wrap"><i class="ti ti-settings"></i><span>Instructor Dashboard</span></span></a>
+          <a class="dropdown-item" href="/assignment/peer/instructor"><span class="caption-wrap"><i class="ti ti-users-group"></i><span>Peer Instruction (Instructor)</span></span></a>
+          <a class="dropdown-item" href="https://author.runestone.academy/author/"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Author Tools</span></span></a>
+          <a class="dropdown-item" href="/runestone/admin/manage_exercises"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Editorial Page</span></span></a>
+          <a class="dropdown-item" href="/assignment/instructor/invoice_request"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Request Invoice</span></span></a>
+          <div class="dropdown-divider"></div>
+          {% endif %}
+          <a class="dropdown-item" href="/admin/auth/my_courses"><span class="caption-wrap"><i class="ti ti-books"></i><span>Change Course</span></span></a>
+          <a class="dropdown-item" href="/admin/auth/profile"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Profile</span></span></a>
+          <a class="dropdown-item" href="/admin/auth/logout"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Log Out</span></span></a>
+        </div>
+      </li>
+  </div>
+  <div class="nav-item dropdown mr-lg-2">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span class="caption-wrap"><i class="ti ti-help ti-big"></i><span>Help</span></span>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+            <a class="dropdown-item" href="https://guide.runestone.academy" target="_blank" rel="noopener noreferrer"  ><span class="caption-wrap"><i class="ti ti-book"></i><span>Instructors Guide</span></span></a>
+            <a class="dropdown-item" href="https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU"><span class="caption-wrap"><i class="ti ti-video"></i><span>Video Tutorials</span></span></a>
+            <a class="dropdown-item" href="/runestone/default/reportabug"><span class="caption-wrap"><i class="ti ti-bug"></i><span>Report a Problem</span></span></a>
+            <a class="dropdown-item" href="https://discord.com/invite/f3Qmbk9P3U"><span class="caption-wrap"><i class="ti ti-brand-discord"></i><span>Join our Discord</span></span></a>
+          </div>
+        </li>
+    </div>
+</nav>

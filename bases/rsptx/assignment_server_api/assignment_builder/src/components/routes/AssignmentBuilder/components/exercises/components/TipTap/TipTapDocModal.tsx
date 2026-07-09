@@ -1,4 +1,4 @@
-import { Dialog } from "primereact/dialog";
+import { Modal } from "@mantine/core";
 import { FC, useState } from "react";
 
 import styles from "./TipTapDocModal.module.css";
@@ -10,65 +10,48 @@ interface TipTapDocModalProps {
 
 export const TipTapDocModal: FC<TipTapDocModalProps> = ({ visible, onHide }) => {
   return (
-    <Dialog
-      header="Rich Text Editor Guide"
-      visible={visible}
-      onHide={onHide}
-      style={{ width: "50vw" }}
-      breakpoints={{ "960px": "75vw", "641px": "90vw" }}
+    <Modal
+      title="Editor guide"
+      opened={visible}
+      onClose={onHide}
+      size="50vw"
       className={styles.docModal}
+      closeButtonProps={{ "aria-label": "Close" }}
+      centered
     >
       <div className={styles.docContent}>
         <section className={styles.section}>
-          <h3>Slash Commands</h3>
+          <h3>Slash commands</h3>
           <p>
-            Type <code>/</code> to open the command menu with these options:
+            Type <code>/</code> to open the command menu:
           </p>
           <ul>
             <li>
-              <strong>Heading 1-6:</strong> Create different sized headings
+              <strong>Text formatting:</strong> bold, italic, underline, highlight, strikethrough,
+              clear formatting
             </li>
             <li>
-              <strong>Bold Text:</strong> Make text bold
+              <strong>Headings:</strong> levels 1–4
             </li>
             <li>
-              <strong>Italic Text:</strong> Make text italic
+              <strong>Lists & structure:</strong> bullet list, numbered list, quote, horizontal rule
             </li>
             <li>
-              <strong>Bullet List:</strong> Create a bulleted list
+              <strong>Code & math:</strong> code block with syntax highlighting, inline code, LaTeX
+              math
             </li>
             <li>
-              <strong>Numbered List:</strong> Create a numbered list
+              <strong>Tables:</strong> insert a table, then add or delete rows and columns
             </li>
             <li>
-              <strong>Quote:</strong> Add a blockquote
-            </li>
-            <li>
-              <strong>Code Block:</strong> Insert a code block with syntax highlighting
-            </li>
-            <li>
-              <strong>Horizontal Rule:</strong> Add a horizontal line
-            </li>
-            <li>
-              <strong>Link:</strong> Insert a hyperlink
-            </li>
-            <li>
-              <strong>Image:</strong> Upload and insert an image
-            </li>
-            <li>
-              <strong>YouTube Video:</strong> Embed a YouTube video
-            </li>
-            <li>
-              <strong>Math Expression:</strong> Add mathematical formulas (LaTeX)
-            </li>
-            <li>
-              <strong>Hard Break:</strong> Force a line break
+              <strong>Media & links:</strong> link, image upload, image by URL, YouTube video
             </li>
           </ul>
+          <p>Fill-in-the-blank editors also offer an "Add blank" command.</p>
         </section>
 
         <section className={styles.section}>
-          <h3>Keyboard Shortcuts</h3>
+          <h3>Keyboard shortcuts</h3>
           <div className={styles.shortcuts}>
             <div className={styles.shortcut}>
               <kbd>Ctrl/Cmd + B</kbd>
@@ -94,14 +77,23 @@ export const TipTapDocModal: FC<TipTapDocModalProps> = ({ visible, onHide }) => 
               <kbd>Ctrl/Cmd + Shift + H</kbd>
               <span>Highlight</span>
             </div>
+            <div className={styles.shortcut}>
+              <kbd>Tab</kbd>
+              <span>Indent a list item; insert a tab in code blocks</span>
+            </div>
+            <div className={styles.shortcut}>
+              <kbd>Shift + Tab</kbd>
+              <span>Outdent a list item</span>
+            </div>
           </div>
+          <p>Outside lists and code blocks, Tab moves focus to the next control.</p>
         </section>
 
         <section className={styles.section}>
-          <h3>Math Expressions</h3>
+          <h3>Math expressions</h3>
           <p>
             <strong>
-              All math must be wrapped in <code>\(</code> and <code>\)</code> delimiters!
+              All math must be wrapped in <code>\(</code> and <code>\)</code> delimiters.
             </strong>{" "}
             Use LaTeX syntax for mathematical expressions:
           </p>
@@ -201,14 +193,14 @@ export const TipTapDocModal: FC<TipTapDocModalProps> = ({ visible, onHide }) => 
         </section>
 
         <section className={styles.section}>
-          <h3>Bubble Menu</h3>
+          <h3>Bubble menu</h3>
           <p>
             Select text to see formatting options in the bubble menu that appears above your
             selection.
           </p>
         </section>
       </div>
-    </Dialog>
+    </Modal>
   );
 };
 

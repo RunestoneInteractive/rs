@@ -1,7 +1,9 @@
 import HParsonsFeedback from "./hparsonsFeedback";
+import { t } from "../../common/js/rsi18n.js";
 import BlockBasedGrader from "./blockGrader.js";
 import "../../parsons/js/parsons-i18n.en.js";
 import "../../parsons/js/parsons-i18n.pt-br.js";
+import "../../parsons/js/parsons-i18n.sr-Cyrl.js";
 
 export default class BlockFeedback extends HParsonsFeedback {
     createOutput() {
@@ -9,7 +11,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.messageDiv = document.createElement("div");
         this.hparsons.outerDiv.appendChild(this.messageDiv);
     }
-    
+
     customizeUI() {
         this.hparsons.runButton.textContent = "Check Me";
     }
@@ -22,7 +24,8 @@ export default class BlockFeedback extends HParsonsFeedback {
         const solutionIndices = this.hparsons.blockAnswer.map(Number);
         this.solution = solutionIndices;
         this.grader.solution = solutionIndices;
-        this.answerArea = this.hparsons.hparsonsInput.querySelector('.drop-area');
+        this.answerArea =
+            this.hparsons.hparsonsInput.querySelector(".drop-area");
     }
 
     // Called when check button clicked (block-based Feedback)
@@ -35,18 +38,18 @@ export default class BlockFeedback extends HParsonsFeedback {
     async logCurrentAnswer() {
         let act = {
             scheme: "block",
-            correct: this.grader.graderState == 'correct' ? "T" : "F",
+            correct: this.grader.graderState == "correct" ? "T" : "F",
             answer: this.hparsons.hparsonsInput.getBlockIndices(),
-            percent: this.grader.percent
-        }
+            percent: this.grader.percent,
+        };
         let logData = {
             event: "hparsonsAnswer",
             div_id: this.hparsons.divid,
             act: JSON.stringify(act),
-            answer: JSON.stringify({"blocks": act.answer}),
+            answer: JSON.stringify({ blocks: act.answer }),
             percent: this.grader.percent,
             correct: act.correct,
-        }
+        };
         await this.hparsons.logBookEvent(logData);
     }
 
@@ -75,10 +78,12 @@ export default class BlockFeedback extends HParsonsFeedback {
             feedbackArea.style.display = "";
             feedbackArea.className = "hp_feedback alert alert-info";
             if (this.checkCount > 1) {
-                feedbackArea.innerHTML =
-                    $.i18n("msg_parson_correct", this.checkCount);
+                feedbackArea.innerHTML = t(
+                    "msg_parson_correct",
+                    this.checkCount,
+                );
             } else {
-                feedbackArea.innerHTML = $.i18n("msg_parson_correct_first_try");
+                feedbackArea.innerHTML = t("msg_parson_correct_first_try");
             }
             this.checkCount = 0;
         }
@@ -88,7 +93,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             answerArea.classList.add("incorrect");
             feedbackArea.style.display = "";
             feedbackArea.className = "hp_feedback alert alert-danger";
-            feedbackArea.innerHTML = $.i18n("msg_parson_too_short");
+            feedbackArea.innerHTML = t("msg_parson_too_short");
         }
 
         if (this.grade === "incorrectMoveBlocks") {
@@ -116,7 +121,7 @@ export default class BlockFeedback extends HParsonsFeedback {
             for (let i = 0; i < notInSolution.length; i++) {
                 notInSolution[i].classList.add("incorrectPosition");
             }
-            feedbackArea.innerHTML = $.i18n("msg_parson_wrong_order");
+            feedbackArea.innerHTML = t("msg_parson_wrong_order");
         }
     }
 
@@ -127,7 +132,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         for (var i = 0; i < children.length; i++) {
             children[i].classList.remove(
                 "correctPosition",
-                "incorrectPosition"
+                "incorrectPosition",
             );
         }
         this.messageDiv.style.display = "none";
@@ -141,5 +146,4 @@ export default class BlockFeedback extends HParsonsFeedback {
         }
         this.clearFeedback();
     }
-
 }

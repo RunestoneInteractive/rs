@@ -164,6 +164,27 @@ function connect(event) {
         connect();
     };
 
+    // On connect/reconnect fetch the current session phase and re-apply it so a 
+    // student who briefly dropped catches up to whatever the class is doing.
+    // _catchup flag tells the handlers to skip side effects that should
+    // only happen on a live message (vote counting, page navigation).
+    ws.onopen = async function () {
+        try {
+            let urlParams = new URLSearchParams(window.location.search);
+            let assignmentId = urlParams.get('assignment_id');
+            let resp = await fetch(`/assignment/peer/api/current_state?assignment_id=${assignmentId}`);
+            if (!resp.ok) return;
+            let phase = await resp.json();
+            if (phase && phase.message) {
+                console.log(`Catch-up: re-applying phase ${phase.message}`);
+                phase._catchup = true;
+                ws.onmessage({ data: JSON.stringify(phase) });
+            }
+        } catch (e) {
+            console.log(`current_state catch-up failed: ${e}`);
+        }
+    };
+
     ws.onmessage = function (event) {
         const messages = document.getElementById("messages");
         let mess = JSON.parse(event.data);
@@ -217,6 +238,7 @@ function connect(event) {
                                 // instructors only
                                 if (currentStep === 'vote1') {
                                     batchEnable(STEP_CONFIG['vote1'].next);
+                                    enableButton(document.getElementById('makeabgroups'));
                                 }
                             }
 
@@ -236,7 +258,7 @@ function connect(event) {
                                 }
                             } else {
                                 if (getVoteNum() < 2) {
-                                    messarea.innerHTML = `<h3>Please give an explanation for your answer.</h3><p>Then, discuss your answer with your group members.</p>`;
+                                    messarea.innerHTML = `<h3>Wait for your instructor to start the discussion.</h3>`;
                                 } else {
                                     messarea.innerHTML = `<h3>Voting for this question is complete.</h3>`;
                                     let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
@@ -281,7 +303,7 @@ function connect(event) {
                     window.componentMap[currentQuestion].submitButton.innerHTML =
                         "Submit";
                     window.componentMap[currentQuestion].enableInteraction();
-                    if (typeof studentVoteCount !== "undefined") {
+                    if (typeof studentVoteCount !== "undefined" && !mess._catchup) {
                         studentVoteCount += 1;
                         if (studentVoteCount > 2) {
                             studentVoteCount = 2;
@@ -308,6 +330,7 @@ function connect(event) {
                     break;
                 case "enableNext":
                     console.log("Got enableNext message");
+                    if (mess._catchup) break;
                     // This moves the student to the next question in the assignment
                     // first disable the handler to prevent leaving the page.
                     $(window).off("beforeunload");
@@ -316,13 +339,21 @@ function connect(event) {
                     break;
                 case "enableChat":
                     console.log(`got enableChat message with ${mess.answer}`);
+                    messarea = document.getElementById("imessage");
+                    messarea.innerHTML = `<h3>Text Chat Ready</h3><p>Please discuss with your partner(s) in the chat panel to the right.</p>`;
                     let discPanel = document.getElementById("discussion_panel");
                     if (discPanel) {
                         discPanel.style.display = "block";
                     }
                     let peerlist = document.getElementById("peerlist");
                     const ordA = 65;
-                    adict = JSON.parse(mess.answer);
+                    // On catch-up the per-partner payload isn't stored, so keep existing rows
+                    if (!mess._catchup) {
+                        while (peerlist.children.length > 1) {
+                            peerlist.removeChild(peerlist.lastChild);
+                        }
+                    }
+                    adict = mess.answer ? JSON.parse(mess.answer) : {};
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
@@ -333,45 +364,23 @@ function connect(event) {
                 case "enableFaceChat":
                     console.log("got enableFaceChat message");
                     console.log(`group = ${mess.group}`);
-                    let groupList = [];
-                    if (mess.group) {
-                        groupList = mess.group;
-                    }
                     messarea = document.getElementById("imessage");
-                    // Prefer previously-selected partners saved in localStorage.peerList
-                    let peerListCsv = localStorage.getItem("peerList");
-                    let displayPeers = [];
-                    if (peerListCsv) {
-                        let sids = peerListCsv.split(",").map(s => s.trim()).filter(Boolean);
-                        let sel = document.getElementById("assignment_group");
-                        for (let sid of sids) {
-                            let name = sid;
-                            if (sel) {
-                                let opt = sel.querySelector(`option[value="${sid}"]`);
-                                if (opt) name = opt.textContent || opt.innerText || sid;
-                            }
-                            displayPeers.push(name);
-                        }
-                    }
-
-                    if (displayPeers.length > 0) {
-                        messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your selected partners:</p><ul>`;
-                        for (const p of displayPeers) {
-                            messarea.innerHTML += `<li>${p}</li>`;
-                        }
-                        messarea.innerHTML += `</ul>`;
-                    } else {
-                        // fallback to server-provided group list
-                        messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with the following group:</p><ul>`;
-                        for (const peer of groupList) {
-                            messarea.innerHTML += `<li>${peer}</li>`;
-                        }
-                        messarea.innerHTML += `</ul>`;
-                    }
+                    messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
 
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
                         facechat.style.display = "block";
+                        // select2 mis-renders (zero width / invisible) when it was
+                        // initialized while the panel was hidden. Re-initialize now
+                        // that the panel is visible so the dropdown always appears.
+                        if ($('#assignment_group').data('select2')) {
+                            $('#assignment_group').select2('destroy');
+                        }
+                        $('#assignment_group').select2({
+                            placeholder: "Click to search or select by name",
+                            allowClear: true,
+                            maximumSelectionLength: 4,
+                        });
                     }
                     break; // incase default
                 default:
@@ -549,11 +558,14 @@ async function makePartners(event, is_ab) {
     let butt = document.querySelector("#makep");
     butt.classList.replace("btn-info", "btn-secondary");
     let gs = document.getElementById("groupsize").value;
+    let urlParams = new URLSearchParams(window.location.search);
+    let assignmentId = urlParams.get('assignment_id');
     let data = {
         div_id: currentQuestion,
         start_time: startTime, // set in dashboard.html when loaded
         group_size: gs,
         is_ab: is_ab,
+        assignment_id: assignmentId ? parseInt(assignmentId) : null,
     };
     let jsheaders = new Headers({
         "Content-type": "application/json; charset=utf-8",
@@ -575,6 +587,11 @@ async function makePartners(event, is_ab) {
         // success
         handleButtonClick(event);
         butt.disabled = true;
+        if (is_ab) {
+            batchDisable(CHAT_MODALITIES);
+            disableButton(document.getElementById('makeabgroups'));
+            setText('pi-session-status', 'A/B Experiment in Progress…');
+        }
         document.querySelector("#vote2").disabled = false;
     }
 }
@@ -605,6 +622,12 @@ async function enableFaceChat(event) {
 function startVote2(event) {
     handleButtonClick(event);
 
+    const vote1CountEl = document.getElementById('vote1CountDisplay');
+    const currentCount = document.getElementById('answerCountDisplay');
+    if (vote1CountEl && currentCount) {
+        vote1CountEl.textContent = currentCount.textContent;
+    }
+
     let butt = document.querySelector("#vote2");
     butt.classList.replace("btn-info", "btn-secondary");
     event.srcElement.disabled = true;
@@ -620,14 +643,14 @@ function startVote2(event) {
     //ws.send(JSON.stringify(mess));
     publishMessage(mess);
 
-    // Disabling the "Enable Text Chat" button (if not already done) once Vote 2 begins
+    // Disable chat/experiment buttons once Vote 2 begins
     let textChatButton = document.querySelector("#makep");
     textChatButton.classList.replace("btn-info", "btn-secondary");
     textChatButton.disabled = true;
-    // Disabling the "Enable in-person Chat" button (if not already done) once Vote 2 begins
     let faceChatButton = document.querySelector("#facechat");
     faceChatButton.classList.replace("btn-info", "btn-secondary");
     faceChatButton.disabled = true;
+    disableButton(document.getElementById('makeabgroups'));
 
     // Enabling the "Stop Vote 2" button once Vote 2 begins
     document.querySelector("#vote3").disabled = false;
@@ -791,6 +814,7 @@ async function setupPeerGroup() {
 
     let select = document.getElementById("assignment_group");
     for (let [sid, name] of Object.entries(studentList)) {
+        if (sid === eBookConfig.username) continue;
         let opt = document.createElement("option");
         peerList = localStorage.getItem("peerList");
         if (!peerList) {
@@ -805,7 +829,7 @@ async function setupPeerGroup() {
     }
     // Make the select element searchable with multiple selections
     $('.assignment_partner_select').select2({
-        placeholder: "Select up to 4 team members",
+        placeholder: "Click to search or select by name",
         allowClear: true,
         maximumSelectionLength: 4,
     });

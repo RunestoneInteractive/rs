@@ -11,10 +11,14 @@ Make a .env File
 You need to make a ``.env`` folder in the root level of your repository to define environmental variables.
 There is already a ``sample.env`` file in the repository root, you should copy that sample into a file named ``.env``.
 
-The ``.env`` file is read by docker-compose and used to set environment variables in the docker containers. If you installed ``poetry-dotenv-plugin``, poetry will also automatically read it on the host side.
+The ``.env`` file is read by docker-compose and used to set environment variables in the docker containers. ``uv run`` can be set to automatically read the env file by setting the ``UV_ENV_FILE`` variable in your login profile (.bashrc, config.fish, .zshrc, etc) to point to the ``.env`` file. Add the following line to your login profile:
+
+```
+export UV_ENV_FILE=".env"
+```
 
 .. note::
-   If you chose not to install ``poetry-dotenv-plugin``, you will need to manually define the host (h) environment variables listed below in your login profile (.bashrc, config.fish, .zshrc, etc).
+   If you run servers without ``uv run`` (for example after activating the venv with ``source .venv/bin/activate``), the ``.env`` file is not auto-loaded, so you will need to manually define the host (h) environment variables listed below in your login profile (.bashrc, config.fish, .zshrc, etc), or use ``uv run`` which loads ``.env`` for you.
 
 The ``.gitignore`` file is set to ignore ``.env``, so your local configuration will not be checked into git.
 
@@ -59,7 +63,7 @@ There are a number of other variables - none of them are important unless you ar
 
 .. note:: Host Side Development Notes
 
-   When you are starting one or more servers directly on the host (not in docker) then you will also want to define most of the docker only variables on the host side in order for your servers to be configured properly.  This is another good reason to use the dot-env plugin for poetry.
+   When you are starting one or more servers directly on the host (not in docker) then you will also want to define most of the docker only variables on the host side in order for your servers to be configured properly.  This is another good reason to launch host-side servers with ``uv run``, which loads ``.env`` automatically.
 
 Here is a summary of the profiles and services available and which should be set to start the various services.  Again, remember that you can combine profiles by separating them with a comma.  For example ``basic,dev`` would start the database in docker and the servers on the host.
 

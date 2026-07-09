@@ -1,166 +1,170 @@
-{% extends "_base.html" %} 
+{% extends "_base.html" %}
+{% set needs_jquery = true %} 
 {% block title %}
 Do Assignment
 {% endblock %}
+
+
 {% block css %}
+    {% include 'common/static_assets.html' %}
 
-{% include 'common/static_assets.html' %}
+    <link href="/staticAssets/assignment/assignment.css" rel="stylesheet" />
 
-<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-{% if origin == "PreTeXt" %}
-<link href="/ns/books/published/{{ course.base_course }}/_static/pretext/css/theme.css" rel="stylesheet" media="screen" />
-{% endif %}
-{% endblock %} 
+    {% if origin == "PreTeXt" and using_ptx_base != "true" %}
+    <link href="/ns/books/published/{{ course.base_course }}/_static/pretext/css/theme.css" rel="stylesheet" />
+    {% endif %}
+{% endblock %}
+
+
 {% block content %}
+{% if using_ptx_base != "true" %}
+    {% include 'common/ebook_config.html' %}
+{% endif %}
 
-{% include 'common/ebook_config.html' %}
 {% for base_course, latex_preamble in latex_preamble_dict.items() %}
 <div class="hidden-content process-math" style="display: none">
     \( {{latex_preamble}} \)
 </div>
 {% endfor %}
 
-<div id='part1'>
-    <h1 id="assignment_name" style='text-align:center'>{{ assignment['name'] }}</h1>
-    <p style='margin-left:2cm;'>
-    <span
-    {% if overdue %}
-    class="overdue"
-    {% else %}
-    class="notdue"
-    {% endif %}
-    >
-    Due: {{ assignment['duedate'] }}
-    </span>
-    {% if enforce_pastdue %}
-    Past due and no longer scoring submissions
-    {% endif %}
-    </p>
-    <span style="float:right; margin-right:2cm;">
-        {% if assignment['points'] > 0 %}
-            Current Score: 
-            <span id="total_score">{{questions_score+readings_score}}</span> of 
-            <span id="total_max">{{assignment['points']}}</span> = 
-            <span id="total_percent">{{'%0.2f' | format(100*(questions_score + readings_score)/assignment['points']|float)}}</span>%
-        {% else %}
-            This assignment is ungraded
-        {% endif %}
-    </span>
-    <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
-        <p style='margin-left:0.5cm; margin-right:0.5cm;'>Description: {{ assignment['description'] }}</p>
-    </div>
-    {% if not assignment.is_timed %}
-    <div>
-        {% if is_submit == "Finished" %}
-            <div style='background-color:rgb(146, 207, 165); margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment Finished.  Click to mark it <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button></p>
+<section id='part1'>
+    <h1 id="assignment_name" class="heading assignment-title">Assignment: {{ assignment['name'] }}</h1>
+
+    <section class="assignment-meta">
+        <div>
+            <div
+                {% if overdue %}
+                class="assignment-due-date overdue"
+                {% else %}
+                class="assignment-due-date notdue"
+                {% endif %}
+                >
+                <strong>Due:</strong> {{ assignment['duedate'] }}
             </div>
-        {%elif is_submit == "In Progress"%}
-            <div style='background-color:rgb(247, 238, 158); margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment as In Progress.  Click to mark it as <button onclick="updateAssignmentProgress('Finished', assignmentId)" class="btn btn-info">Finished</button></p>
-            </div>
-        {% else %}
-            <div style='background-color:rgb(236, 189, 189); margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>You can mark this assignment as <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button> by clicking the button.</p>
-            </div>
-        {% endif %}
-    </div>
+            {% if enforce_pastdue %}
+                <em>(Past due and no longer scoring submissions)</em>
+            {% endif %}
+        </div>
+        <div class="assignment-score">
+            {% if assignment['points'] > 0 %}
+                <div class="assignment-score-summary">
+                    <strong>Current Score:</strong> 
+                    <span id="total_score">{{questions_score+readings_score}}</span> of 
+                    <span id="total_max">{{assignment['points']}}</span> = 
+                    <span id="total_percent">{{'%0.2f' | format(100*(questions_score + readings_score)/assignment['points']|float)}}</span>%
+                </div>
+                {% if released and not assignment.is_timed and needs_manual_grading  %}
+                <div class="assignment-grade-notice">
+                    <strong>Warning:</strong> This assignment includes manually graded problems that have not been scored yet.
+                </div>
+                {% endif %}
+                
+            {% else %}
+                This assignment is ungraded
+            {% endif %}
+        </div>
+    </section>
+    
+    {% if assignment['description'] %}
+    <section class="assignment-banner assignment-banner-info">
+        <h2 class="heading">Description</h2>
+        <p class="assignment-banner-copy">{{ assignment['description'] }}</p>
+    </section>
     {% endif %}
-    {% if readings|length > 0 %}
-        <div id='readings' style='margin-left:15%;'>
-            <h3>Readings</h3>
-            <ul>
-                {% for reading in readings %}
-                    <li class="{{ readings[reading]['status']}}">{{ reading  }}</li>
-                    <ul>
-                    {% for r in readings[reading]['subchapters'] %}
+
+    {% if readings_full|length > 0 %}
+    <section id='readings' class="assignment-readings">
+        <h2 class="heading">Readings</h2>
+        <ul class="assignment-readings-chapters">
+            {% for reading in readings_full %}
+                {% if origin == "Runestone" %}
+                <li class="{{ readings_full[reading]['status']}}"><strong> Chapter {{ readings_full[reading]['chapter_num'] }} {{ readings_full[reading]['chapter_name'] }}:</strong>
+                {% else: %}
+                <li class="{{ readings_full[reading]['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{readings_full[reading]['chapter_label']}}.html">Chapter {{ readings_full[reading]['chapter_num'] }} {{ readings_full[reading]['chapter_name'] }}:</a>
+                {% endif %}
+                    <ul class="assignment-readings-subchapters">
+                    {% for r in readings_full[reading]['subchapters'] %}
                         {% if origin == "Runestone" %}
-                        <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['chapter']}}/{{r['subchapter']}}.html">{{ r['name']   }}</a>
+                        <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['chapter_label']}}/{{r['sub_chapter_label']}}.html">{{ r['chapter_chapter_name']   }}</a>
                         {% else: %}
-                        <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['subchapter']}}.html">{{ r['name']   }}</a>
+                        <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['sub_chapter_label']}}.html">{{ r['chapter_num']  }}.{{ r['chapter_chapter_num']  }} {{ r['chapter_chapter_name']  }}</a>
                         {% endif %}
                         {% if r['points'] > 0 %}
                             {% if r['comment'] != 'ungraded' %}
-                                </br>{{ r['score']}} of {{ r['points']}} points earned; minimum {{ r['activities_required']   }} activities required
+                                <br>{{ r['score']}} of {{ r['points']}} points earned; minimum {{ r['activities_required']   }} activities required
                             {% else %}
-                                </br>not graded yet: {{ r['points']}} points; minimum {{ r['activities_required']  }} activities required
+                                <br>not graded yet: {{ r['points']}} points; minimum {{ r['activities_required']  }} activities required
                             {% endif %}
                         {% endif %}
-                    </li>
-
+                        </li>
                     {% endfor %}
                     </ul>
-                {% endfor %}
-            </ul>
-        </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
     {% endif %}
 
     {% if questioninfo|length > 0 %}
-        <div id='questions' class="runestone-sphinx">
-            <style>
-                .ac_section > * {
-                    max-width: 100%;
-                }
-                #questions {
-                    max-width: 90%;
-                    margin-left: auto;
-                    margin-right: auto;
-                }
-            </style>
-            <h3>Questions</h3>
-                {% if assignment.is_timed %}
-                    <ul data-component="timedAssessment"  id="{{  assignment.name }}"
-                    {% if assignment.time_limit %}
-                        data-time="{{ assignment.time_limit }}"
-                    {% endif %}
-                    {% if assignment.nofeedback %}
-                        data-no-feedback
-                    {% endif %}
-                    {% if assignment.nopause %}
-                        data-no-pause
-                    {% endif %}
-                    style="display: none;"
-                    >
-                    {% for q in questioninfo %}
-                        {% if q['question_type'] == 'webwork' or origin == "PreTeXt" %}
-                            <div class="runestone-sphinx ptx-content">
-                                {{ q.htmlsrc|safe }}
-                            </div>
-                        {% else %}
-                        <div class="runestone-sphinx">
+        <section id='questions'>
+        {% if assignment.is_timed %}
+            <h2>Timed Questions</h2>
+            <ul data-component="timedAssessment"  id="{{  assignment.name }}"
+            {% if assignment.time_limit %}
+                data-time="{{ assignment.time_limit }}"
+            {% endif %}
+            {% if assignment.nofeedback %}
+                data-no-feedback
+            {% endif %}
+            {% if assignment.nopause %}
+                data-no-pause
+            {% endif %}
+            style="display: none;"
+            >
+            {% for q in questioninfo %}
+                {% if q['question_type'] == 'webwork' or origin == "PreTeXt" %}
+                    <div class="runestone-sphinx ptx-content">
                         {{ q.htmlsrc|safe }}
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                    </ul>
+                    </div>
                 {% else %}
-                    
-                    {% for q in questioninfo %}
-                        <div class="questionblock">
-                        <div class="metaquestion">
-                            <div class="griditem">
-                            Question: {{loop.index}}
-                            </div>
-                            <div class="griditem">
-                                <p>
-                                {% if origin == "Runestone" %}
-                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['chapter']}}/{{ q['subchapter']}}.html#{{ q['name']    }}">Show this question in the book.</a>
-                                {% else %}
-                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['subchapter']}}.html#{{ q['name']   }}">Show this question in the book</a>
+                <div class="runestone-sphinx">
+                {{ q.htmlsrc|safe }}
+                </div>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        {% else %}
+            <h2 class="heading">Questions</h2>
+                <ol class="assignment-questions">
+                {% for q in questioninfo %}
+                    <li class="questionblock exercise exercise-like">
+                        <div class="questionblock-header">
+                            <h3 class="griditem questionblock-question-number">
+                                Question: {{loop.index}} ({{ q['qnumber'] | trim }})
+                                {% if q['is_incorrect'] %}
+                                    <span class="rs-sr-only">not correct</span>
+                                    <i class="ti ti-exclamation-circle question-status question-error" aria-hidden="true"></i>
                                 {% endif %}
-                                </p>
-                                <p id="{{q['name']}}_message"></p>
-                            </div>
-
-                            <div class="griditem">
-                            <p id="{{ q['name']}}_score">Score: <span class="qscore">{{ q['score']}}</span> / <span class="qmaxscore">{{ q['points']  }}</span></p>
-                            {% if q['comment'] != 'autograded' and q['comment'] != 'ungraded' %}
-                                <p>Comment: {{ q['comment'] }}</p>
-                            {% else %}
-                                <p>Scoring Method: {{q['how_graded']}}</p>
-                            {% endif %}
+                            </h3>
+                            <div class="griditem questionblock-context-link">
+                                {% if origin == "Runestone" %}
+                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['chapter_label']}}/{{ q['sub_chapter_label']}}.html#{{ q['name'] }}">Show this question in the book.</a>
+                                {% else %}
+                                <a href="/ns/books/published/{{ course.course_name}}/{{ q['sub_chapter_label']}}.html#{{ q['name'] }}">Show this question in the book</a>
+                                {% endif %}
                             </div>
                         </div>
+                        <div class="question-contents">
+                            <div class="griditem questionblock-score-section">
+                                <div id="{{ q['name']}}_score" aria-live="polite">
+                                    <strong>Score:</strong> <span class="qscore">{{ q['score']}}</span> / <span class="qmaxscore">{{ q['points']  }}</span>
+                                </div>
+                                {% if q['comment'] != 'autograded' and q['comment'] != 'ungraded' %}
+                                    <div><strong>Comment:</strong> {{ q['comment'] }}</div>
+                                {% else %}
+                                    <div><strong>Scoring Method:</strong> {{q['how_graded']}}</div>
+                                {% endif %}
+                            </div>
                             {% if q['question_type'] == 'webwork' or origin == "PreTeXt" %}
                             <div class='oneq full-width runestone-sphinx ptx-content' id='{{ loop.index }}'>
                             {% else %}
@@ -168,73 +172,21 @@ Do Assignment
                             {% endif %}
                                 {{ q.htmlsrc|safe }}
                             </div>
+                            <div id="{{q['name']}}_message" aria-live="polite"></div>
                         </div>
-                    {% endfor %}
-                {% endif %}
-
-        </div>
+                    </li>
+                {% endfor %}
+                </ol>
+            {% endif %}
+        </section>
     {% endif %}
-</div>
-{% if not assignment.is_timed %}
-<div>
-    {% if is_submit == "Finished" %}
-        <div style='background-color:rgb(146, 207, 165); margin-left:2cm; margin-right:2cm;'>
-            <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment Finished.  Click to mark it <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button></p>
-        </div>
-        {% if is_graded %}
-            <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>This assignment is graded and is no longer
-                accepting submissions. You can still do the work, but it is up to your instructor whether
-                they will accept it or not.</p>
-            </div>
-        {% elif enforce_pastdue %}
-            <div style='background-color:powderblue; margin-left:2cm; margin-right:2cm;'>
-                <p style='margin-left:0.5cm; margin-right:0.5cm;'>The due date has passed for this assignment.
-                You can no longer change your status, but your work will be recorded and time stamped</p>
-            </div>
-        {% endif %}
-    {% elif is_submit == "In Progress" %}
-        <div style='background-color:rgb(247, 238, 158); margin-left:2cm; margin-right:2cm;'>
-            <p style='margin-left:0.5cm; margin-right:0.5cm;'>You have marked this assignment as In Progress.  Click to mark it as <button onclick="updateAssignmentProgress('Finished', assignmentId)" class="btn btn-info">Finished</button></p>
-        </div>
-    {% else %}
-        <div style='background-color:rgb(236, 189, 189); margin-left:2cm; margin-right:2cm;'>
-            <p style='margin-left:0.5cm; margin-right:0.5cm;'>You can mark this assignment as <button onclick="updateAssignmentProgress('In Progress', assignmentId)" class="btn btn-info">In Progress</button> by clicking the button.</p>
-        </div>
-    {% endif %}
-</div>
-{% endif %}
-
-{% if not released and not assignment.is_timed %}
-<div style="text-align:center">
-    <button class="btn btn-lg btn-warning buttonAskCompletion" id="gradeMeButton">Compute Score for Assignment</button>
-    <p><strong>Warning:</strong> Scores for problems that you self grade are unofficial.
-        Some problems will need to be manually graded, and your instructor may have requirements that cannot be autograded.
-        No deadlines are enforced when self grading, but your instructor may penalize you
-        for late work.</p>
-</div>
-{% elif False %}
-<div style="text-align:center">
-    <button class="btn btn-lg btn-warning buttonAskCompletion" id="gradeMeButton">Score Me</button>
-    {% if not is_graded and not enforce_pastdue %}
-    <button class="btn btn-lg buttonAskCompletion" id="submitMeButton">
-        {% if is_submit == "Not Started" %}
-            Mark In Progress
-        {% elif is_submit == "In Progress" %}
-            Mark Finished
-        {% else %}
-            Mark Incomplete
-        {% endif %}
-    </button>
-    {% endif %}
-</div>
-{% endif %}
-</div>
+    </div>
+</section>
 
 <script>
     assignmentId = {{  assignment.id  }};
 
-    var readingsInfo = {{ readings | tojson | safe }}
+    var readingsInfo = {{ readings_full | tojson | safe }}
     var questionInfo = {{ questioninfo | tojson | safe }};
     console.log(readingsInfo);
     console.log(questionInfo);
@@ -244,8 +196,8 @@ Do Assignment
     let subchapNames = []
     for (let chapter in readingsInfo) {
         for (let subchapter of readingsInfo[chapter]['subchapters']) {
-            subchapList.push(subchapter['subchapter']);
-            subchapNames.push(subchapter['name']);
+            subchapList.push(subchapter['sub_chapter_label']);
+            subchapNames.push(subchapter['chapter_chapter_name']);
         }
     }
     for (let q of questionInfo) {
@@ -279,28 +231,8 @@ Do Assignment
           e.innerHTML = input;
           return e.childNodes.length === 0 ? "" : e.childNodes[0].nodeValue;
     }
-
-
-
-
-    // for (let i=0; i<questionHtmlCode.length; i++) {
-    //     let $div = $('#' + i);
-    //     let unescapedhtml = htmlDecode(questionHtmlCode[i].innerHTML);
-    //     let change = $.parseHTML(unescapedhtml, keepScripts=true);
-    //     $div.append(change);
-    // }
-
-    $("#submitMeButton").on("click", function(){
-        $('#submitMeButton').css('visibility', 'hidden');
-        markComplete({{ assignment['id']}}, {{ user.id  }})
-    });
-
-    $("#gradeMeButton").on("click", function(){
-        $('#gradeMeButton').css('visibility', 'hidden');
-        selfGrade({{ assignment['id'] }})
-    });
-
 </script>
+
 <script src="/staticAssets/assignment/selfgrade.js" type="text/javascript"></script>
 <script src="/staticAssets/assignment/student.js" type="text/javascript"></script>
 

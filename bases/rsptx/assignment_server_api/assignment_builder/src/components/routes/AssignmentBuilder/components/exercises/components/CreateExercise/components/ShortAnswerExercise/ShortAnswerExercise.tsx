@@ -50,6 +50,7 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = ({
     formData,
     activeStep,
     isSaving,
+    isDirty,
     updateFormData,
     handleSettingsChange,
     handleQuestionChange,
@@ -124,13 +125,14 @@ export const ShortAnswerExercise: FC<ExerciseComponentProps> = ({
 
   return (
     <ExerciseLayout
-      title="Short Answer Exercise"
+      title="short answer exercise"
       exerciseType="shortanswer"
       isEdit={isEdit}
       steps={SHORT_ANSWER_STEPS}
       activeStep={activeStep}
       isCurrentStepValid={isCurrentStepValid}
       isSaving={isSaving}
+      isDirty={isDirty}
       stepsValidity={stepsValidity}
       onCancel={onCancel}
       onBack={goToPrevStep}

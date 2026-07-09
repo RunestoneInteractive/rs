@@ -33,7 +33,7 @@ export const DEMO_MCHOICE_HTMLSRC = `
           <label style="display: flex; gap: 0.5rem; align-items: flex-start; cursor: default;">
             <input type="radio" name="group_q_loops_mchoice" value="0" checked disabled />
             <span><code>for i in range(5): print(i)</code><br/>
-              <small style="color:#16a34a;">Correct — <code>range(5)</code> yields 0,1,2,3,4.</small>
+              <small style="color:var(--rs-success-text);">Correct — <code>range(5)</code> yields 0,1,2,3,4.</small>
             </span>
           </label>
         </li>
@@ -41,7 +41,7 @@ export const DEMO_MCHOICE_HTMLSRC = `
           <label style="display: flex; gap: 0.5rem; align-items: flex-start; cursor: default;">
             <input type="radio" name="group_q_loops_mchoice" value="1" disabled />
             <span><code>for i in range(1, 5): print(i)</code><br/>
-              <small style="color:#dc2626;">Incorrect — only prints 1,2,3,4 (four values).</small>
+              <small style="color:var(--rs-danger-text);">Incorrect — only prints 1,2,3,4 (four values).</small>
             </span>
           </label>
         </li>
@@ -50,7 +50,7 @@ export const DEMO_MCHOICE_HTMLSRC = `
             <input type="radio" name="group_q_loops_mchoice" value="2" disabled />
             <span><code>i = 0
 while i &lt; 5: i += 1; print(i)</code><br/>
-              <small style="color:#dc2626;">Incorrect — prints 1..5, not 0..4.</small>
+              <small style="color:var(--rs-danger-text);">Incorrect — prints 1..5, not 0..4.</small>
             </span>
           </label>
         </li>
@@ -58,14 +58,14 @@ while i &lt; 5: i += 1; print(i)</code><br/>
           <label style="display: flex; gap: 0.5rem; align-items: flex-start; cursor: default;">
             <input type="radio" name="group_q_loops_mchoice" value="3" disabled />
             <span><code>for i in [1,2,3,4,5]: print(i)</code><br/>
-              <small style="color:#dc2626;">Incorrect — prints 1..5.</small>
+              <small style="color:var(--rs-danger-text);">Incorrect — prints 1..5.</small>
             </span>
           </label>
         </li>
       </ul>
       <button type="button" class="btn btn-success" disabled style="opacity: 0.7;">Check Me</button>
       <button type="button" class="btn btn-default" disabled style="opacity: 0.7; margin-left: 0.35rem;">Compare Me</button>
-      <div style="margin-top: 0.6rem; padding: 0.55rem 0.75rem; border-radius: 6px; background: #ecfeff; border: 1px solid #a5f3fc; color: #155e75; font-size: 13px;">
+      <div style="margin-top: 0.6rem; padding: 0.55rem 0.75rem; border-radius: 6px; background: var(--rs-info-bg); border: 1px solid var(--rs-info-border); color: var(--rs-info-text); font-size: 13px;">
         <strong>Feedback:</strong> Review how <code>range(n)</code> produces the sequence <code>0 .. n-1</code>.
       </div>
     </form>
@@ -121,8 +121,7 @@ export const DEMO_ASSIGNMENTS: Assignment[] = [
     ...baseAssignment,
     id: DEMO_ALT_ASSIGNMENT_ID,
     name: "Demo – Week 4: Lists & Dictionaries",
-    description:
-      "Second demo assignment, shown so the picker grid is not a lone card.",
+    description: "Second demo assignment, shown so the picker grid is not a lone card.",
     duedate: daysFromNow(11),
     points: 30,
     kind: "Regular",
@@ -265,14 +264,48 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
 };
 
 const firstNames = [
-  "Alex", "Bob", "Carmen", "Dana", "Elena", "Felix", "Grace", "Hassan",
-  "Ivy", "Jin", "Kai", "Lola", "Maxim", "Nina", "Oleg", "Pia",
-  "Quentin", "Rita", "Sergey", "Tara"
+  "Alex",
+  "Bob",
+  "Carmen",
+  "Dana",
+  "Elena",
+  "Felix",
+  "Grace",
+  "Hassan",
+  "Ivy",
+  "Jin",
+  "Kai",
+  "Lola",
+  "Maxim",
+  "Nina",
+  "Oleg",
+  "Pia",
+  "Quentin",
+  "Rita",
+  "Sergey",
+  "Tara"
 ];
 const lastNames = [
-  "Kowalski", "Müller", "Rossi", "Dupont", "Svensson", "Jones", "Reyes", "Khan",
-  "Singh", "ONeil", "Ng", "Petrov", "Tanaka", "Hernández", "Lind", "Ahmadi",
-  "Wójcik", "Silva", "Haddad", "Park"
+  "Kowalski",
+  "Müller",
+  "Rossi",
+  "Dupont",
+  "Svensson",
+  "Jones",
+  "Reyes",
+  "Khan",
+  "Singh",
+  "ONeil",
+  "Ng",
+  "Petrov",
+  "Tanaka",
+  "Hernández",
+  "Lind",
+  "Ahmadi",
+  "Wójcik",
+  "Silva",
+  "Haddad",
+  "Park"
 ];
 
 const mchoiceAnswer = (i: number) => {
@@ -407,9 +440,7 @@ export const getDemoHistoryFor = (sid: string): GraderHistoryResponse => {
 
   const history = Array.from({ length: total }, (_, i) => {
     const isLast = i === total - 1;
-    const attemptAnswer = isLast
-      ? finalAnswer
-      : distractors[i % distractors.length] ?? "1";
+    const attemptAnswer = isLast ? finalAnswer : (distractors[i % distractors.length] ?? "1");
     const attemptCorrect = isLast ? finalCorrect : false;
     const attemptPercent = isLast ? finalPercent : i === total - 2 ? 0.5 : 0;
     return {
@@ -426,17 +457,13 @@ export const getDemoHistoryFor = (sid: string): GraderHistoryResponse => {
     id: i + 1,
     timestamp: h.timestamp,
     event: "mChoice",
-    act: `answer:${h.answer}:${
-      h.correct ? "correct" : (h.percent ?? 0) > 0 ? "partial" : "no"
-    }`
+    act: `answer:${h.answer}:${h.correct ? "correct" : (h.percent ?? 0) > 0 ? "partial" : "no"}`
   }));
 
   return { history, useinfo };
 };
 
-export const getDemoQuestionsFor = (
-  aid: number
-): GraderQuestionsResponse | null => {
+export const getDemoQuestionsFor = (aid: number): GraderQuestionsResponse | null => {
   if (aid === DEMO_ASSIGNMENT_ID) return DEMO_QUESTIONS;
   if (aid === DEMO_ALT_ASSIGNMENT_ID) {
     return {
@@ -474,10 +501,7 @@ export const getDemoQuestionsFor = (
   return null;
 };
 
-export const getDemoAnswersFor = (
-  aid: number,
-  qid: number
-): GraderAnswersResponse | null => {
+export const getDemoAnswersFor = (aid: number, qid: number): GraderAnswersResponse | null => {
   if (aid === DEMO_ASSIGNMENT_ID && qid === DEMO_QUESTION_ID) return DEMO_ANSWERS;
   const qMeta = getDemoQuestionsFor(aid)?.questions.find((q) => q.id === qid);
   if (!qMeta) return null;
@@ -492,4 +516,3 @@ export const getDemoAnswersFor = (
     answers: DEMO_ANSWERS.answers.map((a) => ({ ...a, max_points: qMeta.points }))
   };
 };
-

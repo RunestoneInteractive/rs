@@ -6,99 +6,99 @@ I don't know if any of the following are needed anymore.
 -->
 
 <!-- NOTE jquery is loaded in the _base.html template -->
-
-<script data-url_root="../" id="documentation_options" src="/staticAssets/js/documentation_options.js"></script>
-
-{% for css_import in wp_imports["css"] %}
-    <link rel="stylesheet" type="text/css" href="/ns/books/published/{{course.course_name}}/_static/{{css_import}}" />
-{% endfor %}
-{% for js_import in wp_imports["js"] %}
-    <script src='/ns/books/published/{{course.course_name}}/_static/{{js_import}}'></script>
-{% endfor %}
-
-{% if webwork_js_version  %}
-    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
-{% else %}
-    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/2.20/pretext-webwork.js"></script>
-{% endif %}
-
-<script src="https://webwork.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>
-<script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/lti_iframe_resizer.js"></script>
-
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-theme/0.1.0-beta.10/select2-bootstrap.css" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.full.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/components/prism-core.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/autoloader/prism-autoloader.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/line-numbers/prism-line-numbers.min.js"
-    integrity="sha512-dubtf8xMHSQlExGRQ5R7toxHLgSDZ0K7AunqPWHXmJQ8XyVIG19S1T95gBxlAeGOK02P4Da2RTnQz0Za0H0ebQ=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/line-highlight/prism-line-highlight.min.js"
-    integrity="sha512-93uCmm0q+qO5Lb1huDqr7tywS8A2TFA+1/WHvyiWaK6/pvsFl6USnILagntBx8JnVbQH5s3n0vQZY6xNthNfKA=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    
 <!-- TODO: load this dynamically from the e-book's webpack instead. -->
 <script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet" media="screen">
 
-
-<link href="https://pretextbook.org/css/0.8/pretext_add_on.css" rel="stylesheet" type="text/css">
 <script src="/staticAssets/js/jquery.datetimepicker.full.min.js"></script>
 <link rel="stylesheet" type="text/css" href="/staticAssets/css/jquery.datetimepicker.min.css" />
-<link rel="stylesheet" type="text/css" href="/staticAssets/css/runestone-custom-sphinx-bootstrap.css" />
+<link rel="stylesheet" type="text/css" href="/staticAssets/css/assignment.css" />
 
-<script>
-$(document).on("runestone:pre-login-complete", function() {
-    console.log("pre-login-complete");
-})
-var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
-window.MathJax = {
-  tex: {
-    inlineMath: [['\\(','\\)'], ['$','$']],
-    tags: "none",
-    tagSide: "right",
-    tagIndent: ".8em",
-    packages: {'[+]': ['base', 'extpfeil', 'ams', 'amscd', 'newcommand', 'knowl']}
-  },
-  options: {
-    ignoreHtmlClass: "tex2jax_ignore|ignore-math",
-    processHtmlClass: "process-math",
-    renderActions: {
-        findScript: [10, function (doc) {
-            document.querySelectorAll('script[type^="math/tex"]').forEach(function(node) {
-                var display = !!node.type.match(/; *mode=display/);
-                var math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
-                var text = document.createTextNode('');
-                node.parentNode.replaceChild(text, node);
-                math.start = {node: text, delim: '', n: 0};
-                math.end = {node: text, delim: '', n: 0};
-                doc.math.push(math);
-            });
-        }, '']
+<!-- ptx-based templates include these already -->
+{% if using_ptx_base != "true" %}
+    {% for css_import in wp_imports["css"] %}
+        <link rel="stylesheet" type="text/css" href="/ns/books/published/{{course.course_name}}/_static/{{css_import}}" />
+    {% endfor %}
+    {% for js_import in wp_imports["js"] %}
+        <script src='/ns/books/published/{{course.course_name}}/_static/{{js_import}}'></script>
+    {% endfor %}
+
+    {% if webwork_js_version  %}
+        <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
+    {% else %}
+        <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/2.20/pretext-webwork.js"></script>
+    {% endif %}
+
+    <script src="https://webwork.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>
+    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/lti_iframe_resizer.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/line-numbers/prism-line-numbers.min.js"
+        integrity="sha512-dubtf8xMHSQlExGRQ5R7toxHLgSDZ0K7AunqPWHXmJQ8XyVIG19S1T95gBxlAeGOK02P4Da2RTnQz0Za0H0ebQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.26.0/plugins/line-highlight/prism-line-highlight.min.js"
+        integrity="sha512-93uCmm0q+qO5Lb1huDqr7tywS8A2TFA+1/WHvyiWaK6/pvsFl6USnILagntBx8JnVbQH5s3n0vQZY6xNthNfKA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+    $(document).on("runestone:pre-login-complete", function() {
+        console.log("pre-login-complete");
+    })
+    var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
+    window.MathJax = {
+    tex: {
+        inlineMath: [['\\(','\\)'], ['$','$']],
+        tags: "none",
+        tagSide: "right",
+        tagIndent: ".8em",
+        packages: {'[+]': ['base', 'extpfeil', 'ams', 'amscd', 'newcommand', 'knowl']}
     },
-  },
-  chtml: {
-    scale: 0.88,
-    mtextInheritFont: true
-  },
-  loader: {
-    load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand', '[pretext]/mathjaxknowl3.js'],
-    paths: {pretext: "https://pretextbook.org/js/lib"},
-  },
-  startup: {
-    pageReady() {
-      return MathJax.startup.defaultPageReady().then(function () {
-      console.log("in ready function");
-      rsMathReady();
-      }
-    )}
-},
-};
-</script>
+    options: {
+        ignoreHtmlClass: "tex2jax_ignore|ignore-math",
+        processHtmlClass: "process-math",
+        renderActions: {
+            findScript: [10, function (doc) {
+                document.querySelectorAll('script[type^="math/tex"]').forEach(function(node) {
+                    var display = !!node.type.match(/; *mode=display/);
+                    var math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+                    var text = document.createTextNode('');
+                    node.parentNode.replaceChild(text, node);
+                    math.start = {node: text, delim: '', n: 0};
+                    math.end = {node: text, delim: '', n: 0};
+                    doc.math.push(math);
+                });
+            }, '']
+        },
+    },
+    chtml: {
+        scale: 0.88,
+        mtextInheritFont: true
+    },
+    loader: {
+        load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand', '[pretext]/mathjaxknowl3.js'],
+        paths: {pretext: "https://pretextbook.org/js/lib"},
+    },
+    startup: {
+        pageReady() {
+        return MathJax.startup.defaultPageReady().then(function () {
+        console.log("in ready function");
+        rsMathReady();
+        }
+        )}
+    },
+    };
+    </script>
 
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-<script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
-<script src="https://pretextbook.org/js/lib/knowl.js"></script>
-<script src="https://pretextbook.org/js/lib/mathjaxknowl3.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
+    <script src="https://pretextbook.org/js/lib/knowl.js"></script>
+    <script src="https://pretextbook.org/js/lib/mathjaxknowl3.js"></script>
+{% endif %}
+
 

@@ -147,6 +147,15 @@
     height: auto;
 }
 
+/* Editors are user-resizable via the native CSS resize handle (a
+ * ResizeObserver in activecode.js refreshes CodeMirror on change).
+ * Once the user drags the handle the browser sets an explicit
+ * height, which overrides height: auto above. */
+.CodeMirror.ac-resizable {
+    resize: both;
+    overflow: hidden;
+}
+
 .CodeMirror-scroll {
     /* calculated height is designed so editor panel
      * will fit on screen (with space for navbar and

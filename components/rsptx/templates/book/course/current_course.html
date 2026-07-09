@@ -3,16 +3,18 @@
 My Course
 {% endblock %}
 {% block css %}
+  <link href="/staticAssets/course.css" rel="stylesheet" media="screen" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link href="/staticAssets/assignment/assignment_block.css" rel="stylesheet" media="screen" />
 
-<link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-<link href="/staticAssets/course.css" rel="stylesheet" media="screen" />
+  {% if origin == "PreTeXt" and using_ptx_base != "true" %}
+  <link href="/ns/books/published/{{ course.base_course }}/_static/pretext/css/theme.css" rel="stylesheet" />
+  {% endif %}
 {% endblock %}
 
-{% block backTo %}
-textbook
-{% endblock %}
+{% set back_to = "textbook" %}
 
-{% block navitems %}
+{% set navitems %}
 {% if course_list|length > 1 %}
 <li class="nav-item">
   <span class="nav-link">
@@ -27,24 +29,31 @@ textbook
   </span>
 </li>
 {% endif %}
-{% endblock %}
+{% endset %}
 
 {% block content %}
-<div class="course_page">
-  <div>
-    <h2>{{course.course_name}}</h2>
-    {% if course_description %}
+<section class="course_page">
+  <h1 class="heading">{{course.course_name}}</h1>
+
+  {% if course_description %}
+  <div class="course-metadata">
     <p>{{course_description}}</p>
+  </div>
+  {% endif %}
+
+  <div class="course-metadata">
+    <div><strong>Course start date:</strong> {{course.term_start_date}}</div>
+    {% if is_old_course and (is_instructor == True or is_instructor | lower == "true") %}
+      <div class="alert alert-warning">
+        <strong>Warning</strong>: The course start date is more than one year ago.
+      </div>
     {% endif %}
-    <p><strong>Course start date:</strong> {{course.term_start_date}}</p>
-    {% if is_old_course and is_instructor %}
-    <div class="alert alert-warning">
-      <strong>Warning</strong>: The course start date is more than one year ago.
-    </div>
-    {% endif %}
-    <p><b>School:</b> {{institution}}</p>
-    <p><b>Student:</b> {{user.first_name}} {{user.last_name}} (<a href="/runestone/default/user/logout">Not you?</a>)</p>
-    <h2>Instructors</h2>
+    <div><strong>School:</strong> {{institution}}</div>
+    <div><strong>Student:</strong> {{user.first_name}} {{user.last_name}} (<a href="/admin/auth/logout">Not you?</a>)</div>
+  </div>
+
+  <section>
+    <h2 class="heading">Instructors</h2>
     <ul>
       {% for instructor in instructor_list: %}
       <li>
@@ -52,54 +61,50 @@ textbook
       </li>
       {% endfor %}
     </ul>
-</div>
-<div>
-<h2>Textbooks</h2>
-<ul>
-    {% for book in book_list: %}
-    <li><a href="/ns/books/published/{{course.course_name}}/{{book.main_page}}">{{book.title}}</a>
+  </section>
+
+<section>
+  <h2 class="heading">Textbook</h2>
+  {% if book %}
+    <a href="/ns/books/published/{{course.course_name}}/{{book.main_page}}">{{book.title}}</a>
     {% if lastPageUrl %}
-     (<a href="{{lastPageUrl}}">Last Page</a>)
+      (<a href="{{lastPageUrl}}">Last Page</a>)
     {% endif %}
-    </li>
-    {% endfor %}
-</ul>
-
-</div>
-<div class="assignment_chooser">
-  {% if lti1p1 %}
-    <h3>You must launch assignments through your LMS for this course</h3>
   {% else %}
-    {% include 'assignment/student/assignment_block.html'%}
+    <p>No textbook for this course.</p>
   {% endif %}
-</div>
+</section>
 
-{% if is_instructor %}
-<div class="instructor_menu">
-<h2>Instructor Links</h2>
-<div class="nav flex-column" id="v-pills-tab"  aria-orientation="vertical">
-  <a class="nav-link" id="v-pills-instructor-dashboard" href="/admin/instructor/menu">Instructor Dashboard</a>
-  <a class="nav-link" id="v-pills-home-tab" href="/runestone/dashboard">Student Progress</a>
-  <a class="nav-link" id="v-pills-gradebook-tab" href="/runestone/dashboard/grades">Gradebook</a>
-  <a class="nav-link" id="v-pills-grading-tab" href="/runestone/admin/grading">Grading</a>
-  <a class="nav-link" id="v-pills-messages-tab" href="/assignment/instructor/builder">Manage Assignments</a>
-  <a class="nav-link" id="v-pills-messages-tab" href="/assignment/instructor/except">Manage Accommodations</a>
-  <a class="nav-link" id="v-pills-settings-tab" href="/runestone/admin/practice">Manage Practice</a>
-  {% if has_discussion_group: %}
-  <h3>Get help, learn about updates, share resources!</h3>
-  <ul>
-  {% for book in book_list: %}
-  {% if book.social_url: %}
-  <li>
-  <a class="nav-link" href="{{book.social_url}}">Instructors Group for {{book.title}}</a>
-  </li>
+<section>
+  <h2 class="heading">Assignments</h2>
+  {% if lti1p1 %}
+    <p>You must launch assignments through your LMS for this course</p>
+  {% else %}
+    <div class="assignment-chooser">
+      {% include 'assignment/student/assignment_block.html'%}
+    </div>
   {% endif %}
-  {% endfor %}
+</section>
+
+{% if is_instructor == True or is_instructor | lower == "true" %}
+<section class="instructor_menu">
+  <h2 class="heading">Instructor Links</h2>
+  <ul class="instructor-menu-links" >
+    <li><a href="/admin/instructor/menu">Instructor Dashboard</a></li>
+    <li><a href="/assignment/student/studentreport">Student Progress</a></li>
+    <li><a href="/assignment/instructor/gradebook">Gradebook</a></li>
+    <li><a href="/assignment/instructor/grader">Grading</a></li>
+    <li><a href="/assignment/instructor/builder">Manage Assignments</a></li>
+    <li><a href="/assignment/instructor/except">Manage Accommodations</a></li>
   </ul>
-  {% endif %}
-</div>
 
-</div>
+  {% if has_discussion_group: %}
+  <h2 class="heading">Get help, learn about updates, share resources!</h2>
+    {% if book and book.social_url: %}
+    <a class="nav-link" href="{{book.social_url}}">Instructors Group for {{book.title}}</a>
+    {% endif %}
+  {% endif %}
+</section>
 {% endif %}
 
 <script>
@@ -112,7 +117,7 @@ async function change_course(course_name) {
     window.location.href = "/ns/course/index"
 }
 </script>
-</div>
+</section>
 
 {% endblock %}
 

@@ -8,7 +8,15 @@ if [ "$CURRENT" != "$HEAD" ]; then
     echo "Database migration required:"
     echo "  current: $CURRENT"
     echo "  head:    $HEAD"
-    echo "Please run 'docker compose run --rm rsmanage alembic upgrade head' to update the database schema."
+    CMD="docker compose run --rm rsmanage alembic upgrade head"
+    echo "I can run '$CMD' to update the database schema."
+    read -r -p "Run migrations now? [y/N] " REPLY
+
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+        $CMD
+        exit 0
+    fi
+
     exit 1
 fi
 

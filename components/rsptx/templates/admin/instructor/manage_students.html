@@ -1,178 +1,11 @@
-{% extends "_base.html" %}
+{% extends "admin/_admin_base.html" %}
 
 {% block title %}
 Manage Students
 {% endblock %}
 
-{% block css %}
-<style>
-    .student-management {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    .page-header {
-        text-align: center;
-        margin-bottom: 30px;
-        padding: 20px 0;
-        border-bottom: 2px solid #e0e0e0;
-    }
-
-    .page-header h1 {
-        color: #333;
-        margin: 0;
-        font-size: 2.5em;
-        font-weight: 300;
-    }
-
-    .course-info {
-        background: #f0f7ff;
-        padding: 15px;
-        border-radius: 6px;
-        margin-bottom: 20px;
-        border-left: 4px solid #4a90e2;
-    }
-
-    .course-info h3 {
-        margin: 0 0 5px 0;
-        color: #333;
-    }
-
-    .course-info p {
-        margin: 0;
-        color: #666;
-    }
-
-    .settingsbox {
-        margin-bottom: 15px;
-        padding: 15px;
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 8px 12px;
-        margin-bottom: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
-    .btn {
-        padding: 8px 16px;
-        margin: 5px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    .btn-primary {
-        background: #4a90e2;
-        color: white;
-    }
-
-    .btn-danger {
-        background: #dc3545;
-        color: white;
-    }
-
-    .btn:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
-
-    .form-group {
-        margin-bottom: 15px;
-    }
-
-    .form-group label {
-        font-weight: 600;
-        margin-bottom: 5px;
-        display: block;
-    }
-
-    pre {
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 4px;
-        border: 1px solid #e0e0e0;
-    }
-
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        margin: 0 -15px;
-    }
-
-    .col-md-4,
-    .col-md-8 {
-        padding: 0 15px;
-        flex: 0 0 auto;
-    }
-
-    .col-md-4 {
-        width: 33.33333%;
-    }
-
-    .col-md-8 {
-        width: 66.66667%;
-    }
-
-    .back-link {
-        display: inline-block;
-        margin-bottom: 20px;
-        color: #4a90e2;
-        text-decoration: none;
-        font-size: 16px;
-        font-weight: 600;
-        transition: color 0.3s ease;
-    }
-
-    .back-link:hover {
-        color: #357abd;
-        text-decoration: underline;
-    }
-
-    .back-link::before {
-        content: "← ";
-        margin-right: 5px;
-    }
-
-    .help-doc {
-        background: #f8f9fa;
-        border-left: 4px solid #4a90e2;
-        padding: 12px 18px;
-        border-radius: 6px;
-        margin-top: 12px;
-        margin-bottom: 0;
-        color: #333;
-    }
-
-    .help-doc p {
-        margin-bottom: 6px;
-    }
-
-    .student-list {
-        font-family: Verdana, serif;
-        overflow-x: hidden;
-    }
-
-    @media (max-width: 768px) {
-
-        .col-md-4,
-        .col-md-8 {
-            width: 100%;
-            margin-bottom: 20px;
-        }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="student-management">
+<div class="admin-page student-management">
     <a href="/admin/instructor/menu" class="back-link">Back to Instructor Dashboard</a>
 
     <div class="page-header">
@@ -221,8 +54,8 @@ Manage Students
             </form>
             <br />
             <div class="help-doc">
-                <p style="margin-bottom: 6px;">You can make the file in your favorite Spreadsheet app and then export it to a CSV file to upload here. Please export without headers.</p>
-                <p style="font-weight: bold; margin-bottom: 6px;">Notes -- Please Read</p>
+                <p>You can make the file in your favorite Spreadsheet app and then export it to a CSV file to upload here. Please export without headers.</p>
+                <p><strong>Notes -- Please Read</strong></p>
                 <ol style="margin-bottom: 0;">
                     <li>Usernames must be unique across all of Runestone, not just your course.</li>
                     <li>Beware of exporting from Excel, it often adds a Byte Order Marker (BOM) to the beginning of the file that will invalidate the first username. Export as CSV (MS-DOS) to avoid this. Or edit with a text editor and remove it.</li>
@@ -234,52 +67,8 @@ Manage Students
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script>
-    function resetOnePassword() {
-        const studentList = document.getElementById('studentList');
-        const selectedStudents = Array.from(studentList.selectedOptions).map(option => option.value);
-
-        if (selectedStudents.length === 0 || selectedStudents[0] === 'None') {
-            alert('Please select a student first.');
-            return;
-        }
-
-        if (selectedStudents.length > 1) {
-            alert('Please select only one student for password reset.');
-            return;
-        }
-
-        const newPassword = prompt('Enter the new password for this student:');
-        if (!newPassword) {
-            alert('Password reset cancelled.');
-            return;
-        }
-
-        if (confirm('Are you sure you want to reset the password for this student?')) {
-            // Make API call to reset password
-            fetch('/admin/instructor/reset_password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    sid: selectedStudents[0],
-                    password: newPassword
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Password reset successfully.');
-                    } else {
-                        alert('Error resetting password: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    alert('Error resetting password: ' + error.message);
-                });
-        }
-    }
-</script>
+{% block page_js %}
+<script src="/staticAssets/js/admin/manage_students.js"></script>
 {% endblock %}

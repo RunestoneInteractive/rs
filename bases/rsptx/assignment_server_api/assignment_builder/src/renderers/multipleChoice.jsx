@@ -1,7 +1,6 @@
-import { Button } from "primereact/button";
-import { Checkbox } from "primereact/checkbox";
-import { InputTextarea } from "primereact/inputtextarea";
-import Prism from "prismjs"; // eslint-disable-line no-unused-vars
+import { ActionIcon, Checkbox, Textarea } from "@mantine/core";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
+import Prism from "prismjs"; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
 import { useSelector, useDispatch } from "react-redux";
 
 import { createMCQTemplate } from "../componentFuncs";
@@ -12,7 +11,7 @@ import {
   setStatement,
   addOption,
   selectOptionList,
-  selectStatement,
+  selectStatement
 } from "../state/multiplechoice/mcSlice";
 import { setCode } from "../state/preview/previewSlice";
 
@@ -75,7 +74,7 @@ export function MultipleChoiceCreator() {
   const markCorrect = (index, event) => {
     const values = structuredClone(optionList);
 
-    values[index].correct = event.checked;
+    values[index].correct = event.currentTarget.checked;
     dispatch(setOptionList(values));
     handleCodeUpdates(values);
   };
@@ -85,7 +84,7 @@ export function MultipleChoiceCreator() {
       <h1>Multiple Choice</h1>
       <div className="p-fluid p-field">
         <label htmlFor="mcStatement">Question Prompt</label>
-        <InputTextarea
+        <Textarea
           id="mcStatement"
           placeholder="Question"
           value={statement}
@@ -100,7 +99,7 @@ export function MultipleChoiceCreator() {
         <>
           <div key={index} className="p-fluid">
             <label>Choice {index + 1}</label>
-            <InputTextarea
+            <Textarea
               value={option.choice}
               placeholder="text or html ok"
               onChange={(e) => handleNewChoice(index, e)}
@@ -109,7 +108,7 @@ export function MultipleChoiceCreator() {
           </div>
           <div className="flex flex-wrap justify-content-left gap-3 mb-4">
             <label>Feedback {index + 1}</label>
-            <InputTextarea
+            <Textarea
               value={option.feedback}
               onChange={(e) => handleNewFeedback(index, e)}
               onBlur={handleCodeUpdates}
@@ -117,22 +116,26 @@ export function MultipleChoiceCreator() {
             <label>Correct</label>
             <Checkbox checked={option.correct} onChange={(e) => markCorrect(index, e)} />
             {optionList.length > 1 && (
-              <Button
-                rounded
-                outlined
-                severity="danger"
-                icon="pi pi-trash"
+              <ActionIcon
+                variant="outline"
+                color="red"
+                radius="xl"
                 onClick={() => handleDeleteOption(index)}
-              />
+                aria-label="Delete option"
+              >
+                <IconTrash size={16} />
+              </ActionIcon>
             )}
             {index === optionList.length - 1 && (
-              <Button
-                rounded
-                outlined
-                severity="success"
-                icon="pi pi-plus"
+              <ActionIcon
+                variant="outline"
+                color="green"
+                radius="xl"
                 onClick={handleAddOption}
-              />
+                aria-label="Add option"
+              >
+                <IconPlus size={16} />
+              </ActionIcon>
             )}
             <hr />
           </div>

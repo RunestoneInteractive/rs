@@ -1,8 +1,7 @@
-import { InputText } from "primereact/inputtext";
-import { ProgressBar } from "primereact/progressbar";
-import { ToggleButton } from "primereact/togglebutton";
+import { Button, Progress, TextInput } from "@mantine/core";
 import React, { useMemo, useRef } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
 import {
@@ -49,21 +48,14 @@ export const StudentListSidebar: React.FC<Props> = ({
       const status = getStudentStatus(a, question, { dirtySids });
       if (hideGraded && (status === "graded" || status === "autograded")) return false;
       if (!q) return true;
-      return (
-        studentName(a).toLowerCase().includes(q) ||
-        a.sid.toLowerCase().includes(q)
-      );
+      return studentName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
     });
   }, [answers, filter, hideGraded, question, dirtySids]);
 
   const listRef = useRef<HTMLUListElement | null>(null);
 
   return (
-    <aside
-      className={styles.sidebar}
-      data-tour="grader-student-sidebar"
-      aria-label="Students"
-    >
+    <aside className={styles.sidebar} data-tour="grader-student-sidebar" aria-label="Students">
       <header className={styles.header}>
         <div className={styles.headerRow}>
           <strong>Students</strong>
@@ -71,11 +63,11 @@ export const StudentListSidebar: React.FC<Props> = ({
             {progress.graded + progress.autograded} / {progress.total}
           </span>
         </div>
-        <ProgressBar
+        <Progress
           value={progress.donePct}
-          showValue={false}
-          style={{ height: 6 }}
-          color="#6366f1"
+          size={4}
+          color="brand"
+          className={styles.progressTrack}
           aria-label={`Progress: ${Math.round(progress.donePct)} percent done`}
         />
         <div className={styles.legendRow}>
@@ -87,32 +79,28 @@ export const StudentListSidebar: React.FC<Props> = ({
           )}
         </div>
         <div className={styles.controls}>
-          <span className="p-input-icon-left" style={{ display: "block", width: "100%" }}>
-            <i className="pi pi-search" />
-            <InputText
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter…"
-              style={{ width: "100%", fontSize: 13 }}
-            />
-          </span>
-          <ToggleButton
-            checked={hideGraded}
-            onChange={(e) => onToggleHideGraded(e.value)}
-            onLabel="Hide graded"
-            offLabel="All students"
-            onIcon="pi pi-filter-fill"
-            offIcon="pi pi-filter"
-            style={{ fontSize: 12, padding: "0.2rem 0.5rem", width: "100%" }}
-            aria-label="Hide already-graded students"
+          <TextInput
+            value={filter}
+            onChange={(e) => setFilter(e.currentTarget.value)}
+            placeholder="Filter…"
+            leftSection={<Icon name="search" size={14} />}
+            size="xs"
           />
+          <Button
+            variant={hideGraded ? "filled" : "default"}
+            size="xs"
+            fullWidth
+            leftSection={<Icon name={hideGraded ? "filter-fill" : "filter"} size={13} />}
+            onClick={() => onToggleHideGraded(!hideGraded)}
+            aria-label="Hide already-graded students"
+          >
+            {hideGraded ? "Hide graded" : "All students"}
+          </Button>
         </div>
       </header>
 
       <ul ref={listRef} role="listbox" className={styles.list}>
-        {filtered.length === 0 && (
-          <li className={styles.empty}>No students match the filter.</li>
-        )}
+        {filtered.length === 0 && <li className={styles.empty}>No students match the filter.</li>}
         {filtered.map((a) => {
           const status = getStudentStatus(a, question, { dirtySids });
           const active = a.sid === activeSid;
@@ -138,17 +126,10 @@ export const StudentListSidebar: React.FC<Props> = ({
                 <div className={styles.itemMeta}>
                   <span className={styles.itemSid}>{a.sid}</span>
                   <span>·</span>
-                  <span>
-                    {a.score != null ? `${a.score}/${a.max_points}` : "—"}
-                  </span>
+                  <span>{a.score != null ? `${a.score}/${a.max_points}` : "—"}</span>
                 </div>
               </div>
-              {active && (
-                <i
-                  className="pi pi-angle-right"
-                  style={{ color: "#6366f1", fontSize: 12 }}
-                />
-              )}
+              {active && <Icon name="angle-right" size={12} className={styles.itemChevron} />}
             </li>
           );
         })}
@@ -164,19 +145,18 @@ const StatusDot: React.FC<{ status: StudentGradingStatus }> = ({ status }) => (
     aria-label={statusLabel[status]}
     title={statusLabel[status]}
   >
-    <i className={statusIcon[status]} />
+    <Icon name={statusIcon[status]} size={14} />
   </span>
 );
 
-const Legend: React.FC<{ status: StudentGradingStatus; count: number }> = ({
-  status,
-  count
-}) => {
+const Legend: React.FC<{ status: StudentGradingStatus; count: number }> = ({ status, count }) => {
   if (count === 0) return null;
   return (
     <span className={styles.legend} title={statusLabel[status]}>
-      <i className={statusIcon[status]} style={{ color: statusColor[status] }} />
-      <span>{count}</span>
+      <span className={styles.legendIcon} style={{ color: statusColor[status] }}>
+        <Icon name={statusIcon[status]} size={13} />
+      </span>
+      <span className="numeric">{count}</span>
     </span>
   );
 };

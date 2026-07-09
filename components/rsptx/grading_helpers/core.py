@@ -1,5 +1,6 @@
 from typing import Union, List
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 from rsptx.db.models import AuthUserValidator, DeadlineExceptionValidator
 from rsptx.db.crud import (
     is_assigned,
@@ -11,7 +12,9 @@ from rsptx.db.crud import (
     upsert_grade,
     fetch_assignment_scores,
     fetch_deadline_exception,
+    fetch_one_assignment,
     fetch_peer_useinfo,
+    has_submissions_after_deadline,
 )
 from rsptx.validation.schemas import (
     LogItemIncoming,
@@ -24,6 +27,11 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.scoring import (
+    score_answer_values,
+    score_peer_values,
+    PEER_SCORE_SENTINEL,
+)
 
 
 async def grade_submission(
@@ -190,43 +198,28 @@ async def score_one_answer(
     rslogger.debug(
         f"scoreSpec.how_to_score = {scoreSpec.how_to_score} {scoreSpec.max_score}"
     )
-    if scoreSpec.how_to_score == "pct_correct":
-        if submission.correct:
-            return scoreSpec.max_score
-        else:
-            if submission.percent:
-                # for some reason, lost to the sands of time, the percent is an int for unittests
-                if submission.event == "unittest":
-                    return (submission.percent / 100.0) * scoreSpec.max_score
-                else:
-                    return submission.percent * scoreSpec.max_score
-            return 0
-    elif scoreSpec.how_to_score == "all_or_nothing":
-        if submission.correct:
-            return scoreSpec.max_score
-        else:
-            return 0
-    elif (
-        scoreSpec.how_to_score == "interact" or scoreSpec.how_to_score == "interaction"
-    ):
-        return scoreSpec.max_score
-    elif scoreSpec.how_to_score in ("peer", "peer_chat"):
-        # Match web2py's _score_peer_instruction:
-        # award points for vote1, vote2, and (for peer_chat) sending a message.
+    score = score_answer_values(
+        how_to_score=scoreSpec.how_to_score,
+        max_score=scoreSpec.max_score,
+        correct=submission.correct,
+        percent=submission.percent,
+        event=submission.event,
+    )
+    if score == PEER_SCORE_SENTINEL:
         rows = await fetch_peer_useinfo(
             scoreSpec.username, submission.div_id, submission.course_name
         )
         has_vote1 = any("vote1" in (r.act or "") for r in rows)
         has_vote2 = any("vote2" in (r.act or "") for r in rows)
         sent_message = any(r.event == "sendmessage" for r in rows)
-        tot = int(has_vote1) + int(has_vote2) + int(sent_message)
-        if scoreSpec.how_to_score == "peer_chat":
-            return (tot / 3) * scoreSpec.max_score
-        else:
-            return min(1.0, tot / 2) * scoreSpec.max_score
-    else:
-        rslogger.debug(f"Unknown how_to_score {scoreSpec.how_to_score}")
-        return 0
+        return score_peer_values(
+            scoreSpec.how_to_score,
+            scoreSpec.max_score,
+            has_vote1,
+            has_vote2,
+            sent_message,
+        )
+    return score
 
 
 async def compute_total_score(
@@ -342,3 +335,52 @@ def adjust_deadlines(
                     assignment.duedate += timedelta(days=exception.duedate)
                 break
     return assignment_list
+
+
+async def has_late_submission(
+    username: str, assignment_id: int, timezone: str = "UTC"
+) -> bool:
+    """
+    Determine whether a student has saved work for any question on an
+    assignment after its deadline.
+
+    The deadline is only meaningful when the instructor has chosen to enforce
+    the due date (``Assignment.enforce_due``); when it is not enforced nothing
+    counts as late.  Any per-student accommodation in the
+    ``deadline_exceptions`` table that extends the due date is applied before
+    the comparison is made.
+
+    Only the ``useinfo`` table is consulted -- it records a row for every save
+    a student makes, so it is both sufficient and far cheaper than querying the
+    individual ``*_answers`` tables.
+
+    :param username: The student's username (``auth_user.username`` / ``sid``).
+    :param assignment_id: The id of the assignment to check.
+    :param timezone: The course timezone used to interpret the due date, which
+        is stored in course-local time.
+    :return: True if the student saved work after the enforced (and
+        accommodated) deadline, False otherwise.
+    """
+    assignment = await fetch_one_assignment(assignment_id)
+
+    # If the instructor is not enforcing the due date, late work is allowed and
+    # nothing is considered late.
+    if not assignment.enforce_due:
+        return False
+
+    # Apply any accommodation (extra days) granted to this student.
+    accommodation = await fetch_deadline_exception(
+        assignment.course, username, assignment_id
+    )
+    deadline = assignment.duedate
+    if accommodation and accommodation.duedate:
+        deadline += timedelta(days=accommodation.duedate)
+
+    # The due date is stored in the course's local timezone, while useinfo
+    # timestamps are stored as naive UTC, so convert before comparing.
+    tz = ZoneInfo(timezone)
+    deadline_utc = (
+        deadline.replace(tzinfo=tz).astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+    )
+
+    return await has_submissions_after_deadline(username, assignment_id, deadline_utc)

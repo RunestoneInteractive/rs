@@ -1,7 +1,11 @@
-import { Button } from "primereact/button";
+import { ActionIcon, Group, Tooltip } from "@mantine/core";
 import { ReactNode, FC } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
 import styles from "./styles/ExerciseStepWrapper.module.css";
+
+const INFO_TRIGGER_SIZE = 40;
 
 interface ExerciseStepWrapperProps {
   title: string;
@@ -18,18 +22,27 @@ export const ExerciseStepWrapper: FC<ExerciseStepWrapperProps> = ({
     <div className={styles.stepContainer}>
       <div className={styles.stepCard}>
         <div className={styles.stepHeader}>
-          <div className="flex align-items-center gap-1">
+          <Group align="center" gap={4}>
             <h3>{title}</h3>
-            <Button
-              icon="pi pi-info-circle"
-              rounded
-              text
-              severity="info"
-              tooltip={description}
-              tooltipOptions={{ position: "right", showDelay: 150, style: { maxWidth: "300px" } }}
-              style={{ width: "24px", height: "24px", padding: 0 }}
-            />
-          </div>
+            <Tooltip
+              label={description}
+              position="right"
+              openDelay={150}
+              multiline
+              w={300}
+              events={{ hover: true, focus: true, touch: true }}
+            >
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size={INFO_TRIGGER_SIZE}
+                className={styles.infoIcon}
+                aria-label="About this step"
+              >
+                <Icon name="info-circle" />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </div>
 
         <div className={styles.stepContent}>

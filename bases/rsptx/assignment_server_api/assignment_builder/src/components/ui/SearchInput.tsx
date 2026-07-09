@@ -1,25 +1,29 @@
-import { InputText } from "primereact/inputtext";
-import { classNames } from "primereact/utils";
-
-import styles from "./SearchInput.module.css";
+import { Icon } from "@components/ui/Icon";
+import { TextInput } from "@mantine/core";
 
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  ariaLabel?: string;
 }
 
-export const SearchInput = ({ value, onChange, placeholder, className }: SearchInputProps) => {
+export const SearchInput = ({
+  value,
+  onChange,
+  placeholder,
+  className,
+  ariaLabel
+}: SearchInputProps) => {
   return (
-    <div className={classNames(styles.searchWrapper, className)}>
-      <i className={classNames("pi pi-search", styles.searchIcon)} />
-      <InputText
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={styles.searchInput}
-      />
-    </div>
+    <TextInput
+      value={value}
+      onChange={(e) => onChange(e.currentTarget.value)}
+      placeholder={placeholder}
+      aria-label={ariaLabel ?? placeholder ?? "Search"}
+      className={className}
+      leftSection={<Icon name="search" />}
+    />
   );
 };

@@ -10,48 +10,49 @@
 # Standard library
 # ----------------
 import datetime
+import json
+import random
 import sys
 from typing import Optional
 
+import pandas as pd
+
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Depends, Request, Body
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from rsptx.auth.session import auth_manager
+from rsptx.configuration import settings
+from rsptx.db.async_session import async_session
+from rsptx.db.crud import (
+    count_distinct_student_answers,
+    count_peer_messages,
+    create_useinfo_entry,
+    fetch_all_course_attributes,
+    fetch_api_token,
+    fetch_assignment_questions,
+    fetch_assignments,
+    fetch_course_students,
+    fetch_last_useinfo_peergroup,
+    fetch_lti_version,
+    fetch_one_assignment,
+    fetch_question,
+    fetch_recent_student_answers,
+    fetch_student_answers_in_timerange,
+    replace_user_experiment_entries,
+    update_assignment,
+)
+from rsptx.db.models import Useinfo, UseinfoValidation
+from rsptx.endpoint_validators import instructor_role_required, with_course
 
 # Local application imports
 # -------------------------
 from rsptx.logging import rslogger
-from rsptx.db.crud import (
-    fetch_assignments,
-    fetch_one_assignment,
-    update_assignment,
-    fetch_assignment_questions,
-    fetch_all_course_attributes,
-    create_useinfo_entry,
-    fetch_lti_version,
-    fetch_recent_student_answers,
-    fetch_student_answers_in_timerange,
-    count_distinct_student_answers,
-    count_peer_messages,
-    fetch_last_useinfo_peergroup,
-    fetch_course_students,
-    fetch_api_token,
-    fetch_question,
-)
-from rsptx.db.models import UseinfoValidation, Useinfo
-from rsptx.db.async_session import async_session
-from rsptx.auth.session import auth_manager
-import pandas as pd
-import random
-import json
-from rsptx.templates import template_folder
-from rsptx.endpoint_validators import with_course, instructor_role_required
-from rsptx.configuration import settings
-
 from rsptx.response_helpers.core import (
     get_webpack_static_imports,
 )
+from rsptx.templates import template_folder
 
 # Analogy themes for async LLM mode
 # ==================================
@@ -160,7 +161,7 @@ async def get_peer_dashboard(
     questions_result = await fetch_assignment_questions(assignment_id)
     questions = []
     for row in questions_result:
-        question, assignment_question = row
+        question = row.Question
         questions.append(question)
 
     # Get current question based on assignment's current_index
@@ -206,9 +207,10 @@ async def get_peer_dashboard(
     await create_useinfo_entry(log_entry)
 
     # Initialize Redis state and publish enableNext message
-    import os
-    import redis
     import json
+    import os
+
+    import redis
 
     try:
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
@@ -221,6 +223,7 @@ async def get_peer_dashboard(
             "course_name": course.course_name,
         }
         r.publish("peermessages", json.dumps(mess))
+        r.hset(f"{course.course_name}_state", "current_phase", json.dumps(mess))
     except Exception as e:
         rslogger.error(f"Error initializing Redis: {e}")
 
@@ -284,7 +287,7 @@ async def get_peer_extra(
 
     assignment = await fetch_one_assignment(assignment_id)
     questions_result = await fetch_assignment_questions(assignment_id)
-    questions = [q for q, _aq in questions_result]
+    questions = [q.Question for q in questions_result]
 
     current_idx = (
         assignment.current_index if assignment.current_index is not None else 0
@@ -397,7 +400,7 @@ async def get_peer_question(
     questions_result = await fetch_assignment_questions(assignment_id)
     questions = []
     for row in questions_result:
-        question, assignment_question = row
+        question = row.Question
         questions.append(question)
 
     # Get the current question based on assignment's current_index
@@ -526,7 +529,7 @@ async def get_peer_async(
         )
 
     qa_pairs = list(await fetch_assignment_questions(assignment_id))
-    questions = [q for q, _aq in qa_pairs]
+    questions = [q.Question for q in qa_pairs]
     total_questions = len(questions)
 
     idx = question_num - 1
@@ -549,6 +552,7 @@ async def get_peer_async(
 
     course_attrs = await fetch_all_course_attributes(course.id)
     latex_macros = course_attrs.get("latex_macros", "")
+    enable_likert = course_attrs.get("enable_likert", "false") == "true"
 
     async_llm_modes_enabled = (
         course_attrs.get("enable_async_llm_modes", "false") == "true"
@@ -563,6 +567,13 @@ async def get_peer_async(
     else:
         llm_enabled = has_api_token
 
+    if not llm_enabled:
+        pi_mode = "standard"
+    elif question_async_mode == "analogies":
+        pi_mode = "personalized_llm"
+    else:
+        pi_mode = "generic_llm"
+
     try:
         await create_useinfo_entry(
             UseinfoValidation(
@@ -570,7 +581,7 @@ async def get_peer_async(
                 sid=user.username,
                 div_id=current_question.name if current_question else "",
                 event="pi_mode",
-                act=json.dumps({"mode": "llm" if llm_enabled else "legacy"}),
+                act=json.dumps({"mode": pi_mode}),
                 timestamp=datetime.datetime.utcnow(),
             )
         )
@@ -604,6 +615,7 @@ async def get_peer_async(
         "has_reflection": has_reflection,
         "llm_enabled": llm_enabled,
         "async_mode": question_async_mode,
+        "enable_likert": enable_likert,
         "pi_themes_json": json.dumps(PI_THEMES),
         "llm_reply": None,
         "latex_macros": latex_macros,
@@ -615,6 +627,99 @@ async def get_peer_async(
     }
 
     return templates.TemplateResponse("assignment/student/peer_async.html", context)
+
+
+def split_ab_conditions(
+    answerers: list[str],
+    in_person_groups: list[set[str]],
+    rng: random.Random = random,
+) -> tuple[list[str], list[str]]:
+    """Split answering students into the verbal (in-person) and chat conditions
+    for an A/B peer-instruction experiment.
+
+    Students recorded in the same verbal-discussion group share a single
+    condition so that verbal partners are never split into text chat. The full
+    recorded group is kept, including partners who did not vote on this question,
+    so a non-voting partner is still assigned the same condition.
+
+    :param answerers: students who voted on this question, in the order they
+        should be considered when forming clusters (callers typically shuffle).
+    :param in_person_groups: recorded verbal-discussion groups, each a set of
+        student ids, derived from prior ``peergroup`` useinfo events.
+    :param rng: random source; injectable so tests can pass a seeded
+        ``random.Random`` for deterministic results. Defaults to the module's
+        ``random``.
+    :return: ``(peeps_in_person, peeps_in_chat)`` — disjoint lists of student
+        ids assigned to the verbal and chat conditions respectively.
+    """
+
+    # Build connected components over all recorded verbal groups using union-find
+    # so that transitively-linked students (e.g. {A,B} and {B,C} recorded
+    # separately) always land in the same cluster. A per-seed union approach
+    # would make C a singleton when A is seeded first (issue #1261).
+    parent: dict[str, str] = {}
+
+    def _find(x: str) -> str:
+        while parent.setdefault(x, x) != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def _union(a: str, b: str) -> None:
+        parent[_find(a)] = _find(b)
+
+    for grp in in_person_groups:
+        members = list(grp)
+        for m in members[1:]:
+            _union(members[0], m)
+
+    # Group answerers into their connected component. Non-voting recorded
+    # partners are included so they stay in the same condition as their group.
+    component: dict[str, list[str]] = {}
+    for p in answerers:
+        root = _find(p)
+        component.setdefault(root, []).append(p)
+    for grp in in_person_groups:
+        for m in grp:
+            if m not in parent:
+                continue
+            root = _find(m)
+            if root in component and m not in component[root]:
+                component[root].append(m)
+    clusters: list[list[str]] = [sorted(v) for v in component.values()]
+
+    # Assign clusters to conditions with an approximately balanced (~50/50)
+    # split rather than an independent per-cluster coin flip. Shuffle for
+    # randomness, then use a greedy algorithm to place each cluster into
+    # whichever condition currently has fewer students. Singletons (no recorded
+    # verbal partner) can only go to text chat, since they have no one to
+    # discuss with verbally.
+    rng.shuffle(clusters)
+    peeps_in_person: list[str] = []
+    peeps_in_chat: list[str] = []
+    for grp in clusters:
+        if len(grp) == 1:
+            peeps_in_chat.extend(grp)
+            continue
+        if len(peeps_in_person) <= len(peeps_in_chat):
+            peeps_in_person.extend(grp)
+        else:
+            peeps_in_chat.extend(grp)
+
+    # Make sure there is at least one student in each condition whenever that is
+    # actually possible (i.e. there is more than one cluster, or a multi-person
+    # cluster exists to seed the verbal side).
+    multi_clusters = [g for g in clusters if len(g) > 1]
+    if not peeps_in_person and multi_clusters:
+        promote = multi_clusters[0]
+        peeps_in_chat = [s for s in peeps_in_chat if s not in promote]
+        peeps_in_person.extend(promote)
+    if not peeps_in_chat and len(clusters) > 1:
+        demote = clusters[-1]
+        peeps_in_person = [s for s in peeps_in_person if s not in demote]
+        peeps_in_chat.extend(demote)
+
+    return peeps_in_person, peeps_in_chat
 
 
 # API Endpoints
@@ -630,6 +735,7 @@ async def make_pairs(
     start_time: str = Body(...),
     group_size: int = Body(2),
     is_ab: bool = Body(False),
+    assignment_id: Optional[int] = Body(None),
     user=Depends(auth_manager),
     course=None,
 ):
@@ -640,6 +746,7 @@ async def make_pairs(
     mimicking the legacy web2py behavior.
     """
     import os
+
     import redis
     from dateutil.parser import parse
 
@@ -688,67 +795,27 @@ async def make_pairs(
                 except Exception:  # defensive; malformed rows shouldn't break pairing
                     continue
 
-            def find_set_containing_string(
-                list_of_sets: list[set[str]], target: str
-            ) -> set[str]:
-                result: set[str] = set()
-                for s in list_of_sets:
-                    if target in s:
-                        result |= s
-                return result
+            # Group answering students into their recorded verbal clusters and
+            # split those clusters across the two conditions. See
+            # split_ab_conditions for the clustering and balancing rules.
+            answerers = [p for p in peeps if p in sid_ans]
+            peeps_in_person, peeps_in_chat = split_ab_conditions(
+                answerers, in_person_groups
+            )
 
-            def process_peep(
-                sid: str,
-                remaining: list[str],
-                target_list: list[str],
-                other_list: list[str],
-                local_groups: list[set[str]],
-                mode: str,
-            ) -> None:
-                target_list.append(sid)
-                if sid in remaining:
-                    remaining.remove(sid)
-                other_peeps = find_set_containing_string(local_groups, sid)
-                # If no other peeps then this person must be put into a chat group,
-                # not an in-person group.
-                if not other_peeps and mode == "in_person":
-                    other_list.append(sid)
-                    return
-                for op in other_peeps:
-                    if op in remaining:
-                        remaining.remove(op)
-                    if op not in target_list:
-                        target_list.append(op)
-
-            peeps_in_chat: list[str] = []
-            peep_queue = [p for p in peeps if p in sid_ans]
-            while peep_queue:
-                p = peep_queue.pop()
-                if p in peeps_in_person or p in peeps_in_chat:
-                    continue
-                if random.random() < 0.5:
-                    rslogger.debug(f"Adding {p} to the in_person list")
-                    process_peep(
-                        p,
-                        peeps,
-                        peeps_in_person,
-                        peeps_in_chat,
-                        in_person_groups,
-                        "in_person",
-                    )
-                else:
-                    process_peep(
-                        p,
-                        peeps,
-                        peeps_in_chat,
-                        peeps_in_person,
-                        in_person_groups,
-                        "chat",
-                    )
-            # Need to ensure that chat peeps have answered the question
             peeps = [p for p in peeps_in_chat if p in sid_ans]
             rslogger.debug(f"FINAL PEEPS IN CHAT = {peeps}")
             rslogger.debug(f"FINAL PEEPS IN PERSON = {peeps_in_person}")
+
+            # Re-running the experiment will randomize it again so that it can clear any previous assignments to keep one unambiguous group per student.
+            # Delete + insert now will happen in a single call so re-running stays fast for larger courses.
+            experiment_id = f"{div_id}_ab"
+            # Record every clustered student in their group's condition, including
+            # students whose partner did not vote, so partners always share a condition
+            assignments = [(sid, 0) for sid in peeps_in_person] + [
+                (sid, 1) for sid in peeps_in_chat
+            ]
+            await replace_user_experiment_entries(experiment_id, assignments)
 
         # Chat pairing for the remaining students in `peeps`
         done = len(peeps) == 0
@@ -820,6 +887,28 @@ async def make_pairs(
             }
             r.publish("peermessages", json.dumps(mess))
 
+        # Store per-student phase so reconnecting students catch up to the right UI.
+        # Text-chat and verbal (face-chat) students get different phases in A/B mode,
+        # so we store per-student under an assignment-scoped key to avoid cross-session bleed.
+        state_key = (
+            f"assignment_{assignment_id}_state"
+            if assignment_id
+            else f"{course.course_name}_state"
+        )
+        for sid in gdict:
+            r.hset(
+                state_key,
+                sid,
+                json.dumps(
+                    {
+                        "type": "control",
+                        "message": "enableChat",
+                        "broadcast": False,
+                        "course_name": course.course_name,
+                    }
+                ),
+            )
+
         # If doing A/B, also send face-chat groups based on in-person groups
         if is_ab and peeps_in_person:
             # Build a map of username -> full name for this course
@@ -849,6 +938,18 @@ async def make_pairs(
                     "course_name": course.course_name,
                 }
                 r.publish("peermessages", json.dumps(mess))
+                r.hset(
+                    state_key,
+                    p,
+                    json.dumps(
+                        {
+                            "type": "control",
+                            "message": "enableFaceChat",
+                            "broadcast": False,
+                            "course_name": course.course_name,
+                        }
+                    ),
+                )
 
         rslogger.info(f"Created {len(group_list)} chat groups (is_ab={is_ab})")
         return JSONResponse(content={"status": "success", "groups": len(group_list)})
@@ -892,7 +993,11 @@ async def get_chart_data(
             end_time_dt = st2.replace(tzinfo=None)
 
         rows1 = await fetch_student_answers_in_timerange(
-            div_id, course.course_name, start_time_dt, end_time_dt
+            div_id,
+            course.course_name,
+            start_time_dt,
+            end_time_dt,
+            exclude_sid=user.username,
         )
         data1 = [{"answer": answer, "rn": 1} for sid, answer in rows1]
 
@@ -900,7 +1005,7 @@ async def get_chart_data(
         data2 = []
         if end_time_dt:
             rows2 = await fetch_student_answers_in_timerange(
-                div_id, course.course_name, end_time_dt
+                div_id, course.course_name, end_time_dt, exclude_sid=user.username
             )
             data2 = [{"answer": answer, "rn": 2} for sid, answer in rows2]
 
@@ -1016,9 +1121,10 @@ async def get_num_answers(
     start_time_dt = st.replace(tzinfo=None)
 
     try:
-        # Count distinct students who answered
+        # Count distinct students who answered, excluding the instructor
+        # running the session (they may select an answer on the dashboard view)
         answer_count = await count_distinct_student_answers(
-            div_id, course_name, start_time_dt
+            div_id, course_name, start_time_dt, exclude_sid=user.username
         )
 
         # Count messages sent
@@ -1053,8 +1159,9 @@ async def get_percent_correct(
     start_time_dt = st.replace(tzinfo=None)
 
     try:
-        # Get the most recent answer for each student
-        rows = await fetch_recent_student_answers(div_id, course_name, start_time_dt)
+        rows = await fetch_recent_student_answers(
+            div_id, course_name, start_time_dt, exclude_sid=user.username
+        )
 
         if not rows:
             return JSONResponse(content={"pct_correct": 0})
@@ -1129,9 +1236,10 @@ async def publish_message(
     Publish a message to the Redis pub/sub for peer instruction.
     Used for both text chat and control messages.
     """
-    import os
-    import redis
     import json
+    import os
+
+    import redis
 
     data = await request.json()
     rslogger.info(f"Publishing peer message: {data}")
@@ -1139,6 +1247,15 @@ async def publish_message(
     try:
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
         r.publish("peermessages", json.dumps(data))
+
+        # Store phase-change control messages so reconnecting students can catch up
+        if data.get("type") == "control" and data.get("message") in (
+            "enableVote",
+            "enableNext",
+            "enableChat",
+            "enableFaceChat",
+        ):
+            r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
 
         # Track message count for text messages
         if data.get("type") == "text":
@@ -1157,6 +1274,40 @@ async def publish_message(
         )
 
 
+@router.get("/api/current_state")
+@with_course()
+async def get_current_state(
+    request: Request,
+    assignment_id: Optional[int] = None,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """Return the last phase-change control message for this student so a
+    reconnecting student can catch up to the current session state."""
+    import os
+
+    import redis
+
+    try:
+        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+        # Per-student key stored during make_pairs (handles A/B where phases differ per student).
+        # Falls back to course-wide current_phase for broadcast phases (enableVote, enableNext).
+        state_key = (
+            f"assignment_{assignment_id}_state"
+            if assignment_id
+            else f"{course.course_name}_state"
+        )
+        raw = r.hget(state_key, user.username) or r.hget(
+            f"{course.course_name}_state", "current_phase"
+        )
+        if raw:
+            return JSONResponse(content=json.loads(raw))
+        return JSONResponse(content={})
+    except Exception as e:
+        rslogger.error(f"Error fetching current state: {e}")
+        return JSONResponse(content={})
+
+
 @router.post("/api/log_peer_rating")
 @with_course()
 async def log_peer_rating(
@@ -1171,6 +1322,7 @@ async def log_peer_rating(
     Log a student's rating of their peer interaction.
     """
     import datetime
+
     from rsptx.validation.schemas import UseinfoValidation
 
     rslogger.info(
@@ -1213,6 +1365,7 @@ async def clear_pairs(
     Called when the instructor switches to face-chat mode.
     """
     import os
+
     import redis as redis_lib
 
     r = redis_lib.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
@@ -1222,7 +1375,6 @@ async def clear_pairs(
 
 
 @router.get("/course_students")
-@instructor_role_required()
 @with_course()
 async def get_course_students(
     request: Request,
@@ -1233,6 +1385,9 @@ async def get_course_students(
     Return a dict of {username: full_name} for all students in the course.
     Used by peer.js to populate the group selection panel.
     """
+    if course.course_name == course.base_course:
+        return JSONResponse(status_code=403, content={})
+
     students = await fetch_course_students(course.id)
     result = {s.username: f"{s.first_name} {s.last_name}".strip() for s in students}
     return JSONResponse(content=result)
@@ -1470,6 +1625,7 @@ async def _generate_analogy_mapping_async(
 
     try:
         import os
+
         import aiohttp
 
         token_row = await fetch_api_token(course_id, "openai")
@@ -1531,6 +1687,29 @@ async def get_async_llm_reflection(
     messages = data.get("messages")
     theme_id = (data.get("theme_id") or "").strip()
     analogy_mapping = (data.get("analogy_mapping") or "").strip()
+
+    if theme_id and div_id:
+        theme_obj = THEME_BY_ID.get(theme_id)
+        theme_label = theme_obj["label"] if theme_obj else theme_id
+
+        try:
+            await create_useinfo_entry(
+                UseinfoValidation(
+                    course_id=user.course_name,
+                    sid=user.username,
+                    div_id=div_id,
+                    event="pi_theme",
+                    act=json.dumps(
+                        {
+                            "theme_id": theme_id,
+                            "theme_label": theme_label,
+                        }
+                    ),
+                    timestamp=datetime.datetime.utcnow(),
+                )
+            )
+        except Exception:
+            rslogger.exception("Failed to log personalized LLM theme")
 
     if not div_id:
         return JSONResponse(content={"ok": False, "error": "missing div_id"})

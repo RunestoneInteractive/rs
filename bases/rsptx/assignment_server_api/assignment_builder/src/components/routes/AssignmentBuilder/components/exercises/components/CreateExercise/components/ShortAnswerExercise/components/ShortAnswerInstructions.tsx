@@ -1,6 +1,8 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
-import { Checkbox } from "primereact/checkbox";
+import { Checkbox, Group } from "@mantine/core";
 import { FC } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import { useValidation } from "../../../shared/ExerciseLayout";
 import styles from "../../../shared/styles/CreateExercise.module.css";
@@ -29,24 +31,21 @@ export const ShortAnswerInstructions: FC<ShortAnswerInstructionsProps> = ({
         <Editor content={instructions} onChange={onChange} />
       </div>
 
-      <div className="flex align-items-center mt-4">
-        <Checkbox
-          inputId="allowAttachments"
-          checked={attachment}
-          onChange={(e) => onAttachmentChange(Boolean(e.checked))}
-        />
-        <label htmlFor="allowAttachments" className="ml-2 cursor-pointer">
-          Allow file attachments (students can upload files with their answers)
-        </label>
-      </div>
+      <Checkbox
+        id="allowAttachments"
+        mt="md"
+        checked={attachment}
+        onChange={(e) => onAttachmentChange(e.currentTarget.checked)}
+        label="Allow file attachments (students can upload files with their answers)"
+      />
 
-      <div className={styles.questionTips}>
-        <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
+      <Group className={styles.questionTips} gap={6} align="center" wrap="nowrap" mt="md">
+        <Icon name="lightbulb" size={14} color="currentColor" />
         <span>
           Tip: Be concise and specific with your question for better responses. Type / in the editor
           for a menu of options.
         </span>
-      </div>
+      </Group>
     </>
   );
 };

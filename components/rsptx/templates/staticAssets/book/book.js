@@ -1,31 +1,47 @@
-//This is the JavaScript function of the search bar of the library
+// This is the JavaScript function of the search bar of the library.
+// A book matches when every word typed appears somewhere in the book's
+// title, author(s), description, or base course name (the `data-search`
+// attribute built in the template holds all four fields, lower-cased).
 
 function search_book() {
-    let input = document.getElementById("searchbar").value;
-    input = input.toLowerCase();
-    let x = document.getElementsByClassName("book_title");
-    let y = document.getElementsByClassName("book_descript");
+    let input = document.getElementById("searchbar").value.toLowerCase();
+    let words = input.split(/\s+/).filter((w) => w.length > 0);
 
-    for (i = 0; i < x.length; i++) {
-        if (
-            x[i].innerHTML.toLowerCase().includes(input) ||
-            y[i].innerHTML.toLowerCase().includes(input)
-        ) {
-            x[i].parentElement.style.display = "list-item";
-            x[i].parentElement.previousElementSibling.style.display =
-                "list-item";
-            y[i].parentElement.style.display = "list-item";
-            y[i].parentElement.previousElementSibling.style.display =
-                "list-item";
-        } else {
-            x[i].parentElement.style.display = "none";
-            y[i].parentElement.style.display = "none";
-        }
-    }
+    let sections = document.querySelectorAll("details");
+    let totalMatches = 0;
 
-    // remove section headings when searching - restore when the search box is empty
-    let sections = document.querySelectorAll(".sectionName");
     sections.forEach((sec) => {
-        sec.style.display = input ? "none" : "list-item";
+        let entries = sec.querySelectorAll(".library_entry");
+        let sectionMatches = 0;
+
+        entries.forEach((entry) => {
+            let haystack = entry.getAttribute("data-search") || "";
+            // Match only when every word is found somewhere in the fields.
+            let matches = words.every((w) => haystack.includes(w));
+            entry.style.display = matches ? "" : "none";
+            if (matches) {
+                sectionMatches++;
+            }
+        });
+        totalMatches += sectionMatches;
+
+        if (words.length === 0) {
+            // Empty box: restore the original collapsed sections.
+            sec.style.display = "";
+            sec.removeAttribute("open");
+        } else if (sectionMatches > 0) {
+            // Open any section that has a match, even if it was closed.
+            sec.style.display = "";
+            sec.setAttribute("open", "");
+        } else {
+            // Hide sections with no matches while searching.
+            sec.style.display = "none";
+        }
     });
+
+    let noResults = document.getElementById("search_no_results");
+    if (noResults) {
+        noResults.style.display =
+            words.length > 0 && totalMatches === 0 ? "block" : "none";
+    }
 }

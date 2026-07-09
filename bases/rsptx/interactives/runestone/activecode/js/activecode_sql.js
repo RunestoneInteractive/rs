@@ -1,4 +1,6 @@
 import { ActiveCode } from "./activecode.js";
+import { t } from "../../common/js/rsi18n.js";
+import { getDataValue } from "../../common/js/domutil.js";
 import Handsontable from "handsontable";
 import "handsontable/dist/handsontable.full.css";
 import initSqlJs from "sql.js/dist/sql-wasm.js";
@@ -26,7 +28,7 @@ export default class SQLActiveCode extends ActiveCode {
         this.config = {
             locateFile: (filename) => `${fnprefix}/${filename}`,
         };
-        this.showLast = $(this.origElem).data("showlastsql");
+        this.showLast = getDataValue(this.origElem, "showlastsql");
         var self = this;
         initSqlJs(this.config).then(function (SQL) {
             // set up call to load database asynchronously if given
@@ -47,26 +49,33 @@ export default class SQLActiveCode extends ActiveCode {
                         self.dburl = `${self.dburl}`;
                     }
                 }
-                $(self.runButton).attr("disabled", "disabled");
-                let buttonText = $(self.runButton).text();
-                $(self.runButton).text($.i18n("msg_activecode_load_db"));
+                self.runButton.disabled = true;
+                let buttonText = self.runButton.textContent;
+                self.runButton.textContent = t("msg_activecode_load_db");
                 if (!(self.dburl in allDburls)) {
+                    // an externally-resolvable promise other instances can
+                    // wait on while the first instance loads the database
+                    let resolveWait;
+                    let waitFor = new Promise((resolve) => {
+                        resolveWait = resolve;
+                    });
                     allDburls[self.dburl] = {
                         status: "loading",
-                        xWaitFor: jQuery.Deferred(),
+                        xWaitFor: waitFor,
+                        resolveWait: resolveWait,
                     };
                 } else {
                     if (allDburls[self.dburl].status == "loading") {
-                        allDburls[self.dburl].xWaitFor.done(function () {
+                        allDburls[self.dburl].xWaitFor.then(function () {
                             self.db = allDburls[self.dburl].dbObject;
-                            $(self.runButton).removeAttr("disabled");
-                            $(self.runButton).text(buttonText);
+                            self.runButton.disabled = false;
+                            self.runButton.textContent = buttonText;
                         });
                         return;
                     }
                     self.db = allDburls[self.dburl].dbObject;
-                    $(self.runButton).removeAttr("disabled");
-                    $(self.runButton).text(buttonText);
+                    self.runButton.disabled = false;
+                    self.runButton.textContent = buttonText;
                     return;
                 }
                 var xhr = new XMLHttpRequest();
@@ -77,11 +86,11 @@ export default class SQLActiveCode extends ActiveCode {
                     var uInt8Array = new Uint8Array(xhr.response);
                     self.db = new SQL.Database(uInt8Array);
                     allDburls[self.dburl].dbObject = self.db;
-                    $(self.runButton).text(buttonText);
-                    $(self.runButton).removeAttr("disabled");
+                    self.runButton.textContent = buttonText;
+                    self.runButton.disabled = false;
                     allDburls[self.dburl].db = uInt8Array;
                     allDburls[self.dburl].status = "ready";
-                    allDburls[self.dburl].xWaitFor.resolve();
+                    allDburls[self.dburl].resolveWait();
                     // contents is now [{columns:['col1','col2',...], values:[[first row], [second row], ...]}]
                 };
                 xhr.send();
@@ -106,13 +115,11 @@ export default class SQLActiveCode extends ActiveCode {
         if (respDiv) {
             respDiv.parentElement.removeChild(respDiv);
         }
-        $(this.output).text("");
+        this.output.textContent = "";
         // Run this query
         let query = await this.buildProg(false); // false --> Do not include suffix
         if (!this.db) {
-            $(this.output).text(
-                `Error: Database not initialized! DBURL: ${this.dburl}`
-            );
+            this.output.textContent = `Error: Database not initialized! DBURL: ${this.dburl}`;
             return;
         }
 
@@ -173,13 +180,9 @@ export default class SQLActiveCode extends ActiveCode {
 
         try {
             this.saveCode = await this.manage_scrubber(this.saveCode);
-            if (this.slideit) {
-                $(this.historyScrubber).on(
-                    "slidechange",
-                    this.slideit.bind(this)
-                );
+            if (this.historyScrubber) {
+                this.historyScrubber.disabled = false;
             }
-            $(this.historyScrubber).slider("enable");
         } catch (e) {
             console.log(`Failed to update scrubber ${e}`);
         }
@@ -248,10 +251,10 @@ export default class SQLActiveCode extends ActiveCode {
         // Now handle autograding
         if (this.suffix) {
             this.testResult = this.autograde(
-                this.results[this.results.length - 1]
+                this.results[this.results.length - 1],
             );
         } else {
-            $(this.output).css("visibility", "hidden");
+            this.output.style.visibility = "hidden";
         }
 
         return Promise.resolve("done");
@@ -289,8 +292,8 @@ export default class SQLActiveCode extends ActiveCode {
 
     renderFeedback() {
         if (this.testResult) {
-            $(this.output).text(this.testResult);
-            $(this.output).css("visibility", "visible");
+            this.output.textContent = this.testResult;
+            this.output.style.visibility = "visible";
         }
     }
 
@@ -317,7 +320,7 @@ export default class SQLActiveCode extends ActiveCode {
                 col,
                 oper,
                 expected,
-                result_table
+                result_table,
             );
             result += "\n";
         }
@@ -326,8 +329,9 @@ export default class SQLActiveCode extends ActiveCode {
             pct = 0.0;
         }
         pct = pct.toLocaleString(undefined, { maximumFractionDigits: 2 });
-        result += `You passed ${this.passed} out of ${this.passed + this.failed
-            } tests for ${pct}%`;
+        result += `You passed ${this.passed} out of ${
+            this.passed + this.failed
+        } tests for ${pct}%`;
         this.unit_results = `percent:${pct}:passed:${this.passed}:failed:${this.failed}`;
         return result;
     }

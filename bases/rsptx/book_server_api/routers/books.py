@@ -15,6 +15,7 @@ Detailed Module Description
 ---------------------------
 
 """
+
 # Imports
 # =======
 # These are listed in the order prescribed by `PEP 8`_.
@@ -25,7 +26,6 @@ from datetime import timedelta
 import json
 import os
 import os.path
-import posixpath
 import random
 import socket
 from typing import Optional
@@ -58,6 +58,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
 from rsptx.templates import template_folder
+from rsptx.response_helpers import safe_join
 from rsptx.response_helpers.core import canonical_utcnow
 from typing_extensions import Annotated
 
@@ -245,7 +246,7 @@ async def serve_page(
     # check for some error conditions
     if not course_row:
         return RedirectResponse(
-            url=f"/runestone/default/courses?bad_course={course_name}", status_code=307
+            url=f"/admin/auth/my_courses?bad_course={course_name}", status_code=307
         )
     else:
         # The course requires a login but the user is not logged in
@@ -265,7 +266,7 @@ async def serve_page(
                     url=f"/ns/books/published/{user.course_name}/{pagepath}"
                 )
             return RedirectResponse(
-                url=f"/runestone/default/courses?requested_course={course_name}&current_course={user.course_name}&requested_path={pagepath}"
+                url=f"/admin/auth/my_courses?requested_course={course_name}&current_course={user.course_name}&requested_path={pagepath}"
             )
     # proceed with the knowledge that course_row is defined after this point.
 
@@ -438,7 +439,7 @@ async def serve_page(
         return templates.TemplateResponse(pagepath, context, headers=headers)
     except TemplateNotFound:
         return RedirectResponse(
-            url=f"/runestone/default/courses?bad_course={pagepath}", status_code=307
+            url=f"/admin/auth/my_courses?bad_course={pagepath}", status_code=307
         )
 
 
@@ -508,40 +509,12 @@ async def library(request: Request, response_class=HTMLResponse):
 
 # Utilities
 # =========
-# This is copied verbatim from https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L30.
-_os_alt_seps = list(
-    sep for sep in [os.path.sep, os.path.altsep] if sep not in (None, "/")
-)
-
-
 def URL(*argv):
     return "/".join(argv)
 
 
 def XML(arg):
     return arg
-
-
-# This is copied verbatim from https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L216.
-def safe_join(directory, *pathnames):
-    """Safely join ``directory`` and one or more untrusted ``pathnames``.  If this
-    cannot be done, this function returns ``None``.  The main thing this does is make sure that we do not allow relative pathnames going up the directory tree to be joined to the base directory.  This is important because it prevents an attacker from using a pathname like ``../../../etc/passwd`` to read an arbitrary file on the server filesystem.
-
-    :param directory: the base directory.
-    :param pathnames: the untrusted pathnames relative to that directory.
-    :return: the joined path or ``None`` if this cannot be done.
-    """
-    parts = [directory]
-    for filename in pathnames:
-        if filename != "":
-            filename = posixpath.normpath(filename)
-        for sep in _os_alt_seps:
-            if sep in filename:
-                return None
-        if os.path.isabs(filename) or filename == ".." or filename.startswith("../"):
-            return None
-        parts.append(filename)
-    return posixpath.join(*parts)
 
 
 async def fetch_subchaptoc(course: str, chap: str):

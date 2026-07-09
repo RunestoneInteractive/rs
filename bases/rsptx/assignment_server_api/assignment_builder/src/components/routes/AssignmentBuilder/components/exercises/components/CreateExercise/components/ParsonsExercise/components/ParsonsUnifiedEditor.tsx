@@ -11,11 +11,7 @@ interface ParsonsUnifiedEditorProps {
   language: string;
 }
 
-export const ParsonsUnifiedEditor: FC<ParsonsUnifiedEditorProps> = ({
-  blocks,
-  onChange,
-  language
-}) => {
+export const ParsonsUnifiedEditor: FC<ParsonsUnifiedEditorProps> = ({ blocks, language }) => {
   const [content, setContent] = useState<string>("");
 
   useEffect(() => {
@@ -26,6 +22,7 @@ export const ParsonsUnifiedEditor: FC<ParsonsUnifiedEditorProps> = ({
     }
   }, [blocks]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleContentChange = (newContent: string) => {};
 
   const isTextEditor = language === "text";

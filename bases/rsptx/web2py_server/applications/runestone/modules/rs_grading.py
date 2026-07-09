@@ -1231,6 +1231,21 @@ def _get_lti_record(oauth_consumer_key):
         )
 
 
+def _get_lti_record_for_course(course_id):
+    # Look up the LTI 1.1 key/secret associated with a course via the
+    # course_lti_map. This replaces the previous approach of stashing the
+    # oauth_consumer_key in the web2py session during launch, which no longer
+    # happens now that the LTI 1.1 launch is handled by the admin server.
+    if not course_id:
+        return None
+    mapping = (
+        current.db(current.db.course_lti_map.course_id == course_id).select().first()
+    )
+    if not mapping:
+        return None
+    return current.db(current.db.lti_keys.id == mapping.lti_id).select().first()
+
+
 # Sends LTI 1.1 or 1.3 as appropriate
 def _try_to_send_lti_grade(student_row_num, assignment_id, force=False):
     assignment = (
@@ -1275,7 +1290,7 @@ def _try_to_send_lti_grade(student_row_num, assignment_id, force=False):
 def _try_to_send_lti_grade1p1(student_row_num, assignment_id, grade):
     # try to send lti grades for lti1.1
     assignment = _get_assignment(assignment_id)
-    lti_record = _get_lti_record(current.session.oauth_consumer_key)
+    lti_record = _get_lti_record_for_course(assignment.course)
     if (
         (not lti_record)
         or (not grade.lis_result_sourcedid)

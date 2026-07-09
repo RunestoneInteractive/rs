@@ -1,0 +1,136 @@
+/* Styles for choose/do assignment pages. */
+/* Styles at top are universal. Below are sections for RS or PTX based templates. */
+
+/* assumes that assignment_block.css will also be loaded on the page */
+
+.assignment-questions {
+  padding-left: 0;
+}
+
+.assignment-questions > li {
+  list-style: none;
+}
+
+.assignment-grade-notice {
+  margin-top: 1em;
+}
+
+.assignment-meta {
+  display: flex;
+  column-gap: 40px;
+  row-gap: 20px;
+  flex-wrap: wrap;
+  background-color: var(--rs-assignment-meta, #ddd);
+  border: 1px solid var(--rs-assignment-meta-border, #aaa);
+  padding: 1em;
+}
+
+.assignment-meta > * {
+  flex: 1;
+  flex-basis: 200px;
+  margin-top: 0;
+}
+
+.questionblock-question-number {
+  font-size: 1.25em;
+  margin: 0;
+}
+
+.questionblock-header,
+.questionblock-score-section {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 40px;
+  row-gap: 0.25em;
+  margin-bottom: 0.5em;
+  align-items: baseline;
+}
+
+.questionblock-header > *,
+.questionblock-score-section > * {
+  flex: 1;
+  flex-basis: 300px;
+}
+
+.question-contents {
+  padding-bottom: 3px;
+}
+
+/* Everything in this construct should only be applied when not
+   using the pretext template.
+   :where forces the selector to have zero specificity, so it doesn't
+   make nested selectors more specific than they need to be
+*/
+:where(body:not(.ptx-runestone-template)) {
+  .assignment-title {
+    text-align: center;
+  }
+
+  /*id for specificity in title*/
+  #assignment_name.assignment-title,
+  #questions,
+  .assignment-banner,
+  .assignment-page,
+  .assignment-meta,
+  .assignment-readings {
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #questions {
+      .ac_section > * {
+          max-width: 100%;
+      }
+  }
+
+  .questionblock {
+      background-color: #ddd;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 10px;
+  }
+
+  .metaquestion {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      width: 100%;
+  }
+}
+
+.question-status {
+  font-size: 1.2em;
+}
+.question-status::before {
+  translate: 0 3px;
+  display: inline-block;
+}
+
+.question-error {
+  color: var(--color-error);
+}
+
+
+/* Everything in this construct should only be applied when
+   using the pretext template.
+   :where forces the selector to have zero specificity, so it doesn't
+   make nested selectors more specific than they need to be
+*/
+:where(body:is(.ptx-runestone-template)) {
+  .assignment-readings-chapters {
+    padding-left: 0;
+  }
+  .assignment-readings-chapters > li {
+    list-style: none;
+  }
+  .assignment-readings-subchapters {
+    margin-top: 0.75em;
+  }
+
+  h2 {
+    margin-bottom: 0.5em;
+  }
+}

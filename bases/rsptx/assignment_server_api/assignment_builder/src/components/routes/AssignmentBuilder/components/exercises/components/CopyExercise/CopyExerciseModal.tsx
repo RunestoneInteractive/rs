@@ -1,18 +1,22 @@
+import { Icon } from "@components/ui/Icon";
+import { Alert, Button, Group, Modal, Stack, TextInput } from "@mantine/core";
 import {
   useCopyQuestionMutation,
   useValidateQuestionNameMutation,
   useGetExercisesQuery
 } from "@store/assignmentExercise/assignmentExercise.logic.api";
-import { Button } from "primereact/button";
-import { Dialog } from "primereact/dialog";
-import { InputText } from "primereact/inputtext";
-import { Message } from "primereact/message";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
 import { regenerateHtmlSrc } from "@/utils/htmlRegeneration";
+import { notify } from "@components/ui/notify";
+
+export const COPY_EXERCISE_TOAST_COPY = {
+  copiedAndEditing: "Copy added to this assignment. Opening editor…",
+  copied: "Copy added to this assignment. You own it now.",
+  copyError: "Couldn't copy exercise. Try again."
+} as const;
 
 interface CopyExerciseModalProps {
   visible: boolean;
@@ -42,13 +46,11 @@ export const CopyExerciseModal = ({
     skip: !selectedAssignment?.id
   });
 
-  // Determine if the exercise type supports direct editing
   const canEditDirectly =
     exercise &&
     supportedExerciseTypesToEdit.includes(exercise.question_type) &&
     !!exercise.question_json;
 
-  // Determine if we have the edit infrastructure available
   const hasEditSupport = !!setCurrentEditExercise && !!setViewMode;
 
   useEffect(() => {
@@ -77,11 +79,13 @@ export const CopyExerciseModal = ({
           setValidationMessage(null);
           setIsValid(true);
         } else {
-          setValidationMessage("A question with this name already exists in this course");
+          setValidationMessage(
+            "An exercise with this name already exists in this course. Pick another name."
+          );
           setIsValid(false);
         }
       } catch (error) {
-        setValidationMessage("Error validating name");
+        setValidationMessage("Couldn't check the name. Try again.");
         setIsValid(false);
       } finally {
         setIsValidating(false);
@@ -97,7 +101,6 @@ export const CopyExerciseModal = ({
     if (!exercise || !isValid) return;
 
     try {
-      // Generate new HTML source with the new name if the exercise type is supported
       let newHtmlSrc: string | undefined;
 
       if (exercise.question_json && supportedExerciseTypesToEdit.includes(exercise.question_type)) {
@@ -116,7 +119,6 @@ export const CopyExerciseModal = ({
         htmlsrc: newHtmlSrc
       }).unwrap();
 
-      // Refetch the exercises list to pick up the newly added copy
       const exercises = await refetchExercises();
       const newExercise = exercises.data?.find(
         (ex) => ex.question_id === result.detail.question_id
@@ -128,20 +130,16 @@ export const CopyExerciseModal = ({
         !!newExercise.question_json;
 
       if (canEdit && hasEditSupport) {
-        toast.success("Exercise copied and added to assignment. Opening editor…");
+        notify.success(COPY_EXERCISE_TOAST_COPY.copiedAndEditing);
         setCurrentEditExercise!(newExercise);
         setViewMode!("edit");
-      } else if (newExercise) {
-        toast.success("Exercise copied and added to your assignment. You are now the owner.", {
-          duration: 5000
-        });
       } else {
-        toast.success("Exercise copied successfully! You are now the owner.");
+        notify.success(COPY_EXERCISE_TOAST_COPY.copied);
       }
 
       handleClose();
     } catch (error) {
-      toast.error("Error copying exercise");
+      notify.error(COPY_EXERCISE_TOAST_COPY.copyError);
     }
   };
 
@@ -154,76 +152,56 @@ export const CopyExerciseModal = ({
 
   const getPrimaryButtonLabel = () => {
     if (isCopying) return "Copying…";
-    if (canEditDirectly && hasEditSupport) return "Copy, Add & Edit";
-    return "Copy & Add to Assignment";
+    if (canEditDirectly && hasEditSupport) return "Copy, add, and edit";
+    return "Copy and add to assignment";
   };
 
-  const getPrimaryButtonIcon = () => {
-    if (canEditDirectly && hasEditSupport) return "pi pi-pencil";
-    return "pi pi-plus";
-  };
+  const primaryButtonIcon =
+    canEditDirectly && hasEditSupport ? <Icon name="pencil" /> : <Icon name="plus" />;
 
   return (
-    <Dialog
-      visible={visible}
-      onHide={handleClose}
-      header="Copy Exercise"
-      style={{ width: "480px" }}
-      modal
-      draggable={false}
-      resizable={false}
-    >
-      <div className="flex flex-column gap-3">
-        <Message
-          severity="info"
-          text="The copy will be added to your current assignment and you will become its owner."
-          className="w-full"
+    <Modal opened={visible} onClose={handleClose} title="Copy exercise" size={480} centered>
+      <Stack gap="md">
+        <Alert color="blue">
+          The copy will be added to your current assignment and you will become its owner.
+        </Alert>
+
+        <TextInput
+          id="exerciseName"
+          label="Name for the copy"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Enter a unique name for the copy"
+          error={validationMessage || undefined}
         />
 
-        <div>
-          <label htmlFor="exerciseName" className="block text-900 font-medium mb-2">
-            New Exercise Name
-          </label>
-          <InputText
-            id="exerciseName"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Enter a unique name for the copy"
-            className="w-full"
-            invalid={validationMessage !== null}
-          />
-          {validationMessage && (
-            <Message severity="error" text={validationMessage} className="mt-2 w-full" />
-          )}
-        </div>
-
         {canEditDirectly && hasEditSupport && (
-          <Message
-            severity="success"
-            text="The copy will open in the editor immediately after it is created."
-            className="w-full"
-          />
+          <Alert color="green">
+            The copy will open in the editor immediately after it is created.
+          </Alert>
         )}
 
         {!canEditDirectly && (
-          <Message
-            severity="warn"
-            text="This exercise type does not support the visual editor. The copy will be added to your assignment but must be edited via other means."
-            className="w-full"
-          />
+          <Alert color="yellow">
+            This exercise type doesn&apos;t have a visual editor. The copy will be added to your
+            assignment, but you can edit it in your book source, not here.
+          </Alert>
         )}
 
-        <div className="flex justify-content-end gap-2 mt-2">
-          <Button label="Cancel" outlined onClick={handleClose} disabled={isCopying} />
+        <Group justify="flex-end" gap="sm" mt="xs">
+          <Button variant="outline" onClick={handleClose} disabled={isCopying}>
+            Cancel
+          </Button>
           <Button
-            label={getPrimaryButtonLabel()}
-            icon={getPrimaryButtonIcon()}
+            leftSection={primaryButtonIcon}
             onClick={handleCopy}
             disabled={!isValid || isCopying || isValidating}
             loading={isCopying}
-          />
-        </div>
-      </div>
-    </Dialog>
+          >
+            {getPrimaryButtonLabel()}
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 };

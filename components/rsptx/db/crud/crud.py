@@ -8,6 +8,7 @@ Rather than litter the code with raw database queries the vast majority should b
 turned into reusable functions that are defined in this file.
 
 """
+
 # Imports
 # =======
 # These are listed in the order prescribed by `PEP 8`_.
@@ -18,9 +19,7 @@ import datetime
 import hashlib
 import json
 from typing import Dict, Optional, Any
-import textwrap
 import traceback
-
 
 # Third-party imports
 # -------------------
@@ -28,7 +27,6 @@ import traceback
 from sqlalchemy.sql import select
 from sqlalchemy.orm import attributes
 from starlette.requests import Request
-
 
 # Local application imports
 # -------------------------
@@ -187,7 +185,7 @@ async def create_traceback(exc: Exception, request: Request, host: str):
     """
     async with async_session.begin() as session:
         tbtext = "".join(traceback.format_tb(exc.__traceback__))
-        # walk the stack trace and collect local variables into a dictionary
+        # walk the stack trace and collect local variables for each frame
         curr = exc.__traceback__
         dl = []
         while curr is not None:
@@ -198,13 +196,33 @@ async def create_traceback(exc: Exception, request: Request, host: str):
             curr = curr.tb_next
         rslogger.debug(f"{dl[-2:]=}")
 
+        # Keep the last few frames' locals as JSON. The values are arbitrary
+        # runtime objects, so serialize with ``default=repr`` (and round-trip
+        # through json so the column gets a plain structure, never raw objects).
+        try:
+            local_vars_json = json.loads(json.dumps(dl[-2:], default=repr))
+        except (TypeError, ValueError):
+            local_vars_json = [
+                {"name": d["name"], "local_vars": repr(d["local_vars"])}
+                for d in dl[-2:]
+            ]
+
+        # if the request is a post get the form data or json
+        pb = ""
+        if request.method == "POST":
+            try:
+                pb = (await request.body()).decode("utf-8")[:1024]
+            except Exception:
+                pb = ""
         new_entry = TraceBack(
-            traceback=tbtext + "\n".join(textwrap.wrap(str(dl[-2:]), 80)),
+            traceback=tbtext,
+            local_vars=local_vars_json,
             timestamp=canonical_utcnow(),
             err_message=str(exc)[:512],
             path=request.url.path[:1024],
             query_string=str(request.query_params)[:512],
             hash=hashlib.md5(tbtext.encode("utf8")).hexdigest(),
+            post_body=pb,
             hostname=host,
         )
         session.add(new_entry)

@@ -1,9 +1,9 @@
-{% extends "_base.html" %}
+{% extends "admin/_admin_base.html" %}
 
 {% block title %}Course Ready!{% endblock %}
 
 {% block content %}
-<div class="container" style="margin: 5%; width: 80%;">
+<div class="admin-page">
     <h1>
         Congratulations,
         {% if coursename %}
@@ -29,7 +29,7 @@
             {{ coursename }}
             </a>
             {% else %}
-            <a href="/runestone/default/courses">Your Courses</a>
+            <a href="/admin/auth/my_courses">Your Courses</a>
             {% endif %}
         </strong>
     </p>

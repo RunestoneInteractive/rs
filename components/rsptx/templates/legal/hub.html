@@ -1,0 +1,98 @@
+{# Trust-center landing page: one discoverable home for every legal &
+   compliance document.  Extends the site base directly (no breadcrumb). #}
+{% extends "_base.html" %}
+
+{% block title %}Legal &amp; Compliance — Runestone Academy{% endblock %}
+
+{% block navbar %}{% include "legal/_public_nav.html" %}{% endblock %}
+
+{% block css %}
+<style>
+    .legal-hub { max-width: 900px; margin: 0 auto; padding: 32px 20px 72px; }
+    .legal-hub-intro { color: #444; font-size: 1.05rem; line-height: 1.6; max-width: 720px; }
+    .legal-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 18px;
+        margin-top: 28px;
+    }
+    .legal-card {
+        display: block;
+        padding: 20px 22px;
+        border: 1px solid #e2e2e2;
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        background: #fff;
+        transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    .legal-card:hover {
+        box-shadow: 0 4px 14px rgba(0,0,0,.08);
+        border-color: #cfcfcf;
+        text-decoration: none;
+    }
+    .legal-card h2 { margin: 0 0 8px; font-size: 1.15rem; color: #1565c0; }
+    .legal-card p { margin: 0; color: #555; font-size: 0.95rem; line-height: 1.5; }
+    .legal-card .legal-card-updated {
+        display: block; margin-top: 12px; color: #8a8a8a; font-size: 0.82rem;
+    }
+    .legal-hub-section { margin-top: 32px; }
+    .legal-hub-footnote { margin-top: 32px; color: #666; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="legal-hub">
+    <h1>Legal &amp; Compliance</h1>
+    <p class="legal-hub-intro">
+        Everything you need to review before adopting Runestone Academy — our
+        privacy, security, accessibility, and terms documentation, in one place.
+        These pages are public and their URLs are stable, so they are safe to
+        cite in an RFP, adoption review, or data privacy agreement.
+    </p>
+
+    <div class="legal-hub-grid">
+        {% for card in cards %}
+        {% if card.template != "#" %}
+        <a class="legal-card" href="/admin/legal/{{ card.key }}">
+            <h2>{{ card.title }}</h2>
+            <p>{{ card.blurb }}</p>
+            {% if card.updated %}
+            <span class="legal-card-updated">Last updated: {{ card.updated }}</span>
+            {% endif %}
+        </a>
+        {% else %}
+        <a class="legal-card" href="#">
+            <h2>{{ card.title }}</h2>
+            <p>{{ card.blurb }}</p>
+            {% if card.updated %}
+            <span class="legal-card-updated">Last updated: {{ card.updated }}</span>
+            {% endif %}
+        </a>
+
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="legal-hub-section">
+        <h2>National Data Privacy Agreement (NDPA)</h2>
+        <p class="legal-hub-intro">We already signed the NDPA in many states!  Please check with your state alliance
+        to see if your state already has a signed NDPA.</p>
+        <p class="legal-hub-intro">The NDPA version 2 has been developed by the 28 state Alliances addressing common
+        obligations across the U.S. as well as their specific state needs.  Version 2 
+        incorporates feedback from Alliance leaders and Vendor Community Members, 
+        and has been reviewed by legal representatives through A4L Community Member Review.  
+        It is designed to address common student data privacy concerns and streamline the 
+        educational application contracting processes for schools/districts who do not have 
+        the legal or fiscal resources and vendors who previously had to sign “one off” 
+        contracts with each of the over 13,000 US school districts. </p>
+    </div>
+    <p class="legal-hub-footnote">
+        Related: <a href="/admin/legal/ads">About Advertising</a>.
+        State-specific addenda to the Terms of Service are linked from the
+        <a href="/admin/legal/terms">Terms of Service</a>.
+        For security or compliance questions, contact
+        <a href="mailto:info@runestone.academy">info@runestone.academy</a>.
+    </p>
+</div>
+{% endblock %}

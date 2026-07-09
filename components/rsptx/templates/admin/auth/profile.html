@@ -2,41 +2,8 @@
 
 {% block title %}Edit Profile — Runestone Academy{% endblock %}
 
-{% block css %}
-<style>
-    .auth-card { max-width: 580px; }
-    .section-label {
-        color: #ab1059;
-        font-size: 1em;
-        font-weight: 600;
-        margin-top: 24px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #f0d0de;
-        padding-bottom: 4px;
-    }
-    .danger-zone {
-        margin-top: 40px;
-        padding: 20px;
-        border: 1px solid #f5c6cb;
-        border-radius: 6px;
-        background: #fff8f8;
-    }
-    .danger-zone h5 { color: #721c24; margin-bottom: 12px; }
-    .btn-danger-outline {
-        background: white;
-        color: #dc3545;
-        border: 1px solid #dc3545;
-        padding: 8px 20px;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .btn-danger-outline:hover { background: #dc3545; color: white; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="auth-card">
+<div class="auth-card auth-card--wide">
     <h1>Edit Profile</h1>
 
     {% if errors %}
@@ -77,7 +44,7 @@
             <small class="form-text text-muted">Usernames cannot be changed.</small>
         </div>
 
-        <button type="submit" class="btn btn-rs-primary" style="width:auto; margin-top:8px;">Save Changes</button>
+        <button type="submit" class="btn btn-rs-primary btn-rs-primary--inline">Save Changes</button>
     </form>
 
     <div class="mt-3">

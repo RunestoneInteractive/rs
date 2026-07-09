@@ -1,0 +1,41 @@
+.cell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.dragIcon {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: crosshair;
+  background: none;
+  z-index: var(--rs-z-float);
+}
+
+.dragIcon::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--rs-brand-600);
+  border-radius: var(--rs-radius-sm) 0 0 0;
+  animation: dragIconSnap var(--rs-duration) var(--rs-spring-snappy);
+}
+
+@keyframes dragIconSnap {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

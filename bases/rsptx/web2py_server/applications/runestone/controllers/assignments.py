@@ -28,7 +28,7 @@ from rs_grading import (
     do_calculate_totals,
     do_check_answer,
     send_lti_grade,
-    _get_lti_record,
+    _get_lti_record_for_course,
     _try_to_send_lti_grade,
 )
 from rs_practice import (
@@ -1387,7 +1387,7 @@ def practice():
             )
             if practice_graded == 1:
                 # send practice grade via lti, if setup for that
-                lti_record = _get_lti_record(session.oauth_consumer_key)
+                lti_record = _get_lti_record_for_course(auth.user.course_id)
                 practice_grade = _get_student_practice_grade(
                     auth.user.id, auth.user.course_name
                 )

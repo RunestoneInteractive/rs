@@ -84,7 +84,7 @@ window.component_factory.codelens = function (opts) {
         rb.logBookEvent({
             event: "codelens",
             div_id: evt.detail.divid,
-            act: 'answer',
+            act: "answer",
             answer: evt.detail.answer,
             correct: evt.detail.correct,
             percent: evt.detail.percent || 0,
@@ -105,7 +105,8 @@ $(document).on("runestone:login-complete", function () {
             let lang = $(cl).data("params").lang;
             try {
                 if (divid in window.allTraceData) {
-                    let startInstr = allTraceData[divid].startingInstruction || 0;
+                    let startInstr =
+                        allTraceData[divid].startingInstruction || 0;
                     var vis = addVisualizerToPage(allTraceData[divid], divid, {
                         startingInstruction: startInstr,
                         editCodeBaseURL: null,
@@ -114,7 +115,7 @@ $(document).on("runestone:login-complete", function () {
                     });
                 } else {
                     alert(
-                        `${divid} is missing trace data.  This is probably a build error. Please report it on github.`
+                        `${divid} is missing trace data.  This is probably a build error. Please report it on github.`,
                     );
                 }
                 attachLoggers(vis, divid);
@@ -130,7 +131,7 @@ $(document).on("runestone:login-complete", function () {
             rb.logBookEvent({
                 event: "codelens",
                 div_id: evt.detail.divid,
-                act: 'answer',
+                act: "answer",
                 answer: evt.detail.answer,
                 correct: evt.detail.correct,
                 percent: evt.detail.percent || 0,

@@ -33,7 +33,6 @@ export const useExerciseStepNavigation = <T extends Partial<CreateExerciseFormTy
   setActiveStep,
   stepValidators,
   goToNextStep,
-  goToPrevStep,
   steps,
   handleBaseSave,
   generateHtmlSrc,

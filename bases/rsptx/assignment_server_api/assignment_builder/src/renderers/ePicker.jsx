@@ -10,10 +10,11 @@
  * The state is maintained in the redux store. See the ePickerSlice for more details.
  *
  */
-import { Column } from "primereact/column";
-import { TreeTable } from "primereact/treetable";
+import { TreeTable } from "@components/ui/TreeTable";
 import PropTypes from "prop-types";
 import { useSelector, useDispatch } from "react-redux";
+
+import { getSelectedKeys } from "@/utils/exercise";
 
 import { setExerciseDefaults, setReadingDefaults } from "../exUtils";
 import {
@@ -23,14 +24,9 @@ import {
   sendExercise,
   deleteExercises,
   sendDeleteExercises,
-  sumPoints,
+  sumPoints
 } from "../state/assignment/assignSlice";
-import {
-  chooserNodes,
-  setSelectedNodes,
-  selectedNodes,
-  setSelectedReadingNodes,
-} from "../state/epicker/ePickerSlice";
+import { chooserNodes } from "../state/epicker/ePickerSlice";
 
 import { PreviewTemplate } from "./searchPanel";
 
@@ -55,27 +51,6 @@ export function ExerciseSelector(props) {
   let filteredNodes = structuredClone(nodes);
   let currentExercises = useSelector(selectExercises);
   let currentAssignmentId = useSelector(selectId);
-
-  let selectedNodeKeys;
-
-  if (props.level === "subchapter") {
-    selectedNodeKeys = useSelector((state) => state.ePicker.selectedReadingNodes);
-  } else {
-    selectedNodeKeys = useSelector(selectedNodes);
-  }
-  // The initially selected nodes are initialized in the redux store
-  // by the fetchAssignmentQuestions thunk
-
-  //
-  // event handling functions
-  //
-  function handleSelectionChange(e) {
-    if (props.level === "subchapter") {
-      dispatch(setSelectedReadingNodes(e.value));
-    } else {
-      dispatch(setSelectedNodes(e.value));
-    }
-  }
 
   /**
    * @function doSelect
@@ -142,15 +117,12 @@ export function ExerciseSelector(props) {
       <div className="card">
         <TreeTable
           value={filteredNodes}
-          selectionMode="checkbox"
-          selectionKeys={selectedNodeKeys}
-          onSelect={doSelect}
-          onUnselect={doUnSelect}
-          onSelectionChange={handleSelectionChange}
-          tableStyle={{ minWidth: "10rem" }}
-        >
-          <Column field="title" header="Title" expander></Column>
-        </TreeTable>
+          selectionKeys={getSelectedKeys(filteredNodes, currentExercises)}
+          onSelect={(node) => doSelect({ node })}
+          onUnselect={(node) => doUnSelect({ node })}
+          ariaLabel="Readings"
+          columns={[{ header: "Title", render: (node) => node.data?.title }]}
+        />
       </div>
     );
   }
@@ -163,31 +135,23 @@ export function ExerciseSelector(props) {
     <div className="card">
       <TreeTable
         value={filteredNodes}
-        selectionMode="checkbox"
-        selectionKeys={selectedNodeKeys}
-        onSelectionChange={handleSelectionChange}
-        onSelect={doSelect}
-        onUnselect={doUnSelect}
-        tableStyle={{ minWidth: "10rem" }}
-        scrollable
-        scrollHeight="400px"
-      >
-        <Column field="title" header="Title" expander style={{ width: "25rem" }}></Column>
-        <Column field="qnumber" header="Question Number" style={{ width: "10rem" }}></Column>
-        <Column
-          field="htmlsrc"
-          header="Preview"
-          body={PreviewTemplate}
-          style={{ width: "8rem", maxWidth: "100rem" }}
-        />
-        <Column field="name" header="QuestionName" style={{ width: "10rem" }}></Column>
-        <Column field="question_type" header="Question Type" style={{ width: "10rem" }}></Column>
-      </TreeTable>
+        selectionKeys={getSelectedKeys(filteredNodes, currentExercises)}
+        onSelect={(node) => doSelect({ node })}
+        onUnselect={(node) => doUnSelect({ node })}
+        ariaLabel="Exercises"
+        columns={[
+          { header: "Title", width: "25rem", render: (node) => node.data?.title },
+          { header: "Question Number", width: "10rem", render: (node) => node.data?.qnumber },
+          { header: "Preview", width: "8rem", render: (node) => PreviewTemplate(node) },
+          { header: "QuestionName", width: "10rem", render: (node) => node.data?.name },
+          { header: "Question Type", width: "10rem", render: (node) => node.data?.question_type }
+        ]}
+      />
     </div>
   );
 }
 
 ExerciseSelector.propTypes = {
-  level: PropTypes.string,
+  level: PropTypes.string
 };
 export default ExerciseSelector;

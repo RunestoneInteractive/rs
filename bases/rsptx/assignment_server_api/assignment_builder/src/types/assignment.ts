@@ -27,7 +27,7 @@ export type Assignment = {
   released: boolean;
   selectedAssignments: [];
   course: number;
-  threshold_pct: null;
+  threshold_pct: number | null;
   allow_self_autograde: null;
   from_source: boolean;
   current_index: number;

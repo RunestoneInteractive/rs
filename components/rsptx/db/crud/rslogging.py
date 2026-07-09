@@ -70,6 +70,97 @@ async def count_useinfo_for(
         return res.all()
 
 
+async def fetch_recent_useinfo(
+    sid: str, course_name: str, days: int = 7
+) -> List[UseinfoValidation]:
+    """Return the student's useinfo activity for the last ``days`` days, most
+    recent first.  Used to build the "Recent Activity" table on the student
+    progress report.
+
+    :param sid: The student id (username).
+    :param course_name: The course name (``useinfo.course_id``).
+    :param days: How many days back to look.
+    :return: A list of UseinfoValidation rows ordered newest first.
+    """
+    start_date = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+    query = (
+        select(Useinfo)
+        .where(
+            (Useinfo.sid == sid)
+            & (Useinfo.course_id == course_name)
+            & (Useinfo.timestamp > start_date)
+        )
+        .order_by(Useinfo.timestamp.desc())
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [UseinfoValidation.from_orm(x) for x in res.scalars().fetchall()]
+
+
+async def fetch_useinfo_for_sid(sid: str, course_name: str) -> List[UseinfoValidation]:
+    """Return all of a student's useinfo rows for a course (used for the
+    "Download History" CSV export).
+
+    :param sid: The student id (username).
+    :param course_name: The course name (``useinfo.course_id``).
+    :return: A list of UseinfoValidation rows ordered oldest first.
+    """
+    query = (
+        select(Useinfo)
+        .where((Useinfo.sid == sid) & (Useinfo.course_id == course_name))
+        .order_by(Useinfo.timestamp)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [UseinfoValidation.from_orm(x) for x in res.scalars().fetchall()]
+
+
+async def fetch_code_for_sid(sid: str, course_id: int) -> List[CodeValidator]:
+    """Return all of a student's code rows for a course (used for the
+    "Download All Code" CSV export).
+
+    :param sid: The student id (username).
+    :param course_id: The numeric course id (``code.course_id``).
+    :return: A list of CodeValidator rows ordered oldest first.
+    """
+    query = (
+        select(Code)
+        .where((Code.sid == sid) & (Code.course_id == course_id))
+        .order_by(Code.timestamp)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [CodeValidator.from_orm(x) for x in res.scalars().fetchall()]
+
+
+async def fetch_last_course_access(sid: str, start_date: datetime.datetime) -> dict:
+    """Return the most recent access time for each course a user has visited.
+
+    Looks at the ``useinfo`` table for rows belonging to ``sid`` since
+    ``start_date`` and returns, for each course, the latest timestamp seen.
+    Used to sort a user's course list so recently-used courses appear first.
+
+    :param sid: The student id (username) whose activity to inspect.
+    :type sid: str
+    :param start_date: Only consider activity at or after this time.
+    :type start_date: datetime.datetime
+    :return: A mapping of ``course_id`` (the course name) to the most recent
+             access ``timestamp``.
+    :rtype: dict
+    """
+    query = (
+        select(
+            Useinfo.course_id,
+            func.max(Useinfo.timestamp).label("last_acc"),
+        )
+        .where((Useinfo.sid == sid) & (Useinfo.timestamp > start_date))
+        .group_by(Useinfo.course_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {row.course_id: row.last_acc for row in res}
+
+
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
     Find the last answer for each student and then aggregate those answers to provide a summary of poll

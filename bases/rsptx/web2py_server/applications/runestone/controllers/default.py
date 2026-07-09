@@ -20,11 +20,19 @@ logger.setLevel(settings.log_level)
 def user():
     # this is kinda hacky but it's the only way I can figure out how to pre-populate
     # the course_id field
+
+    # Redirect logins to the new login server
     if not request.args(0):
-        redirect(URL("default", "user/login"))
+        redirect("/admin/auth/login")
+
+    if "login" in request.args(0):
+        redirect("/admin/auth/login")
 
     library_list = []
     if "register" in request.args(0):
+        redirect("/admin/auth/register")
+
+        # ignore the
         # If we can't pre-populate, just set it to blank.
         # This will force the user to choose a valid course name
         db.auth_user.course_id.default = ""
@@ -218,7 +226,7 @@ def index():
                 redirect("https://author.runestone.academy/author")
             redirect("https://landing.runestone.academy")
         else:
-            redirect(URL("default", "user", args="login"))
+            redirect("/admin/auth/login")
 
     course = (
         db(db.courses.id == auth.user.course_id)
@@ -230,8 +238,7 @@ def index():
         # if login was handled by Janrain, user didn't have a chance to choose the course_id;
         # redirect them to the profile page to choose one
         redirect(
-            "/%s/default/user/profile?_next=/%s/default/index"
-            % (request.application, request.application)
+            "/admin/auth/profile"
         )
     else:
         # At this point the user has logged in
@@ -339,7 +346,9 @@ def ack():
 
 
 def start():
-    return dict()
+    # The Getting Started page was migrated to the admin server and is now
+    # served at /admin/get-started.  Redirect old links/bookmarks there.
+    redirect("/admin/get-started")
 
 
 @auth.requires_login()
@@ -468,8 +477,7 @@ def coursechooser():
         redirect("/ns/course/index")
     else:
         redirect(
-            "/%s/default/user/profile?_next=/%s/default/index"
-            % (request.application, request.application)
+            "/admin/auth/profile"
         )
 
 
@@ -615,28 +623,8 @@ def sendreport():
     redirect("/%s/default/" % request.application)
 
 
-def terms():
-    return dict(terms={})
-
-
-def privacy():
-    return dict(private={})
-
-
-def wisp():
-    return dict(wisp={})
-
-
-def ads():
-    return dict(wisp={})
-
-
-def ct_addendum():
-    return dict(private={})
-
-
-def ca_addendum():
-    return dict(private={})
+# The terms, privacy, wisp, ads, ct_addendum, and ca_addendum legal pages were
+# migrated to the admin server and are now served at /admin/legal/*.
 
 
 def donate():

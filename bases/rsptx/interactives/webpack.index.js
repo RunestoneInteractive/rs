@@ -16,20 +16,13 @@
 //
 // These are static imports; code in `dynamically loaded components`_ deals with dynamic imports.
 //
-// jQuery-related imports.
+// jQuery-related imports. jQuery UI is still needed by the vendored pytutor
+// bundle (codelens); the jquery.idle-timer plugin was dead code and has been
+// removed.
 import "jquery-ui/jquery-ui.js";
 import "jquery-ui/themes/base/jquery.ui.all.css";
-import "./runestone/common/js/jquery.idle-timer.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.emitter.bidi.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.emitter.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.fallbacks.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.messagestore.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.parser.js";
-import "./runestone/common/js/jquery_i18n/jquery.i18n.language.js";
-
-// Bootstrap - not needed for pxx development
-import "bootstrap/dist/js/bootstrap.js";
+// i18n is now handled by the dependency-free runestone/common/js/rsi18n.js;
+// the vendored Wikimedia jquery.i18n plugin has been removed.
 
 // common styles come from here
 import "./ptxrs-bootstrap.less";
@@ -39,7 +32,6 @@ import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_boo
 import "./runestone/common/js/bookfuncs.js";
 import "./runestone/common/js/user-highlights.js";
 import "./runestone/common/js/pretext.js";
-
 
 // These are only needed for the Runestone book, but not in a library mode (such as pretext). I would prefer to dynamically load them. However, these scripts are so small I haven't bothered to do so.
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
@@ -120,13 +112,13 @@ async function flushQueue() {
     queue.length = 0;
     console.log(
         "Webpack is starting the loading process for the following Runestone modules",
-        toFlush.map((item) => item.component_name)
+        toFlush.map((item) => item.component_name),
     );
     const flushedPromise = toFlush.map(async (item) => {
         try {
             await module_map[item.component_name]();
             console.log(
-                `Runestone component ${item.component_name} has been loaded`
+                `Runestone component ${item.component_name} has been loaded`,
             );
             return item;
         } catch (e) {
@@ -151,7 +143,7 @@ async function flushQueue() {
 // ========================
 // Fulfill a promise when the Runestone pre-login complete event occurs.
 let pre_login_complete_promise = new Promise((resolve) =>
-    $(document).on("runestone:pre-login-complete", resolve)
+    document.addEventListener("runestone:pre-login-complete", resolve),
 );
 let loadedComponents;
 // Provide a simple function to import the JS for all components on the page.
@@ -159,13 +151,9 @@ export function runestone_auto_import() {
     // Create a set of ``data-component`` values, to avoid duplication.
     const s = new Set(
         // All Runestone components have a ``data-component`` attribute.
-        $("[data-component]")
-            .map(
-                // Extract the value of the data-component attribute.
-                (index, element) => $(element).attr("data-component")
-                // Switch from a jQuery object back to an array, passing that to the Set constructor.
-            )
-            .get()
+        [...document.querySelectorAll("[data-component]")].map((element) =>
+            element.getAttribute("data-component"),
+        ),
     );
     // webwork questions are not wrapped in div with a data-component so we have to check a different way
     if (document.querySelector(".webwork-button")) {
@@ -198,7 +186,11 @@ pre_login_complete_promise.then(() => {
 });
 
 // Load component JS when the document is ready.
-$(document).ready(runestone_auto_import);
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", runestone_auto_import);
+} else {
+    runestone_auto_import();
+}
 
 // Provide a function to import one specific `Runestone` component.
 // the import function inside module_map is async -- runestone_import
@@ -208,7 +200,7 @@ export async function runestone_import(component_name) {
         return module_map_cache[component_name];
     }
     console.log(
-        `Runestone component ${component_name} is being queued for import`
+        `Runestone component ${component_name} is being queued for import`,
     );
     const promise = queueImport(component_name);
     module_map_cache[component_name] = promise;
@@ -224,8 +216,8 @@ async function popupScratchAC() {
         window.ACFactory.createScratchActivecode();
         let divid = eBookConfig.scratchDiv;
         window.componentMap[divid] = ACFactory.createActiveCode(
-            $(`#${divid}`)[0],
-            eBookConfig.acDefaultLanguage
+            document.getElementById(divid),
+            eBookConfig.acDefaultLanguage,
         );
         if (eBookConfig.isLoggedIn) {
             window.componentMap[divid].enableSaveLoad();
@@ -240,7 +232,7 @@ async function popupScratchAC() {
 const script_src = document.currentScript.src;
 __webpack_public_path__ = script_src.substring(
     0,
-    script_src.lastIndexOf("/") + 1
+    script_src.lastIndexOf("/") + 1,
 );
 
 var splice = new SpliceWrapper();

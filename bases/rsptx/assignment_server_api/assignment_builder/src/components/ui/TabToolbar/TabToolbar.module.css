@@ -1,0 +1,48 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-4);
+  flex-wrap: wrap;
+  padding: var(--rs-space-3) var(--rs-space-4);
+  background: var(--rs-surface);
+  border-bottom: 1px solid var(--rs-border-solid);
+  position: relative;
+  z-index: var(--rs-z-sticky);
+  transition: box-shadow var(--rs-transition-fast);
+}
+
+.toolbar[data-scrolled] {
+  box-shadow: var(--rs-shadow-sm);
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--rs-font-size-lg);
+  font-weight: var(--rs-font-weight-semibold);
+  color: var(--rs-text-strong);
+}
+
+.countBadge {
+  font-size: var(--rs-font-size-sm);
+  font-weight: var(--rs-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--rs-text-muted);
+  background: var(--rs-neutral-100);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-pill);
+  padding: 1px 10px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-3);
+  flex-wrap: wrap;
+}

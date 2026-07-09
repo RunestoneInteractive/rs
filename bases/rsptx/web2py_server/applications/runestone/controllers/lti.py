@@ -383,19 +383,11 @@ def _launch_assignment(
         )
         if is_instructor:
             redirect(
-                URL(
-                    "peer",
-                    "dashboard",
-                    vars={"assignment_id": assignment_id, "next": "Reset"},
-                )
+                f"/assignment/peer/instructor/dashboard?assignment_id={assignment_id}&next=Reset"
             )
         else:
             redirect(
-                URL(
-                    "peer",
-                    "peer_question",
-                    vars={"assignment_id": assignment_id},
-                )
+                f"/assignment/peer/student/question?assignment_id={assignment_id}"
             )
     # todo: redirect to the new assignment page directly /assignment/student/doAssignment
     redirect(URL("assignments", "doAssignment", vars={"assignment_id": assignment_id}))

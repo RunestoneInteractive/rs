@@ -39,7 +39,7 @@ function render_html(html_in, dyn_vars_eval) {
         /\[%=\s*((?:.(?!%]))*)\s*%\]/g,
         // Replace it with a `<script-eval>` tag. Quote the string, which will automatically escape any double quotes, using JSON.
         (match, group1) =>
-            `<script-eval expr=${JSON.stringify(group1)}></script-eval>`
+            `<script-eval expr=${JSON.stringify(group1)}></script-eval>`,
     );
     // Given HTML, turn it into a DOM. Walk the ``<script-eval>`` tags, performing the requested evaluation on them.
     //
@@ -58,7 +58,7 @@ function render_html(html_in, dyn_vars_eval) {
             const eval_result = window.Function(
                 "v",
                 ...Object.keys(dyn_vars_eval),
-                `"use strict;"\nreturn ${expr};`
+                `"use strict;"\nreturn ${expr};`,
             )(dyn_vars_eval, ...Object.values(dyn_vars_eval));
             // Replace the tag with the resulting value.
             script_eval_tag.replaceWith(eval_result);
@@ -78,7 +78,7 @@ export function renderDynamicContent(
     dyn_imports,
     html_in,
     divid,
-    prepareCheckAnswers
+    prepareCheckAnswers,
 ) {
     // Initialize RNG with ``seed``.
     const rand = aleaPRNG(seed);
@@ -88,21 +88,23 @@ export function renderDynamicContent(
         "v",
         "rand",
         ...Object.keys(dyn_imports),
-        `"use strict";\n${dyn_vars};\nreturn v;`
+        `"use strict";\n${dyn_vars};\nreturn v;`,
     )(
         // We want v.divid = divid and v.prepareCheckAnswers = prepareCheckAnswers. In contrast, the key/values pairs of dyn_imports should be directly assigned to v, hence the Object.assign.
-        Object.assign({ divid, prepareCheckAnswers}, dyn_imports),
+        Object.assign({ divid, prepareCheckAnswers }, dyn_imports),
         rand,
         // In addition to providing this in v, make it available in the function as well, since most problem authors will write ``foo = new BTM()`` (for example, assuming BTM is in dyn_imports) instead of ``foo = new v.BTM()`` (which is unusual syntax).
-        ...Object.values(dyn_imports));
+        ...Object.values(dyn_imports),
+    );
 
     let html_out;
     if (typeof dyn_vars_eval.beforeContentRender === "function") {
         try {
             dyn_vars_eval.beforeContentRender(dyn_vars_eval);
         } catch (err) {
-            console.assert(false,
-                `Error in problem ${divid} invoking beforeContentRender`
+            console.assert(
+                false,
+                `Error in problem ${divid} invoking beforeContentRender`,
             );
             throw err;
         }
@@ -134,7 +136,7 @@ export function checkAnswersCore(
     // A 2-D array of strings giving feedback for each blank.
     feedbackArray,
     // _`dyn_vars_eval`: A dict produced by evaluating the JavaScript for a dynamic exercise.
-    dyn_vars_eval
+    dyn_vars_eval,
 ) {
     if (
         dyn_vars_eval &&
@@ -143,7 +145,7 @@ export function checkAnswersCore(
         const [namedBlankValues, given_arr_converted] = parseAnswers(
             blankNamesDict,
             given_arr,
-            dyn_vars_eval
+            dyn_vars_eval,
         );
         const dve_blanks = Object.assign({}, dyn_vars_eval, namedBlankValues);
         try {
@@ -163,7 +165,7 @@ export function checkAnswersCore(
         // If this blank is empty, provide no feedback for it.
         if (given === "") {
             isCorrectArray.push(null);
-            // TODO: was $.i18n("msg_no_answer").
+            // TODO: should be localized, e.g. t("msg_no_answer").
             displayFeed.push("No answer provided.");
             correct = false;
         } else {
@@ -178,10 +180,7 @@ export function checkAnswersCore(
                 }
                 // If this is a regexp...
                 if ("regex" in fbl[j]) {
-                    const patt = RegExp(
-                        fbl[j]["regex"],
-                        fbl[j]["regexFlags"]
-                    );
+                    const patt = RegExp(fbl[j]["regex"], fbl[j]["regexFlags"]);
                     if (patt.test(given)) {
                         displayFeed.push(fbl[j]["feedback"]);
                         break;
@@ -195,7 +194,7 @@ export function checkAnswersCore(
                         displayFeed.push(fbl[j]["feedback"]);
                         break;
                     }
-                // If this is a dynamic solution, they should provide a testing function
+                    // If this is a dynamic solution, they should provide a testing function
                 } else if (dyn_vars_eval) {
                     const [namedBlankValues, given_arr_converted] =
                         parseAnswers(blankNamesDict, given_arr, dyn_vars_eval);
@@ -213,37 +212,37 @@ export function checkAnswersCore(
                         "ans_array",
                         ...Object.keys(dyn_vars_eval),
                         ...Object.keys(namedBlankValues),
-                        `"use strict;"\nreturn ${fbl[j]["solution_code"]};`
+                        `"use strict;"\nreturn ${fbl[j]["solution_code"]};`,
                     )(
                         given_arr_converted[i],
                         given_arr_converted,
                         ...Object.values(dyn_vars_eval),
-                        ...Object.values(namedBlankValues)
+                        ...Object.values(namedBlankValues),
                     );
                     // If student's answer is equal to this item, then append this item's feedback.
                     if (is_equal) {
                         displayFeed.push(
                             typeof is_equal === "string"
                                 ? is_equal
-                                : fbl[j]["feedback"]
+                                : fbl[j]["feedback"],
                         );
                         break;
                     }
-                // If this is NOT a dynamic solution, but given a testing function
+                    // If this is NOT a dynamic solution, but given a testing function
                 } else if ("solution_code" in fbl[j]) {
                     // Create a function to wrap the expression to evaluate. See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/Function.
                     // Pass the answer, array of all answers, then all entries in ``this.dyn_vars_eval`` dict as function parameters.
                     const is_equal = window.Function(
                         "ans",
                         "ans_array",
-                        `"use strict;"\nreturn ${fbl[j]["solution_code"]};`
+                        `"use strict;"\nreturn ${fbl[j]["solution_code"]};`,
                     )(given, given_arr);
                     // If student's answer is equal to this item, then append this item's feedback.
                     if (is_equal) {
                         displayFeed.push(
                             typeof is_equal === "string"
                                 ? is_equal
-                                : fbl[j]["feedback"]
+                                : fbl[j]["feedback"],
                         );
                         break;
                     }
@@ -269,7 +268,7 @@ export function checkAnswersCore(
         const [namedBlankValues, given_arr_converted] = parseAnswers(
             blankNamesDict,
             given_arr,
-            dyn_vars_eval
+            dyn_vars_eval,
         );
         const dve_blanks = Object.assign({}, dyn_vars_eval, namedBlankValues);
         try {
@@ -292,13 +291,13 @@ function parseAnswers(
     // See given_arr_.
     given_arr,
     // See `dyn_vars_eval`.
-    dyn_vars_eval
+    dyn_vars_eval,
 ) {
     // Provide a dict of {blank_name, converter_answer_value}.
     const namedBlankValues = getNamedBlankValues(
         given_arr,
         blankNamesDict,
-        dyn_vars_eval
+        dyn_vars_eval,
     );
     // Invert blankNamedDict: compute an array of [blank_0_name, ...]. Note that the array may be sparse: it only contains values for named blanks.
     const given_arr_names = [];
@@ -307,7 +306,7 @@ function parseAnswers(
     }
     // Compute an array of [converted_blank_0_val, ...]. Note that this re-converts all the values, rather than (possibly deep) copying the values from already-converted named blanks.
     const given_arr_converted = given_arr.map((value, index) =>
-        type_convert(given_arr_names[index], value, index, dyn_vars_eval)
+        type_convert(given_arr_names[index], value, index, dyn_vars_eval),
     );
 
     return [namedBlankValues, given_arr_converted];
@@ -324,13 +323,13 @@ export function renderDynamicFeedback(
     // The feedback for this blank, containing a template to be rendered.
     displayFeed_i,
     // See dyn_vars_eval_.
-    dyn_vars_eval
+    dyn_vars_eval,
 ) {
     // Use the answer, an array of all answers, the value of all named blanks, and all solution variables for the template.
     const namedBlankValues = getNamedBlankValues(
         given_arr,
         blankNamesDict,
-        dyn_vars_eval
+        dyn_vars_eval,
     );
     const sol_vars_plus = Object.assign(
         {
@@ -338,7 +337,7 @@ export function renderDynamicFeedback(
             ans_array: given_arr,
         },
         dyn_vars_eval,
-        namedBlankValues
+        namedBlankValues,
     );
     try {
         displayFeed_i = render_html(displayFeed_i, sol_vars_plus);
@@ -360,7 +359,7 @@ function getNamedBlankValues(given_arr, blankNamesDict, dyn_vars_eval) {
             blank_name,
             given_arr[blank_index],
             blank_index,
-            dyn_vars_eval
+            dyn_vars_eval,
         );
     }
     return namedBlankValues;

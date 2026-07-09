@@ -1,9 +1,7 @@
-import { Button } from "primereact/button";
-import { Checkbox } from "primereact/checkbox";
-import { Dropdown } from "primereact/dropdown";
-import { SelectButton } from "primereact/selectbutton";
-import { Tooltip } from "primereact/tooltip";
+import { Checkbox, SegmentedControl, Select, Tooltip } from "@mantine/core";
 import React, { FC } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import styles from "./ParsonsExercise.module.css";
 
@@ -19,7 +17,6 @@ interface ParsonsOptionsProps {
   onNoindentChange: (value: boolean) => void;
   onGraderChange: (value: "line" | "dag") => void;
   onOrderModeChange: (value: "random" | "custom") => void;
-  onAddBlock: () => void;
   tourButton?: React.ReactNode;
 }
 
@@ -51,7 +48,6 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
   onNoindentChange,
   onGraderChange,
   onOrderModeChange,
-  onAddBlock,
   tourButton
 }) => {
   const isSimple = mode === "simple";
@@ -65,20 +61,19 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
           <>
             <div className={styles.optionSection} data-tour="grader-section">
               <div className={styles.optionSectionHeader}>
-                <i className={`pi pi-check-circle ${styles.optionSectionIcon}`} />
+                <span className={styles.optionSectionIcon}>
+                  <Icon name="check-circle" size={14} />
+                </span>
                 <span className={styles.optionSectionTitle}>Grader</span>
               </div>
-              <SelectButton
+              <SegmentedControl
                 value={grader}
-                options={graderOptions}
-                onChange={(e) => {
-                  if (e.value) {
-                    onGraderChange(e.value);
-                    if (e.value === "dag") onAdaptiveChange(false);
-                  }
+                data={graderOptions}
+                onChange={(value) => {
+                  onGraderChange(value as "line" | "dag");
+                  if (value === "dag") onAdaptiveChange(false);
                 }}
-                className={styles.modernSelectButton}
-                allowEmpty={false}
+                size="xs"
               />
             </div>
 
@@ -91,17 +86,16 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
           <>
             <div className={styles.optionSection} data-tour="order-section">
               <div className={styles.optionSectionHeader}>
-                <i className={`pi pi-sort-alt ${styles.optionSectionIcon}`} />
+                <span className={styles.optionSectionIcon}>
+                  <Icon name="sort-alt" size={14} />
+                </span>
                 <span className={styles.optionSectionTitle}>Order</span>
               </div>
-              <SelectButton
+              <SegmentedControl
                 value={orderMode}
-                options={orderModeOptions}
-                onChange={(e) => {
-                  if (e.value) onOrderModeChange(e.value);
-                }}
-                className={styles.modernSelectButton}
-                allowEmpty={false}
+                data={orderModeOptions}
+                onChange={(value) => onOrderModeChange(value as "random" | "custom")}
+                size="xs"
               />
             </div>
 
@@ -114,15 +108,20 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
           <>
             <div className={styles.optionSection} data-tour="line-numbers-section">
               <div className={styles.optionSectionHeader}>
-                <i className={`pi pi-list ${styles.optionSectionIcon}`} />
-                <span className={styles.optionSectionTitle}>Line Numbers</span>
+                <span className={styles.optionSectionIcon}>
+                  <Icon name="list" size={14} />
+                </span>
+                <span className={styles.optionSectionTitle}>Line numbers</span>
               </div>
-              <Dropdown
+              <Select
                 value={numbered}
-                options={numberedOptions}
-                onChange={(e) => onNumberedChange(e.value)}
+                data={numberedOptions}
+                onChange={(value) =>
+                  onNumberedChange((value as "left" | "right" | "none") ?? "left")
+                }
                 className={styles.modernDropdown}
-                appendTo="self"
+                allowDeselect={false}
+                comboboxProps={{ withinPortal: false }}
               />
             </div>
 
@@ -133,63 +132,45 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
         {/* Toggles section */}
         <div className={styles.optionSection} data-tour="toggles-section">
           <div className={styles.optionSectionHeader}>
-            <i className={`pi pi-sliders-h ${styles.optionSectionIcon}`} />
+            <span className={styles.optionSectionIcon}>
+              <Icon name="sliders-h" size={14} />
+            </span>
             <span className={styles.optionSectionTitle}>Toggles</span>
           </div>
           <div className={styles.togglesGroup}>
-            <Tooltip target=".adaptive-toggle-label" position="top" />
             <div
               className={`${styles.toggleItem} ${grader === "dag" ? styles.toggleItemDisabled : ""}`}
             >
-              <Checkbox
-                inputId="adaptive-opt"
-                checked={adaptive}
-                onChange={(e) => onAdaptiveChange(e.checked ?? false)}
-                disabled={grader === "dag"}
-                className={styles.modernCheckbox}
-              />
-              <label
-                htmlFor="adaptive-opt"
-                className={`${styles.toggleLabel} adaptive-toggle-label ${grader === "dag" ? styles.toggleLabelDisabled : ""}`}
-                data-pr-tooltip={
+              <Tooltip
+                label={
                   grader === "dag" ? "Disabled when using DAG grader" : "Enable adaptive feedback"
                 }
+                position="top"
               >
-                Adaptive
-              </label>
+                <Checkbox
+                  id="adaptive-opt"
+                  checked={adaptive}
+                  onChange={(e) => onAdaptiveChange(e.currentTarget.checked)}
+                  disabled={grader === "dag"}
+                  label="Adaptive"
+                />
+              </Tooltip>
             </div>
-            {/* No indent — Enhanced mode only */}
             {!isSimple && (
               <div className={styles.toggleItem}>
                 <Checkbox
-                  inputId="noindent-opt"
+                  id="noindent-opt"
                   checked={noindent}
-                  onChange={(e) => onNoindentChange(e.checked ?? false)}
-                  className={styles.modernCheckbox}
+                  onChange={(e) => onNoindentChange(e.currentTarget.checked)}
+                  label="No indent"
                 />
-                <label htmlFor="noindent-opt" className={styles.toggleLabel}>
-                  No indent
-                </label>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Right section — Add block + Tour */}
-      <div className={styles.optionsActions} data-tour="add-block-area">
-        <Button
-          label="Add Block"
-          icon="pi pi-plus"
-          className={styles.addBlockButton}
-          onClick={onAddBlock}
-          size="small"
-          severity="info"
-          outlined
-          data-tour="add-block-btn"
-        />
-        {tourButton}
-      </div>
+      <div className={styles.optionsActions}>{tourButton}</div>
     </div>
   );
 };

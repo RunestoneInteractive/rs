@@ -9,41 +9,32 @@
 ===               06/12/15               ===
 ==========================================*/
 
-
 import RunestoneBase from "../../common/js/runestonebase";
 import "../css/groupsub.css";
-import "select2/dist/js/select2.min.js";
-import "select2/dist/css/select2.css";
-
-var pageReveal;
 
 // Define Reveal object
-class GroupSub extends RunestoneBase {
+export class GroupSub extends RunestoneBase {
     constructor(opts) {
         super(opts);
         var orig = opts.orig; // entire <div> element that will be replaced by new HTML
         this.origElem = orig;
         this.divid = orig.id;
-        self.group = []
         this.limit = this.origElem.dataset.size_limit;
         this.isPretext = document.body.classList.contains("pretext");
         // Create submit button
         let butt = document.createElement("button");
         butt.type = "button";
-        butt.classList.add("btn", "btn-success")
-        butt.innerHTML = "Submit Group"
+        butt.classList.add("btn", "btn-success");
+        butt.innerHTML = "Submit Group";
         butt.onclick = this.submitAll.bind(this);
         var container;
         if (this.isPretext) {
             container = opts.orig.querySelector(".groupsub_button");
-
         } else {
-            container = document.getElementById("groupsub_button")
+            container = document.getElementById("groupsub_button");
         }
 
         container.appendChild(butt);
-
-
     }
 
     async initialize() {
@@ -67,14 +58,15 @@ class GroupSub extends RunestoneBase {
                 this.studentList = resp.detail.students;
             } catch (e) {
                 if (this.isTimed) {
-                    alert(`Error: Failed to get the list of students. The error was ${e}`);
+                    alert(
+                        `Error: Failed to get the list of students. The error was ${e}`,
+                    );
                 }
                 console.log(`Error: ${e}`);
                 this.studentList = {
                     failed: "Failed to load students - logout and back in",
-                }
+                };
             }
-
         } else {
             this.studentList = {
                 s1: "User 1",
@@ -82,7 +74,7 @@ class GroupSub extends RunestoneBase {
                 s3: "User 3",
                 s4: "User 4",
                 s5: "User 5",
-            }
+            };
         }
         var select;
         if (this.isPretext) {
@@ -97,30 +89,28 @@ class GroupSub extends RunestoneBase {
             opt.innerHTML = this.studentList[sid];
             select.appendChild(opt);
         }
-        // Make the select element searchable with multiple selections
-        $('.assignment_partner_select').select2({
-            placeholder: "Select up to 4 team members",
-            allowClear: true,
-            maximumSelectionLength: this.limit
-        });
-
+        // A native multi-select (select2 used to enhance this; the size
+        // limit is enforced in submitAll).
+        select.title = `Select up to ${this.limit} team members`;
     }
 
     async submitAll() {
         // find all components on the page and submit them for all group members
 
-        let group = []
+        let group = [];
         for (let student of this.picker.selectedOptions) {
             group.push(student.value);
         }
         // If the leader forgets to add themselves, add them here.
         let username = eBookConfig.username;
         if (username && !group.includes(username)) {
-            group.push(username)
+            group.push(username);
         }
-        if (group.len > this.limit) {
-            alert(`You may not have more than ${this.limit} students in a group`);
-            return
+        if (group.length > this.limit) {
+            alert(
+                `You may not have more than ${this.limit} students in a group`,
+            );
+            return;
         }
         this.logBookEvent({
             event: "group_start",
@@ -141,10 +131,10 @@ class GroupSub extends RunestoneBase {
         for (let student of group) {
             for (let question of componentList) {
                 try {
-                    console.log(`${student} ${question}`)
-                    await question.logCurrentAnswer(student)
+                    console.log(`${student} ${question}`);
+                    await question.logCurrentAnswer(student);
                 } catch (e) {
-                    console.log(`failed to submit ${question} : ${e}`)
+                    console.log(`failed to submit ${question} : ${e}`);
                 }
             }
         }
@@ -155,14 +145,12 @@ class GroupSub extends RunestoneBase {
             div_id: window.location.pathname,
         });
     }
-
 }
 
-
-$(document).on("runestone:login-complete", async function () {
+document.addEventListener("runestone:login-complete", async function () {
     let gs = document.querySelectorAll("[data-component=groupsub]");
     if (gs.length > 1) {
-        alert("Only one Group Submit is allowed per page")
+        alert("Only one Group Submit is allowed per page");
         return;
     }
     let gsElement = gs[0];
@@ -174,4 +162,3 @@ $(document).on("runestone:login-complete", async function () {
         console.log(`Details ${err}`);
     }
 });
-

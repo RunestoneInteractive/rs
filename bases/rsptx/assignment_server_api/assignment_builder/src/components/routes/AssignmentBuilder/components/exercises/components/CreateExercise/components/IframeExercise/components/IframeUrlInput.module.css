@@ -1,0 +1,20 @@
+.previewWrapper {
+  margin-top: 1rem;
+}
+
+.previewLabel {
+  font-weight: 500;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.previewFrame {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  overflow: hidden;
+}
+
+.previewIframe {
+  width: 100%;
+  border: none;
+}

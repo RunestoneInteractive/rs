@@ -1,5 +1,8 @@
-import { InputText } from "primereact/inputtext";
+import { Icon } from "@components/ui/Icon";
+import { ActionIcon, Text, TextInput } from "@mantine/core";
 import React, { FC, useEffect, useState, useRef } from "react";
+
+import styles from "./RegexEditor.module.css";
 
 interface RegexEditorProps {
   value: string;
@@ -34,7 +37,6 @@ export const RegexEditor: FC<RegexEditorProps> = ({ value, onChange }) => {
         setIsValid(true);
         setIsFlagsValid(true);
       } catch (e) {
-        console.log(e);
         const error = e as Error;
 
         if (error.message.includes("Invalid flags")) {
@@ -105,45 +107,30 @@ export const RegexEditor: FC<RegexEditorProps> = ({ value, onChange }) => {
     if (!showMatches) return null;
 
     return (
-      <div
-        className="p-2 border-round border-1 surface-border"
-        style={{
-          position: "absolute",
-          zIndex: 100,
-          backgroundColor: "white",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-          width: "200px",
-          right: 0,
-          marginTop: "5px"
-        }}
-      >
-        <div className="flex justify-content-between align-items-center mb-2">
-          <span className="font-semibold">
+      <div className={styles.popup}>
+        <div className={styles.popupHeader}>
+          <Text span fw="bold">
             Result:
-            <span
-              className={isMatch ? "text-green-500" : "text-red-500"}
-              style={{ marginLeft: "8px" }}
-            >
-              {isMatch ? "Match" : "No Match"}
-            </span>
-          </span>
-          <button
-            className="p-link"
+            <Text span className={isMatch ? styles.matchPositive : styles.matchNegative}>
+              <span className={styles.matchLabel}>{isMatch ? "Match" : "No Match"}</span>
+            </Text>
+          </Text>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
             onClick={handleCloseMatches}
-            style={{ background: "none", border: "none" }}
             aria-label="Close matches"
-            tabIndex={0}
           >
-            <i className="pi pi-times" />
-          </button>
+            <Icon name="times" />
+          </ActionIcon>
         </div>
 
         {isMatch && matches.length > 0 && (
           <div>
-            <div className="text-sm font-semibold mb-1">Matches:</div>
-            <ul className="m-0 p-0 pl-3" style={{ maxHeight: "100px", overflowY: "auto" }}>
+            <div className={styles.matchesTitle}>Matches:</div>
+            <ul className={styles.matchesList}>
               {matches.map((match, index) => (
-                <li key={index} className="text-sm">
+                <li key={index}>
                   <code>{match}</code>
                 </li>
               ))}
@@ -155,47 +142,48 @@ export const RegexEditor: FC<RegexEditorProps> = ({ value, onChange }) => {
   };
 
   return (
-    <div className="flex gap-2 align-items-center w-full relative">
-      <div className="flex-grow-1 p-inputgroup" style={{ width: "50%" }}>
-        <span className="p-inputgroup-addon">
-          <i
-            className={isValid ? "pi pi-code" : "pi pi-exclamation-triangle"}
-            style={{ color: isValid ? "inherit" : "#f59e0b" }}
+    <div className={styles.editor}>
+      <TextInput
+        className={styles.pattern}
+        classNames={{ input: styles.mono }}
+        value={input}
+        onChange={handleInputChange}
+        placeholder="Regex pattern"
+        aria-label="Regex pattern"
+        error={!isValid}
+        leftSection={
+          <Icon
+            name={isValid ? "code" : "exclamation-triangle"}
+            color={isValid ? undefined : "var(--rs-warning)"}
           />
-        </span>
+        }
+      />
 
-        <InputText
-          value={input}
-          onChange={handleInputChange}
-          className={`font-mono ${!isValid ? "p-invalid" : ""}`}
-          placeholder="RegEx pattern"
+      <TextInput
+        className={styles.flags}
+        classNames={{ input: styles.mono }}
+        value={flags}
+        onChange={handleFlagsChange}
+        placeholder="Flags (e.g. i)"
+        error={!isFlagsValid}
+        leftSection={<Icon name="flag" />}
+      />
+
+      <div className={styles.test}>
+        <TextInput
+          className={styles.testInput}
+          value={testText}
+          onChange={handleTestTextChange}
+          placeholder="Test text…"
         />
-      </div>
-
-      <div className="p-inputgroup flex-shrink-0" style={{ width: "15%" }}>
-        <span className="p-inputgroup-addon">
-          <i className="pi pi-flag" />
-        </span>
-        <InputText
-          value={flags}
-          onChange={handleFlagsChange}
-          className={`font-mono ${!isFlagsValid ? "p-invalid" : ""}`}
-          placeholder="Flags (e.g. i)"
-        />
-      </div>
-
-      <div className="p-inputgroup flex-shrink-0" style={{ width: "30%" }}>
-        <InputText value={testText} onChange={handleTestTextChange} placeholder="Test text..." />
-
-        <button
-          className="p-button p-button-success"
+        <ActionIcon
+          color="green"
           onClick={testRegex}
           disabled={!input.trim() || !testText}
-          type="button"
           aria-label="Test regex"
         >
-          <i className="pi pi-play"></i>
-        </button>
+          <Icon name="play" />
+        </ActionIcon>
       </div>
 
       {renderMatchesPopup()}

@@ -142,12 +142,57 @@ class Settings(BaseSettings):
     # For production usage set the LOGIN_URL to /runestone/default/user
     login_url: str = "/auth/login"
 
+    # Public-facing host used to build absolute URLs (e.g. course links in
+    # emails). Populated from the matching environment variables by
+    # pydantic-settings. In production set ``LOAD_BALANCER_HOST`` (preferred,
+    # behind a load balancer that terminates TLS) or ``RUNESTONE_HOST``. A
+    # non-empty ``CERTBOT_EMAIL`` indicates a single-server deployment is
+    # serving HTTPS.
+    load_balancer_host: str = ""
+    runestone_host: str = "localhost"
+    certbot_email: str = ""
+    caddy_site_address: str = ""
+
+    @property
+    def server_url(self) -> str:
+        """Return the public base URL (scheme + host) for this deployment.
+
+        Prefers ``LOAD_BALANCER_HOST``; otherwise falls back to
+        ``RUNESTONE_HOST``, using HTTPS only when ``CERTBOT_EMAIL`` indicates
+        certificates are configured. This mirrors the ``websocket_url``
+        resolution in the web2py models.
+
+        :return: The base URL, e.g. ``https://runestone.academy``.
+        :rtype: str
+        """
+        if self.load_balancer_host:
+            return f"https://{self.load_balancer_host}"
+        if self.caddy_site_address:
+            return self.caddy_site_address
+        scheme = "https" if self.certbot_email or self.caddy_site_address else "http"
+        return f"{scheme}://{self.runestone_host}"
+
     # Configure ads. TODO: Link to the place in the Runestone Components where this is used.
     adsenseid: str = ""
     num_banners: int = 0
     serve_ad: bool = False
     academy_mode: bool = True
     lti_only_mode: bool = False
+
+    # Anonymous usage telemetry. The book server periodically sends a small,
+    # anonymous check-in to ``telemetry_url`` so we can count Runestone installs
+    # worldwide and the books they serve. It contains NO personal data (no
+    # usernames, emails, answers, or grades) and NO IP-based location -- only a
+    # random per-install id, the version, the self-declared region/institution
+    # below, the list of base courses served, and bucketed counts.
+    # This is opt-out: set ``TELEMETRY_ENABLED=false`` to disable it entirely.
+    telemetry_enabled: bool = True
+    telemetry_url: str = "https://runestone.academy/admin/telemetry/checkin"
+    # High-level, self-declared location (e.g. a country or continent). Left
+    # blank means "unspecified" -- we never derive location from your IP.
+    telemetry_region: str = ""
+    # Optional, self-declared institution name to associate with this install.
+    telemetry_institution: str = ""
 
     # This is the secret key used for generating the JWT token.
     jwt_secret: bytes = b"supersecret"
@@ -203,9 +248,12 @@ class Settings(BaseSettings):
     jobe_key: str = ""
     jobe_server: str = "http://jobe"
 
+    email_sender: str = "secure@mg.runestone.academy"
     mailgun_api_key: str = ""
-    mailgun_domain: str = ""
+    mailgun_domain: str = "mg.runestone.academy"
     email_from: str = "support@runestone.academy"
+    email_login: str = ""
+    email_server: str = "smtp.mailgun.org:587"
 
 
 settings = Settings(book_server_config=os.environ.get("SERVER_CONFIG", "development"))

@@ -5,7 +5,7 @@ export default class JSActiveCode extends ActiveCode {
         super(opts);
     }
     outputfun(a) {
-        $(this.output).css("visibility", "visible");
+        this.output.style.visibility = "visible";
         var str = "[";
         if (typeof a == "object" && a.length) {
             for (var i = 0; i < a.length; i++)
@@ -39,9 +39,12 @@ export default class JSActiveCode extends ActiveCode {
             _this.output.innerHTML += _this.outputfun(str) + "<br />";
         };
         this.saveCode = await this.manage_scrubber(saveCode);
-        $(this.eContainer).remove();
-        $(this.output).text("");
-        $(this.outDiv).show({ duration: 700, queue: false });
+        if (this.eContainer) {
+            this.eContainer.remove();
+        }
+        this.output.textContent = "";
+        this.outDiv.style.display = "";
+        this.outDiv.style.visibility = "visible";
         try {
             eval(prog);
             this.errinfo = "success";
@@ -54,18 +57,19 @@ export default class JSActiveCode extends ActiveCode {
     addErrorMessage(err) {
         // Add the error message
         this.errLastRun = true;
-        var errHead = $("<h3>").html("Error");
+        var errHead = document.createElement("h3");
+        errHead.innerHTML = "Error";
         this.eContainer = this.outerDiv.appendChild(
-            document.createElement("div")
+            document.createElement("div"),
         );
         this.eContainer.setAttribute("aria-live", "polite");
         this.eContainer.setAttribute("aria-atomic", "true");
         this.eContainer.setAttribute("role", "log");
         this.eContainer.className = "error alert alert-danger";
         this.eContainer.id = this.divid + "_errinfo";
-        this.eContainer.appendChild(errHead[0]);
+        this.eContainer.appendChild(errHead);
         var errText = this.eContainer.appendChild(
-            document.createElement("pre")
+            document.createElement("pre"),
         );
         var errString = err.toString();
         // screenreaders seem to miss error message without the delay

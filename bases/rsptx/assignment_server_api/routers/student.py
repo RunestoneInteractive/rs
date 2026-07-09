@@ -5,6 +5,7 @@
 #
 # *     chooseAssignment
 # *     doAssignment
+# *     studentreport
 #
 # Imports
 # =======
@@ -12,7 +13,9 @@
 #
 # Standard library
 # ----------------
+import csv
 import datetime
+import io
 from typing import Optional
 import json
 import re
@@ -21,7 +24,12 @@ import requests
 # Third-party imports
 # -------------------
 from fastapi import APIRouter, Depends, Request, Cookie
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -32,24 +40,33 @@ from rsptx.db.crud import (
     create_useinfo_entry,
     fetch_assignments,
     fetch_all_assignment_stats,
+    fetch_all_grades_for_assignment,
     fetch_grade,
     upsert_grade,
     fetch_lti_version,
     fetch_course,
     fetch_all_course_attributes,
+    fetch_code_for_sid,
     fetch_deadline_exception,
     fetch_one_assignment,
     fetch_assignment_questions,
     fetch_question_grade,
+    fetch_assignment_release_for_div_id,
+    fetch_recent_useinfo,
+    fetch_user,
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
+    fetch_useinfo_for_sid,
+    get_book_chapters,
+    get_book_subchapters,
 )
 from rsptx.grading_helpers.core import check_for_exceptions
 
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.auth.session import auth_manager, is_instructor
-from rsptx.templates import template_folder
+from rsptx.templates import template_folder, get_jinja_templates
+from rsptx.response_helpers import construct_course_url, safe_join
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -87,8 +104,11 @@ async def get_assignments(
 
     sid = user.username
     course = await fetch_course(user.course_name)
+    course_attrs = await fetch_all_course_attributes(course.id)
     is_lti1p1_course = await fetch_lti_version(course.id) == "1.1"
-    templates = Jinja2Templates(directory=template_folder)
+
+    course_markup_system = course_attrs.get("markup_system", "Runestone")
+
     user_is_instructor = await is_instructor(request, user=user)
     if user_is_instructor:
         # if the user is an instructor, we need to show all assignments
@@ -151,21 +171,263 @@ async def get_assignments(
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
-    return templates.TemplateResponse(
-        "assignment/student/chooseAssignment.html",
-        {
-            "assignment_list": assignments,
-            "stats": stats,
-            "course": course,
-            "user": sid,
-            "request": request,
-            "is_instructor": user_is_instructor,
-            "student_page": True,
-            "lti1p1": is_lti1p1_course,
-            "now": now,
-            "visibility_map": visibility_map,
-        },
+    use_pretext_student_pages = (
+        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
     )
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            rslogger.warning(
+                "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
+                course.course_name,
+            )
+            templates = Jinja2Templates(directory=template_folder)
+    else:
+        templates = Jinja2Templates(directory=template_folder)
+
+    context = dict(
+        course=course,
+        course_name=user.course_name,
+        request=request,
+        assignment_list=assignments,
+        readings="null",  # force bookfuncs to not render assignment tracker
+        stats=stats,
+        user=sid,
+        is_logged_in="true",
+        is_instructor="true" if user_is_instructor else "false",
+        student_page=True,
+        lti1p1=is_lti1p1_course,
+        now=now,
+        visibility_map=visibility_map,
+        settings=settings,
+        base_url=construct_course_url(course),
+        activity_info="{}",
+        downloads_enabled="true" if course.downloads_enabled else "false",
+        allow_pairs="true" if course.allow_pairs else "false",
+        origin=course_markup_system,
+        **course_attrs,
+    )
+    return templates.TemplateResponse(
+        "assignment/student/chooseAssignment.html", context
+    )
+
+
+# studentreport
+# -------------
+# A student's progress report: book completion, assignment grades, profile
+# information and recent activity.  This is a port of the legacy web2py
+# ``dashboard/studentreport`` controller.  An instructor may view any student in
+# their course by passing ``?id=<username>``; a student sees only their own
+# report.
+_COMPLETION_STATUS_TEXT = {1: "completed", 0: "started", -1: "notstarted"}
+
+
+def _build_chapter_progress(chapters, subchapters, progress):
+    """Build the "Book Completion" data structure for the progress report.
+
+    :param chapters: List[ChapterValidator] ordered by chapter_num.
+    :param subchapters: List[SubChapterValidator] ordered by chapter/subchapter.
+    :param progress: List[UserSubChapterProgressValidator] for the student.
+        Note ``chapter_id`` here holds the chapter *label* and ``sub_chapter_id``
+        holds the subchapter *label*.
+    :return: A list of dicts with ``label``, ``status`` and ``subchapters``.
+    """
+    # Map a chapter's numeric id -> its label, so we can group subchapters
+    # (which reference Chapter.id) by the chapter label used in the progress
+    # table.
+    label_by_id = {c.id: c.chapter_label for c in chapters}
+
+    # chapter_label -> {sub_chapter_label: sub_chapter_name} (preserving order)
+    subnames_by_chapter: dict = {}
+    for sc in subchapters:
+        clabel = label_by_id.get(sc.chapter_id)
+        if clabel is None:
+            continue
+        subnames_by_chapter.setdefault(clabel, {})[
+            sc.sub_chapter_label
+        ] = sc.sub_chapter_name
+
+    # chapter_label -> {sub_chapter_label: status}
+    progress_by_chapter: dict = {}
+    for p in progress:
+        progress_by_chapter.setdefault(p.chapter_id, {})[p.sub_chapter_id] = p.status
+
+    result = []
+    for chapter in chapters:
+        clabel = chapter.chapter_label
+        chap_progress = progress_by_chapter.get(clabel, {})
+
+        # Determine the chapter-level status the same way the legacy dashboard
+        # did: completed only if every started subchapter is completed, started
+        # if any progress exists, otherwise not started.
+        highest = -1
+        lowest = 1
+        for status in chap_progress.values():
+            lowest = min(lowest, status)
+            highest = max(highest, status)
+        if highest == -1:
+            chapter_status = -1
+        elif lowest == 1:
+            chapter_status = 1
+        else:
+            chapter_status = 0
+
+        sub_name_map = subnames_by_chapter.get(clabel, {})
+        sub_list = []
+        for sub_label, status in chap_progress.items():
+            sub_list.append(
+                {
+                    "label": sub_name_map.get(sub_label, sub_label),
+                    "status": _COMPLETION_STATUS_TEXT.get(status, status),
+                }
+            )
+
+        result.append(
+            {
+                "label": chapter.chapter_name,
+                "status": _COMPLETION_STATUS_TEXT.get(chapter_status, chapter_status),
+                "subchapters": sub_list,
+            }
+        )
+    return result
+
+
+async def _build_assignment_grades(course_name, target_id, student_view):
+    """Build the per-assignment grade table (score, percent, class average).
+
+    :param course_name: The course name.
+    :param target_id: The auth_user id of the student being reported on.
+    :param student_view: bool, True when a student is viewing their own report;
+        unreleased assignments are shown as N/A in that case.
+    :return: dict keyed by assignment name.
+    """
+    assignments = await fetch_assignments(course_name, fetch_all=True)
+    grades = {}
+    for assign in assignments:
+        due_date = assign.duedate.date().strftime("%m-%d-%Y")
+        entry = {
+            "score": "N/A",
+            "pct": "N/A",
+            "class_average": "N/A",
+            "due_date": due_date,
+        }
+        if not (student_view and not assign.released):
+            all_grades = await fetch_all_grades_for_assignment(assign.id)
+            total = 0.0
+            count = 0
+            for g in all_grades:
+                if g.score is not None:
+                    total += g.score
+                    count += 1
+                    if g.auth_user == target_id:
+                        entry["score"] = g.score
+                        if assign.points:
+                            entry["pct"] = round(100 * g.score / assign.points)
+                        else:
+                            entry["pct"] = "N/A"
+            average = total / count if count else 0
+            entry["class_average"] = "{:.02f}".format(average)
+        grades[assign.name] = entry
+    return grades
+
+
+def _validators_to_csv(rows) -> str:
+    """Serialize a list of pydantic validator objects to CSV text."""
+    output = io.StringIO()
+    if not rows:
+        return output.getvalue()
+    fieldnames = list(rows[0].dict().keys())
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row.dict())
+    return output.getvalue()
+
+
+@router.get("/studentreport")
+async def studentreport(
+    request: Request,
+    id: Optional[str] = None,
+    action: Optional[str] = None,
+    user=Depends(auth_manager),
+):
+    """Render the student progress report (book completion, grades, profile and
+    recent activity).  Instructors may pass ``?id=<username>`` to view another
+    student; ``?action=dlcsv`` / ``?action=dlcode`` download the student's raw
+    activity / code history as CSV.
+    """
+    course = await fetch_course(user.course_name)
+    user_is_instructor = await is_instructor(request, user=user)
+
+    if id and user_is_instructor:
+        sid = id
+        target_user = await fetch_user(id)
+    else:
+        sid = user.username
+        target_user = user
+
+    # Students only see released assignment grades; instructors see everything
+    # (matches the legacy dashboard ``studentView = not for_dashboard``).
+    student_view = not user_is_instructor
+
+    if not target_user:
+        return RedirectResponse(url="/assignment/student/chooseAssignment")
+
+    # CSV downloads -----------------------------------------------------------
+    if action == "dlcsv":
+        rows = await fetch_useinfo_for_sid(sid, course.course_name)
+        return StreamingResponse(
+            iter([_validators_to_csv(rows)]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="data_for_{sid}.csv"'
+            },
+        )
+    if action == "dlcode":
+        rows = await fetch_code_for_sid(sid, course.id)
+        return StreamingResponse(
+            iter([_validators_to_csv(rows)]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="code_for_{sid}.csv"'
+            },
+        )
+
+    # Book completion ---------------------------------------------------------
+    base_course = course.base_course
+    chapters = await get_book_chapters(base_course)
+    subchapters = await get_book_subchapters(base_course)
+    progress = await fetch_user_sub_chapter_progress(target_user)
+    chapter_progress = _build_chapter_progress(chapters, subchapters, progress)
+
+    # Grades ------------------------------------------------------------------
+    grades = await _build_assignment_grades(
+        course.course_name, target_user.id, student_view
+    )
+
+    # Recent activity ---------------------------------------------------------
+    activity = await fetch_recent_useinfo(sid, course.course_name)
+
+    templates = Jinja2Templates(directory=template_folder)
+    context = dict(
+        request=request,
+        course=course,
+        user=target_user,
+        is_instructor=user_is_instructor,
+        student_page=True,
+        chapters=chapter_progress,
+        assignments=grades,
+        activity=activity,
+        target_id=id if (id and user_is_instructor) else None,
+    )
+    return templates.TemplateResponse("assignment/student/studentreport.html", context)
 
 
 class UpdateStatusRequest(BaseModel):
@@ -192,9 +454,12 @@ def get_studyclues_book_id(course: CoursesValidator) -> str:
         "csawesome2": 28,
         "httlacs": 29,
         "py4e-int": 30,
-        "PTXSB": 28,
         "cppds2": 35,
         "thinkcspy": 36,
+        "dmoi-4": 41,
+        "ac-single": 42,
+        "py4eint": 43,
+        "foppff": 44,
         # Add more mappings as needed
     }
     return course_to_book_id.get(course.base_course, 28)
@@ -253,7 +518,7 @@ async def studyclues_query(
         "user_id": lc_user,
         "conversation_id": request_data.conversation_id,
         "coach_mode": request_data.coachMode,
-        "source_filter": "GITHUB_FILE",
+        "source_priorities": {"GITHUB_FILE": "prioritize"},
     }
 
     try:
@@ -335,18 +600,6 @@ async def update_submit(
     return make_json_response(detail=dict(success=True))
 
 
-def get_course_url(course: CoursesValidator, *args) -> str:
-    """Get the URL for the course.
-
-    :param course: _description_
-    :type course: CourseValidator
-    :return: _description_
-    :rtype: str
-    """
-    rest = "/".join(args)
-    return f"/ns/books/published/{course.course_name}/{rest}"
-
-
 @router.get("/doAssignment")
 async def doAssignment(
     request: Request,
@@ -384,11 +637,11 @@ async def doAssignment(
         # if student redirects to peer assignment
         if not user_is_instructor:
             return RedirectResponse(
-                f"/runestone/peer/peer_question?assignment_id={assignment_id}"
+                f"/assignment/peer/student/question?assignment_id={assignment_id}"
             )
         else:
             return RedirectResponse(
-                f"/runestone/peer/dashboard?assignment_id={assignment_id}"
+                f"/assignment/peer/instructor/dashboard?assignment_id={assignment_id}"
             )
 
     deadline_exception = await check_for_exceptions(user, assignment_id)
@@ -447,6 +700,7 @@ async def doAssignment(
     questions_score = 0
     readings = dict()
     readings_score = 0
+    needs_manual_grading = False
 
     # For each question, accumulate information, and add it to either the readings or questions data structure
     # If scores have not been released for the question or if there are no scores yet available, the scoring information will be recorded as empty strings
@@ -458,11 +712,13 @@ async def doAssignment(
             # This replacement is to render images
             bts = q.Question.htmlsrc
             htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + get_course_url(course, "_static/")
+                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
             )
-            htmlsrc = htmlsrc.replace("../_images", get_course_url(course, "_images"))
             htmlsrc = htmlsrc.replace(
-                'src=\\"external', 'src=\\"' + get_course_url(course, "external")
+                "../_images", construct_course_url(course, "_images")
+            )
+            htmlsrc = htmlsrc.replace(
+                'src=\\"external', 'src=\\"' + construct_course_url(course, "external")
             )
             # htmlsrc = htmlsrc.replace(
             #     "generated/webwork", get_course_url(course, "generated/webwork")
@@ -505,27 +761,52 @@ async def doAssignment(
         if score is None:
             score = 0
 
-        chap_name = q.Question.chapter
-        subchap_name = q.Question.subchapter
+        is_incorrect = score == 0 and comment != "ungraded"
+
+        chap_label = q.Question.chapter
+        subchap_label = q.Question.subchapter
         if q.Question.base_course not in preambles:
             preambles[q.Question.base_course] = await addPreamble(
                 q.Question.base_course
             )
 
+        # Temporarily prevent chapter numbers from being duplicated while we unwind
+        # number being added to chapter name in DB. Assume any leaning numbers are
+        # not part of the chapter name and should be stripped off.
+        chapter_name = q.Chapter.chapter_name
+        chapter_name = re.sub(r"^\d+\s*", "", chapter_name)
+        chapter_chapter_name = q.SubChapter.sub_chapter_name
+        chapter_chapter_name = re.sub(r"^[\d\.]+\s*", "", chapter_chapter_name)
+
         info = dict(
             htmlsrc=htmlsrc,
             score=score,
+            is_incorrect=is_incorrect,
             points=q.AssignmentQuestion.points,
             comment=comment,
-            chapter=q.Question.chapter,
-            subchapter=q.Question.subchapter,
-            chapter_name=chap_name,
-            subchapter_name=subchap_name,
             name=q.Question.name,
+            qnumber=q.Question.qnumber,
             question_type=q.Question.question_type,
             activities_required=q.AssignmentQuestion.activities_required,
+            chapter_name=chapter_name,
+            chapter_label=chap_label,
+            chapter_num=q.Chapter.chapter_num,
+            chapter_chapter_name=chapter_chapter_name,
+            sub_chapter_label=subchap_label,
+            chapter_chapter_num=q.SubChapter.sub_chapter_num,
+            base_url=construct_course_url(course),
+            # for rendering with ptx template, we need these for the menu
+            is_logged_in="true",
+            is_instructor="true" if user_is_instructor else "false",
+            readings=[],
+            activity_info="{}",
+            downloads_enabled="true" if course.downloads_enabled else "false",
+            allow_pairs="true" if course.allow_pairs else "false",
+            **course_attrs,
         )
         if q.AssignmentQuestion.autograde == "manual":
+            if comment == "ungraded":
+                needs_manual_grading = True
             info["how_graded"] = "Needs Manual Grading"
         elif q.AssignmentQuestion.which_to_grade == "first_answer":
             info["how_graded"] = "First Answer"
@@ -536,9 +817,9 @@ async def doAssignment(
 
         if q.AssignmentQuestion.reading_assignment:
             # add to readings
-            if chap_name not in readings:
+            if chap_label not in readings:
                 # add chapter info
-                completion = await fetch_user_chapter_progress(user, chap_name)
+                completion = await fetch_user_chapter_progress(user, chap_label)
                 if not completion:
                     status = "notstarted"
                 elif completion.status == 1:
@@ -547,12 +828,18 @@ async def doAssignment(
                     status = "started"
                 else:
                     status = "notstarted"
-                readings[chap_name] = dict(status=status, subchapters=[])
+                readings[chap_label] = dict(
+                    status=status,
+                    subchapters=[],
+                    chapter_label=chap_label,
+                    chapter_name=chapter_name,
+                    chapter_num=q.Chapter.chapter_num,
+                )
 
             # add subchapter info
             # add completion status to info
             subch_completion = await fetch_user_sub_chapter_progress(
-                user, chap_name, subchap_name
+                user, chap_label, subchap_label
             )
 
             if not subch_completion:
@@ -567,8 +854,8 @@ async def doAssignment(
 
             # Make sure we don't create duplicate entries for older courses. New style
             # courses only have the base course in the database, but old will have both
-            if info not in readings[chap_name]["subchapters"]:
-                readings[chap_name]["subchapters"].append(info)
+            if info not in readings[chap_label]["subchapters"]:
+                readings[chap_label]["subchapters"].append(info)
                 readings_score += info["score"]
 
         else:
@@ -603,7 +890,7 @@ async def doAssignment(
     readings_names = []
     for chapname in readings:
         readings_names = readings_names + [
-            "{}/{}.html".format(d["chapter"], d["subchapter"])
+            "{}/{}.html".format(d["chapter_label"], d["sub_chapter_label"])
             for d in readings[chapname]["subchapters"]
         ]
 
@@ -618,8 +905,7 @@ async def doAssignment(
         parsed_js = {}
     parsed_js["readings"] = readings_names
 
-    c_origin = course_attrs.get("markup_system", "Runestone")
-    print("ORIGIN", c_origin)
+    course_markup_system = course_attrs.get("markup_system", "Runestone")
 
     # grabs the row for the current user and and assignment in the grades table
     grade = await fetch_grade(user.id, assignment_id)
@@ -653,37 +939,77 @@ async def doAssignment(
     overdue = False
     if timestamp > deadline:
         overdue = True
-    templates = Jinja2Templates(directory=template_folder)
+
+    use_pretext_student_pages = (
+        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    )
+    if use_pretext_student_pages:
+        book_path = safe_join(
+            settings.book_path,
+            course.base_course,
+            "published",
+            course.base_course,
+        )
+        if book_path:
+            templates = get_jinja_templates(book_path)
+        else:
+            rslogger.warning(
+                "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
+                course.course_name,
+            )
+            templates = Jinja2Templates(directory=template_folder)
+    else:
+        templates = Jinja2Templates(directory=template_folder)
+
+    # templates = Jinja2Templates(directory=template_folder)
     # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last
     # this will ensure that when multiple preamble definitions are used the last one is from the current course
     preambles = dict((k, v) for k, v in reversed(preambles.items()))
+    if "webwork_js_version" in course_attrs:
+        webwork_js_version = course_attrs["webwork_js_version"]
+        del course_attrs["webwork_js_version"]
+    else:
+        webwork_js_version = "2.20"
+    if "ptx_js_version" in course_attrs:
+        ptx_js_version = course_attrs["ptx_js_version"]
+        del course_attrs["ptx_js_version"]
+    else:
+        ptx_js_version = "0.2"
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
+        request=request,
         course_name=user.course_name,
         assignment=assignment,
         questioninfo=questionslist,
         course_id=user.course_name,
-        readings=readings,
+        readings="null",  # force bookfuncs to not render assignment tracker
+        readings_full=readings,
         questions_score=questions_score,
         readings_score=readings_score,
         user=user,
         # gradeRecordingUrl=URL('assignments', 'record_grade'),
         # calcTotalsURL=URL('assignments', 'calculate_totals'),
         released=assignment.released,
-        is_instructor=user_is_instructor,
-        student_page=True,
-        origin=c_origin,
+        is_logged_in="true",
+        is_instructor="true" if user_is_instructor else "false",
+        needs_manual_grading=needs_manual_grading,
+        student_page="true",
+        origin=course_markup_system,
         is_submit=grade.is_submit,
         is_graded=is_graded,
         overdue=overdue,
         enforce_pastdue=enforce_pastdue,
-        ptx_js_version=course_attrs.get("ptx_js_version", "0.2"),
-        webwork_js_version=course_attrs.get("webwork_js_version", "2.20"),
-        request=request,
+        ptx_js_version=ptx_js_version,
+        webwork_js_version=webwork_js_version,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
         course_attrs=course_attrs,
+        base_url=construct_course_url(course),
+        activity_info="{}",
+        downloads_enabled="true" if course.downloads_enabled else "false",
+        allow_pairs="true" if course.allow_pairs else "false",
+        **course_attrs,
     )
     response = templates.TemplateResponse(
         "assignment/student/doAssignment.html", context
@@ -715,3 +1041,50 @@ async def addPreamble(base_course: str) -> str:
         rslogger.error(f"Course attributes for {base_course} not found.")
         return ""
     return course_attrs.get("latex_macros", "")
+
+
+class GetAssignmentGradeRequest(BaseModel):
+    div_id: str
+
+
+@router.post("/getassignmentgrade")
+async def getassignmentgrade(
+    request_data: GetAssignmentGradeRequest,
+    request: Request,
+    user=Depends(auth_manager),
+):
+    """
+    Return the current grade and instructor comment for a single question (``div_id``)
+    for the logged-in student. Drives the activecode "grade report" popup.
+
+    Ported from the legacy web2py ``ajax/getassignmentgrade`` endpoint.
+    """
+    div_id = request_data.div_id
+    ret = {
+        "grade": "Not graded yet",
+        "comment": "No Comments",
+        "avg": "None",
+        "count": "None",
+        "released": False,
+    }
+
+    course = await fetch_course(user.course_name)
+    # Is this question part of an assignment in the course, and is it released?
+    a_q = await fetch_assignment_release_for_div_id(course.id, div_id)
+
+    # New-style scores/comments are stored per question in question_grades.
+    result = await fetch_question_grade(user.username, user.course_name, div_id)
+    if result:
+        ret["version"] = 2
+        ret["released"] = a_q.released if a_q else False
+        if a_q and not a_q.released:
+            ret["grade"] = "Not graded yet"
+        elif a_q and a_q.released:
+            ret["grade"] = result.score or "Written Feedback Only"
+
+        ret["max"] = a_q.points if (a_q and a_q.released) else ""
+
+        if result.comment:
+            ret["comment"] = result.comment
+
+    return JSONResponse(content=ret)

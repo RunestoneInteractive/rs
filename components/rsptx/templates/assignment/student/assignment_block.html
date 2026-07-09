@@ -1,20 +1,18 @@
-<h2>Assignments</h2>
-{% if is_instructor %}
+{% if is_instructor == True or is_instructor | lower == "true" %}
 <label style="margin-bottom:10px; display:block;">
   <input type="checkbox" id="hide_hidden_assignments" onchange="toggleHiddenAssignments(this.checked)">
-  Student View: Hide Hidden Assignments
+  <span for="hide_hidden_assignments"><strong>Student View</strong> (Hide Hidden Assignments)</span>
 </label>
 {% endif %}
 
 {% if assignment_list %}
-<table class="table">
+<table class="table rs-assignment-table">
+  <caption class="rs-sr-only">Assignment List</caption>
   <thead>
     <tr>
       <th>Name</th>
-      {% if is_instructor %}
+      {% if is_instructor == True or is_instructor | lower == "true" %}
       <th>Action</th>
-      {% else %}
-      <th>My Progress</th>
       {% endif %}
       <th>Due</th>
       <th>Score</th>
@@ -37,30 +35,17 @@
       <td>
         <a href="/assignment/student/doAssignment?assignment_id={{assignment.id}}">{{assignment.name}}</a>
       </td>
-      <td style="white-space: nowrap;">
-        {% if is_instructor %}
-        <a href='/assignment/instructor/builder/{{assignment.id}}'>
-          <span class=" material-symbols-outlined" aria-label="edit" title="edit this assignment">edit</span></a>
-        <a href="/runestone/admin/grading?selected_assignment={{assignment.name}}">
-          <span class="material-symbols-outlined" aria-label="grading" title="grade this assignment">grading</span></a>
-        <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'">
-          <span class=" material-symbols-outlined" aria-label="dashboard" title="view summary">dashboard</span></a>
-        {% else %}
-        {% if assignment.id in stats %}
-        {% set current = stats[assignment.id].is_submit %}
-        {% else %}
-        {% set current = "" %}
-        {% endif %}
-        <select required onchange="updateAssignmentProgress(this.value, {{assignment.id}})">
-          <option disabled selected value="">Track my Progress</option>
-          {% for option in ["Not Started", "In Progress", "Finished"]:%}
-          <option {% if current==option: %} selected {% endif %} value="{{option}}">{{option}}
-          </option>
-          {% endfor %}
-        </select>
-        {% endif %}
-      </td>
-
+      
+    {% if is_instructor == True or is_instructor | lower == "true" %}
+    <td style="white-space: nowrap;">
+      <a href='/assignment/instructor/builder/{{assignment.id}}'>
+        <i class="ti ti-pencil" aria-label="edit" title="edit this assignment"></i></a>
+      <a href="/assignment/instructor/grader?selected_assignment={{assignment.name}}">
+        <i class="ti ti-checklist" aria-label="grading" title="grade this assignment"></i></a>
+      <a href='/assignment/instructor/assignment_summary/{{assignment.id}}'>
+        <i class="ti ti-layout-dashboard" aria-label="dashboard" title="view summary"></i></a>
+    </td>
+    {% endif %}
       
       <td {% if assignment.duedate < now %}class="overdue"{% endif %}>{{assignment.duedate.strftime("%b %d, %Y %I:%M %p")}}</td>
       <td>

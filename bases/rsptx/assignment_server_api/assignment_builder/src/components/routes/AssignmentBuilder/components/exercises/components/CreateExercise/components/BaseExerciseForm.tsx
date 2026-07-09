@@ -1,12 +1,20 @@
-import { Button } from "primereact/button";
-import { Divider } from "primereact/divider";
-import { Editor } from "primereact/editor";
-import { InputNumber } from "primereact/inputnumber";
-import { InputText } from "primereact/inputtext";
-import { Message } from "primereact/message";
+import {
+  Alert,
+  Button,
+  Divider,
+  Grid,
+  Group,
+  NumberInput,
+  Stack,
+  Text,
+  TextInput
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 
+import { Icon } from "@/components/ui/Icon";
 import { Exercise } from "@/types/exercises";
+
+import { Editor } from "../../TipTap/Editor";
 
 import { BaseExerciseProps, ExerciseValidation } from "../types/ExerciseTypes";
 
@@ -41,7 +49,7 @@ export const BaseExerciseForm = ({
     }
 
     if (!data.assignment_id) {
-      setErrors(["Assignment ID is required"]);
+      setErrors(["Couldn't find the assignment. Reopen it from the assignments list."]);
       return;
     }
 
@@ -54,69 +62,63 @@ export const BaseExerciseForm = ({
   };
 
   return (
-    <div className="surface-card p-4 border-round">
-      <div className="grid">
-        <div className="col-12 md:col-8">
-          <div className="field">
-            <label htmlFor="title" className="font-medium block mb-2">
-              Title
-            </label>
-            <InputText
-              id="title"
-              value={data.title}
-              onChange={(e) => updateData({ title: e.target.value })}
-              className="w-full"
-              placeholder="Enter exercise title"
-            />
-          </div>
-        </div>
+    <Stack gap="md">
+      <Grid>
+        <Grid.Col span={{ base: 12, md: 8 }}>
+          <TextInput
+            id="title"
+            label="Title"
+            value={data.title ?? ""}
+            onChange={(e) => updateData({ title: e.target.value })}
+            placeholder="Enter exercise title"
+          />
+        </Grid.Col>
 
-        <div className="col-12 md:col-4">
-          <div className="field">
-            <label htmlFor="points" className="font-medium block mb-2">
-              Points
-            </label>
-            <InputNumber
-              id="points"
-              value={data.points}
-              onValueChange={(e) => updateData({ points: e.value ?? 1 })}
-              className="w-full"
-              min={0}
-              showButtons
-            />
-          </div>
-        </div>
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <NumberInput
+            id="points"
+            label="Points"
+            value={data.points ?? 1}
+            onChange={(value) => updateData({ points: value === "" ? 1 : Number(value) })}
+            min={0}
+          />
+        </Grid.Col>
 
-        <div className="col-12">
-          <div className="field">
-            <label htmlFor="description" className="font-medium block mb-2">
-              Description
-            </label>
-            <Editor
-              value={data.description}
-              onTextChange={(e) => updateData({ description: e.htmlValue ?? "" })}
-              style={{ height: "200px" }}
-            />
-          </div>
-        </div>
+        <Grid.Col span={12}>
+          <Text fw={500} mb={6}>
+            Description
+          </Text>
+          <Editor
+            content={data.description ?? ""}
+            onChange={(html) => updateData({ description: html })}
+          />
+        </Grid.Col>
 
-        <div className="col-12">{children}</div>
+        <Grid.Col span={12}>{children}</Grid.Col>
 
         {errors.length > 0 && (
-          <div className="col-12">
-            {errors.map((error, index) => (
-              <Message key={index} severity="error" text={error} className="mb-2" />
-            ))}
-          </div>
+          <Grid.Col span={12}>
+            <Stack gap="xs">
+              {errors.map((error, index) => (
+                <Alert key={index} color="red" variant="light">
+                  {error}
+                </Alert>
+              ))}
+            </Stack>
+          </Grid.Col>
         )}
-      </div>
+      </Grid>
 
       <Divider />
 
-      <div className="flex justify-content-end gap-2">
-        <Button label="Cancel" icon="pi pi-times" onClick={onCancel} className="p-button-text" />
-        <Button label="Save" icon="pi pi-check" onClick={handleSave} />
-      </div>
-    </div>
+      <Group justify="flex-end" gap="sm">
+        <Button variant="subtle" leftSection={<Icon name="times" size={14} />} onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button leftSection={<Icon name="check" size={14} />} onClick={handleSave}>
+          Save
+        </Button>
+      </Group>
+    </Stack>
   );
 };

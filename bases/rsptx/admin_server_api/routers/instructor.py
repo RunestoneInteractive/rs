@@ -28,12 +28,15 @@ from rsptx.db.crud import (
     create_course_attribute,
     create_instructor_course_entry,
     create_invoice_request,
+    create_lti1p1_config,
     create_membership,
     create_user_course_entry,
     delete_course_completely,
     delete_course_instructor,
+    delete_lti_course,
     delete_user_course_entry,
     fetch_all_course_attributes,
+    fetch_lti1p1_config,
     fetch_assignment_questions,
     fetch_assignments,
     fetch_available_students_for_instructor_add,
@@ -43,6 +46,7 @@ from rsptx.db.crud import (
     fetch_courses_for_user,
     fetch_group,
     fetch_instructor_courses,
+    fetch_library_book,
     fetch_library_books,
     fetch_membership,
     fetch_one_assignment,
@@ -55,6 +59,7 @@ from rsptx.db.crud import (
     update_user,
 )
 from rsptx.auth.session import auth_manager
+from rsptx.auth.email import send_welcome_email
 from rsptx.templates import template_folder
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -68,7 +73,6 @@ from rsptx.db.models import (
 )
 from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 import datetime
-
 
 # Routing
 # =======
@@ -196,6 +200,48 @@ async def get_copy_assignments(
     }
 
     return templates.TemplateResponse("admin/instructor/copy_assignments.html", context)
+
+
+@router.get("/source_assignments")
+@instructor_role_required()
+@with_course()
+async def get_source_assignments(
+    request: Request,
+    course_name: str,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    List the assignments for a course the instructor may copy from.
+
+    Used by the Copy Assignments page to populate the assignment dropdown once the
+    instructor picks a source course. Verifies the instructor is associated with the
+    source course (base courses are allowed) before returning its assignments.
+    """
+    source_course = await fetch_course(course_name)
+    if not source_course:
+        return JSONResponse(
+            status_code=404,
+            content={"message": "Source course not found"},
+        )
+
+    # Allow copying from a base course; otherwise require instructor access.
+    copy_base_course = source_course.course_name == source_course.base_course
+    if not copy_base_course:
+        instructor_courses = await fetch_instructor_courses(user.id)
+        has_access = any(ic.course == source_course.id for ic in instructor_courses)
+        if not has_access:
+            return JSONResponse(
+                status_code=403,
+                content={"message": "Not authorized to view this course"},
+            )
+
+    assignments = await fetch_assignments(course_name, fetch_all=True)
+    res = sorted(
+        ({"id": a.id, "name": a.name} for a in assignments),
+        key=lambda a: a["name"],
+    )
+    return JSONResponse(content={"assignments": res})
 
 
 # TA Management endpoints
@@ -379,9 +425,89 @@ async def get_course_settings(
         "show_points": course_attrs.get("show_points") == "true",
         "groupsize": course_attrs.get("groupsize", "3"),
         "enable_async_llm_modes": course_attrs.get("enable_async_llm_modes", "false"),
+        "use_pretext_student_pages": str(
+            course_attrs.get("use_pretext_student_pages", "false")
+        ).lower(),
     }
 
     return templates.TemplateResponse("admin/instructor/course_settings.html", context)
+
+
+@router.get("/lti_config")
+@instructor_role_required()
+@with_course()
+async def get_lti_config(
+    request: Request,
+    user=Depends(auth_manager),
+    response_class=HTMLResponse,
+    course=None,
+):
+    """
+    Display the LTI integration configuration page.  Handles LTI 1.1 key/secret
+    management (the LTI 1.3 pieces are configured elsewhere and are only surfaced
+    here for informational purposes and to allow removing an association).
+    """
+    templates = Jinja2Templates(directory=template_folder)
+
+    lti_key = await fetch_lti1p1_config(course.id)
+    course_attrs = await fetch_all_course_attributes(course.id)
+
+    context = {
+        "course": course,
+        "user": user,
+        "request": request,
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+        "consumer": lti_key.consumer if lti_key else "",
+        "secret": lti_key.secret if lti_key else "",
+        "ignore_lti_dates": course_attrs.get("ignore_lti_dates") == "true",
+        "no_lti_auto_grade_update": course_attrs.get("no_lti_auto_grade_update")
+        == "true",
+    }
+
+    return templates.TemplateResponse("admin/instructor/lti_config.html", context)
+
+
+@router.post("/create_lti_keys")
+@instructor_role_required()
+@with_course()
+async def post_create_lti_keys(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Generate an LTI 1.1 consumer key and secret for this course and store them.
+    Triggered from the LTI configuration page.
+    """
+    existing = await fetch_lti1p1_config(course.id)
+    if existing:
+        return JSONResponse(
+            content={"consumer": existing.consumer, "secret": existing.secret}
+        )
+
+    lti_key = await create_lti1p1_config(course.course_name, course.id)
+    return JSONResponse(
+        content={"consumer": lti_key.consumer, "secret": lti_key.secret}
+    )
+
+
+@router.post("/delete_lti_keys")
+@instructor_role_required()
+@with_course()
+async def post_delete_lti_keys(
+    request: Request,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Remove the LTI 1.1 consumer key and secret for this course.
+    Triggered from the LTI configuration page.
+    """
+    if await fetch_lti1p1_config(course.id):
+        await delete_lti_course(course.id)
+    return make_json_response(status=status.HTTP_200_OK, detail={"status": "success"})
 
 
 # Assessment Reset Model
@@ -1107,7 +1233,7 @@ async def _copy_one_assignment(
         assignment_questions = await fetch_assignment_questions(old_assignment_id)
 
         for question_data in assignment_questions:
-            question, assignment_question = question_data
+            assignment_question = question_data.AssignmentQuestion
 
             new_assignment_question_data = AssignmentQuestionValidator(
                 assignment_id=new_assignment.id,
@@ -1183,15 +1309,13 @@ async def root(request: Request, response_class: JSONResponse):
 
 # Designer page endpoints (moved to end of file)
 @router.get("/create_course", response_class=HTMLResponse)
-@with_course()
-async def get_create_course_page(
-    request: Request, user=Depends(auth_manager), course=None
-):
+async def get_create_course_page(request: Request, user=Depends(auth_manager)):
     """
     Display the course designer form for instructors.
     """
     templates = Jinja2Templates(directory=template_folder)
     # Fetch real course list from the library table
+    course = user.course_name
 
     course_list = await fetch_library_books()
     # Convert LibraryValidator objects to dicts for template compatibility
@@ -1201,15 +1325,30 @@ async def get_create_course_page(
         "request": request,
         "course_list": course_list,
         "sections": sections,
-        "current_date": datetime.date.today().strftime("%m/%d/%Y"),
+        "current_date": datetime.date.today().strftime("%Y-%m-%d"),
         "course": course,
         "user": user,
     }
     return templates.TemplateResponse("admin/instructor/create_course.html", context)
 
 
+def _parse_start_date(startdate: str) -> datetime.date:
+    """Parse the course start date from the designer form.
+
+    The form uses a native date input (ISO format), but accept the legacy
+    mm/dd/yyyy format as well for stale/cached copies of the form.
+    """
+    if not startdate:
+        return datetime.date.today()
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.datetime.strptime(startdate, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(f"Unrecognized start date: {startdate}")
+
+
 @router.post("/create_course", response_class=HTMLResponse)
-@with_course()
 async def post_create_course_page(
     request: Request,
     institution: str = Form(...),
@@ -1235,11 +1374,7 @@ async def post_create_course_page(
     try:
         course_data = {
             "course_name": projectname,
-            "term_start_date": (
-                datetime.datetime.strptime(startdate, "%m/%d/%Y").date()
-                if startdate
-                else datetime.date.today()
-            ),
+            "term_start_date": _parse_start_date(startdate),
             "institution": institution,
             "base_course": coursetype,
             "python3": True,
@@ -1275,13 +1410,36 @@ async def post_create_course_page(
             user.id, {"course_id": new_course.id, "course_name": projectname}
         )
         rslogger.info(f"Created new course: {new_course.id}")
+
+        # Build the link the instructor can follow to open their new course.
+        # settings.server_url resolves to LOAD_BALANCER_HOST/RUNESTONE_HOST in
+        # production and falls back to localhost for local development.
+        course_url = (
+            f"{settings.server_url}/ns/books/published/{projectname}/index.html"
+        )
+        # The instructor Google group (if any) is stored on the base course's library entry.
+        library_book = await fetch_library_book(coursetype)
+        social_url = library_book.social_url if library_book else ""
+        invoice_url = f"{settings.server_url}/assignment/instructor/invoice_request"
+        # Send the welcome email. Failures are logged but must not block course creation.
+        try:
+            await send_welcome_email(
+                to=user.email,
+                course_name=projectname,
+                course_url=course_url,
+                social_url=social_url or "",
+                invoice_url=invoice_url,
+            )
+        except Exception as e:
+            rslogger.error(f"Failed to send welcome email to {user.email}: {e}")
+
         # Success: show welcome page
         context = {
             "course": new_course,
             "user": user,
             "request": request,
             "coursename": projectname,
-            "social_url": None,  # You can add logic to provide a social_url if needed
+            "social_url": social_url or None,
         }
         return templates.TemplateResponse("admin/instructor/build.html", context)
     except Exception as e:

@@ -26,6 +26,11 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
 
+# The Runestone release version, baked in at build time so rsmanage telemetry
+# reports the same version this image is tagged with.
+ARG runestone_version=unknown
+ENV RUNESTONE_VERSION=${runestone_version}
+
 # install dependencies
 RUN pip install --upgrade pip
 RUN apt update

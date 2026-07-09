@@ -1,0 +1,128 @@
+{% extends "legal/_legal_base.html" %}
+
+{% block legal_content %}
+<h2>1. Implementation of Data Security and Privacy Requirements</h2>
+<p>
+    Runestone Academy implements all reasonable and appropriate administrative,
+    technical, and operational safeguards to ensure compliance with federal and state
+    privacy regulations, and alignment with its published
+    <a href="/admin/legal/privacy">Privacy Policy</a>. Since Runestone Academy is a
+    sole-proprietor operation, all system and data access are controlled exclusively by
+    the founder, ensuring a consistent and accountable application of policies over the
+    lifetime of the service.
+</p>
+
+<h2>2. Safeguards to Protect PII</h2>
+<ul>
+    <li><strong>Administrative:</strong> Access to personally identifiable information (PII) is restricted to the sole employee. No subcontractors or third parties are provided access.</li>
+    <li><strong>Technical:</strong>
+        <ul>
+            <li>All systems enforce password-protected access, encrypted at rest and in transit (TLS for all web traffic, encrypted backups).</li>
+            <li>Databases are firewalled and accessible only through secured administrative channels.</li>
+            <li>Regular updates and patches are applied to servers and software.</li>
+            <li>The website is protected by CloudFlare Web Application Firewall.</li>
+            <li>Inter-server communication is inside a firewalled virtual private cloud.</li>
+        </ul>
+    </li>
+    <li><strong>Operational:</strong> Data collection is limited to the minimum necessary for educational use. Logs are monitored for unusual activity.</li>
+</ul>
+
+<h2>3. Training</h2>
+<p>
+    As the sole employee and administrator, the founder maintains current knowledge of
+    relevant federal and state data protection regulations (FERPA, COPPA, Education Law
+    § 2-d, GDPR principles where applicable) through ongoing professional development in
+    cybersecurity and compliance.
+</p>
+
+<h2>4. Contracting Processes</h2>
+<p>
+    No subcontractors currently handle Runestone Academy data. If subcontractors or
+    service providers are engaged in the future, they will be required to sign written
+    agreements binding them to confidentiality, privacy, and security obligations at
+    least equivalent to this plan.
+</p>
+
+<h2>5. Incident Management</h2>
+<p>Runestone Academy maintains procedures to:</p>
+<ul>
+    <li>Immediately investigate suspected data security incidents.</li>
+    <li>Contain and mitigate any unauthorized access.</li>
+    <li>Notify affected educational agencies, users, and regulators as required by law within the mandated timelines.</li>
+    <li>Document the incident, actions taken, and lessons learned.</li>
+</ul>
+
+<h2>6. Data Transition</h2>
+<p>
+    If an educational agency requests a transition of data, all relevant records will be
+    exported in a secure, industry-standard format (CSV/JSON) and transferred using
+    encrypted methods.
+</p>
+
+<h2>7. Secure Destruction</h2>
+<p>When data is no longer required:</p>
+<ul>
+    <li>Database entries will be securely deleted.</li>
+    <li>Backups containing PII will be encrypted and scheduled for secure overwriting.</li>
+    <li>Certification of destruction will be provided upon request.</li>
+</ul>
+
+<h2>8. Alignment with Educational Agency Policies</h2>
+<p>
+    Runestone Academy will cooperate with each partner agency to align practices with
+    their data security and privacy policies. Any stricter provisions required by an
+    educational agency will be integrated into operations where applicable.
+</p>
+
+<h2>9. Alignment with NIST Cybersecurity Framework (v1.1)</h2>
+
+<h3>Identify (ID)</h3>
+<ul>
+    <li><strong>Asset Management:</strong> Servers, databases, and applications are inventoried and reviewed quarterly.</li>
+    <li><strong>Business Environment:</strong> Mission and objectives center on providing secure, free STEM education resources.</li>
+    <li><strong>Governance:</strong> Policies follow federal/state privacy laws and Runestone's published privacy policy.</li>
+    <li><strong>Risk Assessment:</strong> Risks (e.g., unauthorized access, data loss) are periodically assessed.</li>
+    <li><strong>Risk Management:</strong> Security decisions balance availability and confidentiality needs.</li>
+    <li><strong>Supply Chain:</strong> Minimal third-party dependencies; cloud/hosting providers are vetted for security compliance.</li>
+</ul>
+
+<h3>Protect (PR)</h3>
+<ul>
+    <li><strong>Access Control:</strong> Sole administrator access; strong authentication required.</li>
+    <li><strong>Awareness &amp; Training:</strong> Ongoing professional development for sole employee.</li>
+    <li><strong>Data Security:</strong> Encryption in transit/at rest; role-based data minimization.</li>
+    <li><strong>Processes &amp; Procedures:</strong> Documented policies for updates, access, backups.</li>
+    <li><strong>Maintenance:</strong> Regular patching and monitoring of systems.</li>
+    <li><strong>Protective Technology:</strong> Firewalls, TLS, intrusion detection via log monitoring.</li>
+</ul>
+
+<h3>Detect (DE)</h3>
+<ul>
+    <li><strong>Anomalies &amp; Events:</strong> Logs reviewed to identify suspicious access.</li>
+    <li><strong>Continuous Monitoring:</strong> System and network monitoring tools in place.</li>
+    <li><strong>Detection Processes:</strong> Incident response playbook documented and reviewed annually.</li>
+</ul>
+
+<h3>Respond (RS)</h3>
+<ul>
+    <li><strong>Response Planning:</strong> Formal incident response plan maintained.</li>
+    <li><strong>Communications:</strong> Legal/agency notifications as required by law.</li>
+    <li><strong>Analysis:</strong> Root-cause analysis after any incident.</li>
+    <li><strong>Mitigation:</strong> Immediate containment procedures for suspected compromise.</li>
+    <li><strong>Improvements:</strong> Incident reviews feed into security updates.</li>
+</ul>
+
+<h3>Recover (RC)</h3>
+<ul>
+    <li><strong>Recovery Planning:</strong> Nightly encrypted backups; restoration procedures tested.</li>
+    <li><strong>Improvements:</strong> Lessons learned used to improve recovery.</li>
+    <li><strong>Communications:</strong> Clear communication with agencies and affected users after incidents.</li>
+</ul>
+
+<div class="legal-contact">
+    <p style="margin:0;">
+        <strong>Security contact:</strong>
+        <a href="mailto:info@runestone.academy">info@runestone.academy</a>
+    </p>
+</div>
+{% endblock %}

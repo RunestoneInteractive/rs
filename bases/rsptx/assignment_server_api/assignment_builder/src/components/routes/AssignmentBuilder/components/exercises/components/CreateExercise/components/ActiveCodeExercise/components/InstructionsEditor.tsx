@@ -1,4 +1,5 @@
 import { Editor } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Editor";
+import { Icon } from "@components/ui/Icon";
 import { FC } from "react";
 
 import { useValidation } from "../../../shared/ExerciseLayout";
@@ -22,7 +23,7 @@ export const InstructionsEditor: FC<InstructionsEditorProps> = ({ instructions, 
       </div>
 
       <div className={styles.questionTips}>
-        <i className="pi pi-lightbulb" style={{ marginRight: "4px" }}></i>
+        <Icon name="lightbulb" style={{ marginRight: "4px" }} />
         <span>
           Tip: Be concise and specific with your instructions for better understanding. Type / in
           the editor for a menu of options.

@@ -1,7 +1,7 @@
 import { MathExtension } from "@aarkue/tiptap-math-extension";
 import { TipTapImage } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
 import { katexMacros } from "@components/routes/AssignmentBuilder/mathMacros";
-import { Extension } from "@tiptap/core";
+import { Editor as TipTapEditor, Range } from "@tiptap/core";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
@@ -13,15 +13,17 @@ import TableRow from "@tiptap/extension-table-row";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
+import { Icon } from "@components/ui/Icon";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Button } from "primereact/button";
 import { useEffect } from "react";
 import CodeBlockPrism from "tiptap-extension-code-block-prism";
 
 import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 
 import "tippy.js/dist/tippy.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import "katex/dist/katex.min.css";
 
 import styles from "./Editor.module.css";
@@ -31,6 +33,9 @@ import { useTableColumnMenu } from "./hooks/useTableColumnMenu";
 import { useTableRowMenu } from "./hooks/useTableRowMenu";
 import { TableColumnMenu } from "./components/TableColumnMenu";
 import { TableRowMenu } from "./components/TableRowMenu";
+import { InsertFormPopover, useInsertForm } from "./components/InsertFormPopover";
+import { InsertFormBridge } from "./extensions/InsertFormBridge";
+import { TabIndent } from "./extensions/TabIndent";
 
 const customStyles = `
   .tippy-box {
@@ -47,24 +52,32 @@ const customStyles = `
   .katex { font-size: 1.1em; }
 `;
 
-const TabExtension = Extension.create({
-  name: "tab",
-
-  addKeyboardShortcuts() {
-    return {
-      Tab: () => {
-        return this.editor.commands.insertContent("\t");
-      }
-    };
-  }
-});
-
 interface PollEditorProps {
   content: string;
   onChange: (content: string) => void;
   onFocus?: () => void;
   enableBlankOption?: boolean;
 }
+
+interface BubbleMenuButtonProps {
+  label: string;
+  icon: string;
+  onClick: () => void;
+  pressed?: boolean;
+}
+
+const BubbleMenuButton = ({ label, icon, onClick, pressed }: BubbleMenuButtonProps) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={pressed ? styles.isActive : ""}
+    aria-label={label}
+    aria-pressed={pressed}
+    title={label}
+  >
+    <i className={`fa-solid ${icon}`} aria-hidden="true" />
+  </button>
+);
 
 export const Editor = ({
   content,
@@ -90,10 +103,10 @@ export const Editor = ({
       return [
         ...items,
         {
-          title: "Add Blank",
+          title: "Add blank",
           description: "Insert a blank placeholder for fill-in-the-blank exercises",
           icon: "fa-square-plus",
-          command: ({ editor, range }: any) => {
+          command: ({ editor, range }: { editor: TipTapEditor; range: Range }) => {
             editor.chain().focus().deleteRange(range).insertContent("{blank}").run();
           }
         }
@@ -206,7 +219,8 @@ export const Editor = ({
           macros: katexMacros
         }
       }),
-      TabExtension
+      TabIndent,
+      InsertFormBridge
     ],
     content,
     onUpdate: ({ editor: uEditor }) => {
@@ -234,6 +248,8 @@ export const Editor = ({
     isLastRow
   } = useTableRowMenu(editor);
 
+  const { insertFormRequest, closeInsertForm } = useInsertForm(editor);
+
   if (!editor) {
     return null;
   }
@@ -241,15 +257,21 @@ export const Editor = ({
   return (
     <div className={styles.editorContainer}>
       <div className={styles.editorHeader}>
-        <Button
-          icon="pi pi-question-circle"
-          text
-          size="small"
-          onClick={showModal}
-          className={styles.helpButton}
-          tooltip="Editor Help"
-          tooltipOptions={{ position: "left" }}
-        />
+        <Tooltip
+          label="Editor help"
+          position="left"
+          events={{ hover: true, focus: true, touch: true }}
+        >
+          <ActionIcon
+            variant="subtle"
+            size="sm"
+            onClick={showModal}
+            className={styles.helpButton}
+            aria-label="Editor help"
+          >
+            <Icon name="question-circle" />
+          </ActionIcon>
+        </Tooltip>
       </div>
 
       <BubbleMenu
@@ -260,72 +282,92 @@ export const Editor = ({
         }}
         className={styles.bubbleMenu}
       >
-        <button
+        <BubbleMenuButton
+          label="Bold"
+          icon="fa-bold"
+          pressed={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={editor.isActive("bold") ? styles.isActive : ""}
-        >
-          <i className="fa-solid fa-bold" />
-        </button>
-        <button
+        />
+        <BubbleMenuButton
+          label="Italic"
+          icon="fa-italic"
+          pressed={editor.isActive("italic")}
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={editor.isActive("italic") ? styles.isActive : ""}
-        >
-          <i className="fa-solid fa-italic" />
-        </button>
-        <button
+        />
+        <BubbleMenuButton
+          label="Strikethrough"
+          icon="fa-strikethrough"
+          pressed={editor.isActive("strike")}
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={editor.isActive("strike") ? styles.isActive : ""}
-        >
-          <i className="fa-solid fa-strikethrough" />
-        </button>
-        <button
+        />
+        <BubbleMenuButton
+          label="Highlight"
+          icon="fa-highlighter"
+          pressed={editor.isActive("highlight")}
           onClick={() => editor.chain().focus().toggleHighlight().run()}
-          className={editor.isActive("highlight") ? styles.isActive : ""}
-        >
-          <i className="fa-solid fa-highlighter" />
-        </button>
-        <button
+        />
+        <BubbleMenuButton
+          label="Code block"
+          icon="fa-code"
+          pressed={editor.isActive("codeBlock")}
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={editor.isActive("codeBlock") ? styles.isActive : ""}
-        >
-          <i className="fa-solid fa-code" />
-        </button>
+        />
         {editor.isActive("table") && (
           <>
-            <button onClick={() => editor.chain().focus().addColumnBefore().run()}>
-              <i className="fa-solid fa-table-columns" title="Add Column Before" />
-            </button>
-            <button onClick={() => editor.chain().focus().addColumnAfter().run()}>
-              <i className="fa-solid fa-table-columns" title="Add Column After" />
-            </button>
-            <button onClick={() => editor.chain().focus().deleteColumn().run()}>
-              <i className="fa-solid fa-minus" title="Delete Column" />
-            </button>
-            <button onClick={() => editor.chain().focus().addRowBefore().run()}>
-              <i className="fa-solid fa-table-rows" title="Add Row Before" />
-            </button>
-            <button onClick={() => editor.chain().focus().addRowAfter().run()}>
-              <i className="fa-solid fa-table-rows" title="Add Row After" />
-            </button>
-            <button onClick={() => editor.chain().focus().deleteRow().run()}>
-              <i className="fa-solid fa-minus" title="Delete Row" />
-            </button>
-            <button onClick={() => editor.chain().focus().deleteTable().run()}>
-              <i className="fa-solid fa-trash" title="Delete Table" />
-            </button>
-            <button onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
-              <i className="fa-solid fa-heading" title="Toggle Header Row" />
-            </button>
+            <BubbleMenuButton
+              label="Add column left"
+              icon="fa-table-columns"
+              onClick={() => editor.chain().focus().addColumnBefore().run()}
+            />
+            <BubbleMenuButton
+              label="Add column right"
+              icon="fa-table-columns"
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+            />
+            <BubbleMenuButton
+              label="Delete column"
+              icon="fa-minus"
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+            />
+            <BubbleMenuButton
+              label="Add row above"
+              icon="fa-table-rows"
+              onClick={() => editor.chain().focus().addRowBefore().run()}
+            />
+            <BubbleMenuButton
+              label="Add row below"
+              icon="fa-table-rows"
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+            />
+            <BubbleMenuButton
+              label="Delete row"
+              icon="fa-minus"
+              onClick={() => editor.chain().focus().deleteRow().run()}
+            />
+            <BubbleMenuButton
+              label="Delete table"
+              icon="fa-trash"
+              onClick={() => editor.chain().focus().deleteTable().run()}
+            />
+            <BubbleMenuButton
+              label="Toggle header row"
+              icon="fa-heading"
+              onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+            />
           </>
         )}
         {enableBlankOption && (
-          <button onClick={() => editor.chain().focus().insertContent("{blank}").run()}>
-            <i className="fa-solid fa-square-plus" />
-          </button>
+          <BubbleMenuButton
+            label="Add blank"
+            icon="fa-square-plus"
+            onClick={() => editor.chain().focus().insertContent("{blank}").run()}
+          />
         )}
       </BubbleMenu>
 
       <EditorContent editor={editor} className={styles.editor} />
+
+      <InsertFormPopover editor={editor} request={insertFormRequest} onClose={closeInsertForm} />
 
       <TableColumnMenu
         editor={editor}

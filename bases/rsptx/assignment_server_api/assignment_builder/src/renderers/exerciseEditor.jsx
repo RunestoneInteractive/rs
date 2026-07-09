@@ -1,9 +1,5 @@
-import { Button } from "primereact/button";
-import { InputNumber } from "primereact/inputnumber";
-import { InputText } from "primereact/inputtext";
-import { Panel } from "primereact/panel";
+import { Accordion, Button, NumberInput, TextInput } from "@mantine/core";
 import PropTypes from "prop-types";
-import { Toaster } from "react-hot-toast";
 import { useSelector, useDispatch } from "react-redux";
 
 import { selectAll as selectAssignAll } from "../state/assignment/assignSlice";
@@ -20,7 +16,7 @@ import {
   selectAuthor,
   selectTags,
   selectDifficulty,
-  selectTopic,
+  selectTopic
 } from "../state/interactive/interactiveSlice";
 import { saveAssignmentQuestion } from "../state/interactive/interactiveSlice";
 
@@ -28,7 +24,7 @@ import { ChapterSelector } from "./chapterSelector.jsx";
 
 const acStyle = {
   border: "1px solid black",
-  padding: "10px",
+  padding: "10px"
 };
 /**
  *
@@ -53,16 +49,15 @@ export function ExerciseEditor(props) {
 
   return (
     <div style={acStyle}>
-      <Toaster />
       <div className="contain2col">
         <div className="item">
           <label htmlFor="qpoints">Points</label>
-          <InputNumber
+          <NumberInput
             id="qpoints"
             placeholder="Points"
             value={qpoints}
-            onChange={(e) => {
-              dispatch(setQpoints(e.value));
+            onChange={(value) => {
+              dispatch(setQpoints(value));
               dispatch(sumPoints());
             }}
           />
@@ -70,7 +65,7 @@ export function ExerciseEditor(props) {
       </div>
       <div>
         <label htmlFor="uniqueId">Question Name</label>
-        <InputText
+        <TextInput
           id="uniqueId"
           placeholder="Enter Question Name"
           value={uniqueId}
@@ -81,49 +76,54 @@ export function ExerciseEditor(props) {
 
         {props.component}
 
-        <Panel header="More Options" collapsed={true} toggleable>
-          <div className="formgrid grid">
-            <div className="field col">
-              <label htmlFor="author">Author</label>
-              <InputText
-                id="author"
-                value={author}
-                placeholder="Author"
-                onChange={(e) => dispatch(setAuthor(e.target.value))}
-              />
-            </div>
-            <div className="field col">
-              <label htmlFor="tags">Tags</label>
-              <InputText
-                id="tags"
-                value={tags}
-                placeholder="Tags"
-                className="field"
-                onChange={(e) => dispatch(setTags(e.target.value))}
-              />
-            </div>
-            <div>
-              <label htmlFor="difficulty">Difficulty</label>
-              <InputNumber
-                id="difficulty"
-                value={difficulty}
-                placeholder="Difficulty"
-                className="field"
-                onChange={(e) => dispatch(setDifficulty(e.target.value))}
-              />
-            </div>
-            <div className="field col">
-              <label htmlFor="topic">Topic</label>
-              <InputText
-                id="topic"
-                value={topic}
-                placeholder="Topic"
-                className="field"
-                onChange={(e) => dispatch(setTopic(e.target.value))}
-              />
-            </div>
-          </div>
-        </Panel>
+        <Accordion>
+          <Accordion.Item value="more-options">
+            <Accordion.Control>More Options</Accordion.Control>
+            <Accordion.Panel>
+              <div className="formgrid grid">
+                <div className="field col">
+                  <label htmlFor="author">Author</label>
+                  <TextInput
+                    id="author"
+                    value={author}
+                    placeholder="Author"
+                    onChange={(e) => dispatch(setAuthor(e.target.value))}
+                  />
+                </div>
+                <div className="field col">
+                  <label htmlFor="tags">Tags</label>
+                  <TextInput
+                    id="tags"
+                    value={tags}
+                    placeholder="Tags"
+                    className="field"
+                    onChange={(e) => dispatch(setTags(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="difficulty">Difficulty</label>
+                  <NumberInput
+                    id="difficulty"
+                    value={difficulty}
+                    placeholder="Difficulty"
+                    className="field"
+                    onChange={(value) => dispatch(setDifficulty(value))}
+                  />
+                </div>
+                <div className="field col">
+                  <label htmlFor="topic">Topic</label>
+                  <TextInput
+                    id="topic"
+                    value={topic}
+                    placeholder="Topic"
+                    className="field"
+                    onChange={(e) => dispatch(setTopic(e.target.value))}
+                  />
+                </div>
+              </div>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
       </div>
       <Button
         value="save"
@@ -132,8 +132,8 @@ export function ExerciseEditor(props) {
           dispatch(
             saveAssignmentQuestion({
               assignData: assignData,
-              editonly: props.editonly,
-            }),
+              editonly: props.editonly
+            })
           )
         }
       >
@@ -145,11 +145,11 @@ export function ExerciseEditor(props) {
 
 ExerciseEditor.propTypes = {
   component: PropTypes.element.isRequired,
-  editonly: PropTypes.bool,
+  editonly: PropTypes.bool
 };
 
 ExerciseEditor.defaultProps = {
-  editonly: false,
+  editonly: false
 };
 
 export default ExerciseEditor;

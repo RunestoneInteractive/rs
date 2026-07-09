@@ -84,37 +84,16 @@ input {
     outline-style: none;
 }
 
+/* The .searchbar box (border, icon, padding) is on the wrapping div; make the
+   input fill it so the placeholder isn't clipped at the input's default width. */
+.searchbar input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: inherit;
+    border: none;
+    background: transparent;
+}
+
 .library_entry {
     margin-bottom: 5pt;
-}
-
-
-
-.metaquestion {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-}
-
-.griditem {
-    display: flex;
-    flex-direction: column;
-    flex-basis: 100%;
-    flex: 1;
-}
-
-.questionblock {
-    background-color: #ddd;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 10px;
-}
-
-.overdue {
-    color: #ff0000;
-}
-
-.duesoon {
-    color: #11b70e;
 }

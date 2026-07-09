@@ -33,16 +33,24 @@ from .assignment import (
     fetch_assignments,
     fetch_deadline_exception,
     fetch_grade,
+    fetch_gradebook,
+    fetch_late_students_for_assignment,
     fetch_one_assignment,
     fetch_problem_data,
+    has_submissions_after_deadline,
     fetch_reading_assignment_data,
     get_repo_path,
     remove_assignment_questions,
     reorder_assignment_questions,
     update_assignment,
+    update_assignment_released,
+    update_assignment_threshold,
     update_assignment_exercises,
     update_assignment_question,
+    update_deadline_exception,
     update_multiple_assignment_questions,
+    set_manual_total,
+    upsert_deadline_exception,
     upsert_grade,
 )
 
@@ -116,12 +124,27 @@ from .library import (
     update_library_book,
 )
 
+from .telemetry import (
+    bucket_count,
+    build_checkin_payload,
+    count_courses,
+    count_enrolled_students,
+    gather_served_books,
+    get_last_sent,
+    get_or_create_instance_id,
+    set_last_sent,
+    upsert_installation,
+)
+
 # import all functions from .lti by name
 from .lti import (
     create_lti_course,
+    create_lti1p1_config,
     delete_lti_course,
     delete_lti1p3_course,
     fetch_lti_version,
+    fetch_lti1p1_config,
+    fetch_lti1p1_config_by_consumer,
     fetch_lti1p3_assignments_by_rs_assignment_id,
     fetch_lti1p3_assignments_by_rs_course_id,
     fetch_lti1p3_config_by_lti_data,
@@ -134,10 +157,12 @@ from .lti import (
     fetch_lti1p3_grading_data_for_assignment,
     fetch_lti1p3_user,
     fetch_lti1p3_users_for_course,
+    upsert_lti1p1_grade_link,
     upsert_lti1p3_assignment,
     upsert_lti1p3_config,
     upsert_lti1p3_course,
     upsert_lti1p3_user,
+    upsert_practice_grade_link,
     validate_user_credentials,
 )
 
@@ -165,14 +190,18 @@ from .question import (
     create_question_grade_entry,
     create_question,
     create_user_experiment_entry,
+    delete_user_experiment_entries,
+    replace_user_experiment_entries,
     fetch_assignment_question,
     fetch_assignment_questions,
     fetch_matching_questions,
     fetch_previous_selections,
     fetch_question,
+    fetch_question_by_id,
     fetch_questions_for_chapter_subchapter,
     fetch_question_count_per_subchapter,
     fetch_question_grade,
+    fetch_assignment_release_for_div_id,
     fetch_questions_by_search_criteria,
     fetch_user_experiment,
     fetch_viewed_questions,
@@ -199,10 +228,14 @@ from .rslogging import (
     create_code_entry,
     create_useinfo_entry,
     fetch_code,
+    fetch_code_for_sid,
     fetch_last_answer_table_entry,
+    fetch_last_course_access,
     fetch_last_poll_response,
     fetch_poll_summary,
+    fetch_recent_useinfo,
     fetch_top10_fitb,
+    fetch_useinfo_for_sid,
 )
 
 from .scoring import (
@@ -245,16 +278,24 @@ __all__ += [
     "fetch_all_deadline_exceptions",
     "fetch_deadline_exception",
     "fetch_grade",
+    "fetch_gradebook",
     "fetch_one_assignment",
     "fetch_problem_data",
+    "fetch_late_students_for_assignment",
     "fetch_reading_assignment_data",
     "get_repo_path",
+    "has_submissions_after_deadline",
     "remove_assignment_questions",
     "reorder_assignment_questions",
     "update_assignment",
+    "update_assignment_released",
+    "update_assignment_threshold",
     "update_assignment_exercises",
     "update_assignment_question",
+    "update_deadline_exception",
     "update_multiple_assignment_questions",
+    "set_manual_total",
+    "upsert_deadline_exception",
     "upsert_grade",
 ]
 
@@ -285,13 +326,30 @@ __all__ += [
     "update_library_book",
 ]
 
+# from .telemetry
+
+__all__ += [
+    "bucket_count",
+    "build_checkin_payload",
+    "count_courses",
+    "count_enrolled_students",
+    "gather_served_books",
+    "get_last_sent",
+    "get_or_create_instance_id",
+    "set_last_sent",
+    "upsert_installation",
+]
+
 # from .lti
 
 __all__ += [
     "create_lti_course",
+    "create_lti1p1_config",
     "delete_lti_course",
     "delete_lti1p3_course",
     "fetch_lti_version",
+    "fetch_lti1p1_config",
+    "fetch_lti1p1_config_by_consumer",
     "fetch_lti1p3_assignments_by_rs_assignment_id",
     "fetch_lti1p3_assignments_by_rs_course_id",
     "fetch_lti1p3_config_by_lti_data",
@@ -304,10 +362,12 @@ __all__ += [
     "fetch_lti1p3_grading_data_for_assignment",
     "fetch_lti1p3_user",
     "fetch_lti1p3_users_for_course",
+    "upsert_lti1p1_grade_link",
     "upsert_lti1p3_assignment",
     "upsert_lti1p3_config",
     "upsert_lti1p3_course",
     "upsert_lti1p3_user",
+    "upsert_practice_grade_link",
     "validate_user_credentials",
 ]
 
@@ -398,14 +458,18 @@ __all__ += [
     "create_question",
     "create_question_grade_entry",
     "create_user_experiment_entry",
+    "delete_user_experiment_entries",
+    "replace_user_experiment_entries",
     "fetch_assignment_question",
     "fetch_assignment_questions",
     "fetch_matching_questions",
     "fetch_previous_selections",
     "fetch_question",
+    "fetch_question_by_id",
     "fetch_questions_for_chapter_subchapter",
     "fetch_question_count_per_subchapter",
     "fetch_question_grade",
+    "fetch_assignment_release_for_div_id",
     "fetch_questions_by_search_criteria",
     "fetch_user_experiment",
     "fetch_viewed_questions",
@@ -434,10 +498,14 @@ __all__ += [
     "create_code_entry",
     "create_useinfo_entry",
     "fetch_code",
+    "fetch_code_for_sid",
     "fetch_last_answer_table_entry",
+    "fetch_last_course_access",
     "fetch_last_poll_response",
     "fetch_poll_summary",
+    "fetch_recent_useinfo",
     "fetch_top10_fitb",
+    "fetch_useinfo_for_sid",
 ]
 
 # from .scoring

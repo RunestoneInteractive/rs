@@ -1,0 +1,90 @@
+.hparsons-input {
+  padding: 15px;
+}
+.hparsons-tip {
+  font-style: italic;
+}
+.parsons-tooltip {
+  visibility: hidden;
+  max-width: 120px;
+  width: max-content;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  top: 30px;
+}
+.parsons-block:hover .parsons-tooltip {
+  visibility: visible;
+}
+.parsons-block {
+  display: inline-block;
+  font-family: monospace;
+  border-color: gray;
+  margin: 0 1px;
+  position: relative;
+  border-radius: 10px;
+  background-color: #efefef;
+  border: 1px solid #d3d3d3;
+  padding: 5px 10px;
+  margin-top: 5px;
+}
+.drop-area .parsons-block.incorrectPosition {
+  background-color: #ffbaba;
+  border: 1px solid red;
+}
+.parsons-block:hover,
+.parsons-block:focus {
+  border-color: black;
+}
+.parsons-block:focus-visible {
+  outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+/* Screen-reader-only live region */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.drop-area {
+  background-color: #ffa;
+  padding: 0 5px 5px 5px;
+  min-height: 32px;
+  height: auto;
+  margin: 2px 0;
+}
+.drop-area.incorrect {
+  background-color: #f2dede;
+  border-color: #f2b6b6;
+}
+.drop-area.correct {
+  background-color: #dff0d8;
+  border-color: #ade595;
+}
+.drag-area .parsons-block:hover .tooltip {
+  visibility: visible;
+}
+.drag-area {
+  background-color: #efefff;
+  padding: 0 5px 5px 5px;
+  min-height: 32px;
+  height: auto;
+  margin: 2px 0;
+}
+
+pre.context {
+  /* white-space: pre; */
+  background-color: #ffd;
+  margin: 0;
+  padding: 2px 10px;
+}

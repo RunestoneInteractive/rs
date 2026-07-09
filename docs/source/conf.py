@@ -4,10 +4,21 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 import sys
+import warnings
+
+from sqlalchemy.exc import SAWarning
 
 # The path here is relative to
 sys.path.insert(0, os.path.abspath("../../components/rsptx"))
 sys.path.insert(0, os.path.abspath("../../bases/rsptx"))
+
+# autodoc introspects every class attribute with getattr(); on the declarative
+# mixins in db.models (AnswerMixin etc.) that touches @declared_attr
+# descriptors on non-mapped classes, which SQLAlchemy warns about. Harmless
+# during doc builds, so silence just that message.
+warnings.filterwarnings(
+    "ignore", message="Unmanaged access of declarative attribute", category=SAWarning
+)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

@@ -1,4 +1,17 @@
-/* custom css */
+/* custom css for pages that are not using a PTX built template */
+
+
+.rs-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
 
 html {
   position: relative;
@@ -40,4 +53,30 @@ body {
 
 .autopermalink {
     display: none;
+}
+
+/* Navbar icon helpers (used by _navbar.html) */
+.ti-big {
+  font-size: 1.5em;
+}
+.caption-wrap {
+  display: inline-flex;   /* or flex, if you want it to be block-level */
+  align-items: center;    /* vertical centering */
+  gap: 0.4em;             /* spacing between icon and text */
+}
+
+.caption-wrap i {
+  width: 1.2em;
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.caption-wrap .ti-placeholder {
+  visibility: hidden;
+}
+
+
+/* undo some PTX heading styles */
+section:first-of-type > h1.heading {
+    margin-top: 0.5em;
 }

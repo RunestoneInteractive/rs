@@ -1,5 +1,4 @@
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
-import { Exercise } from "@/types/exercises";
 
 export interface AssignmentReadingsComponentProps {
   startItemId: number | null;
@@ -13,5 +12,4 @@ export interface AssignmentReadingsComponentProps {
   ) => void;
 }
 
-export type SetCurrentEditReading = (reading: Exercise | null) => void;
 export type MouseUpHandler = () => void;

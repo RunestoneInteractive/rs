@@ -1,4 +1,5 @@
-{% extends "_base.html" %} 
+{% extends "_base.html" %}
+{% set needs_jquery = true %} 
 {% block title %}
 Grade Book
 {% endblock %}
@@ -6,11 +7,56 @@ Grade Book
 <link href="https://cdn.datatables.net/v/dt/dt-2.3.3/fc-5.0.4/fh-4.0.3/datatables.min.css" rel="stylesheet" integrity="sha384-Vjo6w3LvETxs8325VejWKrmS6Ftn1oJGtDL8U5c99JYHS/jhfUFPjRAxXyLzDI2i" crossorigin="anonymous">
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
 
-{% endblock %} 
+<style>
+    /* Only the assignment name is clickable (to view who submitted late), so it
+       doesn't conflict with the sort handler on the rest of the header cell.
+       The dotted underline distinguishes it from a plain sortable heading.
+       Note: with scrolling enabled DataTables renders the visible header in a
+       cloned table without the #table id, so this selector must not depend on
+       that id. */
+    th .late-trigger,
+    .late-trigger {
+        cursor: pointer;
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+    }
+    .late-trigger:hover,
+    .late-trigger:focus {
+        text-decoration: underline;
+        outline: 2px solid transparent;
+    }
+    #late-dialog {
+        min-width: 280px;
+        max-width: 480px;
+        border: 1px solid #888;
+        border-radius: 6px;
+        padding: 1rem 1.25rem;
+    }
+    #late-dialog h2 {
+        margin-top: 0;
+    }
+    #late-dialog ul {
+        margin: 0.5rem 0;
+        padding-left: 1.25rem;
+    }
+    #late-dialog .late-dialog-close {
+        margin-top: 0.75rem;
+    }
+</style>
+
+{% endblock %}
 {% block content %}
 <h1>Grade Book for {{course.course_name}}</h1>
 
+<p>Click an assignment name to see which students submitted work after the deadline.</p>
+
 {{table_html|safe}}
+
+<dialog id="late-dialog" aria-labelledby="late-dialog-title">
+    <h2 id="late-dialog-title"></h2>
+    <div id="late-dialog-body"></div>
+    <button type="button" class="late-dialog-close" id="late-dialog-close">Close</button>
+</dialog>
 
 <button id="export" data-export="export">Download Gradebook</button>
 <label for="assignment-column-filter" style="margin-left: 12px;">Show assignment column:</label>
@@ -22,7 +68,7 @@ Grade Book
 
 <ol>
 {% for row in pt %}
-<li>{{pt[row]}} <a href="/runestone/dashboard/studentreport?id={{row}}">{{row}}</a></li>
+<li>{{pt[row]}} <a href="/assignment/student/studentreport?id={{row}}">{{row}}</a></li>
 {% endfor %}
 </ol>
 
@@ -34,6 +80,8 @@ Grade Book
 <script>
     var gbTable;
     var assignmentColumnIndexes = [];
+    // Map of rendered assignment column header text -> assignment id.
+    var assignmentIdByColumn = {{ assignment_id_by_column | safe }};
 
     function setAssignmentColumnVisibility(selectedValue) {
         assignmentColumnIndexes.forEach(function (idx) {
@@ -41,6 +89,87 @@ Grade Book
             gbTable.column(idx).visible(shouldShow, false);
         });
         gbTable.columns.adjust().draw(false);
+    }
+
+    function showLateDialog(detail) {
+        var dialog = document.getElementById("late-dialog");
+        var title = document.getElementById("late-dialog-title");
+        var body = document.getElementById("late-dialog-body");
+        title.textContent = "Late work — " + detail.assignment_name;
+        body.replaceChildren();
+
+        if (!detail.enforce_due) {
+            var note = document.createElement("p");
+            note.textContent =
+                "The due date is not enforced for this assignment, so no work is counted as late.";
+            body.appendChild(note);
+        } else if (!detail.students || detail.students.length === 0) {
+            var none = document.createElement("p");
+            none.textContent = "No students submitted work after the deadline.";
+            body.appendChild(none);
+        } else {
+            var count = document.createElement("p");
+            count.textContent =
+                detail.students.length +
+                (detail.students.length === 1 ? " student" : " students") +
+                " submitted work after the deadline:";
+            body.appendChild(count);
+
+            var list = document.createElement("ul");
+            detail.students.forEach(function (student) {
+                var li = document.createElement("li");
+                var link = document.createElement("a");
+                link.href =
+                    "/assignment/student/studentreport?id=" +
+                    encodeURIComponent(student.username);
+                link.textContent = student.name;
+                li.appendChild(link);
+                list.appendChild(li);
+            });
+            body.appendChild(list);
+        }
+
+        if (typeof dialog.showModal === "function") {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute("open", "open");
+        }
+    }
+
+    function loadLateStudents(assignmentId, headerText) {
+        var title = document.getElementById("late-dialog-title");
+        var body = document.getElementById("late-dialog-body");
+        title.textContent = "Late work — " + headerText;
+        body.replaceChildren();
+        var loading = document.createElement("p");
+        loading.textContent = "Loading…";
+        body.appendChild(loading);
+        var dialog = document.getElementById("late-dialog");
+        if (typeof dialog.showModal === "function") {
+            dialog.showModal();
+        }
+
+        fetch(
+            "/assignment/instructor/assignments/" +
+                encodeURIComponent(assignmentId) +
+                "/late_students",
+            { headers: { Accept: "application/json" } }
+        )
+            .then(function (resp) {
+                if (!resp.ok) {
+                    throw new Error("Request failed: " + resp.status);
+                }
+                return resp.json();
+            })
+            .then(function (data) {
+                showLateDialog(data.detail);
+            })
+            .catch(function () {
+                body.replaceChildren();
+                var err = document.createElement("p");
+                err.textContent = "Could not load late work for this assignment.";
+                body.appendChild(err);
+            });
     }
 
     $(document).ready( function () {
@@ -63,17 +192,62 @@ Grade Book
         gbTable.columns().every(function (idx) {
             if (idx >= 4) {
                 assignmentColumnIndexes.push(idx);
-                var headerText = this.header().textContent.trim();
+                var header = this.header();
+                var headerText = header.textContent.trim();
                 var opt = document.createElement('option');
                 opt.value = String(idx);
                 opt.textContent = headerText;
                 select.appendChild(opt);
+
+                // Make only the assignment name clickable to show students with
+                // late work. We wrap the name in our own element (rather than the
+                // whole header cell) so it doesn't conflict with the column's sort
+                // handler, which stays active on the rest of the header.
+                var assignmentId = assignmentIdByColumn[headerText];
+                if (assignmentId !== undefined) {
+                    // DataTables wraps the title in .dt-column-title; fall back to
+                    // the header cell itself if that internal markup isn't present.
+                    var titleEl = header.querySelector('.dt-column-title') || header;
+                    var trigger = document.createElement('span');
+                    trigger.className = 'late-trigger';
+                    trigger.textContent = headerText;
+                    trigger.setAttribute('role', 'button');
+                    trigger.setAttribute('tabindex', '0');
+                    trigger.setAttribute('title', 'Show students with late work');
+                    // Replace just the title text with our clickable span, leaving
+                    // any sort-order indicator (a sibling element) untouched.
+                    titleEl.textContent = '';
+                    titleEl.appendChild(trigger);
+                    trigger.addEventListener('click', function (e) {
+                        // Don't let the click bubble to the sort handler.
+                        e.stopPropagation();
+                        loadLateStudents(assignmentId, headerText);
+                    });
+                    trigger.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            loadLateStudents(assignmentId, headerText);
+                        }
+                    });
+                }
             }
         });
 
         select.addEventListener('change', function () {
             setAssignmentColumnVisibility(this.value);
         });
+
+        var lateDialog = document.getElementById('late-dialog');
+        document
+            .getElementById('late-dialog-close')
+            .addEventListener('click', function () {
+                if (typeof lateDialog.close === 'function') {
+                    lateDialog.close();
+                } else {
+                    lateDialog.removeAttribute('open');
+                }
+            });
     });
 
 

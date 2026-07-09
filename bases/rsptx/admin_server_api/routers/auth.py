@@ -1,4 +1,5 @@
 import datetime
+import re
 from datetime import timedelta
 
 from fastapi import APIRouter, Form, Request, status
@@ -18,6 +19,7 @@ from rsptx.db.crud import (
     fetch_courses_by_institution,
     fetch_courses_for_user,
     fetch_instructor_courses,
+    fetch_last_course_access,
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
@@ -43,6 +45,7 @@ _REGISTER = "/admin/auth/register"
 _COURSES = "/admin/auth/courses"
 _MY_COURSES = "/admin/auth/my_courses"
 _PROFILE = "/admin/auth/profile"
+_DONATE = "/admin/auth/donate"
 
 
 def _verify_password(stored: str, plain: str) -> bool:
@@ -61,12 +64,43 @@ def _user_exists(user) -> bool:
     return bool(user and user.id)
 
 
+# Usernames may be a plain handle or an email address. Allow letters, digits,
+# underscore, and the characters that appear in email addresses (@ . - + %).
+# Spaces and other special characters are rejected.
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9._@+%-]+$")
+
+
+def _validate_username(username: str) -> str | None:
+    """Return an error message if the username is invalid, else None."""
+    if not username:
+        return "Username is required."
+    if not _USERNAME_RE.match(username):
+        return (
+            "Username may only contain letters, digits, and the characters "
+            "@ . _ - + % (no spaces). An email address is allowed."
+        )
+    return None
+
+
 async def _current_user(request: Request):
     """Return the authenticated user or None (never raises)."""
     try:
         return await auth_manager(request)
     except (NotAuthenticatedException, Exception):
         return None
+
+
+async def _navbar_context(user: AuthUserValidator) -> dict:
+    """Context the shared navbar (_navbar.html) needs for a logged-in user.
+
+    Provides the user's active course and whether they are an instructor in
+    it, which the navbar uses to decide what links and menus to show.
+    """
+    course = await fetch_course(user.course_name)
+    is_instructor = False
+    if course and course.id:
+        is_instructor = bool(await fetch_instructor_courses(user.id, course.id))
+    return {"course": course, "is_instructor": is_instructor}
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +110,17 @@ async def _current_user(request: Request):
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/ns/course/index"):
+    # If a valid JWT is already present the user is logged in; send them
+    # straight to the course home page rather than showing the login form.
+    user = await _current_user(request)
+    if _user_exists(user):
+        # if the user is in a state where they don't have any courses yet send them to choose one
+        if user.course_id == 0:
+            return RedirectResponse(
+                "/admin/auth/courses", status_code=status.HTTP_302_FOUND
+            )
+        return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
+
     return templates.TemplateResponse(
         "admin/auth/login.html",
         {"request": request, "next": next, "error": None},
@@ -104,8 +149,14 @@ async def login_post(
     access_token = auth_manager.create_access_token(
         data={"sub": user.username}, expires=timedelta(days=105)
     )
-    response = RedirectResponse(next, status_code=status.HTTP_302_FOUND)
+    if user.course_id == 0:
+        response = RedirectResponse(
+            "/admin/auth/courses", status_code=status.HTTP_302_FOUND
+        )
+    else:
+        response = RedirectResponse(next, status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
+    rslogger.info(f"LOGIN: {username}")
     return response
 
 
@@ -147,6 +198,11 @@ async def register_post(
     instructor: str = Form(default=""),
 ):
     errors = []
+
+    username = username.strip()
+    username_error = _validate_username(username)
+    if username_error:
+        errors.append(username_error)
 
     if password != password2:
         errors.append("Passwords do not match.")
@@ -246,6 +302,9 @@ async def register_post(
 
     response = RedirectResponse(redirect_to, status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
+    rslogger.info(
+        f"REGISTER: {username} (instructor={is_instructor}, institution='{institution}')"
+    )
     return response
 
 
@@ -276,6 +335,7 @@ async def courses_page(request: Request, institution: str = ""):
             "institution_courses": institution_courses,
             "institution": institution,
             "error": None,
+            **(await _navbar_context(user)),
         },
     )
 
@@ -305,6 +365,7 @@ async def courses_post(
                 "institution_courses": institution_courses,
                 "institution": institution,
                 "error": f"Course '{course_name}' not found. Please check the name and try again.",
+                **(await _navbar_context(user)),
             },
         )
 
@@ -316,7 +377,43 @@ async def courses_post(
         user.id, {"course_name": course.course_name, "course_id": course.id}
     )
 
+    # When a student registers for a new course, invite them to support
+    # Runestone. We don't ask again once they've donated.
+    if not already_enrolled and not user.donated:
+        return RedirectResponse(_DONATE, status_code=status.HTTP_302_FOUND)
+
     return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
+
+
+# ---------------------------------------------------------------------------
+# Donate (shown after a student registers for a new course)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/donate", response_class=HTMLResponse)
+async def donate_page(request: Request):
+    user = await _current_user(request)
+    if not _user_exists(user):
+        return RedirectResponse(
+            f"{_LOGIN}?next={_DONATE}", status_code=status.HTTP_302_FOUND
+        )
+    return templates.TemplateResponse(
+        "admin/auth/donate.html",
+        {"request": request, "user": user, **(await _navbar_context(user))},
+    )
+
+
+@router.post("/donate/mark")
+async def donate_mark(request: Request):
+    """Record that the current user has donated so we stop asking.
+
+    Called from the donate page after a successful PayPal capture.
+    """
+    user = await _current_user(request)
+    if _user_exists(user):
+        await update_user(user.id, {"donated": True})
+        return {"ok": True}
+    return {"ok": False}
 
 
 # ---------------------------------------------------------------------------
@@ -324,7 +421,7 @@ async def courses_post(
 # ---------------------------------------------------------------------------
 
 
-async def _build_my_courses_context(user):
+async def _build_my_courses_context(user: AuthUserValidator):
     """Return the template context dict for the my_courses page."""
     enrolled = await fetch_courses_for_user(user.id)
 
@@ -334,15 +431,25 @@ async def _build_my_courses_context(user):
     for ic in await fetch_instructor_courses(user.id):
         instructor_course_ids.add(ic.course)
 
+    # Most-recent access time per course in the last 30 days. Used both to flag
+    # recently-used courses (with a ⏱️ in the template) and to sort the lists.
+    access_dict = await fetch_last_course_access(
+        user.username, datetime.datetime.now() - timedelta(days=30)
+    )
+
     open_books = []
     class_courses = []
+    active_course = None
     for course in enrolled:
         is_instructor = course.id in instructor_course_ids
         is_active = course.course_name == user.course_name
+        if is_active:
+            active_course = course
         entry = {
             "course_name": course.course_name,
             "is_instructor": is_instructor,
             "is_active": is_active,
+            "recently_used": course.course_name in access_dict,
             "id": course.id,
         }
         if course.base_course == course.course_name:
@@ -350,13 +457,27 @@ async def _build_my_courses_context(user):
         else:
             class_courses.append(entry)
 
-    # Sort: active first, then alphabetical
+    # Sort by most-recently-accessed first, then alphabetically. Courses used
+    # in the last 30 days are ordered by recency (newest at the top); courses
+    # not accessed in that window fall back to alphabetical order. This mirrors
+    # the legacy web2py `courses` controller behavior.
+    long_ago = datetime.datetime(1970, 1, 1)
+
     def _sort_key(c):
-        return (0 if c["is_active"] else 1, c["course_name"].lower())
+        last_acc = access_dict.get(c["course_name"], long_ago)
+        # Negate the timestamp so more-recent access sorts first while we keep
+        # the overall (ascending) sort and break ties alphabetically.
+        return (-last_acc.timestamp(), c["course_name"].lower())
 
     open_books.sort(key=_sort_key)
     class_courses.sort(key=_sort_key)
-    return {"open_books": open_books, "class_courses": class_courses}
+    return {
+        "open_books": open_books,
+        "class_courses": class_courses,
+        "course": active_course,
+        "is_instructor": bool(active_course)
+        and active_course.id in instructor_course_ids,
+    }
 
 
 @router.get("/my_courses", response_class=HTMLResponse)
@@ -442,10 +563,15 @@ async def profile_page(request: Request):
         return RedirectResponse(
             f"{_LOGIN}?next={_PROFILE}", status_code=status.HTTP_302_FOUND
         )
-
     return templates.TemplateResponse(
         "admin/auth/profile.html",
-        {"request": request, "user": user, "errors": [], "success": None},
+        {
+            "request": request,
+            "user": user,
+            "errors": [],
+            "success": None,
+            **(await _navbar_context(user)),
+        },
     )
 
 
@@ -468,13 +594,20 @@ async def profile_post(
     if errors:
         return templates.TemplateResponse(
             "admin/auth/profile.html",
-            {"request": request, "user": user, "errors": errors, "success": None},
+            {
+                "request": request,
+                "user": user,
+                "errors": errors,
+                "success": None,
+                **(await _navbar_context(user)),
+            },
         )
 
     await update_user(
         user.id, {"first_name": first_name, "last_name": last_name, "email": email}
     )
     updated = await fetch_user(user.username)
+
     return templates.TemplateResponse(
         "admin/auth/profile.html",
         {
@@ -482,6 +615,7 @@ async def profile_post(
             "user": updated,
             "errors": [],
             "success": "Profile updated successfully.",
+            **(await _navbar_context(updated)),
         },
     )
 
@@ -500,6 +634,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
                 "user": user,
                 "errors": ["Username confirmation did not match. Account not deleted."],
                 "success": None,
+                **(await _navbar_context(user)),
             },
         )
 
@@ -623,6 +758,7 @@ async def reset_password_post(
         )
 
     await update_user(user.id, {"password": password})
+    rslogger.info(f"RESET PASSWORD: {user.username}")
     return RedirectResponse(
         f"{_LOGIN}?next=/ns/course/index", status_code=status.HTTP_302_FOUND
     )

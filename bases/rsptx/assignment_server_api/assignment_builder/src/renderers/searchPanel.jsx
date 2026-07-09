@@ -1,15 +1,20 @@
-import { Accordion, AccordionTab } from "primereact/accordion";
-import { Button } from "primereact/button";
-import { Column } from "primereact/column";
-import { DataTable } from "primereact/datatable";
-import { Dropdown } from "primereact/dropdown";
-import { InputSwitch } from "primereact/inputswitch";
-import { InputText } from "primereact/inputtext";
-import { OverlayPanel } from "primereact/overlaypanel";
+import {
+  Accordion,
+  ActionIcon,
+  Button,
+  Checkbox,
+  Popover,
+  Select,
+  Switch,
+  Table,
+  TextInput
+} from "@mantine/core";
+import { IconPencil, IconSearch } from "@tabler/icons-react";
 import PropTypes from "prop-types";
-import React, { useRef, useState } from "react";
-import toast from "react-hot-toast";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+
+import { notify } from "@components/ui/notify";
 
 import { setExerciseDefaults } from "../exUtils";
 import { setACFields } from "../state/activecode/acSlice";
@@ -22,7 +27,7 @@ import {
   sendExercise,
   deleteExercises,
   sendDeleteExercises,
-  sumPoints,
+  sumPoints
 } from "../state/assignment/assignSlice";
 import { setComponent } from "../state/componentEditor/editorSlice";
 import { setQuestion, setPreviewSrc } from "../state/interactive/interactiveSlice";
@@ -46,17 +51,20 @@ export function PreviewTemplate(exercise) {
   }
   return (
     <Accordion>
-      <AccordionTab header="Preview">
-        <div className="ptx-runestone-container" style={{ width: "600px" }}>
-          <Preview code={exercise.htmlsrc} exercise={exercise} />
-        </div>
-      </AccordionTab>
+      <Accordion.Item value="preview">
+        <Accordion.Control>Preview</Accordion.Control>
+        <Accordion.Panel>
+          <div className="ptx-runestone-container" style={{ width: "600px" }}>
+            <Preview code={exercise.htmlsrc} exercise={exercise} />
+          </div>
+        </Accordion.Panel>
+      </Accordion.Item>
     </Accordion>
   );
 }
 
 PreviewTemplate.propTypes = {
-  exercise: PropTypes.object,
+  exercise: PropTypes.object
 };
 
 /**
@@ -67,7 +75,6 @@ PreviewTemplate.propTypes = {
  * The user can also constrain the search to the base course.
  * The search results are displayed in a table.
  * The user can select questions from the table to add to the assignment, or preview the question.
- * This panel uses the PrimeReact library.
  *
  * @returns The SearchPanel component
  * @memberof AssignmentEditor
@@ -91,53 +98,57 @@ export function SearchPanel() {
     { label: "Parsons Problem", value: "parsonsprob" },
     { label: "Horizontal Parsons", value: "hparsons" },
     { label: "WeBWorK", value: "webwork" },
-    { label: "Doenet", value: "doenet" },
+    { label: "Doenet", value: "doenet" }
   ];
 
   return (
     <div className="p-fluid">
       <label htmlFor="basecourse">Constrain to base course</label>
-      <InputSwitch id="basecourse" checked={baseCourse} onChange={(e) => setBaseCourse(e.value)} />
+      <Switch
+        id="basecourse"
+        checked={baseCourse}
+        onChange={(e) => setBaseCourse(e.currentTarget.checked)}
+      />
       <br />
       <label htmlFor="search">Free Text Search for Question</label>
-      <InputText
+      <TextInput
         id="search"
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
         placeholder="question text"
       />
       <label htmlFor="tags">Search by Tags</label>
-      <InputText id="tags" placeholder="tags" />
+      <TextInput id="tags" placeholder="tags" />
       <label htmlFor="type">Search by Question Type</label>
-      <Dropdown
+      <Select
         id="type"
         value={selectedQuestionType}
         placeholder="Select a question type"
-        options={qtypes}
-        optionLabel="label"
-        onChange={(e) => setSelectedQuestionType(e.value)}
+        data={qtypes}
+        onChange={(value) => setSelectedQuestionType(value)}
       />
       <label htmlFor="author">Search by Author</label>
-      <InputText
+      <TextInput
         id="author"
         value={author}
         onChange={(e) => setAuthor(e.target.value)}
         placeholder="Part or all of an author's name"
       />
       <Button
-        label="Search"
-        icon="pi pi-search"
+        leftSection={<IconSearch size={16} />}
         onClick={() =>
           dispatch(
             searchForQuestions({
               source_regex: searchText,
               question_type: selectedQuestionType,
               author: author,
-              base_course: baseCourse.toLocaleString(),
-            }),
+              base_course: baseCourse.toLocaleString()
+            })
           )
         }
-      />
+      >
+        Search
+      </Button>
       <SearchResults />
     </div>
   );
@@ -150,73 +161,77 @@ export function SearchResults() {
   const currentExercises = useSelector(selectExercises);
   const currentAssigmentId = useSelector(selectAssignmentId);
 
+  const toggleQuestion = (question, checked) => {
+    if (checked) {
+      setSelectedQuestions([...selectedQuestions, question]);
+      const newQuestion = setExerciseDefaults(
+        structuredClone(question),
+        currentAssigmentId,
+        currentExercises
+      );
+
+      dispatch(addExercise(newQuestion));
+      dispatch(sendExercise(newQuestion));
+      dispatch(sumPoints());
+    } else {
+      setSelectedQuestions(selectedQuestions.filter((q) => q !== question));
+      dispatch(deleteExercises([question]));
+      dispatch(sendDeleteExercises([question]));
+      dispatch(sumPoints());
+    }
+  };
+
   return (
     <>
       <h3>Search Results</h3>
-      <DataTable
-        value={currentSearchResults}
-        selectionMode="checkbox"
-        metaKeySelection="false"
-        dataKey="id"
-        selection={selectedQuestions}
-        onSelectionChange={(e) => {
-          // if there are more questions then figure out which are new.
-          if (e.value.length > selectedQuestions.length) {
-            let newQuestions = e.value.filter((q) => selectedQuestions.includes(q) === false);
-
-            console.log(`added ${newQuestions}`);
-
-            setSelectedQuestions(e.value);
-            let newQuestion = setExerciseDefaults(
-              structuredClone(newQuestions[0]),
-              currentAssigmentId,
-              currentExercises,
-            );
-
-            dispatch(addExercise(newQuestion));
-            dispatch(sendExercise(newQuestion));
-            // dispatching addExercise does not modify the currentExercises array
-            dispatch(sumPoints());
-          }
-          // if there are fewer questions then figure out which are gone.
-          if (e.value.length < selectedQuestions.length) {
-            let removedQuestions = selectedQuestions.filter((q) => e.value.includes(q) === false);
-
-            console.log(`removed ${removedQuestions}`);
-            setSelectedQuestions(e.value);
-            dispatch(deleteExercises(removedQuestions)); // expects array of questions
-            dispatch(sendDeleteExercises(removedQuestions)); // array of ids
-            dispatch(sumPoints());
-          }
-          setSelectedQuestions(e.value);
-        }}
-      >
-        <Column selectionMode="multiple" style={{ width: "3em" }} />
-        <Column field="question_json" header="Edit" body={EditButton} />
-        <Column field="name" header="Name" sortable />
-        <Column field="qnumber" header="Question" sortable />
-        <Column field="topic" header="Topic" sortable />
-        <Column
-          field="htmlsrc"
-          header="Preview"
-          body={PreviewTemplate}
-          style={{ maxWidth: "100rem" }}
-        />
-        <Column field="author" header="Author" />
-        <Column field="pct_on_first" header="On First" sortable />
-      </DataTable>
+      <Table highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th style={{ width: "3em" }} />
+            <Table.Th>Edit</Table.Th>
+            <Table.Th>Name</Table.Th>
+            <Table.Th>Question</Table.Th>
+            <Table.Th>Topic</Table.Th>
+            <Table.Th>Preview</Table.Th>
+            <Table.Th>Author</Table.Th>
+            <Table.Th>On First</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {(currentSearchResults || []).map((question) => (
+            <Table.Tr key={question.id}>
+              <Table.Td>
+                <Checkbox
+                  checked={selectedQuestions.includes(question)}
+                  onChange={(e) => toggleQuestion(question, e.currentTarget.checked)}
+                  aria-label={`Select ${question.name}`}
+                />
+              </Table.Td>
+              <Table.Td>
+                <EditButton {...question} />
+              </Table.Td>
+              <Table.Td>{question.name}</Table.Td>
+              <Table.Td>{question.qnumber}</Table.Td>
+              <Table.Td>{question.topic}</Table.Td>
+              <Table.Td style={{ maxWidth: "100rem" }}>{PreviewTemplate(question)}</Table.Td>
+              <Table.Td>{question.author}</Table.Td>
+              <Table.Td>{question.pct_on_first}</Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
     </>
   );
 }
 
 export function EditButton(exercise) {
-  const op = useRef(null);
+  const [opened, setOpened] = useState(false);
   const dispatch = useDispatch();
 
-  const toggleEditor = (e) => {
+  const toggleEditor = () => {
     if (!exercise.question_json) {
-      toast("No question to edit", { icon: "🚫" });
-      return null;
+      notify.error("Select a question to edit first.");
+      return;
     }
     dispatch(setQuestion(exercise));
     dispatch(setComponent(exercise.question_type));
@@ -229,22 +244,26 @@ export function EditButton(exercise) {
     ) {
       dispatch(setMCFields(exercise.question_json));
     }
-    op.current.toggle(e);
+    setOpened((current) => !current);
   };
 
   return (
-    <>
-      <Button
-        icon="pi pi-pencil"
-        rounded
-        text
-        type="button"
-        severity="secondary"
-        onClick={toggleEditor}
-      />
-      <OverlayPanel ref={op} dismissable={false} showCloseIcon>
+    <Popover opened={opened} onChange={setOpened} position="bottom" withArrow trapFocus>
+      <Popover.Target>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          radius="xl"
+          type="button"
+          onClick={toggleEditor}
+          aria-label="Edit"
+        >
+          <IconPencil size={16} />
+        </ActionIcon>
+      </Popover.Target>
+      <Popover.Dropdown>
         <EditorContainer exercise={exercise.question_type} editonly={true} />
-      </OverlayPanel>
-    </>
+      </Popover.Dropdown>
+    </Popover>
   );
 }

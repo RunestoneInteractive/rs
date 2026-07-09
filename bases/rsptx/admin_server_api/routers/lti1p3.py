@@ -22,6 +22,7 @@ import json
 import uuid
 import os
 import tldextract
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 # Third-party imports
@@ -230,6 +231,17 @@ async def login_or_create_user(
     # need registration id. If user.registration_id is set, trust it.
     # But if user was generated without a registration_id,
     # fall back on the one we decided based on launch data
+    web2py_session_cookie = await get_web2py_session_cookie(reg_id_for_user)
+
+    return lti_user, web2py_session_cookie
+
+
+async def get_web2py_session_cookie(reg_id_for_user: str) -> Optional[str]:
+    """
+    Log the user in to the legacy web2py server so pages still served by web2py
+    recognize the session, and return the ``session_id_runestone`` cookie to
+    forward to the browser. Shared by both the LTI 1.1 and 1.3 launch flows.
+    """
     to_encode = dict(registration_id=reg_id_for_user)
     jwt_secret = settings.jwt_secret
     encoded_jwt = jwt.encode(to_encode, jwt_secret, "HS256")
@@ -247,20 +259,18 @@ async def login_or_create_user(
             cookies = resp._headers.getall("Set-Cookie")
             for cookie in cookies:
                 if "session_id_runestone" in cookie:
-                    rslogger.debug(
-                        f"LTI1p3 - session_id_runestone cookie set: {cookie}"
-                    )
+                    rslogger.debug(f"LTI - session_id_runestone cookie set: {cookie}")
                     web2py_session_cookie = cookie.split(";")[
                         0
                     ]  # Get the cookie name=value part
         except Exception as e:
-            rslogger.error(f"LTI1p3 - Error logging in to w2p server: {e}")
+            rslogger.error(f"LTI - Error logging in to w2p server: {e}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Error logging in to w2p server '{e}'",
             )
 
-    return lti_user, web2py_session_cookie
+    return web2py_session_cookie
 
 
 def add_w2py_session_cookie(response: Response, cookie: str):

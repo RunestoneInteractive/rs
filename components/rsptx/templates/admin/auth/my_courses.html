@@ -2,113 +2,8 @@
 
 {% block title %}My Courses — Runestone Academy{% endblock %}
 
-{% block css %}
-<style>
-    .my-courses-container {
-        max-width: 860px;
-        margin: 40px auto;
-        padding: 36px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.10);
-    }
-    .my-courses-container h1 {
-        color: #ab1059;
-        font-size: 2em;
-        font-weight: 300;
-        margin-bottom: 8px;
-    }
-    .section-title {
-        color: #ab1059;
-        font-size: 1.1em;
-        font-weight: 600;
-        margin-top: 28px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #f0d0de;
-        padding-bottom: 4px;
-    }
-    .course-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 0;
-        border-bottom: 1px solid #f5f5f5;
-    }
-    .course-row:last-child { border-bottom: none; }
-    .course-name {
-        flex: 1;
-        font-size: 1em;
-    }
-    .badge-active {
-        background: #ab1059;
-        color: #fff;
-        font-size: 0.75em;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-weight: 600;
-    }
-    .badge-instructor {
-        background: #5b9fc8;
-        color: #fff;
-        font-size: 0.75em;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-weight: 600;
-    }
-    .btn-switch {
-        background: #ab1059;
-        color: #fff;
-        border: none;
-        padding: 5px 14px;
-        border-radius: 5px;
-        font-size: 0.9em;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    .btn-switch:hover { background: #8a0d49; color: #fff; }
-    .btn-switch:disabled {
-        background: #ccc;
-        cursor: default;
-    }
-    .btn-drop {
-        background: transparent;
-        color: #ab1059;
-        border: 1px solid #ab1059;
-        padding: 5px 12px;
-        border-radius: 5px;
-        font-size: 0.9em;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    .btn-drop:hover { background: #fdf0f5; }
-    .actions-row {
-        margin-top: 32px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-    .btn-rs-secondary {
-        background: transparent;
-        color: #ab1059;
-        border: 2px solid #ab1059;
-        padding: 9px 22px;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-    }
-    .btn-rs-secondary:hover { background: #fdf0f5; color: #ab1059; }
-    .empty-notice {
-        color: #999;
-        font-style: italic;
-        padding: 8px 0;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="my-courses-container">
+<div class="auth-card auth-card--full my-courses-page">
     <h1>My Courses</h1>
     <p class="text-muted">Your currently active course is highlighted. Click <strong>Switch</strong> to make a different course active, or <strong>Drop</strong> to un-enroll.</p>
 
@@ -121,6 +16,7 @@
     {% for course in class_courses %}
     <div class="course-row">
         <span class="course-name">
+            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
             {{ course.course_name }}
             {% if course.is_active %}<span class="badge-active">active</span>{% endif %}
             {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
@@ -149,6 +45,7 @@
     {% for course in open_books %}
     <div class="course-row">
         <span class="course-name">
+            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
             {{ course.course_name }}
             {% if course.is_active %}<span class="badge-active">active</span>{% endif %}
             {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}

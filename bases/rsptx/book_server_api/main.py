@@ -28,6 +28,7 @@ Detailed Module Description
 ---------------------------
 
 """
+
 #
 # Imports
 # =======
@@ -35,6 +36,7 @@ Detailed Module Description
 #
 # Standard library
 # ----------------
+import asyncio
 from contextlib import asynccontextmanager
 import os
 import pathlib
@@ -70,6 +72,7 @@ from .routers import course
 from .routers import rslogging
 from .routers import rsproxy
 from .routers import discuss
+from .telemetry import telemetry_loop
 from rsptx.auth.session import auth_manager
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.templates import template_folder
@@ -90,9 +93,12 @@ async def lifespan(app: FastAPI):
     # Load the ML model
     rslogger.info("Book Server is Starting Up")
     init_graders()
+    # Start the anonymous, opt-out usage telemetry background task.
+    telemetry_task = asyncio.create_task(telemetry_loop())
     yield
     # Clean up the ML models and release the resources
     rslogger.info("Book Server is Shutting Down")
+    telemetry_task.cancel()
     await term_models()
 
 

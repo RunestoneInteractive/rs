@@ -1,6 +1,9 @@
-import { Chip } from "primereact/chip";
+import { Badge } from "@mantine/core";
+import classNames from "classnames";
 
 import { useExerciseTypes } from "@/hooks/useExerciseTypes";
+
+import styles from "./ExerciseTypeTag.module.css";
 
 interface ExerciseTypeTagProps {
   type: string;
@@ -11,23 +14,21 @@ export const ExerciseTypeTag = ({ type, className }: ExerciseTypeTagProps) => {
   const exerciseTypes = useExerciseTypes();
   const typeConfig = exerciseTypes.find((t) => t.value === type);
 
+  if (!typeConfig) {
+    return null;
+  }
+
   return (
-    !!typeConfig && (
-      <Chip
-        label={typeConfig.tag}
-        className={className}
-        style={{
+    <Badge
+      className={classNames(styles.tag, className)}
+      styles={{
+        root: {
           backgroundColor: typeConfig.color.background,
-          color: typeConfig.color.text,
-          borderRadius: "8px",
-          padding: "0 6px",
-          fontSize: "0.625rem",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          height: "16px",
-          lineHeight: "16px"
-        }}
-      />
-    )
+          color: typeConfig.color.text
+        }
+      }}
+    >
+      {typeConfig.tag}
+    </Badge>
   );
 };

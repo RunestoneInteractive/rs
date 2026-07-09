@@ -17,6 +17,8 @@
 ===================================================================== */
 // Initialize from codestring
 
+import { outerWidth } from "../../common/js/domutil.js";
+
 export default class ParsonsLine {
     constructor(problem, codestring, displaymath) {
         this.problem = problem;
@@ -27,7 +29,9 @@ export default class ParsonsLine {
         // So here we use problem.options.scaffolding to determine if the puzzle is a scaffolding puzzle
         if (this.problem.options.scaffolding === true) {
             function hasTopLevelClass(lines) {
-                return lines.some(({ text }) => text.trimStart().toLowerCase().startsWith("class ")   // now check for “class ” at position 0
+                return lines.some(
+                    ({ text }) =>
+                        text.trimStart().toLowerCase().startsWith("class "), // now check for “class ” at position 0
                 );
             }
             if (this.problem.noindent) {
@@ -36,34 +40,34 @@ export default class ParsonsLine {
                 // remove any leading whitespace
                 this.text = trimmed.replace(/^\s*/, "");
             }
-            
+
             if (this.problem.options.language == "java") {
-                this.text = this.text.replace(/\t/g, "    "); 
+                this.text = this.text.replace(/\t/g, "    ");
                 if (this.text.toLowerCase().startsWith("public class")) {
-                    this.indent = 0;  // Set indent to 0 for class start
+                    this.indent = 0; // Set indent to 0 for class start
                 } else {
-                    this.indent = trimmed.length - this.text.length;  // Calculate normal indentation
+                    this.indent = trimmed.length - this.text.length; // Calculate normal indentation
                 }
             } else {
                 const allLines = this.problem.lines;
                 // put indentation of import line as 0
                 if (this.text.toLowerCase().startsWith("import")) {
-                    this.indent = 0;  
+                    this.indent = 0;
                 }
 
-                // Check if the line is a class definition - if so, then do not set up indentation of def line as 0    
+                // Check if the line is a class definition - if so, then do not set up indentation of def line as 0
                 if (hasTopLevelClass(allLines)) {
                     if (this.text.toLowerCase().startsWith("class")) {
-                        this.indent = 0;  // Set indent to 0 for class start
+                        this.indent = 0; // Set indent to 0 for class start
                     } else {
-                        this.indent = trimmed.length - this.text.length;  // Calculate normal indentation
+                        this.indent = trimmed.length - this.text.length; // Calculate normal indentation
                     }
                 } else {
                     // Check if the line is a function definition - if so, then set up indentation of def line as 0
                     if (this.text.toLowerCase().startsWith("def")) {
-                        this.indent = 0;  // Set indent to 0 for def start
+                        this.indent = 0; // Set indent to 0 for def start
                     } else {
-                        this.indent = trimmed.length - this.text.length;  // Calculate normal indentation
+                        this.indent = trimmed.length - this.text.length; // Calculate normal indentation
                     }
                 }
             }
@@ -71,19 +75,26 @@ export default class ParsonsLine {
             this.text = trimmed.replace(/^\s*/, "");
             this.indent = trimmed.length - this.text.length;
         }
-       // Create the View
+        // Create the View
         var view;
         // TODO: this does not work with display math... Perhaps with pretext we should have html as a language and do nothing?
-        
-        if (problem.options.language == "natural" || problem.options.language == "math") {
-            if (! displaymath) {
+
+        if (
+            problem.options.language == "natural" ||
+            problem.options.language == "math"
+        ) {
+            if (!displaymath) {
                 view = document.createElement("p");
             } else {
                 view = document.createElement("div");
             }
         } else {
             view = document.createElement("code");
-            $(view).addClass(problem.options.prettifyLanguage);
+            if (problem.options.prettifyLanguage) {
+                view.classList.add(
+                    ...problem.options.prettifyLanguage.split(" "),
+                );
+            }
         }
         view.id = problem.counterId + "-line-" + this.index;
         view.innerHTML += this.text;
@@ -95,7 +106,7 @@ export default class ParsonsLine {
         // this.width does not appear to be used anywhere later
         // since changing the value of this.width appears to have no effect. - Vincent Qiu (September 2020)
         this.width =
-            $(this.view).outerWidth(true) -
+            outerWidth(this.view) -
             this.problem.options.pixelsPerIndent * this.indent;
 
         // Pass this information on to be used in class Parsons function initializeAreas

@@ -2,7 +2,7 @@
 import { Mark, mergeAttributes } from "@tiptap/core";
 
 export interface ClickableAreaMarkOptions {
-  HTMLAttributes: Record<string, any>;
+  HTMLAttributes: Record<string, unknown>;
 }
 
 declare module "@tiptap/core" {
@@ -121,8 +121,8 @@ export const ClickableAreaMark = Mark.create<ClickableAreaMarkOptions>({
           // If we're at the edge of a mark, we need to find its full range
           if (marksAtFrom.length > 0 || marksAtTo.length > 0) {
             // Expand search to find the full mark range
-            let searchFrom = Math.max(0, from - 500);
-            let searchTo = Math.min(state.doc.content.size, to + 500);
+            const searchFrom = Math.max(0, from - 500);
+            const searchTo = Math.min(state.doc.content.size, to + 500);
 
             state.doc.nodesBetween(searchFrom, searchTo, (node, pos) => {
               if (node.isText) {

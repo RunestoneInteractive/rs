@@ -13,7 +13,7 @@ Runestone Developer Documentation
    readme
    running
    developing
-   poetry
+   uv
    structure
    docker
    database
@@ -24,6 +24,7 @@ Runestone Developer Documentation
    contributing
    server_feature
    javascript_feature
+   assignment_builder
    question_json_schema
    new_language
    tutorial

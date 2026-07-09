@@ -13,6 +13,8 @@ Before running the setup script, you need:
 - **Docker Desktop** with Docker Compose 2.20.2 or later (current version: 2.38.2)
   
   - Download from https://docs.docker.com/compose/install/
+  - The Docker Desktop installer should match your machine (e.g., if you are on a Windows machine, download Docker Desktop for Windows).
+  - Sign in to Docker Desktop when prompted on first launch. Signing in keeps your file sharing path settings saved across restarts. If you skip sign-in, Docker may lose your shared folder configuration each time it closes.
   - Make sure Docker Desktop is running before starting the setup
   - For Windows: Enable WSL2 integration in Docker Desktop settings
   - **Important**: Configure file sharing in Docker Desktop (Settings → Resources → File Sharing) to include the directory where you'll create your Runestone configuration and your ``BOOK_PATH`` directory. Without this, Docker won't be able to access your book files.
@@ -24,7 +26,7 @@ Before running the setup script, you need:
 
 - **bash** (Linux and macOS have this by default, but...)
 
-  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via Homebrew)
+  - The script uses features of bash introduced in version 5.0 so make sure you have a compatible version (Linux typically has this, macOS may require installing a newer version via `Homebrew <https://brew.sh>`_)
 
 **Optional:**
 
@@ -64,8 +66,8 @@ Managing Your Server
 - Stop the server: ``docker compose stop``
 - Start the server: ``docker compose start``
 - Restart services: ``docker compose restart``
-- Shut down and remove containers: ``docker compose down``
-- Shut down and remove volumes (WARNING: deletes all data): ``docker compose down -v``
+- Shut down and remove containers: ``docker compose down`` (database data is preserved on the ``postgres_data`` named volume)
+- Shut down and remove volumes (WARNING: deletes all data, including the database): ``docker compose down -v``
 
 **Viewing Logs:**
 
@@ -79,19 +81,77 @@ To view logs from all services: ``docker compose logs -f``
 - Create a course: ``docker compose run --rm rsmanage rsmanage addcourse``
 - Add an instructor to a course: ``docker compose run --rm rsmanage rsmanage addinstructor``
 
+Customizing Your Configuration
+------------------------------
+
+Treat ``docker-compose.yml`` as a managed file that you do **not** edit: it is
+replaced wholesale when you run ``./init_runestone.sh update``, so any changes
+you make directly to it will be lost. Most settings should go in your ``.env``
+file instead.
+
+For anything ``.env`` cannot express (extra services, additional ports or
+volumes, image overrides, etc.), create a ``docker-compose.override.yml`` file
+next to ``docker-compose.yml``. Docker Compose automatically merges it on top of
+the base file every time you run ``docker compose`` -- no extra flags needed --
+and ``./init_runestone.sh update`` never touches it, so your customizations
+survive updates.
+
+A starting template is provided as ``docker-compose.override.yml.sample``; copy
+it to get going:
+
+.. code-block:: bash
+
+   cp docker-compose.override.yml.sample docker-compose.override.yml
+
+For example, to raise the log level of the book server and publish an extra
+port:
+
+.. code-block:: yaml
+
+   # docker-compose.override.yml
+   services:
+     book:
+       environment:
+         - LOG_LEVEL=DEBUG
+
+Note how Compose merges the two files: scalars and maps from the override win,
+but most sequences (``ports``, ``volumes``, list-form ``environment``) are
+**appended** to the base values rather than replacing them. So an override
+``ports:`` entry adds a published port; it does not remove the ones defined in
+``docker-compose.yml``.
+
 Updating Runestone
 -------------------
 
-We regularly push out updates to all of the Runestone services. To update your server to the latest version:
+We regularly push out updates to all of the Runestone services. The
+recommended way to update is:
+
+.. code-block:: bash
+
+   ./init_runestone.sh update
+
+This refreshes your ``docker-compose.yml`` (and ``sample.env``) to the latest
+version, backs up the previous copies, pulls the matching images, restarts the
+services, and then checks for and applies any pending database migrations
+(prompting before it does). Your ``.env`` is never touched. Keeping
+``docker-compose.yml`` in sync
+matters: newer images may expect changes in that file, so a plain
+``docker compose pull`` alone can leave you with a mismatched configuration. To
+catch that case, the stack runs a ``preflight`` check at startup and refuses to
+come up with a clear message if your ``docker-compose.yml`` is older than the
+images require.
+
+If you prefer to update manually (note this does **not** refresh
+``docker-compose.yml``):
 
 .. code-block:: bash
 
    docker compose pull
    docker compose run --rm rsmanage check-db-migrations.sh
-   docker compose stop. # or use down IF you run you DB outside of Docker
+   docker compose stop # or use down IF you run you DB outside of Docker
    docker compose up -d
 
-If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them. 
+If database migrations are required, the ``check-db-migrations.sh`` script will prompt you to run them.
 The command to update the database is:
 
 .. code-block:: bash
@@ -107,7 +167,7 @@ For database issues, you can reset the database by running ``docker compose down
 Developer Setup (From Cloned Repository)
 -----------------------------------------
 
-If you're contributing to Runestone development or want the source code locally, clone the repository first:
+If you're planning to contribute to Runestone development or want the source code locally, you need to fork the repository before you clone the repository: 
 
 .. code-block:: bash
 

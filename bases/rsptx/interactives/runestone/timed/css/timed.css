@@ -5,6 +5,48 @@ ul#pageNums li {
     padding: 10px 0;
 }
 
+/* Base pagination layout - backfills Bootstrap 3, which was dropped from the
+   interactives bundle. The prev/next/flag nav and the question-number strip are
+   built as <ul class="pagination"> with <li> children; without these rules the
+   items render as a plain bulleted list stacked vertically. The state colors and
+   :hover/.active overrides below build on this base. */
+ul.pagination {
+    display: inline-block;
+    padding-left: 0;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+ul.pagination>li {
+    display: inline;
+}
+
+ul.pagination>li>a,
+ul.pagination>li>span {
+    position: relative;
+    float: left;
+    padding: 6px 12px;
+    margin-left: -1px;
+    line-height: 1.42857143;
+    color: var(--links, #337ab7);
+    text-decoration: none;
+    background-color: var(--background, #fff);
+    border: 1px solid #ddd;
+}
+
+ul.pagination>li:first-child>a,
+ul.pagination>li:first-child>span {
+    margin-left: 0;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+ul.pagination>li:last-child>a,
+ul.pagination>li:last-child>span {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
 .pagination>li>a:hover {
     background-color: #eee !important;
     color: #000 !important;
@@ -69,6 +111,7 @@ p.examwarning {
     margin-left: auto;
     margin-right: auto;
     background-color: rgba(243, 156, 156, 0.822);
+    color: black;
     border: solid black;
     border-radius: 5px;
     border-width: 2px;
@@ -99,4 +142,43 @@ p.examwarning {
 .switchcontainer {
     height: 1000px;
     overflow: auto;
+}
+
+
+/* Inline styles converted to classes */
+.timed-container-fullwidth {
+    max-width: none;
+}
+
+.timed-center {
+    text-align: center;
+}
+
+.timed-hidden {
+    display: none;
+}
+
+.timed-visible {
+    display: block;
+}
+
+.timed-cursor-pointer {
+    cursor: pointer;
+}
+
+.timed-summary-style {
+    width: 50%;
+    margin: 0 auto;
+    background-color: #DFF0D8;
+    color: #000000;
+    text-align: center;
+    border: 2px solid #DFF0D8;
+    border-radius: 25px;
+}
+
+.timed-tooltip-time {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+    color: white;
 }

@@ -10,34 +10,33 @@ export default class SettledBlock extends ParsonsBlock {
         //update its indent to follow the indentation of the lines inside
 
         // add a css class
-        $(this.view).addClass("settled-block");
-        $(this.view).addClass("disabled");
+        this.view.classList.add("settled-block", "disabled");
 
-        let tooltipSpan = document.createElement('span');
-        tooltipSpan.classList.add("settled-tooltip");
-        $(this.view).append(tooltipSpan);
-        $(this.view).find('.settled-tooltip').text('OK');
+        this.tooltipSpan = document.createElement("span");
+        this.tooltipSpan.classList.add("settled-tooltip");
+        this.view.append(this.tooltipSpan);
+        this.tooltipSpan.textContent = "OK";
     }
 
     setBlocksBefore(num) {
         this.blocksBefore = num;
-        var beforePlural = num > 1 ? 's' : '';
+        var beforePlural = num > 1 ? "s" : "";
         if (this.blocksAfter) {
-            var afterPlural = this.blocksAfter > 1 ? 's' : '';
-            $(this.view).find('.settled-tooltip').html(`${num} block${beforePlural} ⬆️️), ${this.blocksAfter} block${afterPlural} ⬇️`)
+            var afterPlural = this.blocksAfter > 1 ? "s" : "";
+            this.tooltipSpan.innerHTML = `${num} block${beforePlural} ⬆️️), ${this.blocksAfter} block${afterPlural} ⬇️`;
         } else {
-            $(this.view).find('.settled-tooltip').html(`${num} block${beforePlural} ⬆️️`)
+            this.tooltipSpan.innerHTML = `${num} block${beforePlural} ⬆️️`;
         }
     }
 
     setBlocksAfter(num) {
         this.blocksAfter = num;
-        var afterPlural = num > 1 ? 's' : '';
+        var afterPlural = num > 1 ? "s" : "";
         if (this.blocksBefore) {
-            var beforePlural = this.blocksBefore > 1 ? 's' : '';
-            $(this.view).find('.settled-tooltip').html(`${this.blocksBefore} block${beforePlural} ⬆️, ${num} block${afterPlural} ⬇️`)
+            var beforePlural = this.blocksBefore > 1 ? "s" : "";
+            this.tooltipSpan.innerHTML = `${this.blocksBefore} block${beforePlural} ⬆️, ${num} block${afterPlural} ⬇️`;
         } else {
-            $(this.view).find('.settled-tooltip').html(`${num} block${afterPlural} ️️⬇️`)
+            this.tooltipSpan.innerHTML = `${num} block${afterPlural} ️️⬇️`;
         }
     }
 }

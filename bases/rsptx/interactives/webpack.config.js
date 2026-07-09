@@ -39,9 +39,10 @@ module.exports = (env, argv) => {
     // ``env.builddir`` can be used to specify the output directory
     // Example: ``npm run build -- --env builddir=../mypretextbook/output/_static``
 
-    const dest_path = env.builddir == undefined ?
-            path.resolve(__dirname, "runestone/dist") :
-            path.resolve(env.builddir);
+    const dest_path =
+        env.builddir == undefined
+            ? path.resolve(__dirname, "runestone/dist")
+            : path.resolve(env.builddir);
 
     return [
         // Webpack configuration
@@ -50,8 +51,8 @@ module.exports = (env, argv) => {
             // Cache build results between builds in development mode, per the `docs <https://webpack.js.org/configuration/cache/>`__.
             cache: is_dev_mode
                 ? {
-                    type: "filesystem",
-                }
+                      type: "filesystem",
+                  }
                 : false,
             entry: {
                 runestone: "./webpack.index.js",
@@ -104,13 +105,13 @@ module.exports = (env, argv) => {
                 path: dest_path,
                 // _`Output file naming`: see the `caching guide <https://webpack.js.org/guides/caching/>`_. This provides a hash for dynamic imports as well, avoiding caching out-of-date JS. Putting the hash in a query parameter (such as ``[name].js?v=[contenthash]``) causes the compression plugin to not update zipped files.
                 filename: function (pathData) {
-                    if(is_dev_mode) {
-                        if(pathData.chunk.id.includes("vendors-node_modules_")) {
+                    if (is_dev_mode) {
+                        if (
+                            pathData.chunk.id.includes("vendors-node_modules_")
+                        ) {
                             return "prefix-runtime-libs.bundle.js";
-                        }
-                        else return "prefix-[name].bundle.js"
-                    }
-                    else {
+                        } else return "prefix-[name].bundle.js";
+                    } else {
                         return "prefix-[name].[contenthash].bundle.js";
                     }
                 },
@@ -119,7 +120,9 @@ module.exports = (env, argv) => {
                 // Delete everything in the output directory on each build in production mode.
                 // Do not do so in dev mode when building to an out
                 clean: !is_dev_mode || env.builddir === undefined,
-                chunkFilename: is_dev_mode ? "[id].js" : "[id].[contenthash].js",
+                chunkFilename: is_dev_mode
+                    ? "[id].js"
+                    : "[id].[contenthash].js",
             },
             // See the `SplitChunksPlugin docs <https://webpack.js.org/guides/code-splitting/#splitchunksplugin>`_.
             optimization: {
@@ -162,24 +165,27 @@ module.exports = (env, argv) => {
                 new MiniCssExtractPlugin({
                     // See `output file naming`_.
                     filename: function (pathData) {
-                        if(is_dev_mode) {
-                            if(pathData.chunk.id.includes("vendors-node_modules_")) {
+                        if (is_dev_mode) {
+                            if (
+                                pathData.chunk.id.includes(
+                                    "vendors-node_modules_",
+                                )
+                            ) {
                                 return "prefix-runtime-libs.css";
-                            }
-                            else return "prefix-[name].css"
-                        }
-                        else {
+                            } else return "prefix-[name].css";
+                        } else {
                             return "prefix-[name].[contenthash].css";
                         }
                     },
-                    chunkFilename: is_dev_mode ? "prefix-[id].css" : "prefix-[id].[contenthash].css",
+                    chunkFilename: is_dev_mode
+                        ? "prefix-[id].css"
+                        : "prefix-[id].[contenthash].css",
                 }),
                 // Copied from the `webpack docs <https://webpack.js.org/plugins/compression-webpack-plugin>`_. This creates ``.gz`` versions of all files. The webserver in use needs to be configured to send this instead of the uncompressed versions.
                 new CompressionPlugin({
                     //don't both compressing in dev mode
                     test: is_dev_mode ? /^$/ : undefined,
-                }
-                ),
+                }),
             ],
         },
 

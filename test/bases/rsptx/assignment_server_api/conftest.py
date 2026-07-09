@@ -72,6 +72,36 @@ async def instructor_user(init_test_db):
     return user
 
 
+@pytest_asyncio.fixture
+async def auth_student_client(student_user):
+    """
+    Async HTTP client authenticated as testuser1 (a non-instructor).
+
+    Mirrors ``auth_instructor_client`` but resolves to a student so that
+    @instructor_role_required() routes reject the caller: the decorator calls
+    auth_manager() directly, so it is patched at the endpoint_validators module
+    level, and the Depends(auth_manager) path is overridden too.
+
+    Function-scoped on purpose: the auth_manager patch is torn down after each
+    student test so it never shadows the session-scoped instructor client (the
+    two fixtures patch the same module attribute; last-started wins).
+    """
+    from rsptx.assignment_server_api.core import app
+    from rsptx.auth.session import auth_manager
+
+    mock_auth = AsyncMock(return_value=student_user)
+    prior_override = app.dependency_overrides.get(auth_manager)
+    app.dependency_overrides[auth_manager] = lambda: student_user
+    transport = httpx.ASGITransport(app=app)
+    with patch("rsptx.endpoint_validators.core.auth_manager", mock_auth):
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            yield client
+    if prior_override is None:
+        app.dependency_overrides.pop(auth_manager, None)
+    else:
+        app.dependency_overrides[auth_manager] = prior_override
+
+
 @pytest_asyncio.fixture(scope="session")
 async def auth_instructor_client(instructor_user):
     """

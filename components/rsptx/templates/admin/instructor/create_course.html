@@ -1,82 +1,18 @@
-{% extends "_base.html" %}
+{% extends "admin/_admin_base.html" %}
 
 {% block title %}Create My Course{% endblock %}
 
-{% block css %}
-<style>
-    .designer-container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 30px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .designer-header {
-        text-align: center;
-        margin-bottom: 30px;
-    }
-    .designer-header h1 {
-        color: #ab1059;
-        font-size: 2.5em;
-        font-weight: 300;
-        margin: 0;
-    }
-    .step-title {
-        color: #ab1059;
-        font-size: 1.3em;
-        margin-top: 30px;
-        margin-bottom: 10px;
-    }
-    .filter-title, .book-section {
-        color: #4a90e2;
-        font-size: 1.3em;
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-    .form-section {
-        margin-bottom: 25px;
-    }
-    .alert {
-        padding: 12px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-        display: none;
-    }
-    .alert-danger {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-    }
-    .btn-primary {
-        background: #4a90e2;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 20px;
-    }
-    .btn-primary:hover {
-        background: #357abd;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="designer-container">
+<div class="admin-page admin-page--medium designer-container">
     {% if message %}
-    <div class="alert alert-danger" style="display: block;">{{ message }}</div>
+    <div class="alert alert-danger">{{ message }}</div>
     {% endif %}
     <div class="designer-header">
         <h1>Create My Course</h1>
         <p><strong>For Instructors ONLY</strong> If you are an independent learner you DO NOT need to build your own course.<br>
         If you are a student and think that building your own course will show you the answers, YOU ARE WRONG.</p>
     </div>
-    <div id="formerrors" class="alert alert-danger"></div>
+    <div id="formerrors" class="alert alert-danger" style="display: none;"></div>
     <form id="designerForm" method="post">
         <div class="form-section">
             <div class="step-title">Step 1: Tell Us About Your Institution</div>
@@ -144,9 +80,9 @@
                 <option value="WI" {% if selected_state == 'WI' %}selected{% endif %}>Wisconsin</option>
                 <option value="WY" {% if selected_state == 'WY' %}selected{% endif %}>Wyoming</option>
             </select>
-            <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-                <label for="domainname" style="margin-bottom: 0; white-space: nowrap;">Internet Domain</label>
-                <input type="text" class="form-control" name="domainname" placeholder="example.edu" id="domainname" style="flex: 1; min-width: 200px;" required value="{{ submitted.domainname if submitted is defined else '' }}">
+            <div class="domain-row">
+                <label for="domainname">Internet Domain</label>
+                <input type="text" class="form-control" name="domainname" placeholder="example.edu" id="domainname" required value="{{ submitted.domainname if submitted is defined else '' }}">
             </div>
             <label for="timezone">Your Timezone</label>
             <select name="timezone" id="timezone" class="form-control" required>
@@ -205,7 +141,7 @@
             <label><input type="checkbox" name="allowpairs" value="true" {% if submitted is defined and submitted.allowpairs == 'true' %}checked{% endif %}> Enable <strong>experimental</strong> pair programming features.</label><br>
             <label><input type="checkbox" name="instructor" value="yes" {% if submitted is defined and submitted.instructor == 'yes' %}checked{% else %}checked{% endif %}> Make me the Instructor of this course.</label><br>
             <label for="startdate">Term start date</label>
-            <input type="text" name="startdate" id="startdate" class="form-control" placeholder="{{ current_date }}" required value="{{ submitted.startdate if submitted is defined else current_date }}">
+            <input type="date" name="startdate" id="startdate" class="form-control" required value="{{ submitted.startdate if submitted is defined else current_date }}">
         </div>
         <div class="form-section">
             <div class="step-title">Step 6: (Optional !!): Support Runestone Academy</div>
@@ -217,142 +153,8 @@
         </div>
     </form>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
-<script>
-    // Populate timezone select with supported timezones and default to browser's timezone
-    document.addEventListener('DOMContentLoaded', function() {
-        var tzSelect = document.getElementById('timezone');
-        if (tzSelect && typeof Intl.supportedValuesOf === 'function') {
-            var timezones = Intl.supportedValuesOf('timeZone');
-            var browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            timezones.forEach(function(tz) {
-                var opt = document.createElement('option');
-                opt.value = tz;
-                opt.textContent = tz;
-                if (tz === browserTz) {
-                    opt.selected = true;
-                }
-                tzSelect.appendChild(opt);
-            });
-        }
-    });
-    // Minimal domain name validation
-    document.getElementById('domainname').addEventListener('change', function() {
-        const domain = this.value;
-        if (domain.indexOf('.') === -1 || domain.indexOf(' ') !== -1) {
-            this.setCustomValidity('Domain name must contain at least one "." and no spaces.');
-        } else {
-            this.setCustomValidity('');
-        }
-    });
-    document.getElementById('invoice-me').addEventListener('change', function() {
-        if (this.checked) {
-            let res = confirm("Checking this box means you want us to email you an Invoice (Thank you!!).  If you want to keep using Runestone for free just click cancel");
-            if (res === false) {
-                this.checked = false;
-            }
-        }
-    });
+{% endblock %}
 
-    function suggestedCourseName() {
-        let d = new Date();
-        const getSeason = d => Math.floor(((d.getMonth() + 1) / 12 * 4)) % 4;
-        let season = ['winter', 'spring', 'summer', 'fall'][getSeason(d)];
-        let basecourse = document.getElementById("designerForm").coursetype.value;
-        let instid = document.getElementById("institution").value;
-        let suggestedCourse = "";
-        if (instid) {
-            suggestedCourse += instid.toLowerCase().replace(/ /g, '');
-        }
-        if (basecourse) {
-            suggestedCourse += "_" + basecourse.toLowerCase();
-        }
-        suggestedCourse += "_" + season + (d.getFullYear() % 100);
-        document.getElementById("projectname").value = suggestedCourse;
-    }
-
-    document.getElementById('startdate').addEventListener('focus', function() {
-        $(this).datepicker({format: 'mm/dd/yyyy'});
-    });
-    document.getElementById('designerForm').addEventListener('submit', function(evt) {
-        const errors = [];
-        const institution = document.getElementById('institution').value;
-        const basecourse = document.getElementById('designerForm').coursetype.value;
-        const state = document.getElementById('state').value;
-        const level = document.getElementById('courselevel').value;
-        const domain = document.getElementById('domainname').value;
-        const projectname = document.getElementById('projectname').value;
-        const errorDiv = document.getElementById('formerrors');
-        errorDiv.innerHTML = "";
-        errorDiv.style.display = "none";
-        if (!basecourse) {
-            errors.push("You must select a book for your course.");
-        }
-        if (!institution) {
-            errors.push("You must provide the name of your Institution.");
-        }
-        if (level === "unknown") {
-            errors.push("Please tell us approximately what level your course is at.");
-        }
-        if (projectname === "" || projectname.indexOf(" ") !== -1 || projectname.indexOf("/") > -1) {
-            errors.push("Your Project Name may not contain spaces or /");
-        }
-        if (!/^([\x30-\x39]|[\x41-\x5A]|[\x61-\x7A]|[_-])*$/.test(projectname)) {
-            errors.push("Your project name can only contain ASCII letters, digits, and - or _.");
-        }
-        if (domain.indexOf('.') === -1 || domain.indexOf(" ") !== -1) {
-            errors.push("Your domain name should contain at least one . and no spaces.");
-        }
-        if (errors.length > 0) {
-            errorDiv.innerHTML = '<ul>' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
-            errorDiv.style.display = "block";
-            evt.preventDefault();
-            return false;
-        }
-        return true;
-    });
-
-    // Book filter logic
-    function setupBookFilter() {
-        var filterInput = document.getElementById('bookFilter');
-        var bookList = document.getElementById('bookList');
-        if (!filterInput || !bookList) {
-            console.log('Book filter: missing filterInput or bookList');
-            return;
-        }
-        filterInput.addEventListener('input', function() {
-            var filter = this.value.trim().toLowerCase();
-            var entries = bookList.querySelectorAll('.book-entry');
-            var sections = bookList.querySelectorAll('.book-section');
-            entries.forEach(function(entry) {
-                var title = entry.getAttribute('data-title') || '';
-                var authors = entry.getAttribute('data-authors') || '';
-                var section = entry.getAttribute('data-section') || '';
-                if (title.includes(filter) || authors.includes(filter) || section.includes(filter)) {
-                    entry.style.display = '';
-                } else {
-                    entry.style.display = 'none';
-                }
-            });
-            // Hide section headers if no visible books in that section
-            sections.forEach(function(sec) {
-                var secName = sec.textContent.trim().toLowerCase();
-                var visible = false;
-                entries.forEach(function(entry) {
-                    if (entry.getAttribute('data-section') === secName && entry.style.display !== 'none') {
-                        visible = true;
-                    }
-                });
-                sec.style.display = visible ? '' : 'none';
-            });
-        });
-        console.log('Book filter initialized');
-    }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupBookFilter);
-    } else {
-        setupBookFilter();
-    }
-
-</script>
+{% block page_js %}
+<script src="/staticAssets/js/admin/create_course.js"></script>
 {% endblock %}

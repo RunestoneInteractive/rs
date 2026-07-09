@@ -1,0 +1,830 @@
+/* ============================================================
+   admin.css — Shared styles for the admin server pages
+   (templates/admin/instructor and friends).
+
+   Loaded by admin/_admin_base.html.  The first sections define
+   the common look (page container, header, course info banner,
+   buttons, alerts, panels, forms).  Page-specific rules are at
+   the bottom, scoped by a page wrapper class so they cannot
+   leak between pages.
+   ============================================================ */
+
+/* ---------- Page container ---------- */
+.admin-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.admin-page--medium {
+    max-width: 900px;
+}
+
+.admin-page--narrow {
+    max-width: 800px;
+}
+
+/* ---------- Page header ---------- */
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h1 {
+    color: #333;
+    margin: 0;
+    font-size: 2.5em;
+    font-weight: 300;
+}
+
+.page-header p {
+    color: #666;
+    margin: 10px 0 0 0;
+}
+
+/* ---------- Course info banner ---------- */
+.course-info {
+    background: #f0f7ff;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid #4a90e2;
+}
+
+.course-info h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.course-info p {
+    margin: 0;
+    color: #666;
+}
+
+.course-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.course-link a {
+    color: #357abd;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.course-link a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- Back link ---------- */
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #4a90e2;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.back-link:hover {
+    color: #357abd;
+    text-decoration: underline;
+}
+
+.back-link::before {
+    content: "← ";
+    margin-right: 5px;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.btn:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-primary {
+    background: #4a90e2;
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #357abd;
+    color: white;
+    opacity: 1;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+/* Large destructive-action button (reset exam, delete course) */
+.danger-btn {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+    min-width: 200px;
+}
+
+.danger-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.danger-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ---------- Alerts ---------- */
+.alert {
+    padding: 12px 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.alert-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.alert-error,
+.alert-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.alert-info {
+    background: #e7f3ff;
+    border: 1px solid #4a90e2;
+    color: #1e4d72;
+}
+
+.alert h5 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.alert ul,
+.alert ol {
+    margin-bottom: 0;
+    padding-left: 20px;
+}
+
+.alert i {
+    margin-right: 8px;
+}
+
+/* Fixed-position container for transient messages */
+.floating-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+/* ---------- Panels (white cards, often side by side) ---------- */
+.panel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.panel {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.panel h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.4em;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #4a90e2;
+}
+
+/* Centered white card holding a page's primary action */
+.action-panel {
+    text-align: center;
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+}
+
+.actions {
+    text-align: center;
+    margin-top: 30px;
+}
+
+/* ---------- Forms ---------- */
+.form-select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    background-color: white;
+    transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.form-select[size] {
+    height: 200px;
+}
+
+.select-container {
+    margin-bottom: 20px;
+}
+
+.select-container label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+.settingsbox {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settingsbox label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.settingsbox input[type="text"],
+.settingsbox select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.settingsbox input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-container label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.setting-description {
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.hint-text {
+    margin-top: 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+/* ---------- Informational boxes ---------- */
+.help-doc {
+    background: #f8f9fa;
+    border-left: 4px solid #4a90e2;
+    padding: 12px 18px;
+    border-radius: 6px;
+    margin-top: 12px;
+    margin-bottom: 0;
+    color: #333;
+}
+
+.help-doc p {
+    margin-bottom: 6px;
+}
+
+.warning-box {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 20px 0;
+    border-left: 4px solid #f39c12;
+}
+
+.warning-box h4 {
+    margin: 0 0 10px 0;
+    color: #856404;
+    font-size: 1.1em;
+}
+
+.warning-box p {
+    margin: 0 0 10px 0;
+    color: #856404;
+    line-height: 1.4;
+}
+
+.warning-box ul {
+    margin: 10px 0;
+    padding-left: 20px;
+    color: #856404;
+}
+
+.warning-box li {
+    margin-bottom: 5px;
+}
+
+/* Red variant for irreversible actions */
+.warning-box--danger {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    border-left-color: #dc3545;
+    padding: 20px;
+}
+
+.warning-box--danger h3 {
+    margin: 0 0 15px 0;
+    color: #721c24;
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+.warning-box--danger h4,
+.warning-box--danger p,
+.warning-box--danger ul {
+    color: #721c24;
+}
+
+/* ---------- Result / status boxes ---------- */
+.result-box {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.result-box.error {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.result-box h3 {
+    margin-top: 0;
+    color: #155724;
+}
+
+.result-box.error h3 {
+    color: #721c24;
+}
+
+.result-message {
+    font-size: 1.1em;
+    margin: 10px 0;
+}
+
+/* Status-colored table rows (enrollment results) */
+tr.success {
+    background-color: #d4edda;
+}
+
+tr.error {
+    background-color: #f8d7da;
+}
+
+tr.duplicate {
+    background-color: #fff3cd;
+}
+
+/* ============================================================
+   Page-specific sections, scoped by page wrapper class
+   ============================================================ */
+
+/* ---------- Instructor dashboard (menu.html) ---------- */
+.instructor-menu .accordion {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.instructor-menu .accordion-header {
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: white;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.instructor-menu .accordion-header:hover,
+.instructor-menu .accordion-header.active {
+    background: linear-gradient(135deg, #357abd, #2a5f8f);
+}
+
+.instructor-menu .accordion-icon {
+    transition: transform 0.3s ease;
+    font-size: 20px;
+}
+
+.instructor-menu .accordion-header.active .accordion-icon {
+    transform: rotate(90deg);
+}
+
+.instructor-menu .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: #f8f9fa;
+}
+
+.instructor-menu .accordion-content.active {
+    max-height: 600px;
+}
+
+.instructor-menu .accordion-body {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.instructor-menu .menu-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 15px;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.instructor-menu .menu-item:hover {
+    background: #f0f7ff;
+    border-color: #4a90e2;
+    text-decoration: none;
+    color: #333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.2);
+}
+
+.instructor-menu .menu-item h4 {
+    margin: 0 0 8px 0;
+    color: #4a90e2;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.instructor-menu .menu-item p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.instructor-menu .toggle-all-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.instructor-menu .toggle-all-btn:hover {
+    background: linear-gradient(135deg, #218838, #1dc7a0);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* ---------- Manage instructors/TAs (add_instructor.html) ---------- */
+.instructor-admin #instructor-list {
+    min-height: 200px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px 15px 10px 30px;
+    background: #f8f9fa;
+}
+
+.instructor-admin #instructor-list li {
+    cursor: pointer;
+}
+
+.instructor-admin #instructor-list li.selected {
+    background: #e0e0e0;
+    font-weight: bold;
+}
+
+.instructor-admin #student-search {
+    margin-bottom: 10px;
+}
+
+.instructor-admin .panel .btn {
+    margin-top: 10px;
+}
+
+/* ---------- Manage students (manage_students.html) ---------- */
+.student-management .student-list {
+    font-family: Verdana, serif;
+    overflow-x: hidden;
+}
+
+.student-management pre {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+/* ---------- Delete course (course_delete.html) ---------- */
+.course-delete .page-header h1 {
+    color: #d9534f;
+}
+
+.course-delete .confirmation-section {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 2px solid #dc3545;
+    text-align: center;
+    margin-top: 30px;
+}
+
+.course-delete .confirmation-input {
+    margin: 20px 0;
+}
+
+.course-delete .confirmation-input label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+.course-delete .confirmation-input input {
+    width: 300px;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.course-delete .confirmation-input input:focus {
+    border-color: #dc3545;
+    outline: none;
+}
+
+.course-delete .danger-btn {
+    margin-top: 20px;
+    min-width: 250px;
+}
+
+/* ---------- Create course (create_course.html) ---------- */
+.designer-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+}
+
+.designer-container .designer-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.designer-container .designer-header h1 {
+    color: #ab1059;
+    font-size: 2.5em;
+    font-weight: 300;
+    margin: 0;
+}
+
+.designer-container .step-title {
+    color: #ab1059;
+    font-size: 1.3em;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+.designer-container .filter-title,
+.designer-container .book-section {
+    color: #4a90e2;
+    font-size: 1.3em;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.designer-container .form-section {
+    margin-bottom: 25px;
+}
+
+.designer-container .domain-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.designer-container .domain-row label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.designer-container .domain-row input {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* ---------- Copy assignments (copy_assignments.html) ---------- */
+.copy-assignments .card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.copy-assignments .card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px 20px;
+}
+
+.copy-assignments .card-title {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.copy-assignments .card-body {
+    padding: 20px;
+}
+
+.copy-assignments .form-group {
+    margin-bottom: 20px;
+}
+
+.copy-assignments .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+    .admin-page {
+        padding: 15px;
+    }
+
+    .panel-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .course-delete .confirmation-input input {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+/* LTI configuration page (admin/instructor/lti_config.html) */
+.lti-config .panel {
+    margin-bottom: 20px;
+}
+
+.lti-config .panel h2 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.4em;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #4a90e2;
+}
+
+.lti-config .panel h3 {
+    text-align: left;
+    font-size: 1.15em;
+    border-bottom: none;
+    margin-top: 20px;
+}
+
+.lti-config .lti-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.lti-config .btn-sm {
+    padding: 4px 10px;
+    font-size: 0.85em;
+}
+
+.lti-config .lti-keys-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.lti-config .lti-keys-table th {
+    text-align: left;
+    white-space: nowrap;
+    padding: 8px 12px 8px 0;
+    vertical-align: top;
+    width: 130px;
+}
+
+.lti-config .lti-keys-table td {
+    padding: 8px 0;
+    word-break: break-all;
+}
+
+.lti-config .copy-link {
+    cursor: pointer;
+    margin-left: 6px;
+    text-decoration: none;
+}

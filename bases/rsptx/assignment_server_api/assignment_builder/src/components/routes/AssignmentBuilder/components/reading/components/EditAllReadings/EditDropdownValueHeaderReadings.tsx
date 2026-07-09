@@ -1,9 +1,15 @@
-import { withEditAllReadings } from "@components/routes/AssignmentBuilder/components/reading/components/EditAllReadings/withEditAllReadings";
-import { Dropdown } from "primereact/dropdown";
+import {
+  withEditAllReadings,
+  WithEditAllReadingsProps
+} from "@components/routes/AssignmentBuilder/components/reading/components/EditAllReadings/withEditAllReadings";
+import { Select } from "@mantine/core";
 import { useEffect } from "react";
 
 import { useTableDropdownOptions } from "@/hooks/useTableDropdownOptions";
-import { DraggingExerciseDropdownColumns } from "@/types/components/editableTableCell";
+import {
+  DraggingExerciseDropdownColumns,
+  EDITABLE_FIELD_LABELS
+} from "@/types/components/editableTableCell";
 
 export interface EditDropdownValueHeaderReadingsComponentProps {
   value: string;
@@ -17,6 +23,7 @@ const EditDropdownValueHeaderReadingsComponent = ({
   field
 }: EditDropdownValueHeaderReadingsComponentProps) => {
   const { [field]: options } = useTableDropdownOptions();
+  const data = options.map((option) => ({ value: option.value, label: option.label }));
 
   useEffect(() => {
     if (options.length && !value.length) {
@@ -25,18 +32,21 @@ const EditDropdownValueHeaderReadingsComponent = ({
   }, [onChange, options, value.length]);
 
   return (
-    <Dropdown
-      style={{ width: "100%" }}
+    <Select
+      w="100%"
       id={field}
       name={field}
+      aria-label={`${EDITABLE_FIELD_LABELS[field]} for all readings`}
       value={value}
-      onChange={(e) => onChange(e.value)}
-      options={options}
-      optionLabel="label"
+      onChange={(next) => onChange(next ?? "")}
+      data={data}
+      allowDeselect={false}
+      comboboxProps={{ withinPortal: false }}
     />
   );
 };
 
-export const EditDropdownValueHeaderReadings = withEditAllReadings<string, any>(
-  EditDropdownValueHeaderReadingsComponent
-);
+export const EditDropdownValueHeaderReadings = withEditAllReadings<
+  string,
+  EditDropdownValueHeaderReadingsComponentProps & WithEditAllReadingsProps<string>
+>(EditDropdownValueHeaderReadingsComponent);

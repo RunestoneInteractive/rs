@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple, Dict
-from sqlalchemy import select, and_, or_, func, asc, desc, not_, update
+from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.exc import IntegrityError
 
 from ..models import (
@@ -56,6 +56,26 @@ async def fetch_question(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return QuestionValidator.from_orm(res.scalars().first())
+
+
+async def fetch_question_by_id(question_id: int) -> Optional[QuestionValidator]:
+    """
+    Fetch a single question row by its primary key ``id``.
+
+    Useful for authorization checks where the caller supplies a question id and
+    we need to confirm which base course the existing row belongs to.
+
+    :param question_id: int, the primary key of the question
+    :return: QuestionValidator if a matching row exists, otherwise None
+    """
+    query = select(Question).where(Question.id == question_id)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        row = res.scalars().first()
+        if row is None:
+            return None
+        return QuestionValidator.from_orm(row)
 
 
 async def count_matching_questions(name: str) -> int:
@@ -326,17 +346,27 @@ async def fetch_assignment_question(
 
 async def fetch_assignment_questions(
     assignment_id: int,
-) -> List[Tuple[Question, AssignmentQuestion]]:
+) -> List[Tuple[Question, AssignmentQuestion, Chapter, SubChapter]]:
     """
     Retrieve the AssignmentQuestion entry for the given assignment_name and question_name.
 
     :param assignment_name: str, the name of the assignment
     :param question_name: str, the name (div_id) of the question
-    :return: AssignmentQuestionValidator, the AssignmentQuestionValidator object
+    :return: AssignmentQuestionValidator, AssignmentQuestionValidator, ChapterValidator, SubChapterValidator
     """
     query = (
-        select(Question, AssignmentQuestion)
+        select(Question, AssignmentQuestion, Chapter, SubChapter)
         .join(Question, AssignmentQuestion.question_id == Question.id)
+        .join(
+            Chapter,
+            (Question.chapter == Chapter.chapter_label)
+            & (Question.base_course == Chapter.course_id),
+        )
+        .join(
+            SubChapter,
+            (Question.subchapter == SubChapter.sub_chapter_label)
+            & (SubChapter.chapter_id == Chapter.id),
+        )
         .where(AssignmentQuestion.assignment_id == assignment_id)
         .order_by(AssignmentQuestion.sorting_priority)
     )
@@ -409,6 +439,34 @@ async def fetch_question_grade(sid: str, course_name: str, qid: str):
     async with async_session() as session:
         res = await session.execute(query)
         return QuestionGradeValidator.from_orm(res.scalars().one_or_none())
+
+
+async def fetch_assignment_release_for_div_id(course_id: int, div_id: str):
+    """
+    For the assignment question matching ``div_id`` in the given course, return a row
+    with the assignment's ``released`` flag and the question's ``points``.
+
+    :param course_id: int, the id of the course
+    :param div_id: str, the question name (div_id)
+    :return: a Row with ``released`` and ``points``, or ``None`` if the question is not
+        part of any assignment in the course.
+
+    Used by the activecode "grade report" popup (see the assignment server's
+    ``getassignmentgrade`` endpoint).
+    """
+    query = (
+        select(Assignment.released, AssignmentQuestion.points)
+        .where(
+            (Assignment.course == course_id)
+            & (AssignmentQuestion.assignment_id == Assignment.id)
+            & (AssignmentQuestion.question_id == Question.id)
+            & (Question.name == div_id)
+        )
+        .order_by(Assignment.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.first()
 
 
 async def create_question_grade_entry(
@@ -494,6 +552,40 @@ async def create_user_experiment_entry(
     async with async_session.begin() as session:
         session.add(new_ue)
     return UserExperimentValidator.from_orm(new_ue)
+
+
+async def delete_user_experiment_entries(ab: str) -> None:
+    """
+    Delete all UserExperiment entries for the given AB experiment so the
+    experiment can be re-run with fresh group assignments.
+
+    :param ab: str, the name of the AB experiment
+    """
+    stmt = delete(UserExperiment).where(UserExperiment.experiment_id == ab)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def replace_user_experiment_entries(
+    ab: str, assignments: List[Tuple[str, int]]
+) -> None:
+    """
+    Replace all UserExperiment entries for the given AB experiment in a single
+    call. It will delete any existing assignments then insert the new ones. This
+    keeps re-running the experiment fast and atomic for larger courses.
+
+    :param ab: str, the name of the AB experiment
+    :param assignments: list of (sid, group) tuples to insert
+    """
+    stmt = delete(UserExperiment).where(UserExperiment.experiment_id == ab)
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+        session.add_all(
+            [
+                UserExperiment(sid=sid, exp_group=group, experiment_id=ab)
+                for sid, group in assignments
+            ]
+        )
 
 
 async def fetch_viewed_questions(sid: str, questionlist: List[str]) -> List[str]:

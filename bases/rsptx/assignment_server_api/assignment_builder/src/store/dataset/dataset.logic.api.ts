@@ -1,10 +1,18 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
 import { datasetActions } from "@store/dataset/dataset.logic";
-import toast from "react-hot-toast";
+import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import { TableDropdownOption, SectionsResponse } from "@/types/dataset";
+
+export const DATASET_TOAST_COPY = {
+  whichToGradeError: "Couldn't load grading options. Refresh the page.",
+  autogradeError: "Couldn't load autograde options. Refresh the page.",
+  languageError: "Couldn't load language options. Refresh the page.",
+  questionTypeError: "Couldn't load question type options. Refresh the page.",
+  sectionsError: "Couldn't load sections for the chapter. Refresh the page."
+} as const;
 
 export const datasetApi = createApi({
   reducerPath: "datasetApi",
@@ -21,7 +29,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setWhichToGradeOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast.error("Error getting which_to_grade options", { duration: Infinity });
+          notify.error(DATASET_TOAST_COPY.whichToGradeError);
         });
       }
     }),
@@ -35,7 +43,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setAutoGradeOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast.error("Error getting autograde options", { duration: Infinity });
+          notify.error(DATASET_TOAST_COPY.autogradeError);
         });
       }
     }),
@@ -49,7 +57,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setLanguageOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast.error("Error getting language options", { duration: Infinity });
+          notify.error(DATASET_TOAST_COPY.languageError);
         });
       }
     }),
@@ -63,7 +71,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setQuestionTypeOptions(response.data));
         });
         queryFulfilled.catch(() => {
-          toast.error("Error getting question type options", { duration: Infinity });
+          notify.error(DATASET_TOAST_COPY.questionTypeError);
         });
       }
     }),
@@ -88,7 +96,7 @@ export const datasetApi = createApi({
           dispatch(datasetActions.setSections(originalSections));
         });
         queryFulfilled.catch(() => {
-          toast.error("Error getting sections for chapter", { duration: Infinity });
+          notify.error(DATASET_TOAST_COPY.sectionsError);
         });
       }
     })
