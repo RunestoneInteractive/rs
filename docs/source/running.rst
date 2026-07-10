@@ -17,6 +17,7 @@ Before running the setup script, you need:
   - Sign in to Docker Desktop when prompted on first launch. Signing in keeps your file sharing path settings saved across restarts. If you skip sign-in, Docker may lose your shared folder configuration each time it closes.
   - Make sure Docker Desktop is running before starting the setup
   - For Windows: Enable WSL2 integration in Docker Desktop settings
+  - All paths should use a Linux-style directory format rather than Windows paths (especially if you plan to contribute directly to Runestone Academy).
   - **Important**: Configure file sharing in Docker Desktop (Settings → Resources → File Sharing) to include the directory where you'll create your Runestone configuration and your ``BOOK_PATH`` directory. Without this, Docker won't be able to access your book files.
 
 - **WSL2** (Windows users only)
