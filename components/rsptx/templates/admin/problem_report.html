@@ -1,0 +1,83 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Report a Problem — Runestone Academy{% endblock %}
+
+{% block content %}
+<div class="auth-card auth-card--wide">
+    <h1>Report a Problem</h1>
+
+    {% if success %}
+    <div class="alert alert-success">
+        <p><strong>Thank you!</strong> Your report has been filed as an issue on
+        GitHub, where our team tracks and fixes problems. We appreciate you
+        taking the time to help us improve Runestone.</p>
+        {% if issue_url %}
+        <p class="mb-0">
+            <a href="{{ issue_url }}" target="_blank" rel="noopener noreferrer">
+                View and track your report on GitHub
+            </a>
+            <small class="text-muted d-block">Opens in a new tab. You can watch
+            the issue there for updates.</small>
+        </p>
+        {% endif %}
+    </div>
+    <div class="auth-links">
+        <a href="{{ submitted.page if submitted.page else '/ns/course/index' }}">Back to your book</a>
+        {% if issues_page_url %}
+        &nbsp;·&nbsp;
+        <a href="{{ issues_page_url }}" target="_blank" rel="noopener noreferrer">All open issues</a>
+        {% endif %}
+    </div>
+    {% else %}
+
+    <p class="text-muted">
+        Found something wrong on a page — a typo, a broken example, an activity
+        that won't run? Tell us about it below. We've filled in what we already
+        know; just describe the problem and hit submit.
+    </p>
+
+    {% if errors %}
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+        {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/admin/problem/report">
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="username">Your Username</label>
+                <input type="text" class="form-control" id="username" name="username"
+                       value="{{ submitted.username }}"
+                       {% if submitted.username %}readonly{% endif %}>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="course">Course</label>
+                <input type="text" class="form-control" id="course" name="course"
+                       value="{{ submitted.course }}"
+                       {% if submitted.course %}readonly{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="page">Page (where the problem is)</label>
+            <input type="text" class="form-control" id="page" name="page"
+                   placeholder="e.g. the address of the page you were reading"
+                   value="{{ submitted.page }}">
+            <small class="form-text text-muted">Prefilled from the page you came
+                from. Edit it if the problem is somewhere else.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Describe the problem</label>
+            <textarea class="form-control" id="description" name="description" rows="6"
+                      required autofocus
+                      placeholder="What did you expect to happen, and what happened instead? Include anything you typed or clicked.">{{ submitted.description }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-rs-primary">Submit Report</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

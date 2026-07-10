@@ -136,6 +136,7 @@ async def login_post(
 ):
     user = await fetch_user(username)
     if not _user_exists(user) or not _verify_password(user.password, password):
+        rslogger.info(f"FAILED LOGIN: {username} Exists: {_user_exists(user)}")
         return templates.TemplateResponse(
             "admin/auth/login.html",
             {
