@@ -164,6 +164,15 @@ If you used the automated setup script (``init_runestone.sh``), check the ``init
 
 For database issues, you can reset the database by running ``docker compose down -v`` to remove all volumes, then re-run the initialization steps (either manually or via ``./init_runestone.sh``).
 
+If you are still experiencing migration errors, try the following commands:
+
+.. code-block:: bash
+
+   docker compose run --rm rsmanage alembic stamp head
+   docker compose run --rm rsmanage alembic current
+
+The second command should display the current revision with ``(head)`` next to it. If it does, the migration state has been successfully updated.
+
 Developer Setup (From Cloned Repository)
 -----------------------------------------
 
