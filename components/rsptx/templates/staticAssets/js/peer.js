@@ -339,6 +339,13 @@ function connect(event) {
                     break;
                 case "enableChat":
                     console.log(`got enableChat message with ${mess.answer}`);
+                    if (
+                        mess._catchup &&
+                        !mess.answer &&
+                        document.getElementById("peerlist").children.length <= 1
+                    ) {
+                        break;
+                    }
                     messarea = document.getElementById("imessage");
                     messarea.innerHTML = `<h3>Text Chat Ready</h3><p>Please discuss with your partner(s) in the chat panel to the right.</p>`;
                     let discPanel = document.getElementById("discussion_panel");
@@ -639,6 +646,7 @@ function startVote2(event) {
         message: "enableVote",
         broadcast: true,
         course_name: eBookConfig.course,
+        assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
     };
     //ws.send(JSON.stringify(mess));
     publishMessage(mess);
@@ -685,6 +693,7 @@ function enableNext() {
         message: "enableNext",
         broadcast: true,
         course_name: eBookConfig.course,
+        assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
     };
     if (typeof voteNum !== "undefined" && voteNum < 2) {
         logPeerEvent({

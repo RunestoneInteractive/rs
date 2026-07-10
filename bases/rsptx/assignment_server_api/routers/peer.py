@@ -224,6 +224,7 @@ async def get_peer_dashboard(
         }
         r.publish("peermessages", json.dumps(mess))
         r.hset(f"{course.course_name}_state", "current_phase", json.dumps(mess))
+        r.delete(f"assignment_{assignment_id}_state")
     except Exception as e:
         rslogger.error(f"Error initializing Redis: {e}")
 
@@ -1105,6 +1106,7 @@ async def get_num_answers(
     div_id: str = Body(...),
     start_time: str = Body(...),
     course_name: str = Body(...),
+    message_start_time: Optional[str] = Body(None),
     user=Depends(auth_manager),
     course=None,
 ):
@@ -1127,8 +1129,14 @@ async def get_num_answers(
             div_id, course_name, start_time_dt, exclude_sid=user.username
         )
 
-        # Count messages sent
-        message_count = await count_peer_messages(div_id, course_name, start_time_dt)
+        # Messages are counted from the start of the question, not the current
+        # vote, so the count doesn't reset to 0 when vote 2 starts
+        mess_start_dt = (
+            parse(message_start_time).replace(tzinfo=None)
+            if message_start_time
+            else start_time_dt
+        )
+        message_count = await count_peer_messages(div_id, course_name, mess_start_dt)
 
         return JSONResponse(
             content={"count": answer_count, "mess_count": message_count}
@@ -1256,6 +1264,10 @@ async def publish_message(
             "enableFaceChat",
         ):
             r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
+            if data.get("message") in ("enableVote", "enableNext") and data.get(
+                "assignment_id"
+            ):
+                r.delete(f"assignment_{data['assignment_id']}_state")
 
         # Track message count for text messages
         if data.get("type") == "text":
@@ -1479,6 +1491,8 @@ async def get_async_explainer(
             all_msgs = []
             last_per_sid = {}
             for row in messages:
+                if row.event == "sendmessage" and row.act.startswith("to:llm:"):
+                    continue
                 if row.event == "reflection":
                     msg = row.act
                 else:

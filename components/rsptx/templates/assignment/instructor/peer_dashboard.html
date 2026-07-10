@@ -456,7 +456,7 @@ Peer Instruction Dashboard - {{ assignment_name }}
     }
 
     async function updateCount() {
-        let data = { div_id: "{{ current_question.name }}", start_time: startTime, course_name: "{{ course.course_name }}" };
+        let data = { div_id: "{{ current_question.name }}", start_time: startTime, course_name: "{{ course.course_name }}", message_start_time: startTime };
         if (startTime2 !== null) data.start_time = startTime2;
         let jsheaders = new Headers({ "Content-type": "application/json; charset=utf-8", Accept: "application/json" });
         let resp = await fetch(new Request("/assignment/peer/api/num_answers", { method: "POST", headers: jsheaders, body: JSON.stringify(data) }));
@@ -497,6 +497,7 @@ Peer Instruction Dashboard - {{ assignment_name }}
 <script>
     var user = "{{ user.username }}";
     var currentQuestion = "{{ current_question.name }}";
+    var assignment_id = {{ assignment_id }};
     var voteNum = 1;
 
     document.addEventListener("DOMContentLoaded", function () {
