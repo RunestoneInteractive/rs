@@ -1205,6 +1205,8 @@ window.addEventListener("DOMContentLoaded", function (event) {
     );
     menuContentArea.appendChild(makeLink("/admin/auth/profile", "Profile"));
     menuContentArea.appendChild(makeLink("/admin/auth/logout", "Log Out"));
+    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
+    menuContentArea.appendChild(makeLink("/admin/problem/report", "Problem Report", "bug_report"));
 });
 
 /**
