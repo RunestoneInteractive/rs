@@ -33,7 +33,9 @@
     <p class="text-muted">
         Found something wrong on a page — a typo, a broken example, an activity
         that won't run? Tell us about it below. We've filled in what we already
-        know; just describe the problem and hit submit.
+        know; just describe the problem and hit submit. If you have a GitHub account,
+        you can <a href="https://github.com/RunestoneInteractive/rs/issues">file it directly</a>,
+        that way you can track the issue and get updates when it's fixed.
     </p>
 
     {% if errors %}
@@ -78,6 +80,7 @@
 
         <button type="submit" class="btn btn-rs-primary">Submit Report</button>
     </form>
+    <p class="text-muted small">Note: we may use your username to follow up on the issue via email if necessary.</p>
     {% endif %}
 </div>
 {% endblock %}
