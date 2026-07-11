@@ -38,3 +38,4 @@ CLAUDE.md
 init_runestone.log
 .claude
 justfile
+docker-compose.override.yml
