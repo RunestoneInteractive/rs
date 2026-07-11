@@ -457,7 +457,7 @@ export default class MultipleChoice extends RunestoneBase {
         var buttonObjs = this.optsForm.elements.group1;
         for (var i = 0; i < buttonObjs.length; i++) {
             if (buttonObjs[i].checked) {
-                given = parseInt(buttonObjs[i].value);
+                given = parseInt(buttonObjs[i].value, 10);
                 this.givenArray.push(given);
                 this.feedbackString += `<li value="${i + 1}">${
                     this.feedbackList[i]
