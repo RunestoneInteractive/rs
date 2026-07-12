@@ -14,7 +14,7 @@ import datetime
 # Third-party imports
 # -------------------
 from typing import Optional
-from fastapi import APIRouter, Cookie, Request, Depends
+from fastapi import APIRouter, Cookie, Request, Depends, status
 from fastapi.templating import Jinja2Templates
 
 # Local application imports
@@ -195,8 +195,31 @@ async def index(
 
 @router.api_route("/changeCourse/{course_name:str}", methods=["GET", "POST"])
 async def change_course(request: Request, course_name: str, user=Depends(auth_manager)):
-    """Change the current course"""
+    """Change the current course.
+
+    The user may only switch to a course they are actually enrolled in;
+    otherwise they could set their current course to an arbitrary course and
+    read its roster/content.
+    """
     course = await fetch_course(course_name)
+    if not course:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND,
+            detail={"status": "error", "message": "Course not found"},
+        )
+
+    # Verify enrollment: fetch_courses_for_user returns the matching course(s)
+    # for this user, filtered by course_id when provided.
+    enrolled = await fetch_courses_for_user(user.id, course_id=course.id)
+    if not enrolled:
+        return make_json_response(
+            status=status.HTTP_403_FORBIDDEN,
+            detail={
+                "status": "error",
+                "message": "You are not enrolled in that course",
+            },
+        )
+
     d = {"course_name": course_name, "course_id": course.id}
     await update_user(user.id, d)
     return make_json_response(detail={"status": "success"})

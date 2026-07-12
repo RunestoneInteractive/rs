@@ -11,6 +11,7 @@
 # Standard library
 # ----------------
 import ast
+import json
 
 # Third-party imports
 # -------------------
@@ -170,11 +171,18 @@ async def get_question_html(request: Request, div_id: str):
 
     result = await get_question_source(request, request_data)
 
+    # get_question_source returns a JSONResponse whose (JSON-encoded) body is
+    # ``{"detail": <html>}``.  Decode the body to recover the html string.
     html = None
     if isinstance(result, dict):
         html = result.get("detail")
     else:
-        html = getattr(result, "detail", None)
+        body = getattr(result, "body", None)
+        if body is not None:
+            try:
+                html = json.loads(body).get("detail")
+            except (ValueError, AttributeError):
+                html = None
 
     # Handle missing or error cases
     if not html or "No Questions" in html or "not in the database" in html:
