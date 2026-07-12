@@ -113,7 +113,21 @@ async def log_book_event(
     # if entry.sid is there use that (likely for partner or group work)
     if not entry.sid:
         entry.sid = user.username
-    else:
+    elif entry.sid != user.username:
+        # Submitting work on behalf of another student (partner/group work).
+        # Only allow this when the target is enrolled in the same course, so a
+        # user cannot fabricate useinfo/answer records attributed to arbitrary
+        # accounts. This mirrors the same_class() check used by ``runlog`` for
+        # saving partner code.
+        if not await same_class(user, entry.sid):
+            rslogger.warning(
+                f"user {user.username} attempted to submit work for {entry.sid} "
+                "who is not in the same course"
+            )
+            return make_json_response(
+                status=status.HTTP_401_UNAUTHORIZED,
+                detail="You may only submit work for a partner in your course",
+            )
         rslogger.info(f"user {user.username} is submitting work for {entry.sid}")
 
     # Always use the server's time.
