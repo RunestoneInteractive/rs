@@ -82,6 +82,8 @@ dependencies = [
 [project.scripts]
 buildptx = "rsptx.interactives.scripts.buildptx:build_book"
 build = "rsptx.build_tools.build:cli"
+build_books = "rsptx.build_tools.build_books:build_books"
+build_mon = "rsptx.build_tools.build_mon:main"
 rsmanage = "rsptx.rsmanage.core:cli"
 tbm = "rsptx.build_tools.traceback_monitor:main"
 

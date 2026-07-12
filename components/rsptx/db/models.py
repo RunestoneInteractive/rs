@@ -1116,6 +1116,7 @@ class Library(Base, IdMixin):
     github_url = Column(String(512))
     main_page = Column(String(512), default="index.html")
     last_build = Column(DateTime)
+    last_deploy = Column(DateTime)
     github_url = Column(String(255))
     social_url = Column(String(255))  # link to group for instructors
     default_language = Column(String(20))
