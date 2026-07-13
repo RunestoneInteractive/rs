@@ -32,6 +32,9 @@ import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/sql-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
+
+
+
 // for CodeTailor
 import { renderRunestoneComponent } from "../../common/js/renderComponent.js";
 
@@ -295,6 +298,8 @@ export class ActiveCode extends RunestoneBase {
             edmode = "text/x-octave";
         } else if (edmode === "html" || edmode === "htmlmixed") {
             edmode = "htmlmixed";
+        } else if (edmode === "gdscript") {
+            edmode = "text/x-gdscript";
         }
         // Conditionally add a gutter to the editor to show the locked prefix and suffix
         let gutterList = [];
