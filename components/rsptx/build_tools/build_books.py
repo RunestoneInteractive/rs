@@ -97,6 +97,22 @@ def git_pull(repodir: Path) -> dict:
     return {"completed": False, "status": f"git pull failed: {reason}"}
 
 
+def run_hook(command: str, workdir: Path, label: str) -> dict:
+    """
+    Run a per-book pre/post build hook command (from the prebuild_hook /
+    postbuild_hook library columns) with the book's work directory as cwd.
+    """
+    console.print(f"Running {label} hook: {command}")
+    res = subprocess.run(
+        command, shell=True, capture_output=True, text=True, cwd=workdir
+    )
+    if res.returncode != 0:
+        lines = [x for x in (res.stderr + res.stdout).strip().splitlines() if x]
+        reason = lines[-1] if lines else "unknown error"
+        return {"completed": False, "status": f"{label} hook failed: {reason}"}
+    return {"completed": True, "status": f"{label} hook succeeded"}
+
+
 def build_runestone_book(course: str, workdir: Path) -> dict:
     """
     Build a legacy Runestone (RST) book using the runestone binary from the
@@ -261,9 +277,14 @@ def build_books(book, clean, no_deploy, deploy_only, dry_run):
         console.rule(f"[bold]{course}")
 
         if dry_run:
+            hooks = ""
+            if lib.prebuild_hook:
+                hooks += f" [prebuild: {lib.prebuild_hook}]"
+            if lib.postbuild_hook:
+                hooks += f" [postbuild: {lib.postbuild_hook}]"
             click.echo(
                 f"Would pull {repodir} then build {course} ({lib.build_system}) "
-                f"in {workdir} then sync to {num_servers} servers"
+                f"in {workdir}{hooks} then sync to {num_servers} servers"
             )
             continue
 
@@ -285,19 +306,24 @@ def build_books(book, clean, no_deploy, deploy_only, dry_run):
                     f"building {course} from the current checkout[/yellow]"
                 )
             os.chdir(workdir)
-            if lib.build_system == "PTX":
-                try:
-                    build_res = _build_ptx_book(
-                        config,
-                        generate,
-                        "runestone-manifest.xml",
-                        course,
-                        target=lib.target,
-                    )
-                except Exception as e:
-                    build_res = {"completed": False, "status": f"build error: {e}"}
-            else:
-                build_res = build_runestone_book(course, workdir)
+            if lib.prebuild_hook:
+                build_res = run_hook(lib.prebuild_hook, workdir, "prebuild")
+            if build_res["completed"]:
+                if lib.build_system == "PTX":
+                    try:
+                        build_res = _build_ptx_book(
+                            config,
+                            generate,
+                            "runestone-manifest.xml",
+                            course,
+                            target=lib.target,
+                        )
+                    except Exception as e:
+                        build_res = {"completed": False, "status": f"build error: {e}"}
+                else:
+                    build_res = build_runestone_book(course, workdir)
+            if build_res["completed"] and lib.postbuild_hook:
+                build_res = run_hook(lib.postbuild_hook, workdir, "postbuild")
 
             if not build_res["completed"]:
                 results.append(

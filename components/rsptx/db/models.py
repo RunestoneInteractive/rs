@@ -1121,6 +1121,8 @@ class Library(Base, IdMixin):
     social_url = Column(String(255))  # link to group for instructors
     default_language = Column(String(20))
     repo_path = Column(String(512))  # path to the repository on disk
+    prebuild_hook = Column(String(512))  # command to run before building the book
+    postbuild_hook = Column(String(512))  # command to run after a successful build
 
 
 LibraryValidator: TypeAlias = sqlalchemy_to_pydantic(Library)  # type: ignore
