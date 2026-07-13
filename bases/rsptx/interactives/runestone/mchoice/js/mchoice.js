@@ -541,7 +541,7 @@ export default class MultipleChoice extends RunestoneBase {
         let data = {
             event: "mChoice",
             act: logAnswer,
-            answer: answer,
+            answer: answer.toString(),
             correct: correct,
             div_id: this.divid,
         };
@@ -628,7 +628,7 @@ export default class MultipleChoice extends RunestoneBase {
         let data = {
             event: "mChoice",
             act: logAnswer,
-            answer: answer,
+            answer: answer.toString(),
             correct: correct,
             div_id: this.divid,
         };
