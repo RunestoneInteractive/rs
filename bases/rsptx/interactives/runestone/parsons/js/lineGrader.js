@@ -8,14 +8,13 @@ export default class LineBasedGrader {
         // Get all subsequences
         var allSubsequences = [];
         for (var i = 0; i < arr.length; i++) {
-            var subsequenceForCurrent = [arr[i]],
-                current = arr[i],
-                lastElementAdded = -1;
-            for (var j = i; j < arr.length; j++) {
-                var subsequent = arr[j];
-                if (subsequent > current && lastElementAdded < subsequent) {
-                    subsequenceForCurrent.push(subsequent);
-                    lastElementAdded = subsequent;
+            var subsequenceForCurrent = [arr[i]];
+            for (var j = 0; j < i; j++) {
+                if (
+                    arr[j] < arr[i] &&
+                    allSubsequences[j].length + 1 > subsequenceForCurrent.length
+                ) {
+                    subsequenceForCurrent = allSubsequences[j].concat(arr[i]);
                 }
             }
             allSubsequences.push(subsequenceForCurrent);
