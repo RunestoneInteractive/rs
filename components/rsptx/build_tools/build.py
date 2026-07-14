@@ -150,6 +150,7 @@ def cli(config, verbose, all, core, service, clean, skip_pre, skip_tests):
             "pgbouncer",
             "interactives",
             "db",
+            "nginx",
         ]
         if not os.path.exists(
             "bases/rsptx/interactives/runestone/dist/webpack_static_imports.json"
@@ -853,8 +854,11 @@ def restart(config):
             "compose",
             "-f",
             "docker-compose.yml",
-            "down",
         ]
+        # check for docker-compose.override.yml and add it to the command if it exists
+        if os.path.isfile("docker-compose.override.yml"):
+            command_list.extend(["-f", "docker-compose.override.yml"])
+        command_list.extend(["down"])
         ret1 = subprocess.run(
             command_list,
             capture_output=True,
