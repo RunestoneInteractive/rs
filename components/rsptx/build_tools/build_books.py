@@ -13,9 +13,14 @@
 # with the RUNESTONE_BIN environment variable) since the legacy build code is
 # no longer part of this repository.
 
+import contextlib
+import io
 import os
 import re
 import subprocess
+import traceback
+from collections import namedtuple
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import click
@@ -209,11 +214,159 @@ def stamp(session_maker, course: str, **vals):
         session.execute(stmt)
 
 
+# A picklable snapshot of the library row -- passed to worker processes, which
+# cannot receive the detached SQLAlchemy ORM instance safely.
+BookSpec = namedtuple(
+    "BookSpec",
+    "basecourse repo_path source_path prebuild_hook postbuild_hook "
+    "build_system target",
+)
+
+# The invocation-wide options every book build needs.  Picklable so it can be
+# handed to worker processes.
+BuildCtx = namedtuple(
+    "BuildCtx",
+    "book_path config generate deploy_only no_deploy num_servers clean",
+)
+
+
+def to_spec(lib: Library) -> BookSpec:
+    return BookSpec(
+        basecourse=lib.basecourse,
+        repo_path=lib.repo_path,
+        source_path=lib.source_path,
+        prebuild_hook=lib.prebuild_hook,
+        postbuild_hook=lib.postbuild_hook,
+        build_system=lib.build_system,
+        target=lib.target,
+    )
+
+
+def _notify_build_failure(course: str, status: str) -> None:
+    """
+    Send an immediate push notification for a single failed book build, so a
+    failure is visible without waiting for the whole run to finish.  A failed
+    notification must never take down the build itself.
+    """
+    try:
+        notify("book build failed", f"{course}: {status}", 1)
+    except Exception as e:
+        print(f"notification for {course} failed: {e}")
+
+
+def process_one_book(spec: BookSpec, ctx: BuildCtx, session_maker=None) -> tuple:
+    """
+    Pull, build, deploy and timestamp a single book.  Returns the
+    (course, pulled, built, deployed, status) summary tuple.  Everything here
+    is process-local (it changes the cwd and drives the PreTeXt logger), so it
+    is safe to run in parallel across separate processes.  When ``session_maker``
+    is None a private engine is created for the DB timestamp writes (the case
+    for worker processes, which cannot share the parent's engine).
+    """
+    own_engine = None
+    if session_maker is None:
+        own_engine = create_engine(ctx.config.dburl.replace("+asyncpg", ""))
+        session_maker = sessionmaker(bind=own_engine)
+    try:
+        course = spec.basecourse
+        repodir, workdir = resolve_dirs(ctx.book_path, spec)
+
+        pulled = None  # None means the pull was skipped (--deploy-only)
+        pull_msg = ""
+        build_res = {"completed": True, "status": "Build skipped (--deploy-only)"}
+        if not ctx.deploy_only:
+            if not workdir.is_dir():
+                status = f"missing directory {workdir}"
+                _notify_build_failure(course, status)
+                return (course, False, False, False, status)
+            pull_res = git_pull(repodir)
+            pulled = pull_res["completed"]
+            if not pulled:
+                pull_msg = f"{pull_res['status']}; "
+                console.print(
+                    f"[yellow]{pull_res['status']} -- "
+                    f"building {course} from the current checkout[/yellow]"
+                )
+            os.chdir(workdir)
+            if spec.prebuild_hook:
+                build_res = run_hook(spec.prebuild_hook, workdir, "prebuild")
+            if build_res["completed"]:
+                if spec.build_system == "PTX":
+                    try:
+                        build_res = _build_ptx_book(
+                            ctx.config,
+                            ctx.generate,
+                            "runestone-manifest.xml",
+                            course,
+                            target=spec.target,
+                        )
+                    except Exception as e:
+                        build_res = {"completed": False, "status": f"build error: {e}"}
+                else:
+                    build_res = build_runestone_book(course, workdir)
+            if build_res["completed"] and spec.postbuild_hook:
+                build_res = run_hook(spec.postbuild_hook, workdir, "postbuild")
+
+            if not build_res["completed"]:
+                status = pull_msg + build_res["status"]
+                _notify_build_failure(course, status)
+                return (course, pulled, False, False, status)
+            stamp(session_maker, course, last_build=canonical_utcnow())
+
+        if ctx.no_deploy:
+            return (
+                course,
+                pulled,
+                True,
+                False,
+                pull_msg + "Deploy skipped (--no-deploy)",
+            )
+        deploy_res = deploy_book(course, ctx.book_path, ctx.num_servers, ctx.clean)
+        if deploy_res["completed"]:
+            stamp(session_maker, course, last_deploy=canonical_utcnow())
+        return (
+            course,
+            pulled,
+            build_res["completed"],
+            deploy_res["completed"],
+            pull_msg
+            + (
+                deploy_res["status"]
+                if deploy_res["completed"]
+                else f"{build_res['status']} / {deploy_res['status']}"
+            ),
+        )
+    finally:
+        if own_engine is not None:
+            own_engine.dispose()
+
+
+def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
+    """
+    Worker-process entry point: run one book build with all of its output
+    captured, so the parent can print each book's log as a clean block instead
+    of interleaving lines from concurrent builds.  Returns (result, output).
+    """
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            result = process_one_book(spec, ctx)
+    except Exception as e:
+        buf.write(traceback.format_exc())
+        result = (spec.basecourse, None, False, False, f"worker crashed: {e}")
+    return result, buf.getvalue()
+
+
 @click.command()
 @click.option(
     "--book",
     multiple=True,
     help="Build only the given basecourse (may be repeated); default is all in-use books",
+)
+@click.option(
+    "--exclude",
+    multiple=True,
+    help="Skip the given basecourse (may be repeated), even if --book names it",
 )
 @click.option("--clean", is_flag=True, help="Remove the remote book before syncing")
 @click.option("--no-deploy", is_flag=True, help="Build only, do not rsync to servers")
@@ -223,7 +376,15 @@ def stamp(session_maker, course: str, **vals):
 @click.option(
     "--dry-run", is_flag=True, help="Show what would be built/deployed and exit"
 )
-def build_books(book, clean, no_deploy, deploy_only, dry_run):
+@click.option(
+    "-j",
+    "--parallel",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Build up to this many books at once (1 = sequential)",
+)
+def build_books(book, exclude, clean, no_deploy, deploy_only, dry_run, parallel):
     """
     Build every book in the library where for_classes or is_visible is true,
     then rsync each successfully built book to server1..serverN.
@@ -277,93 +438,75 @@ def build_books(book, clean, no_deploy, deploy_only, dry_run):
         exit(1)
 
     generate = bool(os.environ.get("GENERATE_ASSETS", False))
-    results = []
-    for lib in books:
-        course = lib.basecourse
-        repodir, workdir = resolve_dirs(book_path, lib)
-        console.rule(f"[bold]{course}")
-
-        if dry_run:
-            hooks = ""
-            if lib.prebuild_hook:
-                hooks += f" [prebuild: {lib.prebuild_hook}]"
-            if lib.postbuild_hook:
-                hooks += f" [postbuild: {lib.postbuild_hook}]"
-            click.echo(
-                f"Would pull {repodir} then build {course} ({lib.build_system}) "
-                f"in {workdir}{hooks} then sync to {num_servers} servers"
+    specs = [to_spec(lib) for lib in books]
+    if exclude:
+        excluded = set(exclude)
+        skipped = [s.basecourse for s in specs if s.basecourse in excluded]
+        specs = [s for s in specs if s.basecourse not in excluded]
+        if skipped:
+            console.print(f"[yellow]Excluding: {', '.join(skipped)}[/yellow]")
+        missing = excluded - set(skipped)
+        if missing:
+            console.print(
+                f"[yellow]--exclude names not in the build set: "
+                f"{', '.join(sorted(missing))}[/yellow]"
             )
-            continue
+        if not specs:
+            click.echo("All matching books were excluded")
+            exit(1)
 
-        pulled = None  # None means the pull was skipped (--deploy-only)
-        pull_msg = ""
-        build_res = {"completed": True, "status": "Build skipped (--deploy-only)"}
-        if not deploy_only:
-            if not workdir.is_dir():
-                results.append(
-                    (course, False, False, False, f"missing directory {workdir}")
-                )
-                continue
-            pull_res = git_pull(repodir)
-            pulled = pull_res["completed"]
-            if not pulled:
-                pull_msg = f"{pull_res['status']}; "
-                console.print(
-                    f"[yellow]{pull_res['status']} -- "
-                    f"building {course} from the current checkout[/yellow]"
-                )
-            os.chdir(workdir)
-            if lib.prebuild_hook:
-                build_res = run_hook(lib.prebuild_hook, workdir, "prebuild")
-            if build_res["completed"]:
-                if lib.build_system == "PTX":
-                    try:
-                        build_res = _build_ptx_book(
-                            config,
-                            generate,
-                            "runestone-manifest.xml",
-                            course,
-                            target=lib.target,
-                        )
-                    except Exception as e:
-                        build_res = {"completed": False, "status": f"build error: {e}"}
-                else:
-                    build_res = build_runestone_book(course, workdir)
-            if build_res["completed"] and lib.postbuild_hook:
-                build_res = run_hook(lib.postbuild_hook, workdir, "postbuild")
-
-            if not build_res["completed"]:
-                results.append(
-                    (course, pulled, False, False, pull_msg + build_res["status"])
-                )
-                continue
-            stamp(Session, course, last_build=canonical_utcnow())
-
-        if no_deploy:
-            results.append(
-                (course, pulled, True, False, pull_msg + "Deploy skipped (--no-deploy)")
-            )
-            continue
-        deploy_res = deploy_book(course, book_path, num_servers, clean)
-        if deploy_res["completed"]:
-            stamp(Session, course, last_deploy=canonical_utcnow())
-        results.append(
-            (
-                course,
-                pulled,
-                build_res["completed"],
-                deploy_res["completed"],
-                pull_msg
-                + (
-                    deploy_res["status"]
-                    if deploy_res["completed"]
-                    else f"{build_res['status']} / {deploy_res['status']}"
-                ),
-            )
-        )
+    ctx = BuildCtx(
+        book_path=book_path,
+        config=config,
+        generate=generate,
+        deploy_only=deploy_only,
+        no_deploy=no_deploy,
+        num_servers=num_servers,
+        clean=clean,
+    )
 
     if dry_run:
+        for spec in specs:
+            repodir, workdir = resolve_dirs(book_path, spec)
+            console.rule(f"[bold]{spec.basecourse}")
+            hooks = ""
+            if spec.prebuild_hook:
+                hooks += f" [prebuild: {spec.prebuild_hook}]"
+            if spec.postbuild_hook:
+                hooks += f" [postbuild: {spec.postbuild_hook}]"
+            click.echo(
+                f"Would pull {repodir} then build {spec.basecourse} "
+                f"({spec.build_system}) in {workdir}{hooks} then sync to "
+                f"{num_servers} servers"
+            )
         return
+
+    results = []
+    workers = max(1, min(parallel, len(specs)))
+    if workers == 1:
+        # Sequential: build in this process so output streams live.
+        for spec in specs:
+            console.rule(f"[bold]{spec.basecourse}")
+            results.append(process_one_book(spec, ctx, session_maker=Session))
+    else:
+        # Parallel: each book builds in its own process (PreTeXt builds rely on
+        # the process cwd and a global logger, so they cannot share one).  Each
+        # worker captures its output; we print it as a block when it finishes.
+        console.print(f"[bold]Building {len(specs)} books, {workers} at a time[/bold]")
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(_build_worker, spec, ctx): spec for spec in specs}
+            for fut in as_completed(futures):
+                result, output = fut.result()
+                console.rule(f"[bold]{result[0]}")
+                if output:
+                    # Already-rendered plain text -- print verbatim so status
+                    # strings aren't reinterpreted as rich markup.
+                    print(output, end="")
+                results.append(result)
+
+    # Parallel builds finish out of order; report them in the build order.
+    order = {spec.basecourse: i for i, spec in enumerate(specs)}
+    results.sort(key=lambda r: order.get(r[0], len(order)))
 
     table = Table(title="Build and Deploy Summary", caption=versions)
     table.add_column("Book")
