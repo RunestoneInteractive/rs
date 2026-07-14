@@ -52,6 +52,13 @@ The script will guide you through an interactive setup process, asking questions
 #. Navigate to where you want the configuration files created (e.g., ``mkdir ~/runestone && cd ~/runestone``)
 #. Make sure you have the prerequisites installed (see above)
 #. For Windows users: Run this from a WSL2 terminal, not PowerShell or Command Prompt
+#. Have Docker running (Docker Desktop must be started first)
+
+.. code-block:: bash
+
+   bash <(curl -fsSL https://raw.githubusercontent.com/RunestoneInteractive/rs/main/init_runestone.sh)
+
+The script will guide you through an interactive setup process, asking questions along the way to configure your Runestone server.
 
 **After setup completes:**
 
