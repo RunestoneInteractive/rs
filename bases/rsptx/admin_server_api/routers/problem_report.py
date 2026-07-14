@@ -58,6 +58,7 @@ def _prefill(user, page: str) -> dict:
         "course": getattr(user, "course_name", "") or "",
         "page": page or "",
         "description": "",
+        "console_log": "",
     }
 
 
@@ -86,7 +87,7 @@ async def _base_context(request: Request, user) -> dict:
 
 
 async def _create_github_issue(
-    username: str, course: str, page: str, description: str
+    username: str, course: str, page: str, description: str, console_log: str = ""
 ) -> str | None:
     """File the problem report as a GitHub issue.
 
@@ -110,6 +111,9 @@ async def _create_github_issue(
         f"| **Reported at** | {canonical_utcnow().isoformat()} |\n\n"
         f"### Description\n\n{description}\n"
     )
+    if console_log.strip():
+        # Fence it so backticks/markdown in the log don't wreck the issue body.
+        body += f"\n### Browser console log\n\n```text\n{console_log}\n```\n"
 
     url = f"https://api.github.com/repos/{settings.github_issue_repo}/issues"
     headers = {
@@ -164,6 +168,7 @@ async def report_submit(
     username: str = Form(default=""),
     course: str = Form(default=""),
     page: str = Form(default=""),
+    console_log: str = Form(default=""),
 ):
     """Validate the report and file it as a GitHub issue."""
     user = await _current_user(request)
@@ -187,13 +192,16 @@ async def report_submit(
                 "course": course,
                 "page": page,
                 "description": description,
+                "console_log": console_log,
             },
             errors=errors,
             success=False,
         )
         return templates.TemplateResponse("admin/problem_report.html", ctx)
 
-    issue_url = await _create_github_issue(username, course, page, description)
+    issue_url = await _create_github_issue(
+        username, course, page, description, console_log
+    )
 
     if not issue_url:
         errors.append(
