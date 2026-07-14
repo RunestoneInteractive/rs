@@ -22,12 +22,12 @@ import click
 import pretext
 from rich.console import Console
 from rich.table import Table
-from sqlalchemy import create_engine, select, update, or_
+from sqlalchemy import create_engine, select, update, or_, func
 from sqlalchemy.orm.session import sessionmaker
 
 from rsptx.build_tools.core import _build_ptx_book
 from rsptx.build_tools.notifications import notify
-from rsptx.db.models import Library
+from rsptx.db.models import Library, Courses
 from rsptx.response_helpers.core import canonical_utcnow
 
 console = Console()
@@ -252,12 +252,19 @@ def build_books(book, clean, no_deploy, deploy_only, dry_run):
     engine = create_engine(config.dburl.replace("+asyncpg", ""))
     Session = sessionmaker(bind=engine)
 
+    # Count how many courses derive from each base course so we can build the
+    # most-used books first (a failure there affects the most students).
+    course_count = (
+        select(func.count(Courses.id))
+        .where(Courses.base_course == Library.basecourse)
+        .scalar_subquery()
+    )
     query = (
         select(Library)
         .where(
             or_(Library.for_classes == True, Library.is_visible == True)  # noqa: E712
         )
-        .order_by(Library.basecourse)
+        .order_by(course_count.desc(), Library.basecourse)
     )
     if book:
         query = select(Library).where(Library.basecourse.in_(book))
