@@ -14,6 +14,7 @@
 # no longer part of this repository.
 
 import contextlib
+import getpass
 import io
 import os
 import re
@@ -150,6 +151,55 @@ def build_runestone_book(course: str, workdir: Path) -> dict:
     return {"completed": True, "status": "Build completed successfully"}
 
 
+def reclaim_book_ownership(book_path: Path) -> None:
+    """
+    Docker-based builds can leave files under BOOK_PATH owned by root, which
+    then break subsequent builds and the marker-file touches.  Reclaim them for
+    the current user before building.
+
+    Production has a passwordless sudoers entry for exactly this find command;
+    ``sudo -n`` (the ``-n`` is a sudo option, not part of the matched command,
+    so the sudoers rule still applies) runs it non-interactively so it fails
+    fast -- and we warn and carry on -- anywhere that entry is not set up,
+    instead of blocking on a password prompt.
+    """
+    user = getpass.getuser()
+    cmd = [
+        "sudo",
+        "-n",
+        "/usr/bin/find",
+        f"{book_path}/",
+        "-user",
+        "root",
+        "-exec",
+        "chown",
+        f"{user}:{user}",
+        "{}",
+        ";",
+    ]
+    console.print(f"[bold]Reclaiming root-owned files under {book_path}/[/bold]")
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        reason = (res.stderr or res.stdout).strip() or "unknown error"
+        console.print(
+            f"[yellow]Could not reclaim ownership (continuing anyway): "
+            f"{reason}[/yellow]"
+        )
+
+
+def touch_marker(path: Path) -> None:
+    """
+    Touch a build/deploy marker file (``build_success`` / ``sync_success``) that
+    the author server and monitoring use to track freshness.  Writing this
+    bookkeeping file is best-effort: a permission or other OS error is a warning,
+    never a reason to fail an otherwise-successful build or deploy.
+    """
+    try:
+        path.touch()
+    except OSError as e:
+        console.print(f"[yellow]Could not touch {path}: {e}[/yellow]")
+
+
 def deploy_book(course: str, book_path: Path, num_servers: int, clean: bool) -> dict:
     """
     Rsync the published book to server1..serverN.  Returns the same
@@ -204,7 +254,7 @@ def deploy_book(course: str, book_path: Path, num_servers: int, clean: bool) -> 
                 "status": f"rsync failed on {server}: {res.stderr.decode(errors='replace').strip()}",
             }
 
-    (book_path / course / "sync_success").touch()
+    touch_marker(book_path / course / "sync_success")
     return {"completed": True, "status": "Deployed successfully"}
 
 
@@ -312,6 +362,7 @@ def process_one_book(spec: BookSpec, ctx: BuildCtx, session_maker=None) -> tuple
                 _notify_build_failure(course, status)
                 return (course, pulled, False, False, status)
             stamp(session_maker, course, last_build=canonical_utcnow())
+            touch_marker(ctx.book_path / course / "build_success")
 
         if ctx.no_deploy:
             return (
@@ -377,6 +428,11 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     "--dry-run", is_flag=True, help="Show what would be built/deployed and exit"
 )
 @click.option(
+    "--skip-chown",
+    is_flag=True,
+    help="Skip reclaiming root-owned files under BOOK_PATH before building",
+)
+@click.option(
     "-j",
     "--parallel",
     type=int,
@@ -384,7 +440,9 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     show_default=True,
     help="Build up to this many books at once (1 = sequential)",
 )
-def build_books(book, exclude, clean, no_deploy, deploy_only, dry_run, parallel):
+def build_books(
+    book, exclude, clean, no_deploy, deploy_only, dry_run, skip_chown, parallel
+):
     """
     Build every book in the library where for_classes or is_visible is true,
     then rsync each successfully built book to server1..serverN.
@@ -465,7 +523,11 @@ def build_books(book, exclude, clean, no_deploy, deploy_only, dry_run, parallel)
         clean=clean,
     )
 
+    reclaim = not deploy_only and not skip_chown
+
     if dry_run:
+        if reclaim:
+            click.echo(f"Would reclaim root-owned files under {book_path}/")
         for spec in specs:
             repodir, workdir = resolve_dirs(book_path, spec)
             console.rule(f"[bold]{spec.basecourse}")
@@ -480,6 +542,9 @@ def build_books(book, exclude, clean, no_deploy, deploy_only, dry_run, parallel)
                 f"{num_servers} servers"
             )
         return
+
+    if reclaim:
+        reclaim_book_ownership(book_path)
 
     results = []
     workers = max(1, min(parallel, len(specs)))
