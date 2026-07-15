@@ -80,6 +80,12 @@
     cursor: grab;
 }
 
+/* Show every available response while a premise is being pointer-dragged. */
+.draggable-container.pointer-drag-active .draggable-drop {
+    border-color: var(--dnd-active-drop-border, #2b6ea6);
+    box-shadow: 0 0 0 2px var(--dnd-active-drop-glow, rgba(43, 110, 166, 0.45));
+}
+
 .draggable-container {
     text-align: center;
 }

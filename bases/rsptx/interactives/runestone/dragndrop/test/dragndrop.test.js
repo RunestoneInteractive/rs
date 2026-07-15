@@ -94,9 +94,9 @@ describe("construction from a JSON script block", () => {
         const dnd = await makeDnd();
         const container = document.getElementById("test_dnd_1");
         expect(container).toBe(dnd.containerDiv);
-        expect(
-            container.querySelector(".cardsort-statement").textContent,
-        ).toBe("Match each animal to its sound.");
+        expect(container.querySelector(".cardsort-statement").textContent).toBe(
+            "Match each animal to its sound.",
+        );
         const dragIds = [...dnd.draggableDiv.querySelectorAll(".premise")].map(
             (el) => el.id,
         );
@@ -146,10 +146,7 @@ describe("construction from legacy data-subcomponent markup", () => {
         await tick();
         expect(dnd.question).toBe("Match the terms.");
         expect(dnd.feedback).toBe("A hint.");
-        expect(dnd.premiseArray.map((p) => p.id)).toEqual([
-            "drag_a",
-            "drag_b",
-        ]);
+        expect(dnd.premiseArray.map((p) => p.id)).toEqual(["drag_a", "drag_b"]);
         // dropzone ids are derived from the for attribute
         expect(dnd.responseArray.map((r) => r.id)).toEqual([
             "drop_a",
@@ -528,6 +525,27 @@ describe("keyboard controls", () => {
     });
 });
 
+describe("pointer controls", () => {
+    it("highlights responses only while a premise is being dragged", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const dragStart = new Event("dragstart", { bubbles: true });
+        Object.defineProperty(dragStart, "dataTransfer", {
+            value: { setData: vi.fn() },
+        });
+
+        premise.dispatchEvent(dragStart);
+        expect(dnd.containerDiv.classList.contains("pointer-drag-active")).toBe(
+            true,
+        );
+
+        premise.dispatchEvent(new Event("dragend", { bubbles: true }));
+        expect(dnd.containerDiv.classList.contains("pointer-drag-active")).toBe(
+            false,
+        );
+    });
+});
+
 describe("persistence", () => {
     it("restores placements from localStorage on a fresh render", async () => {
         const first = await makeDnd();
@@ -535,9 +553,9 @@ describe("persistence", () => {
         first.checkCurrentAnswer();
         const second = await makeDnd();
         const r1 = second.responseArray.find((r) => r.id === "r1");
-        expect(
-            [...r1.querySelectorAll(".premise")].map((p) => p.id),
-        ).toEqual(["p1"]);
+        expect([...r1.querySelectorAll(".premise")].map((p) => p.id)).toEqual([
+            "p1",
+        ]);
         expect(
             [...second.draggableDiv.querySelectorAll(".premise")].map(
                 (p) => p.id,
@@ -563,9 +581,9 @@ describe("persistence", () => {
             correct: true,
         });
         const r2 = dnd.responseArray.find((r) => r.id === "r2");
-        expect(
-            [...r2.querySelectorAll(".premise")].map((p) => p.id),
-        ).toEqual(["p2"]);
+        expect([...r2.querySelectorAll(".premise")].map((p) => p.id)).toEqual([
+            "p2",
+        ]);
         expect(dnd.correct).toBe(true);
     });
 
@@ -632,10 +650,9 @@ describe("TimedDragNDrop", () => {
     }
 
     beforeEach(() => {
-        vi.spyOn(
-            RunestoneBase.prototype,
-            "logBookEvent",
-        ).mockResolvedValue(undefined);
+        vi.spyOn(RunestoneBase.prototype, "logBookEvent").mockResolvedValue(
+            undefined,
+        );
     });
 
     afterEach(() => {

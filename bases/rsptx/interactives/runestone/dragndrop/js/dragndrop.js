@@ -325,6 +325,7 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
+                this.setPointerDragActive(false);
                 if (this.draggableDiv.classList.contains("possibleDrop")) {
                     this.draggableDiv.classList.remove("possibleDrop");
                 }
@@ -457,7 +458,11 @@ export default class DragNDrop extends RunestoneBase {
         dgSpan.setAttribute("aria-pressed", "false");
         dgSpan.addEventListener("dragstart", (ev) => {
             this.deselectPremise();
+            this.setPointerDragActive(true);
             ev.dataTransfer.setData("draggableID", ev.target.id);
+        });
+        dgSpan.addEventListener("dragend", () => {
+            this.setPointerDragActive(false);
         });
         dgSpan.addEventListener("dragover", function (ev) {
             ev.preventDefault();
@@ -467,6 +472,7 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
+                this.setPointerDragActive(false);
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
@@ -539,6 +545,7 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
+                this.setPointerDragActive(false);
                 if (ev.target.classList.contains("possibleDrop")) {
                     ev.target.classList.remove("possibleDrop");
                 }
@@ -596,6 +603,10 @@ export default class DragNDrop extends RunestoneBase {
                 this.moveSelectedPremise(dpSpan, dpSpan.id);
             }
         });
+    }
+
+    setPointerDragActive(active) {
+        this.containerDiv.classList.toggle("pointer-drag-active", active);
     }
 
     moveResponseFocus(response, moveBackward) {
