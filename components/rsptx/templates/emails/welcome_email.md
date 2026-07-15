@@ -21,7 +21,7 @@ We are all in this together so we have created some Google Groups to encourage t
 ## Bug Reports
 Runestone is an open source project, so people volunteer their time and energy to make it better. We don't have a full time support team, but we do our best to be helpful and responsive. Please do not email us about bugs! Bug reports are very likely to get lost in a busy inbox! Everybody has had questions about something on Runestone before, so please use the community resources.
 
-The best thing to do is to create an issue on our [GitHub page](https://github.com/RunestoneInteractive/rs/issues).  I know it might be a pain to have to create an account on GitHub, but it is the best way to keep our sanity AND have a conversation with you or keep you up to date about your problem.
+The best thing to do is to create an issue on our [GitHub page](https://github.com/RunestoneInteractive/rs/issues).  If you don't want to create a github username you can also use [Our problem report](https://runestone.academy/admin/problem/report) But it will be more difficult to work with if we need to gather more information from you.
 
 ## Supporting Runestone
 Although we make Runestone Academy available for free, it is not free for us to run.  Servers cost real money.  If you are willing and able to support us you can [request an invoice]({{invoice_url}}).  You set whatever amount works for your school.  We often suggest $10 per student but thats not required.

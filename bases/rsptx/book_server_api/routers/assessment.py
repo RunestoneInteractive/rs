@@ -165,12 +165,14 @@ async def get_history(
     # so verify that the actual user is an instructor.
     if sid:
         if user.username != sid:
+            # Requesting another user's history requires instructor rights.
             if await is_instructor(request):
                 course_id = user.course_id
             else:
                 raise HTTPException(401)
         else:
-            raise HTTPException(401)
+            # Explicitly requesting one's own history is fine.
+            course_id = user.course_id
     # In this case, the request is simply from a student, so we will use
     # their logged in username
     else:

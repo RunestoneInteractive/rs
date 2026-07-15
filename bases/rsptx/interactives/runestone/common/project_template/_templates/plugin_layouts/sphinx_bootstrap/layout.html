@@ -243,7 +243,8 @@ window.MathJax = {
             <li><a href='https://guide.runestone.academy' target="_blank" rel="noopener noreferrer" >Instructors Guide</a></li>
             <li class="divider"></li>
             <li><a href='http://runestoneinteractive.org'>About Runestone</a></li>
-            <li><a href='/{{ appname }}/default/reportabug?course={{ course_id }}&page={{ pathto(pagename,1) }}'>Report A Problem</a></li>
+            <li><a id="rs-report-problem" href='/admin/problem/report'
+                   onclick="this.href='/admin/problem/report?page='+encodeURIComponent(window.location.href)">Report A Problem</a></li>
           </ul>
         </li>
         <!-- end help menu dropdown -->

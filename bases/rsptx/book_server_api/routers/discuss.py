@@ -326,5 +326,8 @@ async def send_message(packet: PeerMessage, request: Request):
             content={"detail": "Not authenticated"},
         )
     packet.sender = user.username
-    r = await aioredis.from_url(settings.redis_uri)
-    r.publish("peermessages", packet.model_dump_json())
+    r = aioredis.from_url(settings.redis_uri)
+    try:
+        await r.publish("peermessages", packet.model_dump_json())
+    finally:
+        await r.close()

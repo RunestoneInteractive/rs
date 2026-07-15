@@ -457,7 +457,7 @@ export default class MultipleChoice extends RunestoneBase {
         var buttonObjs = this.optsForm.elements.group1;
         for (var i = 0; i < buttonObjs.length; i++) {
             if (buttonObjs[i].checked) {
-                given = buttonObjs[i].value;
+                given = parseInt(buttonObjs[i].value, 10);
                 this.givenArray.push(given);
                 this.feedbackString += `<li value="${i + 1}">${
                     this.feedbackList[i]
@@ -466,7 +466,7 @@ export default class MultipleChoice extends RunestoneBase {
                 this.singlefeedback = this.feedbackList[i];
             }
         }
-        this.givenArray.sort();
+        this.givenArray.sort((a, b) => a - b);
     }
 
     checkCurrentAnswer() {
@@ -541,7 +541,7 @@ export default class MultipleChoice extends RunestoneBase {
         let data = {
             event: "mChoice",
             act: logAnswer,
-            answer: answer,
+            answer: answer.toString(),
             correct: correct,
             div_id: this.divid,
         };
@@ -628,7 +628,7 @@ export default class MultipleChoice extends RunestoneBase {
         let data = {
             event: "mChoice",
             act: logAnswer,
-            answer: answer,
+            answer: answer.toString(),
             correct: correct,
             div_id: this.divid,
         };

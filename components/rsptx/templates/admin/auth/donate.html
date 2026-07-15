@@ -43,7 +43,7 @@
                 Anything more than $1 is appreciated.
             </div>
             <div class="donate-actions">
-                <a class="btn-rs-secondary" href="/ns/course/index" role="button">Sorry, not Today</a>
+                <a class="btn-rs-secondary" href="{{ '/ns/course/index' if user else 'https://runestone.academy' }}" role="button">Sorry, not Today</a>
             </div>
         </div>
     </div>

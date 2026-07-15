@@ -1,0 +1,120 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Report a Problem — Runestone Academy{% endblock %}
+
+{% block content %}
+<div class="auth-card auth-card--wide">
+    <h1>Report a Problem</h1>
+
+    {% if success %}
+    <div class="alert alert-success">
+        <p><strong>Thank you!</strong> Your report has been filed as an issue on
+        GitHub, where our team tracks and fixes problems. We appreciate you
+        taking the time to help us improve Runestone.</p>
+        {% if issue_url %}
+        <p class="mb-0">
+            <a href="{{ issue_url }}" target="_blank" rel="noopener noreferrer">
+                View and track your report on GitHub
+            </a>
+            <small class="text-muted d-block">Opens in a new tab. You can watch
+            the issue there for updates.</small>
+        </p>
+        {% endif %}
+    </div>
+    <div class="auth-links">
+        <a href="{{ submitted.page if submitted.page else '/ns/course/index' }}">Back to your book</a>
+        {% if issues_page_url %}
+        &nbsp;·&nbsp;
+        <a href="{{ issues_page_url }}" target="_blank" rel="noopener noreferrer">All open issues</a>
+        {% endif %}
+    </div>
+    {% else %}
+
+    <p class="text-muted">
+        Found something wrong on a page — a typo, a broken example, an activity
+        that won't run? Tell us about it below. We've filled in what we already
+        know; just describe the problem and hit submit. If you have a GitHub account,
+        you can <a href="https://github.com/RunestoneInteractive/rs/issues">file it directly</a>,
+        that way you can track the issue and get updates when it's fixed.
+    </p>
+
+    {% if errors %}
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+        {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/admin/problem/report">
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="username">Your Username</label>
+                <input type="text" class="form-control" id="username" name="username"
+                       value="{{ submitted.username }}"
+                       {% if submitted.username %}readonly{% endif %}>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="course">Course</label>
+                <input type="text" class="form-control" id="course" name="course"
+                       value="{{ submitted.course }}"
+                       {% if submitted.course %}readonly{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="page">Page (where the problem is)</label>
+            <input type="text" class="form-control" id="page" name="page"
+                   placeholder="e.g. the address of the page you were reading"
+                   value="{{ submitted.page }}">
+            <small class="form-text text-muted">Prefilled from the page you came
+                from. Edit it if the problem is somewhere else.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Describe the problem</label>
+            <textarea class="form-control" id="description" name="description" rows="6"
+                      required autofocus
+                      placeholder="What did you expect to happen, and what happened instead? Include anything you typed or clicked.  Include the full contents of any popup error messages.  If you know about the Javascript console look for errors there.">{{ submitted.description }}</textarea>
+        </div>
+
+        <details class="form-group" id="console_log_group" hidden>
+            <summary>Browser console log (collected automatically)</summary>
+            <small class="form-text text-muted">Recent console messages and
+                errors from your browser. They help us diagnose the problem, but
+                you're welcome to review, edit, or clear this before submitting.</small>
+            <textarea class="form-control mt-2" id="console_log" name="console_log" rows="8"
+                      placeholder="(no console output was captured)">{{ submitted.console_log }}</textarea>
+        </details>
+
+        <button type="submit" class="btn btn-rs-primary">Submit Report</button>
+    </form>
+    <p class="text-muted small">Note: we may use your username to follow up on the issue via email if necessary.</p>
+
+    <script>
+        // Pull the console log the book page stashed when the user clicked
+        // "Problem Report", drop it into the (hidden) field, and reveal the
+        // field so the reporter can see and edit what will be sent.
+        (function () {
+            try {
+                var key = "rs_console_log";
+                var log = window.sessionStorage.getItem(key);
+                window.sessionStorage.removeItem(key);
+                var field = document.getElementById("console_log");
+                var group = document.getElementById("console_log_group");
+                // Prefer a value the server already round-tripped (e.g. after a
+                // validation error) over a possibly-stale sessionStorage entry.
+                if (field && !field.value && log) {
+                    field.value = log;
+                }
+                if (group && field && field.value) {
+                    group.hidden = false;
+                }
+            } catch (e) {
+                /* sessionStorage unavailable; leave the field hidden and empty. */
+            }
+        })();
+    </script>
+    {% endif %}
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
 # Uses UV not Poetry -- conversion to uv in June 2026
 [project]
 name = "rs"
-version = "8.10.1"
+version = "8.10.3"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
 requires-python = ">=3.13,<4"
@@ -82,6 +82,8 @@ dependencies = [
 [project.scripts]
 buildptx = "rsptx.interactives.scripts.buildptx:build_book"
 build = "rsptx.build_tools.build:cli"
+build_books = "rsptx.build_tools.build_books:build_books"
+build_mon = "rsptx.build_tools.build_mon:main"
 rsmanage = "rsptx.rsmanage.core:cli"
 tbm = "rsptx.build_tools.traceback_monitor:main"
 

@@ -255,5 +255,14 @@ class Settings(BaseSettings):
     email_login: str = ""
     email_server: str = "smtp.mailgun.org:587"
 
+    # Problem reporting. When a student submits the "Report a Problem" form on
+    # the admin server, the report is filed as a GitHub issue in
+    # ``github_issue_repo`` using ``github_token``. The token needs only the
+    # ``issues:write`` (or classic ``repo``) scope on that repository. Leave the
+    # token blank to disable the feature (the form will report it is
+    # unavailable). Keep the token in the environment -- never commit it.
+    github_token: str = ""
+    github_issue_repo: str = "RunestoneInteractive/rs"
+
 
 settings = Settings(book_server_config=os.environ.get("SERVER_CONFIG", "development"))

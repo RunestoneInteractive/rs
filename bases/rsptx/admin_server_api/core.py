@@ -32,6 +32,7 @@ from .routers import auth
 from .routers import telemetry
 from .routers import legal
 from .routers import start
+from .routers import problem_report
 
 # FastAPI setup
 # =============
@@ -57,6 +58,7 @@ app.include_router(auth.router)
 app.include_router(telemetry.router)
 app.include_router(legal.router)
 app.include_router(start.router)
+app.include_router(problem_report.router)
 
 # load a common set of middleware/exception handlers
 add_exception_handlers(app)

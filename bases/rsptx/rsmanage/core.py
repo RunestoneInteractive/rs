@@ -1415,6 +1415,8 @@ async def library_show(ctx, book):
     click.echo(f"is_visible: {bookrec.is_visible}")
     click.echo(f"repo_path: {bookrec.repo_path}")
     click.echo(f"github_url: {bookrec.github_url}")
+    click.echo(f"prebuild_hook: {bookrec.prebuild_hook}")
+    click.echo(f"postbuild_hook: {bookrec.postbuild_hook}")
 
 
 @library.command("repo_path")
@@ -1457,6 +1459,44 @@ async def library_github(ctx, book, url):
     print(f"Setting the github_url to {url} for {book} in the library")
     bookrec = await fetch_library_book(book)
     await update_library_book(bookrec.id, dict(github_url=url))
+
+
+@library.command("prebuild")
+@click.pass_context
+@click.argument("book")
+@click.option("--command", default=None, help="Command to run before building the book")
+@click.option("--remove", is_flag=True, help="Remove the prebuild hook")
+async def library_prebuild(ctx, book, command, remove):
+    """
+    Set (or remove) the prebuild hook command for the book. build_books runs
+    this command in the book's source directory before the build starts.
+    """
+    if remove:
+        command = None
+    elif not command:
+        command = await click.prompt("Please provide the command to run before a build")
+    print(f"Setting the prebuild_hook to {command} for {book} in the library")
+    bookrec = await fetch_library_book(book)
+    await update_library_book(bookrec.id, dict(prebuild_hook=command))
+
+
+@library.command("postbuild")
+@click.pass_context
+@click.argument("book")
+@click.option("--command", default=None, help="Command to run after the book is built")
+@click.option("--remove", is_flag=True, help="Remove the postbuild hook")
+async def library_postbuild(ctx, book, command, remove):
+    """
+    Set (or remove) the postbuild hook command for the book. build_books runs
+    this command in the book's source directory after a successful build.
+    """
+    if remove:
+        command = None
+    elif not command:
+        command = await click.prompt("Please provide the command to run after a build")
+    print(f"Setting the postbuild_hook to {command} for {book} in the library")
+    bookrec = await fetch_library_book(book)
+    await update_library_book(bookrec.id, dict(postbuild_hook=command))
 
 
 @cli.command()

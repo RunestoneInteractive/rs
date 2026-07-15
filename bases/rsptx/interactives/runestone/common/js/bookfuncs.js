@@ -34,6 +34,69 @@ import { marked } from "marked";
 
 var rb = new RunestoneBase();
 
+// ---------------------------------------------------------------------------
+// Console capture for problem reports
+//
+// The browser gives page scripts no way to read what is already in the devtools
+// console, so we buffer console output ourselves from the moment this module is
+// evaluated.  When the user opens the "Report a Problem" form we stash the
+// buffer in sessionStorage (see the Problem Report menu link below); the form
+// reads it back into a hidden field so recent log output and uncaught errors
+// ride along with the report.
+// ---------------------------------------------------------------------------
+export const RS_CONSOLE_LOG_KEY = "rs_console_log";
+const RS_LOG_BUFFER_MAX = 200;
+const rsConsoleBuffer = [];
+
+function rsFormatLogArg(arg) {
+    if (typeof arg === "string") return arg;
+    if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+    try {
+        return JSON.stringify(arg);
+    } catch (e) {
+        return String(arg);
+    }
+}
+
+function rsRecordLog(level, args) {
+    try {
+        const line = `[${level}] ${Array.from(args).map(rsFormatLogArg).join(" ")}`;
+        rsConsoleBuffer.push(line);
+        if (rsConsoleBuffer.length > RS_LOG_BUFFER_MAX) rsConsoleBuffer.shift();
+    } catch (e) {
+        // Never let log capture throw and break the page.
+    }
+}
+
+(function installConsoleCapture() {
+    if (window.__rsConsoleCaptureInstalled) return;
+    window.__rsConsoleCaptureInstalled = true;
+    for (const level of ["log", "info", "warn", "error"]) {
+        const orig = console[level] ? console[level].bind(console) : null;
+        console[level] = function (...args) {
+            rsRecordLog(level, args);
+            if (orig) orig(...args);
+        };
+    }
+    // console.log() never sees uncaught errors or rejected promises, so listen
+    // for those directly.
+    window.addEventListener("error", (e) => {
+        if (e.message) {
+            rsRecordLog("uncaught", [
+                `${e.message} @ ${e.filename || "?"}:${e.lineno || "?"}`,
+            ]);
+        }
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+        rsRecordLog("promise", [rsFormatLogArg(e.reason)]);
+    });
+})();
+
+/** Recent buffered console output, newest last, as a single string. */
+export function rsGetConsoleLog() {
+    return rsConsoleBuffer.join("\n");
+}
+
 //
 // Page decoration functions
 //
@@ -1205,6 +1268,26 @@ window.addEventListener("DOMContentLoaded", function (event) {
     );
     menuContentArea.appendChild(makeLink("/admin/auth/profile", "Profile"));
     menuContentArea.appendChild(makeLink("/admin/auth/logout", "Log Out"));
+    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
+    const problemReportLink = makeLink(
+        "/admin/problem/report",
+        "Problem Report",
+        "bug_report",
+    );
+    // Stash recent console output so the report form can pick it up and send it
+    // along with the report.
+    const problemReportAnchor = problemReportLink.querySelector("a");
+    if (problemReportAnchor) {
+        problemReportAnchor.addEventListener("click", () => {
+            try {
+                sessionStorage.setItem(RS_CONSOLE_LOG_KEY, rsGetConsoleLog());
+            } catch (e) {
+                // sessionStorage may be unavailable (e.g. private mode); the
+                // form simply won't be prefilled with the log.
+            }
+        });
+    }
+    menuContentArea.appendChild(problemReportLink);
 });
 
 /**
