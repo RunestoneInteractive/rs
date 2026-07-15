@@ -54,6 +54,15 @@
     cursor: grab;
 }
 
+/* Keep keyboard focus and the picked-up state visually distinct. */
+.draggable-drag:focus {
+    outline: 3px solid #3498db;
+}
+
+.draggable-drag.selected {
+    outline: 3px dashed #27ae60;
+}
+
 .draggable-feedback {
     text-align: left !important;
     clear: both;
@@ -77,7 +86,7 @@
 
 .possibleDrop {
     border-color: #000000;
-    background-color: #CCCCCC;
+    background-color: #cccccc;
 }
 
 /*

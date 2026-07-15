@@ -283,6 +283,251 @@ describe("reset", () => {
     });
 });
 
+describe("keyboard controls", () => {
+    it("starts with only premises in the tab order", async () => {
+        const dnd = await makeDnd();
+        expect(
+            dnd.premiseArray.every((premise) => premise.tabIndex === 0),
+        ).toBe(true);
+        expect(
+            dnd.responseArray.every((response) => response.tabIndex === -1),
+        ).toBe(true);
+    });
+
+    it("moves focus between unselected premises with ArrowUp and ArrowDown", async () => {
+        const dnd = await makeDnd();
+        const [firstPremise, secondPremise] = dnd.premiseArray;
+        firstPremise.focus();
+
+        firstPremise.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(secondPremise);
+        expect(dnd.selectedPremise).toBe(null);
+
+        secondPremise.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(firstPremise);
+    });
+
+    it.each(["Enter", " "])(
+        "places the selected premise in a response with %j",
+        async (key) => {
+            const dnd = await makeDnd();
+            const premise = dnd.premiseArray.find((p) => p.id === "p1");
+            const response = dnd.responseArray.find((r) => r.id === "r1");
+
+            premise.dispatchEvent(
+                new KeyboardEvent("keydown", { key, bubbles: true }),
+            );
+            expect(dnd.selectedPremise).toBe(premise);
+            expect(premise.classList.contains("selected")).toBe(true);
+            expect(premise.getAttribute("aria-pressed")).toBe("true");
+            expect(document.activeElement).toBe(dnd.responseArray[0]);
+            expect(dnd.responseArray[0].contains(premise)).toBe(true);
+            expect(dnd.premiseArray.every((item) => item.tabIndex === -1)).toBe(
+                true,
+            );
+            expect(dnd.responseArray.every((item) => item.tabIndex === 0)).toBe(
+                true,
+            );
+
+            response.dispatchEvent(
+                new KeyboardEvent("keydown", { key, bubbles: true }),
+            );
+            expect(response.contains(premise)).toBe(true);
+            expect(dnd.selectedPremise).toBe(null);
+            expect(premise.classList.contains("selected")).toBe(false);
+            expect(premise.getAttribute("aria-pressed")).toBe("false");
+            expect(dnd.isAnswered).toBe(true);
+            expect(document.activeElement).toBe(premise);
+            expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
+                true,
+            );
+            expect(
+                dnd.responseArray.every((item) => item.tabIndex === -1),
+            ).toBe(true);
+        },
+    );
+
+    it("Escape restores premise navigation and focus", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p2");
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        dnd.responseArray[0].dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+
+        expect(dnd.selectedPremise).toBe(null);
+        expect(document.activeElement).toBe(premise);
+        expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
+            true,
+        );
+        expect(dnd.responseArray.every((item) => item.tabIndex === -1)).toBe(
+            true,
+        );
+    });
+
+    it("does not treat a key event from a nested premise as response activation", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const response = dnd.responseArray.find((r) => r.id === "r1");
+        response.appendChild(premise);
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+    });
+
+    it("moves the selected premise through responses with the arrow keys", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const [firstResponse, secondResponse] = dnd.responseArray;
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(firstResponse.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(premise);
+
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            }),
+        );
+        expect(secondResponse.contains(premise)).toBe(true);
+        expect(document.activeElement).toBe(secondResponse);
+
+        secondResponse.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                bubbles: true,
+            }),
+        );
+        expect(firstResponse.contains(premise)).toBe(true);
+        expect(document.activeElement).toBe(firstResponse);
+        expect(premise.classList.contains("selected")).toBe(true);
+    });
+
+    it("previews the selected premise in each response focused with Tab", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const [firstResponse, secondResponse] = dnd.responseArray;
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(firstResponse.contains(premise)).toBe(true);
+
+        // Calling focus mirrors the focus change produced by Tab in the
+        // browser without relying on jsdom to implement Tab navigation.
+        secondResponse.focus();
+        expect(secondResponse.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(premise);
+
+        firstResponse.focus();
+        expect(firstResponse.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(premise);
+    });
+
+    it("traps Tab and Shift+Tab within responses while a premise is selected", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const [firstResponse, secondResponse] = dnd.responseArray;
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(firstResponse);
+
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(secondResponse);
+        expect(secondResponse.contains(premise)).toBe(true);
+
+        secondResponse.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(firstResponse);
+        expect(firstResponse.contains(premise)).toBe(true);
+
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "Tab",
+                shiftKey: true,
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(secondResponse);
+        expect(secondResponse.contains(premise)).toBe(true);
+    });
+
+    it("returns a placed selected premise to the dragzone with ArrowLeft", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const response = dnd.responseArray[0];
+        response.appendChild(premise);
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        response.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                bubbles: true,
+            }),
+        );
+
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+        expect(dnd.responseArray.every((item) => item.tabIndex === 0)).toBe(
+            true,
+        );
+    });
+
+    it("moves a selected premise right into the focused response", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const firstResponse = dnd.responseArray[0];
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                bubbles: true,
+            }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(document.activeElement).toBe(firstResponse);
+
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                bubbles: true,
+            }),
+        );
+        expect(firstResponse.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(premise);
+    });
+});
+
 describe("persistence", () => {
     it("restores placements from localStorage on a fresh render", async () => {
         const first = await makeDnd();
