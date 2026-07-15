@@ -169,6 +169,7 @@ function connect(event) {
     // _catchup flag tells the handlers to skip side effects that should
     // only happen on a live message (vote counting, page navigation).
     ws.onopen = async function () {
+        if (typeof window.PI_ASYNC_MODE !== "undefined") return;
         try {
             let urlParams = new URLSearchParams(window.location.search);
             let assignmentId = urlParams.get('assignment_id');
@@ -176,6 +177,12 @@ function connect(event) {
             if (!resp.ok) return;
             let phase = await resp.json();
             if (phase && phase.message) {
+                // Ignore a stored phase that belongs to a different question since
+                // it's leftover state from a previous session, not the current one.
+                if (typeof currentQuestion !== "undefined" && phase.div_id && phase.div_id !== currentQuestion) {
+                    console.log(`Catch-up: ignoring stale phase for ${phase.div_id}`);
+                    return;
+                }
                 console.log(`Catch-up: re-applying phase ${phase.message}`);
                 phase._catchup = true;
                 ws.onmessage({ data: JSON.stringify(phase) });
@@ -339,13 +346,6 @@ function connect(event) {
                     break;
                 case "enableChat":
                     console.log(`got enableChat message with ${mess.answer}`);
-                    if (
-                        mess._catchup &&
-                        !mess.answer &&
-                        document.getElementById("peerlist").children.length <= 1
-                    ) {
-                        break;
-                    }
                     messarea = document.getElementById("imessage");
                     messarea.innerHTML = `<h3>Text Chat Ready</h3><p>Please discuss with your partner(s) in the chat panel to the right.</p>`;
                     let discPanel = document.getElementById("discussion_panel");
@@ -647,6 +647,7 @@ function startVote2(event) {
         broadcast: true,
         course_name: eBookConfig.course,
         assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
+        div_id: currentQuestion,
     };
     //ws.send(JSON.stringify(mess));
     publishMessage(mess);
@@ -694,6 +695,7 @@ function enableNext() {
         broadcast: true,
         course_name: eBookConfig.course,
         assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
+        div_id: currentQuestion,
     };
     if (typeof voteNum !== "undefined" && voteNum < 2) {
         logPeerEvent({

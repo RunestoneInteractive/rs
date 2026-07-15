@@ -1527,6 +1527,9 @@ function bindLikertSubmitHandler() {
           document.querySelectorAll(".tm-opt").forEach(o => o.classList.remove("selected"));
           btn.classList.add("selected");
           window._selectedTheme = t.id;
+          // Drop any cached mapping from a previous theme so the backend
+          // regenerates it for the newly-chosen theme
+          window._analogyMapping = "";
           ttLabelEl.textContent = t.label;
           themeTriggerBtn.classList.remove("placeholder", "invalid");
           closeThemeMenu();
