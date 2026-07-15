@@ -388,6 +388,21 @@ describe("keyboard controls", () => {
         expect(premise.classList.contains("selected")).toBe(true);
     });
 
+    it("keeps an already placed premise in its response when selected", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const [, secondResponse] = dnd.responseArray;
+        secondResponse.appendChild(premise);
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+
+        expect(secondResponse.contains(premise)).toBe(true);
+        expect(document.activeElement).toBe(secondResponse);
+        expect(dnd.selectedPremise).toBe(premise);
+    });
+
     it("moves the selected premise through responses with the arrow keys", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray.find((p) => p.id === "p1");

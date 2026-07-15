@@ -693,7 +693,12 @@ export default class DragNDrop extends RunestoneBase {
         premise.classList.add("selected");
         premise.setAttribute("aria-pressed", "true");
         this.updateKeyboardNavigation();
-        this.responseArray[0]?.focus();
+        const currentResponse = this.responseArray.includes(
+            premise.parentElement,
+        )
+            ? premise.parentElement
+            : this.responseArray[0];
+        currentResponse?.focus();
     }
 
     deselectPremise({ restoreFocus = false } = {}) {
