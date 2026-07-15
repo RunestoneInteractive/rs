@@ -367,6 +367,7 @@ describe("keyboard controls", () => {
 
         expect(dnd.selectedPremise).toBe(null);
         expect(document.activeElement).toBe(premise);
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
         expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
             true,
         );
@@ -486,6 +487,56 @@ describe("keyboard controls", () => {
         );
         expect(document.activeElement).toBe(secondResponse);
         expect(secondResponse.contains(premise)).toBe(true);
+    });
+
+    it("logs only the confirmed keyboard placement, not preview moves", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const [firstResponse, secondResponse] = dnd.responseArray;
+        const logSpy = vi.spyOn(dnd, "logBookEvent").mockResolvedValue();
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        secondResponse.focus();
+        secondResponse.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                bubbles: true,
+            }),
+        );
+        expect(logSpy).not.toHaveBeenCalled();
+
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(logSpy).toHaveBeenCalledTimes(1);
+        expect(logSpy).toHaveBeenCalledWith({
+            event: "dragNdrop-drop",
+            div_id: dnd.divid,
+            act: `${premise.id} -> ${firstResponse.id}`,
+        });
+    });
+
+    it("Escape restores the starting response without logging", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const [firstResponse, secondResponse] = dnd.responseArray;
+        secondResponse.appendChild(premise);
+        const logSpy = vi.spyOn(dnd, "logBookEvent").mockResolvedValue();
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        firstResponse.focus();
+        expect(firstResponse.contains(premise)).toBe(true);
+
+        firstResponse.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        expect(secondResponse.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(logSpy).not.toHaveBeenCalled();
     });
 
     it("returns a placed selected premise to the dragzone with ArrowLeft", async () => {

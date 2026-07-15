@@ -57,6 +57,7 @@ export default class DragNDrop extends RunestoneBase {
         this.feedback = "";
         this.question = "";
         this.selectedPremise = null;
+        this.selectedPremiseOrigin = null;
         // Number of times the student has submitted a gradeable attempt (one
         // where they have placed enough blocks). Misplaced blocks are only
         // colored red once this reaches MIN_TRIES_FOR_COLOR.
@@ -254,7 +255,7 @@ export default class DragNDrop extends RunestoneBase {
                 this.selectedPremise
             ) {
                 ev.preventDefault();
-                this.deselectPremise({ restoreFocus: true });
+                this.cancelPremiseSelection();
             }
         });
         this.statementDiv = document.createElement("div");
@@ -600,7 +601,7 @@ export default class DragNDrop extends RunestoneBase {
                 this.selectedPremise &&
                 this.selectedPremise.parentElement !== dpSpan
             ) {
-                this.moveSelectedPremise(dpSpan, dpSpan.id);
+                this.moveSelectedPremise(dpSpan);
             }
         });
     }
@@ -638,7 +639,7 @@ export default class DragNDrop extends RunestoneBase {
 
         const response = this.responseArray[targetIndex];
         if (response !== premise.parentElement) {
-            this.moveSelectedPremise(response, response.id);
+            this.moveSelectedPremise(response);
         }
         response.focus();
     }
@@ -648,7 +649,7 @@ export default class DragNDrop extends RunestoneBase {
         if (!premise || premise.parentElement === this.draggableDiv) {
             return;
         }
-        this.moveSelectedPremise(this.draggableDiv, "dragzone");
+        this.moveSelectedPremise(this.draggableDiv);
     }
 
     moveSelectedPremiseRight(response) {
@@ -656,21 +657,15 @@ export default class DragNDrop extends RunestoneBase {
         if (!premise || premise.parentElement !== this.draggableDiv) {
             return;
         }
-        this.moveSelectedPremise(response, response.id);
+        this.moveSelectedPremise(response);
     }
 
-    moveSelectedPremise(destination, destinationName) {
+    moveSelectedPremise(destination) {
         const premise = this.selectedPremise;
         if (!premise || premise.parentElement === destination) {
             return;
         }
         destination.appendChild(premise);
-        this.isAnswered = true;
-        this.logBookEvent({
-            event: "dragNdrop-drop",
-            div_id: this.divid,
-            act: `${premise.id} -> ${destinationName}`,
-        });
         this.queueMathJax(this.containerDiv).then(() => {
             this.adjustDragDropWidths();
         });
@@ -682,7 +677,19 @@ export default class DragNDrop extends RunestoneBase {
             return;
         }
 
-        this.moveSelectedPremise(response, response.id);
+        const destination =
+            premise.parentElement === this.draggableDiv
+                ? this.draggableDiv
+                : response;
+        const destinationName =
+            destination === this.draggableDiv ? "dragzone" : response.id;
+        this.moveSelectedPremise(destination);
+        this.isAnswered = true;
+        this.logBookEvent({
+            event: "dragNdrop-drop",
+            div_id: this.divid,
+            act: `${premise.id} -> ${destinationName}`,
+        });
         this.deselectPremise();
         premise.focus();
     }
@@ -690,6 +697,7 @@ export default class DragNDrop extends RunestoneBase {
     selectPremise(premise) {
         this.deselectPremise();
         this.selectedPremise = premise;
+        this.selectedPremiseOrigin = premise.parentElement;
         premise.classList.add("selected");
         premise.setAttribute("aria-pressed", "true");
         this.updateKeyboardNavigation();
@@ -709,10 +717,26 @@ export default class DragNDrop extends RunestoneBase {
         premise.classList.remove("selected");
         premise.setAttribute("aria-pressed", "false");
         this.selectedPremise = null;
+        this.selectedPremiseOrigin = null;
         this.updateKeyboardNavigation();
         if (restoreFocus) {
             premise.focus();
         }
+    }
+
+    cancelPremiseSelection() {
+        const premise = this.selectedPremise;
+        const origin = this.selectedPremiseOrigin;
+        if (!premise) {
+            return;
+        }
+        if (origin && premise.parentElement !== origin) {
+            origin.appendChild(premise);
+            this.queueMathJax(this.containerDiv).then(() => {
+                this.adjustDragDropWidths();
+            });
+        }
+        this.deselectPremise({ restoreFocus: true });
     }
 
     updateKeyboardNavigation() {
