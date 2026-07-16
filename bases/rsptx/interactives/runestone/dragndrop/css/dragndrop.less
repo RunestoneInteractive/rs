@@ -1,4 +1,19 @@
-.ptx-runestone-container,.runestone-sphinx {
+.ptx-runestone-container,
+.runestone-sphinx {
+    --dnd-active-drop-border: #2b6ea6;
+    --dnd-active-drop-glow: rgba(43, 110, 166, 0.45);
+}
+
+:root.dark-mode {
+    .ptx-runestone-container,
+    .runestone-sphinx {
+        --dnd-active-drop-border: #8cc8ff;
+        --dnd-active-drop-glow: rgba(140, 200, 255, 0.55);
+    }
+}
+
+.ptx-runestone-container,
+.runestone-sphinx {
     @import (less) url("./dragndrop.css");
 }
 
