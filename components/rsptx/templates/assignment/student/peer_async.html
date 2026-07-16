@@ -320,7 +320,7 @@
     \( {{ latex_macros|safe }} \)
 </div>
 
-<h2>Peer Instruction Question (After Class)</h2>
+<h2>Peer Instruction (After Class): {{ assignment_name }}</h2>
 
 {% if not all_done %}
 <div id="stepBanner" style="
@@ -412,7 +412,7 @@
           <textarea id="messageText" placeholder="Write your reasoning here…" disabled></textarea>
           <div class="pi-reasoning-footer">
             <button id="submitReflection" type="button" class="btn btn-primary" disabled>
-              {% if llm_enabled %}Continue to discussion →{% else %}Submit and see responses →{% endif %}
+              {% if llm_enabled %}Continue to discussion →{% else %}Submit{% endif %}
             </button>
           </div>
         </div>
@@ -1527,6 +1527,9 @@ function bindLikertSubmitHandler() {
           document.querySelectorAll(".tm-opt").forEach(o => o.classList.remove("selected"));
           btn.classList.add("selected");
           window._selectedTheme = t.id;
+          // Drop any cached mapping from a previous theme so the backend
+          // regenerates it for the newly-chosen theme
+          window._analogyMapping = "";
           ttLabelEl.textContent = t.label;
           themeTriggerBtn.classList.remove("placeholder", "invalid");
           closeThemeMenu();
