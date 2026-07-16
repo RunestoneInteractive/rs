@@ -539,7 +539,7 @@ export default class DragNDrop extends RunestoneBase {
                 return;
             }
             ev.target.classList.remove("possibleDrop");
-        });
+        }.bind(this));
         dpSpan.addEventListener(
             "drop",
             function (ev) {
