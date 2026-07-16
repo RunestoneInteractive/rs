@@ -68,10 +68,13 @@ from rsptx.db.crud import (
 from rsptx.db.models import CoursesValidator, AuthUserValidator, DomainApprovals
 from rsptx.db.async_session import init_models, term_models
 from rsptx.configuration import settings
-from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
 from rsptx.cl_utils.core import load_project_dotenv
-from rsptx.data_extract import Anonymizer
 from rsptx.response_helpers.core import canonical_utcnow
+
+# NOTE: rsptx.build_tools.core (pulls sphinx + fastapi) and rsptx.data_extract
+# (pulls pandas) are heavy imports used by only one subcommand each. They are
+# imported lazily inside those commands to keep startup fast for every other
+# subcommand.
 
 
 class Config(object):
@@ -140,13 +143,19 @@ async def cli(config, verbose, if_clean):
     if verbose:
         echoEnviron(config)
 
-    check_db_connection(config)
+    # The eager connection check is a redundant round-trip on the happy path
+    # (every DB command opens its own connection and surfaces failures anyway).
+    # Only run it when --verbose is requested, or when --if_clean needs the DB
+    # up front, so it stays available for diagnosing env/DB issues.
+    if verbose or if_clean:
+        check_db_connection(config)
     if if_clean:
         count = check_db_for_useinfo(config)
         if count != 0:
             click.echo("The database is already inititlized Exiting")
             sys.exit()
 
+    click.echo("\n-----------")
     config.verbose = verbose
 
 
@@ -439,6 +448,9 @@ async def build(config, clone, ptx, gen, manifest, target, course):
     # proj_dir = os.path.basename(repo).replace(".git", "")
     click.echo(f"Switching to book dir {course}")
     os.chdir(course)
+    # Imported lazily: pulls in sphinx/fastapi, which are slow to import.
+    from rsptx.build_tools.core import _build_runestone_book, _build_ptx_book
+
     if ptx:
         res = _build_ptx_book(config, gen, manifest, course, target=target)
 
@@ -973,6 +985,9 @@ async def datashop(config, basecourse, sample_size, course_list, preserve_user_i
         course_list = course_list[0]
 
     dburl = config.dburl.replace("+asyncpg", "")
+    # Imported lazily: pulls in pandas, which is slow to import.
+    from rsptx.data_extract import Anonymizer
+
     print(f"Creating Anonymizer {dburl}")
     a = Anonymizer(
         basecourse,
