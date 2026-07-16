@@ -229,6 +229,35 @@ def git_pull(self, book, source_path=None):
         raise Ignore()
 
 
+def restore_work_dir_ownership(work_dir):
+    """
+    Recursively restore ownership of everything under ``work_dir`` to the owner of
+    ``work_dir`` itself, skipping the ``.git`` directory.
+
+    The build process can create files owned by whatever user the worker runs as
+    (typically root); this puts them back under the control of the user that owns
+    the checkout. Any failure is logged but not raised, so that an otherwise
+    successful build is not reported as a failure.
+
+    :param work_dir: the working directory whose ownership should be restored
+    """
+    try:
+        st = os.stat(work_dir)
+        uid, gid = st.st_uid, st.st_gid
+        for root, dirs, files in os.walk(work_dir):
+            # Don't touch the .git directory (or descend into it).
+            if ".git" in dirs:
+                dirs.remove(".git")
+            for name in dirs + files:
+                path = os.path.join(root, name)
+                try:
+                    os.chown(path, uid, gid, follow_symlinks=False)
+                except OSError as e:
+                    logger.error(f"Failed to restore ownership of {path}: {e}")
+    except Exception as e:
+        logger.error(f"Failed to restore ownership under {work_dir}: {e}")
+
+
 @celery.task(bind=True, name="build_runestone_book")
 def build_runestone_book(self, book):
     """
@@ -262,6 +291,7 @@ def build_runestone_book(self, book):
             meta={"exc_type": "RuntimeError", "exc_message": str(e)},
         )
         return False
+    restore_work_dir_ownership(repo_path)
     self.update_state(state="SUCCESS", meta={"current": "build complete"})
     update_last_build(book)
     return True
@@ -342,6 +372,8 @@ def build_ptx_book(self, book, generate=False, target="runestone", source_path=N
     if res.returncode != 0:
         logger.debug("returning false from chmod")
         buildstat = False
+
+    restore_work_dir_ownership(work_dir)
 
     if "Nonfatal" in status:
         self.update_state(state="ERRORS", meta={"current": f"{status}"})
