@@ -169,6 +169,7 @@ function connect(event) {
     // _catchup flag tells the handlers to skip side effects that should
     // only happen on a live message (vote counting, page navigation).
     ws.onopen = async function () {
+        if (typeof window.PI_ASYNC_MODE !== "undefined") return;
         try {
             let urlParams = new URLSearchParams(window.location.search);
             let assignmentId = urlParams.get('assignment_id');
@@ -176,6 +177,12 @@ function connect(event) {
             if (!resp.ok) return;
             let phase = await resp.json();
             if (phase && phase.message) {
+                // Ignore a stored phase that belongs to a different question since
+                // it's leftover state from a previous session, not the current one.
+                if (typeof currentQuestion !== "undefined" && phase.div_id && phase.div_id !== currentQuestion) {
+                    console.log(`Catch-up: ignoring stale phase for ${phase.div_id}`);
+                    return;
+                }
                 console.log(`Catch-up: re-applying phase ${phase.message}`);
                 phase._catchup = true;
                 ws.onmessage({ data: JSON.stringify(phase) });
@@ -639,6 +646,8 @@ function startVote2(event) {
         message: "enableVote",
         broadcast: true,
         course_name: eBookConfig.course,
+        assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
+        div_id: currentQuestion,
     };
     //ws.send(JSON.stringify(mess));
     publishMessage(mess);
@@ -685,6 +694,8 @@ function enableNext() {
         message: "enableNext",
         broadcast: true,
         course_name: eBookConfig.course,
+        assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
+        div_id: currentQuestion,
     };
     if (typeof voteNum !== "undefined" && voteNum < 2) {
         logPeerEvent({
