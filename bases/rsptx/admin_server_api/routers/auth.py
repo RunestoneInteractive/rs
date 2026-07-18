@@ -30,6 +30,7 @@ from rsptx.db.crud import (
 )
 from rsptx.db.models import AuthUserValidator
 from rsptx.logging import rslogger
+from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import template_folder
 
 router = APIRouter(
@@ -136,7 +137,7 @@ async def login_post(
 ):
     user = await fetch_user(username)
     if not _user_exists(user) or not _verify_password(user.password, password):
-        rslogger.info(f"FAILED LOGIN: {username} Exists: {_user_exists(user)}")
+        rslogger.info(f"LOGIN FAILED: {username} Exists: {_user_exists(user)}")
         return templates.TemplateResponse(
             "admin/auth/login.html",
             {
@@ -157,7 +158,7 @@ async def login_post(
     else:
         response = RedirectResponse(next, status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
-    rslogger.info(f"LOGIN: {username}")
+    rslogger.info(f"LOGIN SUCCESS: {username}")
     return response
 
 
@@ -256,12 +257,12 @@ async def register_post(
     try:
         created = await create_user(new_user)
     except Exception as exc:
-        rslogger.error("Registration error: %s", exc)
+        rslogger.error("REGISTER ERROR: %s", exc)
         return templates.TemplateResponse(
             "admin/auth/register.html",
             {
                 "request": request,
-                "errors": ["Registration failed. Please try again."],
+                "errors": ["REGISTER FAILED. Please try again."],
                 "submitted": {
                     "username": username,
                     "first_name": first_name,
@@ -304,7 +305,7 @@ async def register_post(
     response = RedirectResponse(redirect_to, status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
     rslogger.info(
-        f"REGISTER: {username} (instructor={is_instructor}, institution='{institution}')"
+        f"REGISTER SUCCESS: {username} (instructor={is_instructor}, institution='{institution}')"
     )
     return response
 
@@ -758,8 +759,10 @@ async def reset_password_post(
             {"request": request, "token": token, "expired": True, "error": None},
         )
 
-    await update_user(user.id, {"password": password})
-    rslogger.info(f"RESET PASSWORD: {user.username}")
+    await update_user(
+        user.id, {"password": password, "modified_on": canonical_utcnow()}
+    )
+    rslogger.info(f"RESET SUCCESS: {user.username}")
     return RedirectResponse(
         f"{_LOGIN}?next=/ns/course/index", status_code=status.HTTP_302_FOUND
     )
