@@ -38,12 +38,26 @@ from sqlalchemy.sql import text
 
 # todo: use our logger
 from rsptx.logging import rslogger
-from runestone.server import get_dburl
+from rsptx.configuration import settings
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
 
 rslogger.setLevel("WARNING")
+
+
+# Return the synchronous database URL for the current SERVER_CONFIG.
+#
+# This was previously imported from ``runestone.server``; it is derived from our
+# own ``rsptx.configuration.settings`` instead so this module -- and packages
+# that bundle it, like ``rsadmin`` -- do not depend on the ``runestone``
+# distribution, which vendors a stale copy of ``rsptx.*`` that collides on
+# install. ``settings._sync_database_url`` selects dev_dburl/dburl/test_dburl
+# from SERVER_CONFIG, the same value ``rsptx.db.sync_session`` feeds to
+# ``create_engine``.
+def get_dburl():
+    return settings._sync_database_url
+
 
 # Local packages
 # --------------
