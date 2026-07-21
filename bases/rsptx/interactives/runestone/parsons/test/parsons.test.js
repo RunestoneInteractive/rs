@@ -334,6 +334,13 @@ describe("grading", () => {
         expect(p.percent).toBeCloseTo(0.2 + 0.4 / 3 + 0.4 / 3, 5);
     });
 
+    it("linegrader reports correct LIS for incorrect order", async () => {
+        const p = await makeParsons();
+        // longest increasing subsequence has values 1, 2, 3, 4, excludes indexes 0 and 2
+        const inverseLIS1 = p.grader.inverseLISIndices([5, 1, 6, 2, 3, 4]);
+        expect(inverseLIS1).toEqual([0, 2]);
+    });
+
     it("reports correct, locks the check button and records the solve", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
         answer(p, [0, 1, 2]);
