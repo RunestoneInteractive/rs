@@ -186,14 +186,14 @@ export class MatchingProblem extends RunestoneBase {
         if (this.graderactive) {
             return;
         }
-        const data = localStorage.getItem(this.divid);
+        const data = localStorage.getItem(this.localStorageKey());
         if (data) {
             const parsedData = JSON.parse(data);
             if (
                 parsedData.timestamp &&
                 parsedData.timestamp < eBookConfig.termStartDate
             ) {
-                localStorage.removeItem(this.divid);
+                localStorage.removeItem(this.localStorageKey());
                 return;
             }
             this.connections = parsedData.connections.map((conn) => ({
@@ -224,7 +224,7 @@ export class MatchingProblem extends RunestoneBase {
             missingCount: this.missingCount,
             timestamp: timeStamp,
         };
-        localStorage.setItem(this.divid, JSON.stringify(data));
+        localStorage.setItem(this.localStorageKey(), JSON.stringify(data));
     }
 
     disableInteraction() {}
