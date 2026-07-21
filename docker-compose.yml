@@ -161,7 +161,7 @@ services:
       - UVICORN_MAX_REQUESTS=5000
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
-      - LOGIN_URL="/runestone/default/user"
+      - LOGIN_URL=/admin/auth/login
       - WORKER_NAME=${HOSTNAME}
       - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - SPACES_KEY=${SPACES_KEY}

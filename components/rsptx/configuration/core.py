@@ -137,10 +137,10 @@ class Settings(BaseSettings):
     # Select normal mode or a high-stakes assessment mode (for administering a examination). In this mode, answers to supported question types are not shown.
     is_exam: bool = False
 
-    # This module provides "/auth/login" but it is super basic
-    # For now, logins are meant to be handled by the parallel runestone server.
-    # For production usage set the LOGIN_URL to /runestone/default/user
-    login_url: str = "/auth/login"
+    # The admin server serves the canonical login page. Unauthenticated browser
+    # (page) requests are redirected here by the shared exception handler.
+    # Override with the LOGIN_URL environment variable if needed.
+    login_url: str = "/admin/auth/login"
 
     # Public-facing host used to build absolute URLs (e.g. course links in
     # emails). Populated from the matching environment variables by

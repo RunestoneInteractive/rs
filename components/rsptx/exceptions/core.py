@@ -2,10 +2,11 @@ import json
 import socket
 import traceback
 import os
+from urllib.parse import quote
 
 from fastapi import Request, Response, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
@@ -64,9 +65,34 @@ def add_exception_handlers(app):
     @app.exception_handler(NotAuthenticatedException)
     def auth_exception_handler(request: Request, exc: NotAuthenticatedException):
         """
-        Return detail on a 401 response when user is not logged in
+        Handle requests from users who are not logged in.
+
+        API clients (which send ``Accept: application/json`` or otherwise do
+        not ask for HTML) receive a 401 with JSON detail.  Browser page
+        requests are instead redirected to ``settings.login_url``, preserving
+        the originally requested path in a ``next`` query parameter.
         """
-        rslogger.debug("User is not logged in, redirecting")
+        wants_html = "text/html" in request.headers.get("accept", "")
+        if wants_html:
+            rslogger.debug("User is not logged in, redirecting to login page")
+            # The proxy (Caddy/nginx) strips the routing prefix (e.g. /ns)
+            # before forwarding, so request.url is missing it. When the proxy
+            # supplies the untouched public URI via X-Original-URI, use that so
+            # the post-login redirect returns to the externally-visible URL.
+            next_url = request.headers.get("x-original-uri")
+            if not next_url:
+                next_url = request.url.path
+                if request.url.query:
+                    next_url += f"?{request.url.query}"
+            rslogger.debug(
+                f"Redirecting to {settings.login_url}?next={quote(next_url)}"
+            )
+            return RedirectResponse(
+                url=f"{settings.login_url}?next={quote(next_url)}",
+                status_code=status.HTTP_302_FOUND,
+            )
+
+        rslogger.debug("User is not logged in, returning 401")
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content=jsonable_encoder(
@@ -75,8 +101,6 @@ def add_exception_handlers(app):
                 }
             ),
         )
-        # If we want to redirect the user to a login page which we really do not...
-        # return RedirectResponse(url=f"{settings.login_url}")
 
     # See:  https://fastapi.tiangolo.com/tutorial/handling-errors/#use-the-requestvalidationerror-body
     # for more details on validation errors.

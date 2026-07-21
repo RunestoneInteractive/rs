@@ -87,6 +87,9 @@
 			}
 			reverse_proxy book:8111 {
 				header_up X-Forwarded-Proto https
+				# handle_path strips the /ns prefix; pass the untouched public
+				# URI so a login redirect can send the user back to it.
+				header_up X-Original-URI {http.request.orig_uri}
 			}
 		}
 
@@ -115,6 +118,7 @@
 		handle_path /assignment/* {
 			reverse_proxy assignment:8113 {
 				header_up X-Forwarded-Proto https
+				header_up X-Original-URI {http.request.orig_uri}
 			}
 		}
 
@@ -123,6 +127,7 @@
 		handle_path /admin/* {
 			reverse_proxy admin:8115 {
 				header_up X-Forwarded-Proto https
+				header_up X-Original-URI {http.request.orig_uri}
 			}
 		}
 

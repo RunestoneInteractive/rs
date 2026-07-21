@@ -95,6 +95,9 @@ include /etc/nginx/default.d/\*.conf;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Host $http_host;
+        # proxy_pass below strips the /ns prefix; pass the untouched public URI
+        # so a login redirect can send the user back to it.
+        proxy_set_header X-Original-URI $request_uri;
         # we don't want nginx trying to do something clever with
         # redirects, we set the Host: header above already.
         proxy_redirect off;
@@ -118,6 +121,7 @@ include /etc/nginx/default.d/\*.conf;
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto https;
        proxy_set_header Host $http_host;
+       proxy_set_header X-Original-URI $request_uri;
        # we don't want nginx trying to do something clever with
        # redirects, we set the Host: header above already.
        proxy_redirect off;
@@ -129,6 +133,7 @@ include /etc/nginx/default.d/\*.conf;
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto https;
        proxy_set_header Host $http_host;
+       proxy_set_header X-Original-URI $request_uri;
        proxy_redirect off;
        #temporary... Need to pretend that just /admin got pulled out of URL
        proxy_pass http://admin:8115/;
