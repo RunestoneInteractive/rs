@@ -386,7 +386,17 @@ async def regrade_batch(
     report contains the before/after diff so the UI can preview the operation.
     """
     report = RegradeReport()
-    affected_sids: set = set()
+    # Recompute the total for every student we regraded, not just the ones whose
+    # per-question scores moved in this run. The ``grades`` row can be stale even
+    # when ``question_grades`` is already correct -- most notably for Timed
+    # assignments, which ``is_assigned`` deliberately excludes from real-time
+    # scoring, so a total is never rolled up while the student works. Keying the
+    # recompute off "changed this run" left those assignments stuck at 0 in the
+    # gradebook no matter how many times the instructor re-ran the regrade (the
+    # second run finds every question already correct, so nothing is "changed").
+    # The legacy web2py autograder (``do_calculate_totals``) also recomputed
+    # unconditionally.
+    processed_sids: set = set()
 
     for sid in sids:
         for question, aq in questions:
@@ -395,6 +405,7 @@ async def regrade_batch(
             )
             report.items.append(item)
             report.total += 1
+            processed_sids.add(sid)
             if item.error:
                 report.errors += 1
             elif item.skipped == "manual":
@@ -403,12 +414,11 @@ async def regrade_batch(
                 report.no_submission += 1
             elif item.new_score != item.old_score:
                 report.changed += 1
-                affected_sids.add(sid)
 
-    if not dry_run and options.recompute_totals and affected_sids:
+    if not dry_run and options.recompute_totals and processed_sids:
         users = await fetch_users_for_course(course.course_name)
         user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
-        for sid in affected_sids:
+        for sid in processed_sids:
             user = user_map.get(sid)
             if user is not None:
                 try:
