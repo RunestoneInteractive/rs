@@ -348,6 +348,124 @@ describe("keyboard controls", () => {
         expect(document.activeElement).toBe(firstPremise);
     });
 
+    it("moves focus between unselected premises in tab order", async () => {
+        const dnd = await makeDnd();
+        const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        const p2 = dnd.premiseArray.find((p) => p.id === "p2");
+        const p3 = dnd.premiseArray.find((p) => p.id === "p3");
+        place(dnd, "p2", "r1");
+        place(dnd, "p1", "r2");
+
+        p3.focus();
+        p3.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p2);
+
+        p2.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p1);
+
+        p1.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p2);
+        expect(dnd.selectedPremise).toBe(null);
+    });
+
+    it("moves focus to the first premise in the left or right column", async () => {
+        const dnd = await makeDnd();
+        const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        const p2 = dnd.premiseArray.find((p) => p.id === "p2");
+        const p3 = dnd.premiseArray.find((p) => p.id === "p3");
+        place(dnd, "p2", "r1");
+        place(dnd, "p1", "r2");
+
+        p3.focus();
+        p3.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p2);
+
+        p1.focus();
+        p1.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p3);
+        expect(dnd.selectedPremise).toBe(null);
+    });
+
+    it("selects and places a premise with click events", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const response = dnd.responseArray.find((r) => r.id === "r2");
+
+        premise.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+        expect(premise.getAttribute("aria-pressed")).toBe("true");
+
+        response.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+        expect(response.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+        expect(premise.getAttribute("aria-pressed")).toBe("false");
+        expect(dnd.isAnswered).toBe(true);
+    });
+
+    it("selects a premise from a nested click", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nested = document.createElement("span");
+        premise.appendChild(nested);
+
+        nested.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+    });
+
+    it("places a selected premise from a nested response click", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[1];
+        const nested = document.createElement("span");
+        response.appendChild(nested);
+
+        premise.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+        nested.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+
+        expect(response.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+    });
+
     it.each(["Enter", " "])(
         "places the selected premise in a response with %j",
         async (key) => {
@@ -361,7 +479,16 @@ describe("keyboard controls", () => {
             expect(dnd.selectedPremise).toBe(premise);
             expect(premise.classList.contains("selected")).toBe(true);
             expect(premise.getAttribute("aria-pressed")).toBe("true");
-            expect(document.activeElement).toBe(dnd.responseArray[0]);
+            expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+            expect(dnd.dragDropWrapDiv.getAttribute("role")).toBe(
+                "application",
+            );
+            expect(
+                dnd.dragDropWrapDiv.getAttribute("aria-activedescendant"),
+            ).toBe(response.id);
+            expect(dnd.keyboardInstructionDiv.textContent).toBe(
+                "Moving Dog. Use arrow keys to choose a target, Enter to place, or Escape to cancel.",
+            );
             expect(dnd.responseArray[0].contains(premise)).toBe(true);
             expect(dnd.premiseArray.every((item) => item.tabIndex === -1)).toBe(
                 true,
@@ -370,7 +497,7 @@ describe("keyboard controls", () => {
                 true,
             );
 
-            response.dispatchEvent(
+            dnd.dragDropWrapDiv.dispatchEvent(
                 new KeyboardEvent("keydown", { key, bubbles: true }),
             );
             expect(response.contains(premise)).toBe(true);
@@ -379,6 +506,8 @@ describe("keyboard controls", () => {
             expect(premise.getAttribute("aria-pressed")).toBe("false");
             expect(dnd.isAnswered).toBe(true);
             expect(document.activeElement).toBe(premise);
+            expect(dnd.dragDropWrapDiv.getAttribute("role")).toBe(null);
+            expect(dnd.dragDropWrapDiv.tabIndex).toBe(-1);
             expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
                 true,
             );
@@ -395,7 +524,7 @@ describe("keyboard controls", () => {
         premise.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
         );
-        dnd.responseArray[0].dispatchEvent(
+        dnd.dragDropWrapDiv.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
         );
 
@@ -409,6 +538,59 @@ describe("keyboard controls", () => {
         );
     });
 
+    it("removes premise math content from the tab order", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nestedMath = document.createElement("span");
+        const nestedMathChild = document.createElement("span");
+        nestedMath.className = "MathJax";
+        nestedMath.tabIndex = 0;
+        nestedMathChild.tabIndex = 0;
+        nestedMath.appendChild(nestedMathChild);
+        premise.appendChild(nestedMath);
+
+        dnd.disablePremiseMathTabStops();
+
+        expect(nestedMath.tabIndex).toBe(-1);
+        expect(nestedMathChild.tabIndex).toBe(-1);
+    });
+
+    it("captures Space on the premise when it contains math content", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nestedMath = document.createElement("span");
+        nestedMath.className = "MathJax";
+        premise.appendChild(nestedMath);
+
+        const event = new KeyboardEvent("keydown", {
+            key: " ",
+            bubbles: true,
+            cancelable: true,
+        });
+        premise.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+    });
+    it("does not capture Space from nested premise content", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nestedMath = document.createElement("span");
+        nestedMath.className = "MathJax";
+        premise.appendChild(nestedMath);
+
+        const event = new KeyboardEvent("keydown", {
+            key: " ",
+            bubbles: true,
+            cancelable: true,
+        });
+        nestedMath.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+    });
     it("does not treat a key event from a nested premise as response activation", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray.find((p) => p.id === "p1");
@@ -433,7 +615,11 @@ describe("keyboard controls", () => {
         );
 
         expect(secondResponse.contains(premise)).toBe(true);
-        expect(document.activeElement).toBe(secondResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(secondResponse);
+        expect(dnd.dragDropWrapDiv.getAttribute("aria-activedescendant")).toBe(
+            secondResponse.id,
+        );
         expect(dnd.selectedPremise).toBe(premise);
     });
 
@@ -489,7 +675,7 @@ describe("keyboard controls", () => {
         expect(dnd.selectedPremise).toBe(premise);
     });
 
-    it("traps Tab and Shift+Tab within responses while a premise is selected", async () => {
+    it("traps Tab and Shift+Tab within the application surface while a premise is selected", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray[0];
         const [firstResponse, secondResponse] = dnd.responseArray;
@@ -497,28 +683,32 @@ describe("keyboard controls", () => {
         premise.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
         );
-        expect(document.activeElement).toBe(firstResponse);
-
-        firstResponse.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
-        );
-        expect(document.activeElement).toBe(secondResponse);
-        expect(secondResponse.contains(premise)).toBe(true);
-
-        secondResponse.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
-        );
-        expect(document.activeElement).toBe(firstResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
         expect(firstResponse.contains(premise)).toBe(true);
 
-        firstResponse.dispatchEvent(
+        dnd.dragDropWrapDiv.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(secondResponse);
+        expect(secondResponse.contains(premise)).toBe(true);
+
+        dnd.dragDropWrapDiv.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(firstResponse);
+        expect(firstResponse.contains(premise)).toBe(true);
+
+        dnd.dragDropWrapDiv.dispatchEvent(
             new KeyboardEvent("keydown", {
                 key: "Tab",
                 shiftKey: true,
                 bubbles: true,
             }),
         );
-        expect(document.activeElement).toBe(secondResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(secondResponse);
         expect(secondResponse.contains(premise)).toBe(true);
     });
 
@@ -539,6 +729,9 @@ describe("keyboard controls", () => {
         );
 
         expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(dnd.keyboardInstructionDiv.textContent).toBe(
+            "Returned to unplaced list.",
+        );
         expect(dnd.selectedPremise).toBe(premise);
         expect(premise.classList.contains("selected")).toBe(true);
         expect(dnd.responseArray.every((item) => item.tabIndex === 0)).toBe(
@@ -546,6 +739,38 @@ describe("keyboard controls", () => {
         );
     });
 
+    it("drops a selected premise in the dragzone with Enter after moving left", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[0];
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(response.contains(premise)).toBe(true);
+
+        response.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                bubbles: true,
+            }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+
+        response.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+        expect(document.activeElement).toBe(premise);
+        expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
+            true,
+        );
+        expect(dnd.responseArray.every((item) => item.tabIndex === -1)).toBe(
+            true,
+        );
+    });
     it("moves a selected premise right into the focused response", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray[0];
@@ -561,9 +786,10 @@ describe("keyboard controls", () => {
             }),
         );
         expect(premise.parentElement).toBe(dnd.draggableDiv);
-        expect(document.activeElement).toBe(firstResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(firstResponse);
 
-        firstResponse.dispatchEvent(
+        dnd.dragDropWrapDiv.dispatchEvent(
             new KeyboardEvent("keydown", {
                 key: "ArrowRight",
                 bubbles: true,
@@ -575,6 +801,23 @@ describe("keyboard controls", () => {
 });
 
 describe("pointer controls", () => {
+    it("drops on the response when the pointer event starts on nested content", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[0];
+        const nestedMath = document.createElement("span");
+        nestedMath.className = "MathJax";
+        response.appendChild(nestedMath);
+        const drop = new Event("drop", { bubbles: true, cancelable: true });
+        Object.defineProperty(drop, "dataTransfer", {
+            value: { getData: () => premise.id },
+        });
+
+        nestedMath.dispatchEvent(drop);
+
+        expect(response.contains(premise)).toBe(true);
+        expect(drop.defaultPrevented).toBe(true);
+    });
     it("highlights responses only while a premise is being dragged", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray[0];

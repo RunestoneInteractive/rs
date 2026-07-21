@@ -57,6 +57,7 @@ export default class DragNDrop extends RunestoneBase {
         this.feedback = "";
         this.question = "";
         this.selectedPremise = null;
+        this.activeResponse = null;
         // Number of times the student has submitted a gradeable attempt (one
         // where they have placed enough blocks). Misplaced blocks are only
         // colored red once this reaches MIN_TRIES_FOR_COLOR.
@@ -257,6 +258,11 @@ export default class DragNDrop extends RunestoneBase {
                 this.deselectPremise({ restoreFocus: true });
             }
         });
+        this.keyboardInstructionDiv = document.createElement("div");
+        this.keyboardInstructionDiv.classList.add("visuallyhidden");
+        this.keyboardInstructionDiv.setAttribute("aria-live", "polite");
+        this.keyboardInstructionDiv.setAttribute("aria-atomic", "true");
+        this.containerDiv.appendChild(this.keyboardInstructionDiv);
         this.statementDiv = document.createElement("div");
         this.statementDiv.classList.add("cardsort-statement");
         this.statementDiv.classList.add("exercise-statement");
@@ -268,6 +274,11 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.appendChild(this.statementDiv);
         this.dragDropWrapDiv = document.createElement("div"); // Holds the draggables/dropzones, prevents feedback from bleeding in
         this.dragDropWrapDiv.style.display = "block";
+        this.dragDropWrapDiv.classList.add("dragndrop-keyboard-surface");
+        this.dragDropWrapDiv.tabIndex = -1;
+        this.dragDropWrapDiv.addEventListener("keydown", (ev) => {
+            this.handleKeyboardApplicationKeydown(ev);
+        });
         this.containerDiv.appendChild(this.dragDropWrapDiv);
         this.draggableDiv = document.createElement("div");
         this.draggableDiv.classList.add("rsdraggable", "dragzone");
@@ -282,7 +293,9 @@ export default class DragNDrop extends RunestoneBase {
             this.finishSettingUp();
         }
         this.ivp = this.isValidPremise.bind(this);
-        this.queueMathJax(this.containerDiv);
+        this.queueMathJax(this.containerDiv).then(() => {
+            this.disablePremiseMathTabStops();
+        });
     }
 
     finishSettingUp() {
@@ -294,6 +307,7 @@ export default class DragNDrop extends RunestoneBase {
             this.minheight = this.draggableDiv.offsetHeight;
             // Ensure MathJax has completed before adjusting the zone widths
             this.queueMathJax(this.containerDiv).then(() => {
+                this.disablePremiseMathTabStops();
                 this.adjustDragDropWidths();
             });
         }
@@ -485,10 +499,22 @@ export default class DragNDrop extends RunestoneBase {
             }.bind(this),
         );
 
+        dgSpan.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            if (this.selectedPremise === dgSpan) {
+                this.deselectPremise();
+            } else {
+                this.selectPremise(dgSpan);
+            }
+        });
+
         // Enter or Space picks up a premise. Pressing the same key again puts
         // it down; Escape is handled at the component level so it also works
         // after focus has moved to a response or button.
         dgSpan.addEventListener("keydown", (ev) => {
+            if (ev.target !== dgSpan) {
+                return;
+            }
             if (ev.key === "Enter" || ev.key === " ") {
                 ev.preventDefault();
                 if (this.selectedPremise === dgSpan) {
@@ -502,20 +528,60 @@ export default class DragNDrop extends RunestoneBase {
             ) {
                 ev.preventDefault();
                 this.movePremiseFocus(dgSpan, ev.key === "ArrowDown");
+            } else if (
+                !this.selectedPremise &&
+                (ev.key === "ArrowLeft" || ev.key === "ArrowRight")
+            ) {
+                ev.preventDefault();
+                this.focusFirstPremiseInColumn(ev.key === "ArrowRight");
             }
         });
     }
 
+    disablePremiseMathTabStops(root = this.containerDiv) {
+        const mathSelector = [
+            ".premise .MathJax",
+            ".premise mjx-container",
+            ".premise .process-math",
+            ".premise .MathJax [tabindex]",
+            ".premise mjx-container [tabindex]",
+            ".premise .process-math [tabindex]",
+            ".response .MathJax",
+            ".response mjx-container",
+            ".response .process-math",
+            ".response .MathJax [tabindex]",
+            ".response mjx-container [tabindex]",
+            ".response .process-math [tabindex]",
+        ].join(", ");
+        for (const mathElement of root.querySelectorAll(mathSelector)) {
+            mathElement.setAttribute("tabindex", "-1");
+        }
+    }
+
     movePremiseFocus(premise, moveDown) {
-        const currentIndex = this.premiseArray.indexOf(premise);
+        const premiseTabOrder = Array.from(
+            this.containerDiv.querySelectorAll(".premise"),
+        ).filter((item) => this.premiseArray.includes(item));
+        const currentIndex = premiseTabOrder.indexOf(premise);
+        if (currentIndex === -1) {
+            return;
+        }
         const targetIndex = Math.max(
             0,
             Math.min(
                 currentIndex + (moveDown ? 1 : -1),
-                this.premiseArray.length - 1,
+                premiseTabOrder.length - 1,
             ),
         );
-        this.premiseArray[targetIndex]?.focus();
+        premiseTabOrder[targetIndex]?.focus();
+    }
+
+    focusFirstPremiseInColumn(rightColumn) {
+        const column = rightColumn ? this.dropZoneDiv : this.draggableDiv;
+        const firstPremise = Array.from(
+            column.querySelectorAll(".premise"),
+        ).find((item) => this.premiseArray.includes(item));
+        firstPremise?.focus();
     }
 
     setDropListeners(dpSpan) {
@@ -524,52 +590,66 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
-                if (ev.target.classList.contains("possibleDrop")) {
+                const dropTarget = ev.currentTarget;
+                if (dropTarget.classList.contains("possibleDrop")) {
                     return;
                 }
-                if (ev.target.classList.contains("draggable-drop")) {
-                    ev.target.classList.add("possibleDrop");
+                if (dropTarget.classList.contains("draggable-drop")) {
+                    dropTarget.classList.add("possibleDrop");
                 }
             }.bind(this),
         );
-        dpSpan.addEventListener("dragleave", function (ev) {
-            this.isAnswered = true;
-            ev.preventDefault();
-            if (!ev.target.classList.contains("possibleDrop")) {
-                return;
-            }
-            ev.target.classList.remove("possibleDrop");
-        }.bind(this));
+        dpSpan.addEventListener(
+            "dragleave",
+            function (ev) {
+                this.isAnswered = true;
+                ev.preventDefault();
+                const dropTarget = ev.currentTarget;
+                if (!dropTarget.classList.contains("possibleDrop")) {
+                    return;
+                }
+                dropTarget.classList.remove("possibleDrop");
+            }.bind(this),
+        );
         dpSpan.addEventListener(
             "drop",
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
                 this.setPointerDragActive(false);
-                if (ev.target.classList.contains("possibleDrop")) {
-                    ev.target.classList.remove("possibleDrop");
+                const dropTarget = ev.currentTarget;
+                if (dropTarget.classList.contains("possibleDrop")) {
+                    dropTarget.classList.remove("possibleDrop");
                 }
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
-                    ev.target.classList.contains("draggable-drop") &&
-                    !this.strangerDanger(draggedSpan) &&
-                    !this.premiseArray.includes(ev.target) // don't drop on another premise!
+                    dropTarget.classList.contains("draggable-drop") &&
+                    !this.strangerDanger(draggedSpan)
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
-                    ev.target.appendChild(draggedSpan);
+                    dropTarget.appendChild(draggedSpan);
                     // log a drop event
                     this.logBookEvent({
                         event: "dragNdrop-drop",
                         div_id: this.divid,
-                        act: `${data} -> ${ev.target.id}`,
+                        act: `${data} -> ${dropTarget.id}`,
                     });
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
+                    this.disablePremiseMathTabStops();
                     this.adjustDragDropWidths();
                 });
             }.bind(this),
         );
+
+        dpSpan.addEventListener("click", (ev) => {
+            if (!this.selectedPremise || ev.target.closest(".premise")) {
+                return;
+            }
+            ev.preventDefault();
+            this.placeSelectedPremise(dpSpan);
+        });
 
         // Add keyboard navigation for dropping premises
         dpSpan.addEventListener("keydown", (ev) => {
@@ -596,17 +676,145 @@ export default class DragNDrop extends RunestoneBase {
         // Moving focus with Tab or Shift+Tab previews the selected premise in
         // the newly focused response, just as the vertical arrow keys do.
         dpSpan.addEventListener("focus", () => {
-            if (
-                this.selectedPremise &&
-                this.selectedPremise.parentElement !== dpSpan
-            ) {
-                this.moveSelectedPremise(dpSpan, dpSpan.id);
+            if (this.selectedPremise) {
+                this.setActiveResponse(dpSpan);
             }
         });
     }
 
     setPointerDragActive(active) {
         this.containerDiv.classList.toggle("pointer-drag-active", active);
+    }
+
+    announceKeyboardInstruction(message) {
+        if (this.keyboardInstructionDiv) {
+            this.keyboardInstructionDiv.textContent = message;
+        }
+    }
+
+    enterKeyboardApplicationMode(premise) {
+        if (!this.dragDropWrapDiv) {
+            return;
+        }
+        const premiseLabel = premise.textContent.trim();
+        this.dragDropWrapDiv.tabIndex = 0;
+        this.dragDropWrapDiv.setAttribute("role", "application");
+        this.dragDropWrapDiv.setAttribute(
+            "aria-label",
+            `Drag and drop placement for ${premiseLabel}`,
+        );
+        if (this.activeResponse) {
+            this.dragDropWrapDiv.setAttribute(
+                "aria-activedescendant",
+                this.activeResponse.id,
+            );
+        }
+        this.announceKeyboardInstruction(
+            `Moving ${premiseLabel}. Use arrow keys to choose a target, Enter to place, or Escape to cancel.`,
+        );
+        this.dragDropWrapDiv.focus();
+    }
+
+    exitKeyboardApplicationMode() {
+        if (!this.dragDropWrapDiv) {
+            return;
+        }
+        this.dragDropWrapDiv.removeAttribute("role");
+        this.dragDropWrapDiv.removeAttribute("aria-label");
+        this.dragDropWrapDiv.removeAttribute("aria-activedescendant");
+        this.dragDropWrapDiv.tabIndex = -1;
+    }
+
+    focusKeyboardApplicationSurface() {
+        if (this.selectedPremise && this.dragDropWrapDiv) {
+            this.dragDropWrapDiv.focus();
+        }
+    }
+
+    setActiveResponse(response, { movePremise = true } = {}) {
+        if (!response) {
+            return;
+        }
+        this.activeResponse = response;
+        if (this.dragDropWrapDiv && this.selectedPremise) {
+            this.dragDropWrapDiv.setAttribute(
+                "aria-activedescendant",
+                response.id,
+            );
+        }
+        if (
+            movePremise &&
+            this.selectedPremise &&
+            this.selectedPremise.parentElement !== response
+        ) {
+            this.moveSelectedPremise(response, response.id);
+        }
+    }
+
+    moveActiveResponse({ moveBackward = false, wrap = false } = {}) {
+        if (!this.selectedPremise || this.responseArray.length === 0) {
+            return;
+        }
+        const offset = moveBackward ? -1 : 1;
+        const currentIndex = this.responseArray.indexOf(this.activeResponse);
+        let targetIndex;
+        if (currentIndex === -1) {
+            targetIndex = moveBackward ? this.responseArray.length - 1 : 0;
+        } else {
+            targetIndex = currentIndex + offset;
+        }
+        if (wrap) {
+            targetIndex =
+                (targetIndex + this.responseArray.length) %
+                this.responseArray.length;
+        } else {
+            targetIndex = Math.max(
+                0,
+                Math.min(targetIndex, this.responseArray.length - 1),
+            );
+        }
+        this.setActiveResponse(this.responseArray[targetIndex]);
+        this.focusKeyboardApplicationSurface();
+    }
+
+    handleKeyboardApplicationKeydown(ev) {
+        if (ev.target !== this.dragDropWrapDiv || !this.selectedPremise) {
+            return;
+        }
+        if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.placeSelectedPremise(
+                this.activeResponse || this.responseArray[0],
+            );
+        } else if (ev.key === "Escape" || ev.key === "Esc") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.deselectPremise({ restoreFocus: true });
+        } else if (ev.key === "Tab") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.moveActiveResponse({ moveBackward: ev.shiftKey, wrap: true });
+        } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.moveActiveResponse({
+                moveBackward: ev.key === "ArrowUp",
+                wrap: false,
+            });
+        } else if (ev.key === "ArrowLeft") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.returnSelectedPremise();
+            this.focusKeyboardApplicationSurface();
+        } else if (ev.key === "ArrowRight") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.moveSelectedPremiseRight(
+                this.activeResponse || this.responseArray[0],
+            );
+            this.focusKeyboardApplicationSurface();
+        }
     }
 
     moveResponseFocus(response, moveBackward) {
@@ -637,6 +845,7 @@ export default class DragNDrop extends RunestoneBase {
         }
 
         const response = this.responseArray[targetIndex];
+        this.activeResponse = response;
         if (response !== premise.parentElement) {
             this.moveSelectedPremise(response, response.id);
         }
@@ -649,6 +858,7 @@ export default class DragNDrop extends RunestoneBase {
             return;
         }
         this.moveSelectedPremise(this.draggableDiv, "dragzone");
+        this.announceKeyboardInstruction("Returned to unplaced list.");
     }
 
     moveSelectedPremiseRight(response) {
@@ -664,6 +874,9 @@ export default class DragNDrop extends RunestoneBase {
         if (!premise || premise.parentElement === destination) {
             return;
         }
+        if (this.responseArray.includes(destination)) {
+            this.activeResponse = destination;
+        }
         destination.appendChild(premise);
         this.isAnswered = true;
         this.logBookEvent({
@@ -672,6 +885,7 @@ export default class DragNDrop extends RunestoneBase {
             act: `${premise.id} -> ${destinationName}`,
         });
         this.queueMathJax(this.containerDiv).then(() => {
+            this.disablePremiseMathTabStops();
             this.adjustDragDropWidths();
         });
     }
@@ -679,6 +893,12 @@ export default class DragNDrop extends RunestoneBase {
     placeSelectedPremise(response) {
         const premise = this.selectedPremise;
         if (!premise || this.strangerDanger(premise)) {
+            return;
+        }
+
+        if (premise.parentElement === this.draggableDiv) {
+            this.deselectPremise();
+            premise.focus();
             return;
         }
 
@@ -692,13 +912,17 @@ export default class DragNDrop extends RunestoneBase {
         this.selectedPremise = premise;
         premise.classList.add("selected");
         premise.setAttribute("aria-pressed", "true");
-        this.updateKeyboardNavigation();
         const currentResponse = this.responseArray.includes(
             premise.parentElement,
         )
             ? premise.parentElement
             : this.responseArray[0];
-        currentResponse?.focus();
+        this.activeResponse = currentResponse || null;
+        this.updateKeyboardNavigation();
+        if (currentResponse && premise.parentElement !== currentResponse) {
+            this.moveSelectedPremise(currentResponse, currentResponse.id);
+        }
+        this.enterKeyboardApplicationMode(premise);
     }
 
     deselectPremise({ restoreFocus = false } = {}) {
@@ -709,6 +933,8 @@ export default class DragNDrop extends RunestoneBase {
         premise.classList.remove("selected");
         premise.setAttribute("aria-pressed", "false");
         this.selectedPremise = null;
+        this.activeResponse = null;
+        this.exitKeyboardApplicationMode();
         this.updateKeyboardNavigation();
         if (restoreFocus) {
             premise.focus();
