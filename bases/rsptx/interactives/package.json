@@ -40,21 +40,17 @@
         "webpack-cli": "^4.10.0"
     },
     "dependencies": {
-        "@mapbox/node-pre-gyp": "^1.0.11",
-        "bootstrap": "3.4.1",
+        "@mapbox/node-pre-gyp": "^2.0.0",
         "btm-expressions": "^0.1.12",
         "byte-base64": "^1.1.0",
         "codemirror": "^5.59.4",
         "handsontable": "7.2.2",
         "highlight.js": "^11.7.0",
-        "jexcel": "^3.9.1",
         "jquery-ui": "1.10.4",
         "marked": "^18.0.2",
-        "select2": "^4.1.0-rc.0",
         "sortablejs": "^1.14.0",
         "sql.js": "1.5.0",
-        "vega-embed": "3.14.0",
-        "wavedrom": "^2.0.0"
+        "vega-embed": "3.14.0"
     },
     "optionalDependencies": {
         "canvas": "^3.2.3"

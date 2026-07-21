@@ -26,7 +26,7 @@ import "jquery-ui/themes/base/jquery.ui.all.css";
 
 // common styles come from here
 import "./ptxrs-bootstrap.less";
-import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
+//import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
 
 // Misc
 import "./runestone/common/js/bookfuncs.js";
