@@ -674,11 +674,13 @@ def _process_chapters(sess, db_context, course_name, manifest_path):
 
     tree = ET.parse(manifest_path)
     root = tree.getroot()
-    chap = 0
+    chapter_counter = 0
 
     for chapter in root.findall("./chapter"):
-        chap += 1
-        chapid = _process_single_chapter(sess, db_context, chapter, chap, course_name)
+        chapter_counter += 1
+        chapid = _process_single_chapter(
+            sess, db_context, chapter, chapter_counter, course_name
+        )
         _process_subchapters(sess, db_context, chapter, chapid, course_name)
 
 
@@ -697,11 +699,14 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
             _handle_datafile(el, course_name)
 
 
-def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
+def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name):
     """Process a single chapter and return its database ID."""
-    cnum = chapter.find("./number").text
-    if not cnum:
-        cnum = ""
+    cnum_text = chapter.find("./number").text
+    if not cnum_text:
+        cnum = chap_counter
+    else:
+        cnum = int(cnum_text)
+
     rslogger.debug(
         f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
     )
@@ -713,7 +718,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
             chapter_name=f"{cnum} {chapter.find('./title').text}",
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
-            chapter_num=chap_num,
+            chapter_num=cnum,
         )
     )
     res = sess.execute(ins)
@@ -722,7 +727,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_num, course_name):
 
 def _process_subchapters(sess, db_context, chapter, chapid, course_name):
     """Process all subchapters for a given chapter."""
-    subchap = 0
+    subchap_counter = 0
 
     for subchapter in chapter.findall("./subchapter"):
         # check if this subchapter has a time-limit attribute
@@ -748,19 +753,26 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
                 parent=subchapter,
             )
 
-        subchap += 1
+        subchap_counter += 1
         _process_single_subchapter(
-            sess, db_context, chapter, subchapter, chapid, subchap, course_name
+            sess, db_context, chapter, subchapter, chapid, subchap_counter, course_name
         )
 
 
 def _process_single_subchapter(
-    sess, db_context, chapter, subchapter, chapid, subchap_num, course_name
+    sess, db_context, chapter, subchapter, chapid, subchap_counter, course_name
 ):
     """Process a single subchapter and its contents."""
-    scnum = subchapter.find("./number").text
-    if not scnum:
-        scnum = ""
+    scnum_text = subchapter.find("./number").text
+    if scnum_text:
+        # subchapter numbers are in manifest as "1.1", "1.2", etc.
+        # strip off the chapter number and just keep the subchapter number
+        if "." in scnum_text:
+            scnum_text = scnum_text.split(".")[1]
+        scnum = int(scnum_text.strip())
+    else:
+        scnum = subchap_counter
+
     chap_xmlid = subchapter.find("./id").text
     rslogger.debug(f"subchapter {chap_xmlid}")
 
@@ -774,7 +786,7 @@ def _process_single_subchapter(
         titletext = " ".join(
             [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
         )
-    titletext = scnum + " " + titletext.strip()
+    titletext = f"{scnum} {titletext.strip()}"
 
     # Insert subchapter
     ins = (
@@ -785,7 +797,7 @@ def _process_single_subchapter(
             chapter_id=chapid,
             sub_chapter_label=subchapter.find("./id").text,
             skipreading="F",
-            sub_chapter_num=subchap_num,
+            sub_chapter_num=scnum,
         )
     )
     sess.execute(ins)
