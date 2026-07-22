@@ -244,9 +244,26 @@ def get_example_solution(api_token, language, problem_description, unittest_code
     """
 
     example_solution_user_message = f"""
-    Generate a correct example solution for the following question in {language}: {problem_description}. 
-    Here is the unittest code: {unittest_code}. The solution should be correct and pass the unittest."
-    """
+Generate a correct example solution for the following question in {language}: {problem_description}.
+
+Here is the unittest code:
+{unittest_code}
+
+The solution must be correct and pass all unittest cases.
+
+This solution will be used as the reference solution for generating Parsons puzzles for beginner programming students. Prioritize educational clarity and structural readability over minimizing lines of code.
+
+Requirements:
+- Use beginner-level {language} features only.
+- Provide a complete, runnable solution with necessary classes, methods, or imports.
+- Use explicit control flow such as loops and conditionals when appropriate.
+- Use meaningful intermediate variables instead of compressing logic into single expressions.
+- Avoid advanced language features, shortcuts, library functions, or syntax that hides the reasoning process.
+- Write code that clearly shows the sequence of steps a beginner should learn.
+- Structure the solution so it can be divided into meaningful Parsons puzzle blocks.
+- Do not include explanations, markdown formatting, comments, or test cases.
+- Output only the code.
+"""
 
     raw_completion_response = client.chat.completions.create(
         model="gpt-5-nano",
