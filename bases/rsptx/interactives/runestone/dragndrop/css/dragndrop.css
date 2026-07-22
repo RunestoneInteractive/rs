@@ -95,15 +95,6 @@
     background-color: #cccccc;
 }
 
-/*
- * This is a hack to allow us to drop on the drop target when
- * the drop area contains mathjax or or other child elements.
-*/
-.draggable-drop .process-math,
-.draggable-drop .MathJax {
-    pointer-events: none;
-    cursor: not-allowed;
-}
 
 /* Hide the error message from people but let screen readers see it */
 .vh-dnd-error {

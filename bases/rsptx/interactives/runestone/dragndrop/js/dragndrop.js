@@ -282,7 +282,9 @@ export default class DragNDrop extends RunestoneBase {
             this.finishSettingUp();
         }
         this.ivp = this.isValidPremise.bind(this);
-        this.queueMathJax(this.containerDiv);
+        this.queueMathJax(this.containerDiv).then(() => {
+            this.disablePremiseMathTabStops();
+        });
     }
 
     finishSettingUp() {
@@ -294,6 +296,7 @@ export default class DragNDrop extends RunestoneBase {
             this.minheight = this.draggableDiv.offsetHeight;
             // Ensure MathJax has completed before adjusting the zone widths
             this.queueMathJax(this.containerDiv).then(() => {
+                this.disablePremiseMathTabStops();
                 this.adjustDragDropWidths();
             });
         }
@@ -485,10 +488,22 @@ export default class DragNDrop extends RunestoneBase {
             }.bind(this),
         );
 
+        dgSpan.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            if (this.selectedPremise === dgSpan) {
+                this.deselectPremise();
+            } else {
+                this.selectPremise(dgSpan);
+            }
+        });
+
         // Enter or Space picks up a premise. Pressing the same key again puts
         // it down; Escape is handled at the component level so it also works
         // after focus has moved to a response or button.
         dgSpan.addEventListener("keydown", (ev) => {
+            if (ev.target !== dgSpan) {
+                return;
+            }
             if (ev.key === "Enter" || ev.key === " ") {
                 ev.preventDefault();
                 if (this.selectedPremise === dgSpan) {
@@ -502,20 +517,60 @@ export default class DragNDrop extends RunestoneBase {
             ) {
                 ev.preventDefault();
                 this.movePremiseFocus(dgSpan, ev.key === "ArrowDown");
+            } else if (
+                !this.selectedPremise &&
+                (ev.key === "ArrowLeft" || ev.key === "ArrowRight")
+            ) {
+                ev.preventDefault();
+                this.focusFirstPremiseInColumn(ev.key === "ArrowRight");
             }
         });
     }
 
+    disablePremiseMathTabStops(root = this.containerDiv) {
+        const mathSelector = [
+            ".premise .MathJax",
+            ".premise mjx-container",
+            ".premise .process-math",
+            ".premise .MathJax [tabindex]",
+            ".premise mjx-container [tabindex]",
+            ".premise .process-math [tabindex]",
+            ".response .MathJax",
+            ".response mjx-container",
+            ".response .process-math",
+            ".response .MathJax [tabindex]",
+            ".response mjx-container [tabindex]",
+            ".response .process-math [tabindex]",
+        ].join(", ");
+        for (const mathElement of root.querySelectorAll(mathSelector)) {
+            mathElement.setAttribute("tabindex", "-1");
+        }
+    }
+
     movePremiseFocus(premise, moveDown) {
-        const currentIndex = this.premiseArray.indexOf(premise);
+        const premiseTabOrder = Array.from(
+            this.containerDiv.querySelectorAll(".premise"),
+        ).filter((item) => this.premiseArray.includes(item));
+        const currentIndex = premiseTabOrder.indexOf(premise);
+        if (currentIndex === -1) {
+            return;
+        }
         const targetIndex = Math.max(
             0,
             Math.min(
                 currentIndex + (moveDown ? 1 : -1),
-                this.premiseArray.length - 1,
+                premiseTabOrder.length - 1,
             ),
         );
-        this.premiseArray[targetIndex]?.focus();
+        premiseTabOrder[targetIndex]?.focus();
+    }
+
+    focusFirstPremiseInColumn(rightColumn) {
+        const column = rightColumn ? this.dropZoneDiv : this.draggableDiv;
+        const firstPremise = Array.from(column.querySelectorAll(".premise")).find(
+            (item) => this.premiseArray.includes(item),
+        );
+        firstPremise?.focus();
     }
 
     setDropListeners(dpSpan) {
@@ -524,21 +579,23 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
-                if (ev.target.classList.contains("possibleDrop")) {
+                const dropTarget = ev.currentTarget;
+                if (dropTarget.classList.contains("possibleDrop")) {
                     return;
                 }
-                if (ev.target.classList.contains("draggable-drop")) {
-                    ev.target.classList.add("possibleDrop");
+                if (dropTarget.classList.contains("draggable-drop")) {
+                    dropTarget.classList.add("possibleDrop");
                 }
             }.bind(this),
         );
         dpSpan.addEventListener("dragleave", function (ev) {
             this.isAnswered = true;
             ev.preventDefault();
-            if (!ev.target.classList.contains("possibleDrop")) {
+            const dropTarget = ev.currentTarget;
+            if (!dropTarget.classList.contains("possibleDrop")) {
                 return;
             }
-            ev.target.classList.remove("possibleDrop");
+            dropTarget.classList.remove("possibleDrop");
         }.bind(this));
         dpSpan.addEventListener(
             "drop",
@@ -546,30 +603,39 @@ export default class DragNDrop extends RunestoneBase {
                 this.isAnswered = true;
                 ev.preventDefault();
                 this.setPointerDragActive(false);
-                if (ev.target.classList.contains("possibleDrop")) {
-                    ev.target.classList.remove("possibleDrop");
+                const dropTarget = ev.currentTarget;
+                if (dropTarget.classList.contains("possibleDrop")) {
+                    dropTarget.classList.remove("possibleDrop");
                 }
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
-                    ev.target.classList.contains("draggable-drop") &&
-                    !this.strangerDanger(draggedSpan) &&
-                    !this.premiseArray.includes(ev.target) // don't drop on another premise!
+                    dropTarget.classList.contains("draggable-drop") &&
+                    !this.strangerDanger(draggedSpan)
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
-                    ev.target.appendChild(draggedSpan);
+                    dropTarget.appendChild(draggedSpan);
                     // log a drop event
                     this.logBookEvent({
                         event: "dragNdrop-drop",
                         div_id: this.divid,
-                        act: `${data} -> ${ev.target.id}`,
+                        act: `${data} -> ${dropTarget.id}`,
                     });
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
+                    this.disablePremiseMathTabStops();
                     this.adjustDragDropWidths();
                 });
             }.bind(this),
         );
+
+        dpSpan.addEventListener("click", (ev) => {
+            if (!this.selectedPremise || ev.target.closest(".premise")) {
+                return;
+            }
+            ev.preventDefault();
+            this.placeSelectedPremise(dpSpan);
+        });
 
         // Add keyboard navigation for dropping premises
         dpSpan.addEventListener("keydown", (ev) => {
@@ -672,6 +738,7 @@ export default class DragNDrop extends RunestoneBase {
             act: `${premise.id} -> ${destinationName}`,
         });
         this.queueMathJax(this.containerDiv).then(() => {
+            this.disablePremiseMathTabStops();
             this.adjustDragDropWidths();
         });
     }
@@ -679,6 +746,12 @@ export default class DragNDrop extends RunestoneBase {
     placeSelectedPremise(response) {
         const premise = this.selectedPremise;
         if (!premise || this.strangerDanger(premise)) {
+            return;
+        }
+
+        if (premise.parentElement === this.draggableDiv) {
+            this.deselectPremise();
+            premise.focus();
             return;
         }
 
