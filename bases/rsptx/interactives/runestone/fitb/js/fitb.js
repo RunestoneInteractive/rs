@@ -145,9 +145,11 @@ export default class FITB extends RunestoneBase {
                         );
                         break;
                     // Allow for local imports, usually from problems defined outside the Runestone Components.
+                    // Relative URL should be relative to document base, not this library
                     default:
-                        import_promises.push(
-                            import(/* webpackIgnore: true */ import_),
+                        const absoluteUrl = new URL(import_, document.baseURI).href;
+                        import_promises.push( 
+                            import(/* webpackIgnore: true */ absoluteUrl),
                         );
                         break;
                 }
