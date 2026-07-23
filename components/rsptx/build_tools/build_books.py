@@ -428,6 +428,11 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     "--dry-run", is_flag=True, help="Show what would be built/deployed and exit"
 )
 @click.option(
+    "--gen",
+    is_flag=True,
+    help="Force PreTeXt to (re)generate assets, regardless of GENERATE_ASSETS",
+)
+@click.option(
     "--skip-chown",
     is_flag=True,
     help="Skip reclaiming root-owned files under BOOK_PATH before building",
@@ -441,7 +446,7 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     help="Build up to this many books at once (1 = sequential)",
 )
 def build_books(
-    book, exclude, clean, no_deploy, deploy_only, dry_run, skip_chown, parallel
+    book, exclude, clean, no_deploy, deploy_only, dry_run, gen, skip_chown, parallel
 ):
     """
     Build every book in the library where for_classes or is_visible is true,
@@ -495,7 +500,7 @@ def build_books(
         click.echo("No matching books found in the library table")
         exit(1)
 
-    generate = bool(os.environ.get("GENERATE_ASSETS", False))
+    generate = gen or bool(os.environ.get("GENERATE_ASSETS", False))
     specs = [to_spec(lib) for lib in books]
     if exclude:
         excluded = set(exclude)
