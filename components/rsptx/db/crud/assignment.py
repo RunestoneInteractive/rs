@@ -564,6 +564,29 @@ async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
         return AssignmentValidator.from_orm(assignment)
 
 
+async def fetch_assignment_by_name(
+    name: str, course_id: int
+) -> Optional[AssignmentValidator]:
+    """
+    Fetch one Assignment (with calculated total points) by its name within a
+    course. Returns ``None`` when no such assignment exists.
+
+    :param name: str, the assignment name
+    :param course_id: int, the course the assignment belongs to
+    :return: Optional[AssignmentValidator]
+    """
+    async with async_session() as session:
+        query = select(Assignment.id).where(
+            (Assignment.name == name) & (Assignment.course == course_id)
+        )
+        result = await session.execute(query)
+        assignment_id = result.scalar_one_or_none()
+
+    if assignment_id is None:
+        return None
+    return await fetch_one_assignment(assignment_id)
+
+
 async def create_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
     """
     Create a new Assignment object with the given data (assignment)

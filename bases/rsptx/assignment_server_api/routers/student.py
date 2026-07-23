@@ -23,7 +23,7 @@ import requests
 
 # Third-party imports
 # -------------------
-from fastapi import APIRouter, Depends, Request, Cookie
+from fastapi import APIRouter, Depends, Request, Cookie, status
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
@@ -49,6 +49,7 @@ from rsptx.db.crud import (
     fetch_code_for_sid,
     fetch_deadline_exception,
     fetch_one_assignment,
+    fetch_assignment_by_name,
     fetch_assignment_questions,
     fetch_question_grade,
     fetch_assignment_release_for_div_id,
@@ -61,6 +62,7 @@ from rsptx.db.crud import (
     get_book_subchapters,
 )
 from rsptx.grading_helpers.core import check_for_exceptions
+from rsptx.grading_helpers.regrade import RegradeOptions, regrade_batch
 
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
@@ -269,9 +271,9 @@ def _build_chapter_progress(chapters, subchapters, progress):
         # if any progress exists, otherwise not started.
         highest = -1
         lowest = 1
-        for status in chap_progress.values():
-            lowest = min(lowest, status)
-            highest = max(highest, status)
+        for prog in chap_progress.values():
+            lowest = min(lowest, prog)
+            highest = max(highest, prog)
         if highest == -1:
             chapter_status = -1
         elif lowest == 1:
@@ -281,11 +283,11 @@ def _build_chapter_progress(chapters, subchapters, progress):
 
         sub_name_map = subnames_by_chapter.get(clabel, {})
         sub_list = []
-        for sub_label, status in chap_progress.items():
+        for sub_label, prog in chap_progress.items():
             sub_list.append(
                 {
                     "label": sub_name_map.get(sub_label, sub_label),
-                    "status": _COMPLETION_STATUS_TEXT.get(status, status),
+                    "status": _COMPLETION_STATUS_TEXT.get(prog, prog),
                 }
             )
 
@@ -1088,3 +1090,79 @@ async def getassignmentgrade(
             ret["comment"] = result.comment
 
     return JSONResponse(content=ret)
+
+
+# autograde
+# ---------
+class StudentAutogradeRequest(BaseModel):
+    # The assignment to score: either its numeric id or its name (the timed
+    # exam's div_id is the assignment name, so both forms are accepted).
+    assignment_id: str
+    is_timed: bool = False
+
+
+@router.post("/autograde")
+async def student_autograde(
+    request_data: StudentAutogradeRequest,
+    request: Request,
+    user=Depends(auth_manager),
+):
+    """
+    Score the logged-in student's own answers for an assignment and return a
+    preliminary grade. For timed exams the assignment total is (re)computed and
+    pushed to the LMS via LTI. Called by ``timed.js`` when a student submits an
+    exam.
+
+    Ported from the legacy web2py ``assignments/student_autograde`` endpoint.
+    Grades are computed only for the requesting user, so no instructor role is
+    required; deadlines are not enforced (a student may self-grade at any time),
+    mirroring the legacy behaviour.
+    """
+    course = await fetch_course(user.course_name)
+
+    # Resolve the assignment by numeric id or by name, always scoped to the
+    # student's own course so one course can't grade another's assignment.
+    if request_data.assignment_id.isnumeric():
+        assignment = await fetch_one_assignment(int(request_data.assignment_id))
+        if assignment and assignment.course != course.id:
+            assignment = None
+    else:
+        assignment = await fetch_assignment_by_name(
+            request_data.assignment_id, course.id
+        )
+
+    if not assignment:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND,
+            detail={"success": False, "message": "Could not find this assignment"},
+        )
+
+    rows = await fetch_assignment_questions(assignment.id)
+    questions = [(row.Question, row.AssignmentQuestion) for row in rows]
+
+    # regrade_batch protects existing manual grades, honours each question's
+    # which_to_grade, and (with recompute_totals) rolls up the assignment total
+    # and pushes the LTI 1.3 score -- i.e. the legacy _autograde +
+    # _calculate_totals + _try_to_send_lti_grade in one call.
+    options = RegradeOptions(
+        overwrite_manual=False,
+        enforce_deadline=False,
+        recompute_totals=request_data.is_timed,
+    )
+    report = await regrade_batch(
+        course, [user.username], questions, assignment, options, dry_run=False
+    )
+
+    rslogger.info(
+        f"student_autograde sid={user.username} assignment={assignment.id} "
+        f"scored={report.total} errors={report.errors}"
+    )
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "success": True,
+            "message": f"scored {report.total} items",
+            "count": report.total,
+        },
+    )

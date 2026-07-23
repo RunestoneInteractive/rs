@@ -956,16 +956,14 @@ export default class Timed extends RunestoneBase {
 
     async submitAutograde() {
         try {
-            let response = await fetch(
-                eBookConfig.app + "/assignments/student_autograde",
-                {
-                    method: "POST",
-                    body: new URLSearchParams({
-                        assignment_id: this.divid,
-                        is_timed: true,
-                    }),
-                },
-            );
+            let response = await fetch("/assignment/student/autograde", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    assignment_id: this.divid,
+                    is_timed: true,
+                }),
+            });
             let retdata = await response.json();
             if (retdata.success == false) {
                 console.log(retdata.message);

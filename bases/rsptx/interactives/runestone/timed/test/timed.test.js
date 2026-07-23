@@ -258,13 +258,13 @@ describe("finishing", () => {
             json: async () => ({ success: true }),
         });
         vi.stubGlobal("fetch", fetchMock);
-        eBookConfig.app = "/runestone";
         await exam.submitAutograde();
         const [url, opts] = fetchMock.mock.calls[0];
-        expect(url).toBe("/runestone/assignments/student_autograde");
+        expect(url).toBe("/assignment/student/autograde");
         expect(opts.method).toBe("POST");
-        expect(String(opts.body)).toContain("assignment_id=test_timed_1");
-        expect(String(opts.body)).toContain("is_timed=true");
+        const body = JSON.parse(opts.body);
+        expect(body.assignment_id).toBe("test_timed_1");
+        expect(body.is_timed).toBe(true);
     });
 });
 
