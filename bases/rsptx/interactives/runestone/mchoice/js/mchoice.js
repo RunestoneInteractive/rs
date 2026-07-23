@@ -620,7 +620,9 @@ export default class MultipleChoice extends RunestoneBase {
 
     async logMCMFsubmission(sid) {
         // If there's no answer provided (the array is empty), use a blank for the answer.
-        var answer = this.givenArray[0] || "";
+        // Note: use an explicit length check -- answer index 0 (the first choice in
+        // source order) is falsy, so `this.givenArray[0] || ""` would wrongly blank it out.
+        var answer = this.givenArray.length > 0 ? this.givenArray[0] : "";
         var correct =
             this.givenArray[0] == this.correctIndexList[0] ? "T" : "F";
         var logAnswer =
