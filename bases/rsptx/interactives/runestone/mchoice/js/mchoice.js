@@ -30,7 +30,9 @@ export default class MultipleChoice extends RunestoneBase {
         }
         this.children = this.origElem.childNodes;
         this.random = false;
-        if (this.parseBooleanAttribute(this.origElem, "data-random")) {
+        if (eBookConfig.peer) {
+            this.random = false;
+        } else if (this.parseBooleanAttribute(this.origElem, "data-random")) {
             this.random = true;
         }
         this.correct = null;
@@ -459,9 +461,8 @@ export default class MultipleChoice extends RunestoneBase {
             if (buttonObjs[i].checked) {
                 given = parseInt(buttonObjs[i].value, 10);
                 this.givenArray.push(given);
-                this.feedbackString += `<li value="${i + 1}">${
-                    this.feedbackList[i]
-                }</li>`;
+                this.feedbackString += `<li value="${i + 1}">${this.feedbackList[i]
+                    }</li>`;
                 this.givenlog += given + ",";
                 this.singlefeedback = this.feedbackList[i];
             }
