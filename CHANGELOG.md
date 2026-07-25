@@ -1,5 +1,89 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-07-07 → 2026-07-24)
+
+Coverage: changes landed after the previous changelog update on **2026-07-07**, through **2026-07-24**.
+
+### Highlights
+
+- **web2py migration (continued):** ported student autograde from web2py to the assignment server; migrated the legal/compliance pages to the admin server behind a new Trust Center hub; migrated and modernized the Getting Started page; unauthenticated page requests now redirect to the login page, and the donate page no longer requires login (e5b95221, 68f92fca, a6c89a65, 5555b455, 23266b25, a316b6a6).
+- **Library book build tooling (new `build_books`):** added a `build_books` script to build and deploy all library books, with pre/post build hooks, most-used-books-first ordering, parallel builds with per-book failure alerts and `--exclude`, a `--gen` flag to force PreTeXt asset generation, and handling for `.overrides` files present on dev; hardened file ownership (reclaim root-owned book files, restore `work_dir` ownership after author builds, tolerate marker-touch failures); added prefigure to the CLI (d6c4150b, b8a43bfa, 52fc4d29, 7050668f, e13b1de4, 01cb8e3b, a8aab1e5, baa0e13a, 5f3798e7, fa337d78).
+- **rsadmin CLI (new):** added an `rsadmin` pip project for host-side build/manage/migrate operations; sped up rsmanage startup (a90825a5, 6200a518).
+- **Problem-report feature (new):** added a "report a problem" page and menu, a GitHub link, browser-console-log capture in reports, and a prompt for more information (df7bae99, d8d6a5c7, bdbca035, 2667490e, f712d756).
+- **Security / auth:** reject a spoofed `sid` in `log_book_event` unless it's the same course; fixed book-server bugs around peer-chat publish, question HTML, `gethist`, and `changeCourse` authz; fixed the matching component leaking answers across users via localStorage; validate usernames on creation; log key auth events and make auth log messages more consistent (b76121ca, 104132c1, f2ee56d7, 367c1bc3, 7e7bb6a5, 7a5685b2).
+- **Parsons / grading:** fixed greedy selection in the Parsons line-grader LIS calculation and copied the improved LIS into the hparsons block grader (with a vitest suite); fixed gradebook totals not updating on regrade (esp. timed exams, #1309/#1310) with covering tests; improved the example-solution prompt for Parsons puzzles (e40c67cf, a7ad8298, 69dc0e98, 8d198944, 3538e954, 4f54aab7).
+- **Interactives fixes:** dragndrop gained keyboard controls, target highlighting while dragging a premise, and a fix so selecting a placed premise doesn't reset its location; fixed MCQ multiple-answer checking with 10+ answers and MCQ losing its first-choice answer on reload (#1319); disallow randomization on a PI page; use an explicit radix; cleaned up interactives dependencies/imports and added canvas (1add9120, 294734c4, 93946fc8, 2f9688de, 62a035b5, 09860be0, 866fcdc4, dba03e7e, 022a3e57).
+- **FITB:** import of local libraries is now relative to the document instead of the RS library; answer must be a string (85ea2fff, 0b40ce3f).
+- **PreTeXt:** use PTX-generated chapter numbers when processing the manifest; fixed missing styles on the `doAssignment` page (4b0b6d62, a2de53ac).
+- **Peer Instruction:** PI fixes from live demos plus copilot/LLM prompting fixes (9513232a, f87ebe27).
+- **LTI 1.1:** added an LTI 1.1 link section to assignments; removed the `with_course` decorator from course creation (383900a5, c8d0a0a7).
+- **Infra / fixes:** fixed migration running and merged migration heads; deduped the context dict / possible dupes; misc doc fixes (homebrew link, fork message, window-paths reminder, contribution-doc typo) (0af8416c, 0a4d08df, f61aeed7, fbaa68ab, c280b838, 8aa537c9, cab6e7ef, b96683c4, 6bbf2dac).
+- **Releases:** app versions **8.10.0 → 8.10.5** shipped; bundled runestone JS bumped through **8.1.10 → 8.1.15**.
+
+### Commit notes (for reference)
+
+- e5b95221 Port student autograde from web2py to assignment server
+- 68f92fca Migrate legal/compliance pages to admin server with Trust Center hub
+- a6c89a65 Update legal hub
+- 5555b455 Migrate Getting Started page to admin server and modernize it
+- 23266b25 Redirect unauthenticated page requests to the login page
+- a316b6a6 Do not require login for donate
+- d6c4150b add build_books script to build and deploy all library books
+- b8a43bfa Add pre/post build hooks to library books
+- 52fc4d29 Build most-used books first
+- 7050668f Build books in parallel, with per-book failure alerts and --exclude
+- e13b1de4 Add --gen flag to build_books to force PreTeXt asset generation
+- 01cb8e3b In .overrides if the file is present on dev
+- a8aab1e5 Reclaim root-owned book files and tolerate marker-touch failures
+- baa0e13a Restore work_dir ownership after author book builds
+- 5f3798e7 Add prefigure to cli
+- fa337d78 ignore override
+- a90825a5 Add rsadmin pip project: host-side build/manage/migrate CLI
+- 6200a518 rsmanage startup speedups
+- df7bae99 Make a problem report page
+- d8d6a5c7 add menu for report a problem
+- bdbca035 add link to github
+- 2667490e Include browser console log in problem reports
+- f712d756 Try to prompt for more information
+- b76121ca Reject spoofed sid in log_book_event unless same course
+- 104132c1 Fix book server bugs: peer chat publish, question html, gethist, changeCourse authz
+- f2ee56d7 Fix matching component leaking answers across users via localStorage
+- 367c1bc3 Fix: usernames were not validated
+- 7e7bb6a5 Log key auth events
+- 7a5685b2 make auth log messages more consistent
+- e40c67cf Fix: avoid greedy selection in parsons line grader LIS calculation
+- a7ad8298 Fix: copy improved LIS to hparsons blockgrader
+- 69dc0e98 Add vitest for linegrader LIS algorithm
+- 8d198944 Fix gradebook totals not updating on regrade (esp. timed exams)
+- 3538e954 Add regrade_batch tests covering the #1309 total-recompute fix
+- 4f54aab7 Improve example solution prompt for Parsons puzzles
+- 1add9120 Add keyboard controls for dragndrop
+- 294734c4 Dragndrop: highlight targets while dragging premise
+- 93946fc8 Fix: selecting dragndrop premise does not reset location if already placed
+- 2f9688de Fix: checking for multiple choice multiple answer with 10+ answers
+- 62a035b5 Fix MCQ losing first-choice answer on reload (issue #1319)
+- 09860be0 Do not allow randomization when on a PI page
+- 866fcdc4 Use explicit radix
+- dba03e7e Clean up dependencies and imports
+- 022a3e57 Interactives: remove - from dependencies; add canvas
+- 85ea2fff FITB: Import of local libraries need to be relative to document not RS library
+- 0b40ce3f Fix: answer needs to be a string
+- 4b0b6d62 Use PTX generated chapter numbers when processing manifest
+- a2de53ac Fix: missing styles on doAssignment page
+- 9513232a pi fixes from live demos
+- f87ebe27 copilot and llm prompting fixes
+- 383900a5 Add LTI 1.1 link section to assignment
+- c8d0a0a7 Fix: remove with_course decorator from course creation
+- 0af8416c Fix: fix migration running
+- 0a4d08df merge migration heads
+- f61aeed7 fix: possible dupes in context dict
+- fbaa68ab issue 1270
+- c280b838 Issue 1273
+- 8aa537c9 Added clickable homebrew link
+- cab6e7ef Adds fork message to developer setup
+- b96683c4 Adds an reminder to aviod window paths
+- 6bbf2dac Fix grammar typo in contribution docs
+
 ## Updates since last changelog entry (2026-06-26 → 2026-07-07)
 
 Coverage: changes landed after the previous changelog update on **2026-06-25**, through **2026-07-07**.
