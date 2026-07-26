@@ -76,7 +76,7 @@ Grade Book
  
 <script src="https://cdn.datatables.net/v/dt/dt-2.3.3/fc-5.0.4/fh-4.0.3/datatables.min.js" integrity="sha384-RshOJ4bI2YJrQsNAkDx7oG/ElamRAHG6nwX6JSlUI9ePWip7Ko2s8CerHqEo3xZm" crossorigin="anonymous"></script>
 
-<script type="text/javascript" src="/staticAssets/js/jquery.tabletoCSV.js"></script>
+<script type="text/javascript" src="/staticAssets/js/tableToCSV.js"></script>
 <script>
     var gbTable;
     var assignmentColumnIndexes = [];
@@ -251,13 +251,11 @@ Grade Book
     });
 
 
-    $(function () {
-        $("#export").click(function () {
-            // temporarily show the username column so it gets exported
-            gbTable.column(3).visible(true);
-            $("#table").tableToCSV();
-            gbTable.column(3).visible(false);
-        });
+    document.getElementById("export").addEventListener("click", function () {
+        // temporarily show the username column so it gets exported
+        gbTable.column(3).visible(true);
+        tableToCSV(document.getElementById("table"));
+        gbTable.column(3).visible(false);
     });
 
 </script>
