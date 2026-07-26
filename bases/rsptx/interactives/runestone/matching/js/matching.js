@@ -130,6 +130,9 @@ export class MatchingProblem extends RunestoneBase {
     }
 
     renderFeedback() {
+        this.allBoxes.forEach((box) =>
+            box.classList.remove("match-correct", "match-incorrect"),
+        );
         this.connections.forEach((conn) => {
             const idPair = [conn.fromBox.dataset.id, conn.toBox.dataset.id];
             const isCorrect = this.boxData.correctAnswers.some(
@@ -138,13 +141,24 @@ export class MatchingProblem extends RunestoneBase {
             );
             conn.line.classList.remove("correct", "incorrect");
             conn.line.classList.add(isCorrect ? "correct" : "incorrect");
+            [conn.fromBox, conn.toBox].forEach((box) => {
+                if (!isCorrect) {
+                    box.classList.remove("match-correct");
+                    box.classList.add("match-incorrect");
+                } else if (!box.classList.contains("match-incorrect")) {
+                    box.classList.add("match-correct");
+                }
+            });
         });
 
-        this.connList.innerHTML = `<strong>Score: ${this.scorePercent}%</strong><br>`;
-        this.connList.innerHTML += `<br>Correct: ${this.correctCount}`;
-        this.connList.innerHTML += `<br>Incorrect: ${this.incorrectCount}`;
-        this.connList.innerHTML += `<br>Missing: ${this.missingCount}`;
-        if (this.scorePercent !== 100) {
+        const badgeClass =
+            this.scorePercent === 100 ? " match-score-perfect" : "";
+        this.connList.innerHTML = `<div class="match-results"><span class="match-score-badge${badgeClass}">Score: ${this.scorePercent}%</span><span class="match-counts">${this.correctCount} correct &middot; ${this.incorrectCount} incorrect &middot; ${this.missingCount} missing</span></div>`;
+        if (
+            this.scorePercent !== 100 &&
+            this.boxData.feedback &&
+            this.boxData.feedback.trim()
+        ) {
             this.connList.innerHTML += `<div class="match_feedback exercise-content"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
         }
         this.queueMathJax(this.connList);
@@ -175,7 +189,7 @@ export class MatchingProblem extends RunestoneBase {
         this.connections.forEach((conn) => {
             const from = this.getRightBoxCenter(conn.fromBox);
             const to = this.getLeftBoxCenter(conn.toBox);
-            const line = this.createLineElement(from.x, from.y, to.x, to.y);
+            const line = this.createLineElement(from, to);
             line.fromBox = conn.fromBox;
             line.toBox = conn.toBox;
             this.svg.appendChild(line);
@@ -257,7 +271,8 @@ export class MatchingProblem extends RunestoneBase {
     createConnList(container) {
         const connList = document.createElement("div");
         connList.className = "conn-list";
-        connList.innerHTML = "<strong>Connections:</strong><br>";
+        connList.innerHTML =
+            '<strong>Connections:</strong><div class="conn-entry conn-empty">No connections yet. Drag between boxes to connect them.</div>';
         container.appendChild(connList);
         return connList;
     }
@@ -416,15 +431,25 @@ export class MatchingProblem extends RunestoneBase {
         };
     }
 
-    createLineElement(x1, y1, x2, y2) {
+    /*
+     * Connection lines are drawn as gentle S-curves (cubic beziers) whose
+     * control points pull horizontally out of each port, so lines leave and
+     * enter boxes perpendicular to the column edges.
+     */
+    setLineEndpoints(line, from, to) {
+        const pull = Math.max(30, Math.abs(to.x - from.x) / 2);
+        line.setAttribute(
+            "d",
+            `M ${from.x} ${from.y} C ${from.x + pull} ${from.y}, ${to.x - pull} ${to.y}, ${to.x} ${to.y}`,
+        );
+    }
+
+    createLineElement(from, to) {
         const line = document.createElementNS(
             "http://www.w3.org/2000/svg",
-            "line",
+            "path",
         );
-        line.setAttribute("x1", x1);
-        line.setAttribute("y1", y1);
-        line.setAttribute("x2", x2);
-        line.setAttribute("y2", y2);
+        this.setLineEndpoints(line, from, to);
         line.setAttribute("class", "line");
         line.setAttribute("tabindex", "0"); // Make the line focusable
         line.setAttribute("focusable", "true"); // Make the line focusable
@@ -472,8 +497,12 @@ export class MatchingProblem extends RunestoneBase {
         const toRole = toBox.dataset.role;
 
         if (fromRole === toRole) {
-            alert("You can only connect a draggable to a droppable.");
-            return;
+            this.flashInvalid(fromBox, toBox);
+            if (this.ariaLive) {
+                this.ariaLive.textContent =
+                    "Connections must go between the left column and the right column.";
+            }
+            return false;
         }
 
         // we should always store connections as drag to drop
@@ -481,11 +510,11 @@ export class MatchingProblem extends RunestoneBase {
         if (fromBox.dataset.role === "drop") {
             [fromBox, toBox] = [toBox, fromBox];
         }
-        if (this.isConnected(fromBox, toBox)) return;
+        if (this.isConnected(fromBox, toBox)) return false;
 
         const from = this.getRightBoxCenter(fromBox);
         const to = this.getLeftBoxCenter(toBox);
-        const line = this.createLineElement(from.x, from.y, to.x, to.y);
+        const line = this.createLineElement(from, to);
 
         line.fromBox = fromBox;
         line.toBox = toBox;
@@ -498,11 +527,35 @@ export class MatchingProblem extends RunestoneBase {
         if (this.ariaLive) {
             this.ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
         }
+        return true;
+    }
+
+    flashInvalid(...boxes) {
+        boxes.forEach((box) => {
+            box.classList.add("invalid");
+            setTimeout(() => box.classList.remove("invalid"), 500);
+        });
     }
 
     updateConnectionModel() {
-        this.connList.innerHTML = "<strong>Connections:</strong><br>";
+        // Any change to the connections invalidates previously rendered
+        // grading marks, so clear them along with rebuilding the list.
+        this.allBoxes.forEach((box) =>
+            box.classList.remove("match-correct", "match-incorrect"),
+        );
+        this.connList.innerHTML = "<strong>Connections:</strong>";
+        if (this.connections.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "conn-entry conn-empty";
+            empty.textContent =
+                "No connections yet. Drag between boxes to connect them.";
+            this.connList.appendChild(empty);
+            return;
+        }
         this.connections.forEach((conn) => {
+            if (conn.line) {
+                conn.line.classList.remove("correct", "incorrect");
+            }
             const fromLabel = conn.fromBox.textContent;
             let toLabel = conn.toBox.textContent;
             if (!toLabel) {
@@ -549,29 +602,15 @@ export class MatchingProblem extends RunestoneBase {
     attachEvents() {
         this.allBoxes.forEach((box) => {
             box.addEventListener("pointerdown", (e) => {
-                if (e.ctrlKey || e.metaKey || true) {
-                    e.preventDefault();
-                    this.startBox = box;
-                    const from = this.getRightBoxCenter(this.startBox);
-                    this.tempLine = this.createLineElement(
-                        from.x,
-                        from.y,
-                        from.x,
-                        from.y,
-                    );
-                    this.tempLine.setAttribute("stroke", "gray");
-                    this.tempLine.setAttribute("stroke-dasharray", "4");
-                    this.svg.appendChild(this.tempLine);
+                e.preventDefault();
+                this.startBox = box;
+                const from = this.getRightBoxCenter(this.startBox);
+                this.tempLine = this.createLineElement(from, from);
+                this.tempLine.classList.add("temp");
+                this.svg.appendChild(this.tempLine);
 
-                    document.addEventListener(
-                        "pointermove",
-                        this.updateTempLine,
-                    );
-                    document.addEventListener(
-                        "pointerup",
-                        this.finishConnection,
-                    );
-                }
+                document.addEventListener("pointermove", this.updateTempLine);
+                document.addEventListener("pointerup", this.finishConnection);
             });
 
             box.addEventListener("keydown", (e) => {
@@ -616,10 +655,7 @@ export class MatchingProblem extends RunestoneBase {
             this.connections.forEach((conn) => {
                 const from = this.getRightBoxCenter(conn.fromBox);
                 const to = this.getLeftBoxCenter(conn.toBox);
-                conn.line.setAttribute("x1", from.x);
-                conn.line.setAttribute("y1", from.y);
-                conn.line.setAttribute("x2", to.x);
-                conn.line.setAttribute("y2", to.y);
+                this.setLineEndpoints(conn.line, from, to);
             });
         });
     }
@@ -628,14 +664,12 @@ export class MatchingProblem extends RunestoneBase {
         e.preventDefault();
         if (!this.startBox || !this.tempLine) return;
         const from = this.getRightBoxCenter(this.startBox);
-        this.tempLine.setAttribute("x1", from.x);
-        this.tempLine.setAttribute("y1", from.y);
         const containerRect = this.workspace.getBoundingClientRect();
-        const x = e.clientX - containerRect.left;
-        const y = e.clientY - containerRect.top;
-
-        this.tempLine.setAttribute("x2", x);
-        this.tempLine.setAttribute("y2", y);
+        const to = {
+            x: e.clientX - containerRect.left,
+            y: e.clientY - containerRect.top,
+        };
+        this.setLineEndpoints(this.tempLine, from, to);
     };
 
     finishConnection = (e) => {
@@ -660,17 +694,17 @@ export class MatchingProblem extends RunestoneBase {
             (box) => box.contains(targetElement) && box !== this.startBox,
         );
 
-        if (this.startBox && endBox)
-            this.createPermanentLine(this.startBox, endBox);
-        //
-        console.log(
-            `connected ${this.startBox.dataset.id ? this.startBox.dataset.id : "null"} to ${endBox.dataset.id ? endBox.dataset.id : "null"}`,
-        );
-        this.logBookEvent({
-            event: "matching_connection",
-            div_id: this.divid,
-            act: `connected ${this.startBox.dataset.id ? this.startBox.dataset.id : "null"} to ${endBox.dataset.id ? endBox.dataset.id : "null"}`,
-        });
+        if (
+            this.startBox &&
+            endBox &&
+            this.createPermanentLine(this.startBox, endBox)
+        ) {
+            this.logBookEvent({
+                event: "matching_connection",
+                div_id: this.divid,
+                act: `connected ${this.startBox.dataset.id} to ${endBox.dataset.id}`,
+            });
+        }
         this.startBox = null;
         document.removeEventListener("pointermove", this.updateTempLine);
         document.removeEventListener("pointerup", this.finishConnection);

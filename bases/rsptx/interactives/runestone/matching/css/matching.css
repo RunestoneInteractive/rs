@@ -1,31 +1,26 @@
-* {
-    box-sizing: border-box;
-}
+/* Matching component styles. Everything here is scoped under
+   .ptx-runestone-container / .runestone-sphinx by matching.less, so avoid
+   bare element selectors that would leak into the page. Theme variables
+   come from common/css/variables.less. */
 
-body {
-    font-family: sans-serif;
-    padding: 20px;
-    margin: 0;
-}
-
-h2 {
-    margin-bottom: 0.5em;
-}
-
-/* Main wrapper for each matching component */
 [data-component="matching"] {
     margin: 2rem 0;
-    font-family: sans-serif;
+}
+
+[data-component="matching"] * {
+    box-sizing: border-box;
 }
 
 .matching-workspace {
     display: flex;
     justify-content: space-between;
     position: relative;
-    max-width: 1000px;
+    max-width: 780px;
     width: 100%;
     margin: 0 auto 1rem;
-    background: var(--componentBgColor);
+    padding: 1rem 8px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .left-column,
@@ -33,48 +28,82 @@ h2 {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     gap: 12px;
-    padding: 10px;
     position: relative;
     z-index: 1;
-    max-width: 25vw;
+    flex: 0 1 38%;
+    min-width: 0;
 }
-
 
 .left-column img,
 .right-column img {
-    max-width: 25vw;
-    /* Ensure images do not exceed 25% of the viewport width */
+    max-width: 100%;
+    height: auto;
 }
 
 .box {
-    display: inline-flex;
+    position: relative;
+    display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 120px;
     padding: 10px 14px;
-    min-height: 50px;
-    max-width: 100%;
-    background: var(--dropableBgColor, #f9f9f9);
-    border: 2px solid var(--boxBorderColor);
+    min-height: 48px;
+    background: var(--background, #ffffff);
+    border: 1px solid var(--componentBorderColor, #555555);
     border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     text-align: center;
-    font-weight: bold;
+    font-weight: 500;
     user-select: none;
-    cursor: grab;
-    text-align: center;
+    -webkit-user-select: none;
+    cursor: pointer;
     touch-action: none;
-    /* Prevents scrolling during tap+drag */
+    /* touch-action: none prevents scrolling during tap+drag */
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
-.matching-workspace,
-.left-column,
-.right-column,
-.box,
-body {
-  user-select: none;
-  -webkit-user-select: none; /* for iOS/Safari */
+/* Premises (left column) tend to be sentences; ragged-right reads better. */
+.box[data-role="drag"] {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+/* Connection ports: a small dot on the edge where lines attach, so the
+   affordance of "draw a line from here to there" is visible. */
+.box::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--background, #ffffff);
+    border: 2px solid var(--dragLineColor, #555555);
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.box[data-role="drag"]::after {
+    right: -6px;
+}
+
+.box[data-role="drop"]::after {
+    left: -6px;
+}
+
+.box:hover {
+    border-color: var(--dragLineColor, #000000);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.box:hover::after {
+    background: var(--dragLineColor, #555555);
 }
 
 .box mjx-container {
@@ -83,10 +112,29 @@ body {
 
 .box:focus {
     outline: 3px solid #3498db;
+    outline-offset: 1px;
 }
 
 .box.selected {
     outline: 3px dashed #27ae60;
+    outline-offset: 1px;
+}
+
+/* Flash shown when the user tries to connect two boxes in the same column. */
+.box.invalid {
+    border-color: var(--draggableIncorrectBorder, red);
+    background: var(--draggableIncorrectBg, #f2dede);
+}
+
+/* Graded state, applied to the boxes at each end of a connection. */
+.box.match-correct {
+    border-color: var(--parsonsCorrectBorderColor, #ade595);
+    background: var(--parsonsCorrectBgColor, #dff0d8);
+}
+
+.box.match-incorrect {
+    border-color: var(--parsonsIncorrectBorderColor, #f2b6b6);
+    background: var(--parsonsIncorrectBgColor, #f2dede);
 }
 
 .connector-svg {
@@ -97,76 +145,95 @@ body {
     height: 100%;
     pointer-events: none;
     z-index: 0;
-    background: var(--componentBgColor);
 }
 
 .line {
-    stroke: var(--dragLineColor);
-    ;
-    stroke-width: 3;
+    stroke: var(--dragLineColor, #333333);
+    stroke-opacity: 0.75;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
     cursor: pointer;
-    pointer-events: auto;
-    transition: stroke 0.2s ease, stroke-width 0.2s ease;
+    pointer-events: stroke;
+    transition:
+        stroke 0.15s ease,
+        stroke-width 0.15s ease,
+        stroke-opacity 0.15s ease;
+}
+
+/* The in-progress line that follows the pointer during a drag. */
+.line.temp {
+    stroke-dasharray: 5 5;
+    stroke-opacity: 0.5;
+    pointer-events: none;
 }
 
 .line.correct {
-    stroke: green;
+    stroke: #2e8540;
+    stroke-opacity: 1;
     stroke-width: 3;
 }
 
 .line.incorrect {
-    stroke: #bf1521;
-    stroke-width: 2;
-    stroke-dasharray: 5 5;
+    stroke: #c62828;
+    stroke-opacity: 1;
+    stroke-dasharray: 6 5;
 }
 
 .line.highlighted {
-    stroke: #3cd6e7;
-    stroke-width: 3;
+    stroke-opacity: 1;
+    stroke-width: 4;
 }
 
 .line.faded {
-    stroke: #ccc;
-    stroke-width: 1;
+    stroke-opacity: 0.15;
 }
 
 .line:focus,
 .line:hover {
     stroke: #3498db;
-    stroke-dasharray: 6 4;
-    /* 6px dash, 4px gap */
-    stroke-width: 5;
+    stroke-opacity: 1;
+    stroke-width: 4;
     outline: none;
 }
 
 .conn-list {
-    max-width: 800px;
+    max-width: 780px;
     margin: 0 auto 1rem;
-    padding: 10px;
-    background: var(--componentBgColor);
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 10px 14px;
+    background: var(--background, #ffffff);
+    border: 1px solid var(--componentBorderColor, #cccccc);
+    border-radius: 8px;
+    font-size: 0.9rem;
 }
 
 .conn-entry {
     margin: 4px 0;
-    font-family: monospace;
 }
 
-button {
-    display: inline-block;
-    margin: 0.5rem;
-    font-size: 1rem;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: grab;
-    transition: background 0.2s ease-in-out;
+.conn-empty {
+    font-style: italic;
+    opacity: 0.75;
 }
 
-button:hover {
-    background: #2980b9;
+.match-results {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.match-score-badge {
+    font-weight: bold;
+    padding: 2px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--parsonsIncorrectBorderColor, #f2b6b6);
+    background: var(--parsonsIncorrectBgColor, #f2dede);
+}
+
+.match-score-badge.match-score-perfect {
+    border-color: var(--parsonsCorrectBorderColor, #ade595);
+    background: var(--parsonsCorrectBgColor, #dff0d8);
 }
 
 .aria-live {
@@ -186,17 +253,27 @@ button:hover {
     margin-top: 1rem;
 }
 
+.control-div button {
+    display: inline-block;
+    margin: 0;
+    font-size: 1rem;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+
 .control-div .help-button {
     background: #2c3e50;
     color: #ecf0f1;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     border-radius: 50%;
     font-size: 1.2rem;
-    line-height: 32px;
+    line-height: 36px;
     text-align: center;
-    cursor: pointer;
 }
 
 .control-div .help-button:hover {
@@ -219,10 +296,9 @@ button:hover {
 
 /* modal content box */
 .help-modal-content {
-
     background-color: var(--questionBgColor);
     padding: 1rem 1.5rem;
-    border-radius: 6px;
+    border-radius: 8px;
     max-width: 80%;
     max-height: 80%;
     overflow: auto;
@@ -260,4 +336,11 @@ button:hover {
     margin-top: 10px;
     margin-bottom: 10px;
     border-radius: 5px;
+}
+
+@media (max-width: 600px) {
+    .left-column,
+    .right-column {
+        flex-basis: 42%;
+    }
 }
