@@ -21,6 +21,7 @@ def client():
 # App-level
 # ---------------------------------------------------------------------------
 
+
 def test_app_exists():
     assert app is not None
 
@@ -38,6 +39,7 @@ def test_routes_registered():
 # /logger — authenticated routes return 401/422
 # ---------------------------------------------------------------------------
 
+
 def test_bookevent_unauthenticated(client):
     resp = client.post("/logger/bookevent", json={})
     assert resp.status_code in (401, 422)
@@ -46,6 +48,7 @@ def test_bookevent_unauthenticated(client):
 # ---------------------------------------------------------------------------
 # /assessment — authenticated routes return 401/422
 # ---------------------------------------------------------------------------
+
 
 def test_assessment_results_unauthenticated(client):
     resp = client.post("/assessment/results", json={})
@@ -66,18 +69,23 @@ def test_assessment_get_latest_code_unauthenticated(client):
 # /course — authenticated routes return 401/422
 # ---------------------------------------------------------------------------
 
+
 def test_course_index_unauthenticated(client):
     resp = client.get("/course/index")
     assert resp.status_code in (401, 422)
 
 
 # ---------------------------------------------------------------------------
-# /auth — public routes are reachable (not 500)
+# /auth
 # ---------------------------------------------------------------------------
 
-def test_auth_login_reachable(client):
-    resp = client.get("/auth/login")
-    assert resp.status_code != 500
+
+def test_auth_login_and_logout_are_gone(client):
+    """Signing in and out belong to the admin server; the book server's rival
+    login form, /auth/validate handler and /auth/logout were removed."""
+    assert client.get("/auth/login").status_code == 404
+    assert client.post("/auth/validate", data={}).status_code == 404
+    assert client.get("/auth/logout").status_code == 404
 
 
 def test_auth_course_students_unauthenticated(client):
@@ -88,6 +96,7 @@ def test_auth_course_students_unauthenticated(client):
 # ---------------------------------------------------------------------------
 # /books — public routes are reachable (not 500)
 # ---------------------------------------------------------------------------
+
 
 def test_books_crashtest_returns_500(client):
     # /books/crashtest intentionally raises ZeroDivisionError to exercise the

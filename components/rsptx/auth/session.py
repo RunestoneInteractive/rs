@@ -61,14 +61,20 @@ class RSLoginManager(LoginManager):
 try:
     auth_manager = RSLoginManager(
         settings.jwt_secret,
-        "/auth/validate",
+        # Documentation only: fastapi-login passes this straight through to the
+        # OpenAPI security scheme as ``tokenUrl`` and never dispatches to it.
+        # Authentication is by cookie, issued by the admin server's login page.
+        "/admin/auth/login",
         use_cookie=True,
         custom_exception=NotAuthenticatedException,
     )
 except Exception:
     auth_manager = RSLoginManager(
         settings.jwt_secret,
-        "/auth/validate",
+        # Documentation only: fastapi-login passes this straight through to the
+        # OpenAPI security scheme as ``tokenUrl`` and never dispatches to it.
+        # Authentication is by cookie, issued by the admin server's login page.
+        "/admin/auth/login",
         use_cookie=True,
         not_authenticated_exception=NotAuthenticatedException,
     )
