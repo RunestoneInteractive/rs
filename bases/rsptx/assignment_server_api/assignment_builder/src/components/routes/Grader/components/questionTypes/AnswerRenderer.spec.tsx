@@ -14,6 +14,7 @@ vi.mock("./ActiveCodeAnswerView", () => ({
   ActiveCodeAnswerView: () => <div>VIEW:ACTIVECODE</div>
 }));
 vi.mock("./DefaultAnswerView", () => ({ DefaultAnswerView: () => <div>VIEW:DEFAULT</div> }));
+vi.mock("./IframeAnswerView", () => ({ IframeAnswerView: () => <div>VIEW:IFRAME</div> }));
 vi.mock("./RunestoneGraderPreview", () => ({
   RunestoneGraderPreview: ({ attemptId }: { attemptId?: string | number }) => (
     <div>PREVIEW:{String(attemptId)}</div>
@@ -67,6 +68,22 @@ describe("AnswerRenderer dispatch (no interactive htmlsrc)", () => {
   it("routes an unknown question type to the default view", () => {
     renderFor("totally-unknown");
     expect(screen.getByText("VIEW:DEFAULT")).toBeInTheDocument();
+  });
+});
+
+describe("AnswerRenderer iframe-embedded question types", () => {
+  it.each(["splice", "doenet", "iframe"])(
+    "routes %s to the iframe view rather than dumping its state blob",
+    (questionType) => {
+      renderFor(questionType, { htmlsrc: "<div><iframe src='/a.html'></iframe></div>" });
+      expect(screen.getByText("VIEW:IFRAME")).toBeInTheDocument();
+      expect(screen.queryByText("VIEW:DEFAULT")).not.toBeInTheDocument();
+    }
+  );
+
+  it("uses the iframe view even without htmlsrc, so the raw state is still reachable", () => {
+    renderFor("doenet");
+    expect(screen.getByText("VIEW:IFRAME")).toBeInTheDocument();
   });
 });
 

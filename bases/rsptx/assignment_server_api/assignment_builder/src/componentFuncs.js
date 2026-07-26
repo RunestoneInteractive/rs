@@ -31,7 +31,8 @@ export async function renderRunestoneComponent(
   }
 
   // figure out what kind of component we are dealing with
-  let componentKind = previewRef.current.querySelector("[data-component]").dataset.component;
+  // Older webwork markup has no [data-component] at all, so this can be null.
+  let componentKind = previewRef.current.querySelector("[data-component]")?.dataset.component;
   // webwork problems do not have a data-component attribute so we have to try to figure it out.
   //
 

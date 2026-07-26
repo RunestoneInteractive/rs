@@ -4,6 +4,7 @@ import { ActiveCodeAnswerView } from "./ActiveCodeAnswerView";
 import styles from "./AnswerViews.module.css";
 import { DefaultAnswerView } from "./DefaultAnswerView";
 import { FitbAnswerView } from "./FitbAnswerView";
+import { IframeAnswerView } from "./IframeAnswerView";
 import { McqAnswerView } from "./McqAnswerView";
 import { ParsonsAnswerView } from "./ParsonsAnswerView";
 import { RunestoneGraderPreview } from "./RunestoneGraderPreview";
@@ -27,8 +28,19 @@ const RUNESTONE_GRADER_TYPES = new Set([
   "selectquestion"
 ]);
 
+/**
+ * Question types that are a third-party activity embedded in an iframe. They
+ * have no Runestone component to re-render, so they get their own view rather
+ * than the component preview or a dump of their opaque state blob.
+ */
+const IFRAME_TYPES = new Set(["splice", "doenet", "iframe"]);
+
 export const AnswerRenderer: React.FC<AnswerRendererProps & { questionType: string }> = (props) => {
   const { questionType, htmlsrc, questionName, sid, history, activeAttemptIndex } = props;
+
+  if (IFRAME_TYPES.has(questionType)) {
+    return <IframeAnswerView {...props} />;
+  }
 
   const hasIndex = typeof activeAttemptIndex === "number" && activeAttemptIndex >= 0;
   const isLatestAttempt = hasIndex && activeAttemptIndex === history.length - 1;

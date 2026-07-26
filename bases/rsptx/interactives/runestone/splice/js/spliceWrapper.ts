@@ -28,9 +28,46 @@ declare const eBookConfig: {
 };
 
 export class SpliceWrapper extends RunestoneBase {
+    /**
+     * Iframes the grading interface is currently displaying, mapped to the
+     * saved state of the attempt being reviewed. See ``registerGraderFrame``.
+     */
+    graderFrames: Map<HTMLIFrameElement, unknown> = new Map();
+
     constructor() {
         super();
         this.initSplice();
+    }
+
+    /**
+     * Tell the wrapper that ``frame`` is showing one student's attempt to an
+     * instructor rather than being worked by its owner. While it is registered
+     * ``SPLICE.getState`` is answered with ``state`` instead of whatever the
+     * server has for the logged-in user -- which would be the *instructor's*
+     * work -- and anything the activity reports back is dropped, so poking at
+     * it while grading never writes to an answer table.
+     */
+    registerGraderFrame(frame: HTMLIFrameElement, state: unknown): void {
+        this.graderFrames.set(frame, state);
+    }
+
+    unregisterGraderFrame(frame: HTMLIFrameElement): void {
+        this.graderFrames.delete(frame);
+    }
+
+    handleGraderFrameMessage(event: MessageEvent<SpliceMessageData>, state: unknown): void {
+        if (event.data.subject == "SPLICE.getState") {
+            (event.source as Window).postMessage(
+                {
+                    message_id: event.data.message_id,
+                    subject: "SPLICE.getState.response",
+                    state: state,
+                },
+                "*"
+            );
+        }
+        // Scores and events raised from a grader frame belong to nobody: the
+        // instructor is looking at someone else's attempt, so we drop them.
     }
 
     initSplice(): void {
@@ -38,6 +75,10 @@ export class SpliceWrapper extends RunestoneBase {
         window.addEventListener("message", async (event: MessageEvent<SpliceMessageData>) => {
             var sourceIframe = this.sendingIframe(event);
             console.log(`SpliceWrapper: received message subject: ${event.data.subject} from iframe: ${sourceIframe ? sourceIframe.id : "unknown"}`);
+            if (sourceIframe && this.graderFrames.has(sourceIframe)) {
+                this.handleGraderFrameMessage(event, this.graderFrames.get(sourceIframe));
+                return;
+            }
             if (event.data.subject == "SPLICE.reportScoreAndState") {
                 this.handleScoreAndState(event, sourceIframe);
             } else if (event.data.subject == "SPLICE.sendEvent") {

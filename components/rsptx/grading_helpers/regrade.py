@@ -20,10 +20,15 @@ from rsptx.db.models import (
     QuestionGrade,
     QuestionValidator,
     SelectedQuestion,
-    runestone_component_dict,
 )
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from rsptx.logging import rslogger
+from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
+    CODE_TABLE_TYPES,
+    QTYPE_TO_TABLE,
+    UNITTEST_TABLE,
+    answer_table_for as _answer_table_for,
+)
 from rsptx.grading_helpers.scoring import (
     score_answer_values,
     score_peer_values,
@@ -31,36 +36,7 @@ from rsptx.grading_helpers.scoring import (
 )
 
 
-QTYPE_TO_TABLE = {
-    "mchoice": "mchoice_answers",
-    "fillintheblank": "fitb_answers",
-    "parsonsprob": "parsons_answers",
-    "activecode": "unittest_answers",
-    "actex": "unittest_answers",
-    "shortanswer": "shortanswer_answers",
-    "clickablearea": "clickablearea_answers",
-    "dragndrop": "dragndrop_answers",
-    "codelens": "codelens_answers",
-    "matching": "matching_answers",
-    "webwork": "webwork_answers",
-    "hparsons": "microparsons_answers",
-    "microparsons": "microparsons_answers",
-    "splice": "splice_answers",
-}
-
-UNITTEST_TABLE = "unittest_answers"
-
 MANUAL_COMMENT = "autograded"
-
-
-def _answer_table_for(question_type: str):
-    table_name = QTYPE_TO_TABLE.get(question_type)
-    if not table_name:
-        return None, None
-    rcd = runestone_component_dict.get(table_name)
-    if not rcd:
-        return None, None
-    return rcd.model, table_name
 
 
 class RegradeOptions(BaseModel):

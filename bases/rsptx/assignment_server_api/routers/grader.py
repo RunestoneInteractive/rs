@@ -29,11 +29,11 @@ from rsptx.db.models import (
     Code,
     QuestionGrade,
     Useinfo,
-    runestone_component_dict,
 )
 from rsptx.endpoint_validators import instructor_role_required
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import make_json_response
+from rsptx.grading_helpers.answer_tables import CODE_TABLE_TYPES, answer_table_for
 from rsptx.grading_helpers.regrade import (
     RegradeOptions,
     regrade_batch,
@@ -47,35 +47,9 @@ router = APIRouter(
 )
 
 
-QTYPE_TO_TABLE = {
-    "mchoice": "mchoice_answers",
-    "fillintheblank": "fitb_answers",
-    "parsonsprob": "parsons_answers",
-    "activecode": "unittest_answers",
-    "actex": "unittest_answers",
-    "shortanswer": "shortanswer_answers",
-    "clickablearea": "clickablearea_answers",
-    "dragndrop": "dragndrop_answers",
-    "codelens": "codelens_answers",
-    "matching": "matching_answers",
-    "webwork": "webwork_answers",
-    "hparsons": "microparsons_answers",
-    "microparsons": "microparsons_answers",
-    "splice": "splice_answers",
-}
-
-
-CODE_TABLE_TYPES = {"activecode", "actex", "codelens"}
-
-
 def _answer_table_for(question_type: str):
-    table_name = QTYPE_TO_TABLE.get(question_type)
-    if not table_name:
-        return None
-    rcd = runestone_component_dict.get(table_name)
-    if not rcd:
-        return None
-    return rcd.model
+    model, _table_name = answer_table_for(question_type)
+    return model
 
 
 class GraderQuestionStats(BaseModel):

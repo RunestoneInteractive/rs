@@ -236,6 +236,9 @@ __webpack_public_path__ = script_src.substring(
 );
 
 var splice = new SpliceWrapper();
+// The grading interface needs the singleton so it can register the iframes it
+// is displaying; see SpliceWrapper.registerGraderFrame.
+window.spliceWrapper = splice;
 
 // Manual exports
 // ==============

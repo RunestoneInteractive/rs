@@ -131,6 +131,36 @@
   color: var(--rs-warning-text);
 }
 
+.activityFrameHost {
+  display: inline-block;
+  margin: 0.5rem 0 0.75rem;
+  max-width: 100%;
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-md);
+  background: var(--rs-surface);
+}
+
+/* Keep this rule free of border-radius. A rounded iframe makes Chromium
+   composite the frame through a clipping layer, and some embedded activities
+   (Doenet) then fail to finish booting and render nothing at all. The frame
+   chrome lives on .activityFrameHost instead. */
+.activityFrame {
+  display: block;
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.rawStateDetails {
+  margin-top: 0.5rem;
+}
+
+.rawStateSummary {
+  cursor: pointer;
+  color: var(--rs-text-muted);
+  font-size: 13px;
+}
+
 .codeBlock {
   background: var(--rs-neutral-900);
   color: var(--rs-neutral-200);
