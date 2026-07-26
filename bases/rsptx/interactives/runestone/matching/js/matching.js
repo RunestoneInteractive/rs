@@ -321,7 +321,7 @@ export class MatchingProblem extends RunestoneBase {
         this.helpModal = document.createElement("div");
         this.helpModal.className = "help-modal";
         const text = `<p>Click and drag between boxes to create connections.</p>
-        <p>Use the tab key to navigate to a box and press Enter to select the box.  Then tab to the connecting box and press Enter to create a connection between the two selected boxes.</p>
+        <p>Use the tab key to navigate to a box and press Enter to select it.  Focus then jumps to the other column; tab to the box you want to connect and press Enter.  Press Escape to cancel a selection.</p>
         <p>Click on a connection line to remove it. You can also use the tab key to select lines.  Press the delete key to remove a selected line.</p>
         <p>Click the "Check Me" button to check your connections, and save your work.</p>
         <p>Click the "Reset" button to clear all connections.</p>`;
@@ -431,6 +431,15 @@ export class MatchingProblem extends RunestoneBase {
         };
     }
 
+    // The port (where lines attach) is on the inner edge of the box: the
+    // right edge for left-column (drag) boxes, the left edge for
+    // right-column (drop) boxes.
+    getPortCenter(el) {
+        return el.dataset.role === "drop"
+            ? this.getLeftBoxCenter(el)
+            : this.getRightBoxCenter(el);
+    }
+
     /*
      * Connection lines are drawn as gentle S-curves (cubic beziers) whose
      * control points pull horizontally out of each port, so lines leave and
@@ -438,9 +447,13 @@ export class MatchingProblem extends RunestoneBase {
      */
     setLineEndpoints(line, from, to) {
         const pull = Math.max(30, Math.abs(to.x - from.x) / 2);
+        // Pull the control points toward the other endpoint so the curve
+        // leaves the port heading in the right direction; sign handles a
+        // temp line dragged leftward from a right-column port.
+        const sign = to.x >= from.x ? 1 : -1;
         line.setAttribute(
             "d",
-            `M ${from.x} ${from.y} C ${from.x + pull} ${from.y}, ${to.x - pull} ${to.y}, ${to.x} ${to.y}`,
+            `M ${from.x} ${from.y} C ${from.x + sign * pull} ${from.y}, ${to.x - sign * pull} ${to.y}, ${to.x} ${to.y}`,
         );
     }
 
@@ -604,7 +617,7 @@ export class MatchingProblem extends RunestoneBase {
             box.addEventListener("pointerdown", (e) => {
                 e.preventDefault();
                 this.startBox = box;
-                const from = this.getRightBoxCenter(this.startBox);
+                const from = this.getPortCenter(this.startBox);
                 this.tempLine = this.createLineElement(from, from);
                 this.tempLine.classList.add("temp");
                 this.svg.appendChild(this.tempLine);
@@ -619,6 +632,18 @@ export class MatchingProblem extends RunestoneBase {
                     if (!this.selectedBox) {
                         this.selectedBox = box;
                         box.classList.add("selected");
+                        // Jump focus to the top of the opposite column so
+                        // the user doesn't have to tab through the rest of
+                        // this column and every connection line to get
+                        // there. (With nothing selected, natural tab order
+                        // still visits the lines so they can be deleted.)
+                        const opposite = this.allBoxes.find(
+                            (b) => b.dataset.role !== box.dataset.role,
+                        );
+                        if (opposite) opposite.focus();
+                        if (this.ariaLive) {
+                            this.ariaLive.textContent = `Selected ${box.textContent}. Tab to a box in the other column and press Enter to connect, or press Escape to cancel.`;
+                        }
                     } else {
                         if (box !== this.selectedBox)
                             this.createPermanentLine(this.selectedBox, box);
@@ -628,6 +653,15 @@ export class MatchingProblem extends RunestoneBase {
                         const next = this.allBoxes[currentIndex + 1];
                         if (next) next.focus();
                         else this.allBoxes[0].focus();
+                    }
+                } else if (e.key === "Escape" && this.selectedBox) {
+                    e.preventDefault();
+                    const selected = this.selectedBox;
+                    selected.classList.remove("selected");
+                    this.selectedBox = null;
+                    selected.focus();
+                    if (this.ariaLive) {
+                        this.ariaLive.textContent = "Selection cancelled.";
                     }
                 }
             });
@@ -663,7 +697,7 @@ export class MatchingProblem extends RunestoneBase {
     updateTempLine = (e) => {
         e.preventDefault();
         if (!this.startBox || !this.tempLine) return;
-        const from = this.getRightBoxCenter(this.startBox);
+        const from = this.getPortCenter(this.startBox);
         const containerRect = this.workspace.getBoundingClientRect();
         const to = {
             x: e.clientX - containerRect.left,
