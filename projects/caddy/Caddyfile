@@ -123,6 +123,11 @@
 		}
 
 		# ----- admin server -----
+		# A bare /admin can miss the /admin/* proxy matcher; send it directly
+		# to the instructor menu instead of falling through.
+		@admin_root path /admin /admin/
+		redir @admin_root /admin/instructor/menu 302
+
 		# location /admin/ { proxy_pass http://admin:8115/; }
 		handle_path /admin/* {
 			reverse_proxy admin:8115 {
