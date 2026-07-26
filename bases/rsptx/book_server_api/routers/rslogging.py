@@ -233,6 +233,12 @@ def set_tz_offset(
     response = JSONResponse(
         status_code=status.HTTP_200_OK, content=json.dumps({"detail": "success"})
     )
+    # NOTE: http.cookies (used by set_cookie) wraps this value in double quotes and
+    # octal-escapes the JSON commas (e.g. `,` -> `\054`). Server-side readers
+    # (Starlette/FastAPI, web2py) unquote this automatically, but the client-side
+    # reader in bookfuncs.js (getCookie("RS_info")) depends on this exact format:
+    # it replaces `\054` with `,` and double-parses to undo the quoting. Do not
+    # change this encoding without updating bookfuncs.js to match.
     response.set_cookie(key="RS_info", value=str(json.dumps(values)))
     rslogger.debug(
         f"setting timezone offset in session {tzreq.timezoneoffset} hours for zone"
