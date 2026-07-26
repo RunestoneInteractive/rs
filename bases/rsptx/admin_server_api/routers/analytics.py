@@ -137,6 +137,50 @@ def _chapter_clause_for_chapters(chapter: str, chap_labs: list) -> str:
     return f"and chapters.chapter_label = '{chapter}'"
 
 
+def _student_label(last_name: str, first_name: str, username: str) -> str:
+    """Build the "Last, First (username)" column label used by the activity tables.
+
+    subchapoverview.js extracts the username from the trailing parens to build a
+    link to the student_detail drilldown page, so the format matters.
+    """
+    return f"{last_name}, {first_name} ({username})"
+
+
+def _enrolled_students(engine, course_name: str) -> pd.DataFrame:
+    """Return username/first_name/last_name for everyone enrolled in a course.
+
+    The reports pivot over recorded work, so a student who has done nothing
+    produces no column at all and silently disappears from the report. This is
+    used to backfill those students.
+    """
+    students = pd.read_sql_query(
+        """
+        select distinct auth_user.username, auth_user.first_name, auth_user.last_name
+        from auth_user
+        join user_courses on user_courses.user_id = auth_user.id
+        join courses on courses.id = user_courses.course_id
+        where courses.course_name = %(course_name)s
+        """,
+        engine,
+        params={"course_name": course_name},
+    )
+
+    if students.empty:
+        return students
+
+    # Remove LTI anonymous users (38+ digit @ usernames)
+    return students[~students.username.str.contains(r"^\d{38,}@", regex=True)]
+
+
+def _pad_with_enrolled(pt: pd.DataFrame, labels: list, fill_value) -> pd.DataFrame:
+    """Add a column for each missing label, then sort the columns by name."""
+    for label in labels:
+        if label not in pt.columns:
+            pt[label] = fill_value
+
+    return pt[sorted(pt.columns, key=lambda col: str(col).lower())]
+
+
 def _make_activity_table(
     engine,
     course_name: str,
@@ -168,9 +212,8 @@ def _make_activity_table(
     tdoff = pd.Timedelta(hours=tz_offset_hours)
     data["timestamp"] = data["timestamp"].map(lambda x: x - tdoff)
 
-    # Build student label — "Last, First (username)".
-    # subchapoverview.js extracts the username from the trailing parens to
-    # build a link to the student_detail drilldown page.
+    # Build student label — must match _student_label(), which is used to
+    # backfill students with no recorded activity.
     data["sid"] = (
         data["last_name"] + ", " + data["first_name"] + " (" + data["sid"] + ")"
     )
@@ -200,6 +243,19 @@ def _make_activity_table(
 
     if pt.empty:
         return []
+
+    # Students with no recorded activity produce no column in the pivot, which
+    # made them vanish from the report entirely. Backfill them so the report
+    # lists the whole roster. Counts get 0; timestamp tables get a blank cell.
+    enrolled = _enrolled_students(engine, course_name)
+    pt = _pad_with_enrolled(
+        pt,
+        [
+            _student_label(row.last_name, row.first_name, row.username)
+            for row in enrolled.itertuples(index=False)
+        ],
+        0 if tablekind == "sccount" else None,
+    )
 
     # Pull chapter/subchapter ordering info
     if chapter == "all":
@@ -328,23 +384,14 @@ def _make_correct_count(
     mtbl.sort_values("chapter_label", inplace=True)
 
     # Ensure all enrolled students appear (even those with 0 correct)
-    enrolled = pd.read_sql_query(
-        """
-        select distinct username
-        from auth_user
-        join user_courses on auth_user.course_id = user_courses.course_id
-        where user_courses.course_id = (
-            select id from courses where course_name = %(course_name)s
-        )
-        """,
-        engine,
-        params={"course_name": course_name},
-    )
+    enrolled = _enrolled_students(engine, course_name)
     for username in enrolled["username"].tolist():
         if username not in mtbl.columns:
             mtbl[username] = 0
 
-    student_cols = sorted(mtbl.columns[1:], key=lambda x: x.lower())
+    student_cols = sorted(
+        (col for col in mtbl.columns if col != "chapter_label"), key=lambda x: x.lower()
+    )
     mtbl = mtbl[["chapter_label"] + student_cols]
 
     return json.loads(mtbl.to_json(orient="records", date_format="iso"))
