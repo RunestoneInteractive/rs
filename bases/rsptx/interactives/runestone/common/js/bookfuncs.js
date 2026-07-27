@@ -316,6 +316,39 @@ function addReadingList() {
 }
 
 
+/**
+ * Build the activity dictionary for the progress bar by scanning the page.
+ *
+ * This is the fallback used when the server did not send activity counts --
+ * i.e. when nobody is logged in and the page is being browsed.  The keys are
+ * the div_ids that ``updateProgress`` increments, so they have to be the ids of
+ * the elements carrying ``data-component``.  Those are not always the first
+ * child of the ``.runestone`` wrapper: PreTeXt, for instance, emits an
+ * ``exercise-statement`` div ahead of the component for multiple choice
+ * questions.  Keying off the first child in that case gave every such question
+ * on the page the same empty key, so eight exercises counted as one.
+ *
+ * @param {ParentNode} root - where to look; defaults to the whole document.
+ * @returns {Object} activity ids mapped to 0, plus the ``page`` pseudo-activity.
+ */
+export function countActivitiesInPage(root = document) {
+    let activities = { page: 0 };
+    root.querySelectorAll(".runestone").forEach(function (e, index) {
+        // A component may be the wrapper itself or somewhere inside it. Nested
+        // parts of a component (mchoice answers, feedback) also carry
+        // data-component, but querySelector returns the outermost match first.
+        let component = e.matches("[data-component]")
+            ? e
+            : e.querySelector("[data-component]");
+        let id = component?.id || e.firstElementChild?.id;
+        // Without an id we cannot match this activity to a completion event,
+        // but it is still one activity: give it a key of its own so it is not
+        // folded together with every other unidentified one on the page.
+        activities[id || `unidentified-activity-${index}`] = 0;
+    });
+    return activities;
+}
+
 class PageProgressBar {
     constructor(actDict) {
         this.possible = 0;
@@ -327,11 +360,7 @@ class PageProgressBar {
         if (actDict && Object.keys(actDict).length > 0) {
             this.activities = actDict;
         } else {
-            let activities = { page: 0 };
-            document.querySelectorAll(".runestone").forEach(function (e) {
-                activities[e.firstElementChild.id] = 0;
-            });
-            this.activities = activities;
+            this.activities = countActivitiesInPage();
         }
         this.calculateProgress();
         // Hide the progress bar on the index page.
