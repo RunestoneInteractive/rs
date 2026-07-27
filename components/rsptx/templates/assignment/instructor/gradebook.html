@@ -25,22 +25,75 @@ Grade Book
         text-decoration: underline;
         outline: 2px solid transparent;
     }
-    #late-dialog {
+    #late-dialog,
+    #score-dialog {
         min-width: 280px;
         max-width: 480px;
         border: 1px solid #888;
         border-radius: 6px;
         padding: 1rem 1.25rem;
     }
-    #late-dialog h2 {
+    #late-dialog h2,
+    #score-dialog h2 {
         margin-top: 0;
     }
     #late-dialog ul {
         margin: 0.5rem 0;
         padding-left: 1.25rem;
     }
-    #late-dialog .late-dialog-close {
+    #late-dialog .late-dialog-close,
+    #score-dialog .score-dialog-close {
         margin-top: 0.75rem;
+    }
+
+    /* Each grade in an assignment column opens the per-question breakdown. */
+    td.grade-cell {
+        cursor: pointer;
+    }
+    td.grade-cell:hover,
+    td.grade-cell:focus {
+        background-color: rgba(0, 0, 0, 0.06);
+        outline: 2px solid transparent;
+    }
+    #score-dialog {
+        max-width: 640px;
+    }
+    #score-dialog table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    #score-dialog th,
+    #score-dialog td {
+        border-bottom: 1px solid #ddd;
+        padding: 0.25rem 0.5rem;
+        text-align: left;
+        vertical-align: top;
+    }
+    #score-dialog td.score-num,
+    #score-dialog th.score-num {
+        text-align: right;
+        white-space: nowrap;
+    }
+    #score-dialog .score-comment {
+        font-style: italic;
+        color: #555;
+    }
+    #score-dialog .score-ungraded {
+        color: #777;
+    }
+    #score-dialog .score-mismatch {
+        color: #8a5300;
+        font-size: 0.9em;
+        margin: 0.25rem 0 0;
+    }
+    #score-dialog .score-regrade {
+        margin-top: 0.5rem;
+    }
+    #score-dialog .score-report {
+        color: #245a24;
+        font-size: 0.9em;
+        margin: 0.5rem 0 0;
     }
 </style>
 
@@ -48,7 +101,8 @@ Grade Book
 {% block content %}
 <h1>Grade Book for {{course.course_name}}</h1>
 
-<p>Click an assignment name to see which students submitted work after the deadline.</p>
+<p>Click an assignment name to see which students submitted work after the deadline.
+Click any grade to see that student's score on each question in the assignment.</p>
 
 {{table_html|safe}}
 
@@ -56,6 +110,12 @@ Grade Book
     <h2 id="late-dialog-title"></h2>
     <div id="late-dialog-body"></div>
     <button type="button" class="late-dialog-close" id="late-dialog-close">Close</button>
+</dialog>
+
+<dialog id="score-dialog" aria-labelledby="score-dialog-title">
+    <h2 id="score-dialog-title"></h2>
+    <div id="score-dialog-body"></div>
+    <button type="button" class="score-dialog-close" id="score-dialog-close">Close</button>
 </dialog>
 
 <button id="export" data-export="export">Download Gradebook</button>
@@ -82,6 +142,17 @@ Grade Book
     var assignmentColumnIndexes = [];
     // Map of rendered assignment column header text -> assignment id.
     var assignmentIdByColumn = {{ assignment_id_by_column | safe }};
+    // Same thing keyed by column index, so a click on a cell knows which
+    // assignment it belongs to. Practice (when shown) is not in here.
+    var assignmentByColumnIndex = {};
+    // Column index of the (hidden) username column; the student breakdown is
+    // looked up by username.
+    var USERNAME_COLUMN = 3;
+    // True when the table shows raw points rather than percentages.
+    var showPoints = {{ show_points | safe }};
+    // Which cell the open breakdown belongs to, so a recompute can refresh both
+    // the dialog and the grade in the table.
+    var scoreContext = null;
 
     function setAssignmentColumnVisibility(selectedValue) {
         assignmentColumnIndexes.forEach(function (idx) {
@@ -172,6 +243,318 @@ Grade Book
             });
     }
 
+    function formatScore(value) {
+        if (value === null || value === undefined || value === "") {
+            return "";
+        }
+        var num = Number(value);
+        if (!isFinite(num)) {
+            return String(value);
+        }
+        // Show at most two decimals, but don't pad whole numbers with ".00".
+        return String(Math.round(num * 100) / 100);
+    }
+
+    function openDialog(dialog) {
+        if (typeof dialog.showModal === "function") {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute("open", "open");
+        }
+    }
+
+    function showScoreDialog(detail) {
+        var title = document.getElementById("score-dialog-title");
+        var body = document.getElementById("score-dialog-body");
+        title.textContent = detail.student_name + " — " + detail.assignment_name;
+        body.replaceChildren();
+
+        var total = document.createElement("p");
+        if (detail.total_score === null || detail.total_score === undefined) {
+            total.textContent = "Assignment total: not graded";
+        } else {
+            total.textContent =
+                "Assignment total: " +
+                formatScore(detail.total_score) +
+                (detail.assignment_points
+                    ? " / " + detail.assignment_points
+                    : "") +
+                " points";
+        }
+        body.appendChild(total);
+
+        // The recorded total is a stored roll-up of the question scores, so it
+        // can drift from them (a question was regraded without recomputing the
+        // total). Say so rather than let the two silently disagree.
+        var scored = (detail.questions || []).filter(function (q) {
+            return q.score !== null && q.score !== undefined;
+        });
+        var sum = scored.reduce(function (acc, q) {
+            return acc + Number(q.score);
+        }, 0);
+        var hasTotal =
+            detail.total_score !== null && detail.total_score !== undefined;
+        var isStale =
+            scored.length > 0 &&
+            !detail.manual_total &&
+            (hasTotal ? Math.abs(sum - Number(detail.total_score)) > 0.01 : sum > 0);
+
+        if (isStale) {
+            var warn = document.createElement("p");
+            warn.className = "score-mismatch";
+            warn.textContent = hasTotal
+                ? "The scores below add up to " +
+                  formatScore(sum) +
+                  ", which does not match the recorded total. One of the two is " +
+                  "out of date."
+                : "The scores below add up to " +
+                  formatScore(sum) +
+                  ", but no total has been recorded yet.";
+            body.appendChild(warn);
+
+            var regrade = document.createElement("button");
+            regrade.type = "button";
+            regrade.className = "score-regrade";
+            regrade.textContent = "Regrade this student";
+            regrade.title =
+                "Re-score every question in this assignment from this " +
+                "student's saved answers, then recompute the total";
+            regrade.addEventListener("click", function () {
+                regradeStudent(regrade, detail);
+            });
+            body.appendChild(regrade);
+        } else if (detail.manual_total) {
+            var manual = document.createElement("p");
+            manual.className = "score-mismatch";
+            manual.textContent =
+                "This total was entered by hand, so it may differ from the " +
+                "question scores below.";
+            body.appendChild(manual);
+        }
+
+        if (!detail.questions || detail.questions.length === 0) {
+            var none = document.createElement("p");
+            none.textContent = "This assignment has no questions.";
+            body.appendChild(none);
+        } else {
+            var table = document.createElement("table");
+            var thead = document.createElement("thead");
+            var headRow = document.createElement("tr");
+            ["Question", "Score", "Points"].forEach(function (label, ix) {
+                var th = document.createElement("th");
+                th.textContent = label;
+                if (ix > 0) {
+                    th.className = "score-num";
+                }
+                headRow.appendChild(th);
+            });
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+
+            var tbody = document.createElement("tbody");
+            detail.questions.forEach(function (q) {
+                var tr = document.createElement("tr");
+
+                var nameCell = document.createElement("td");
+                // The question number is what the student sees in the book;
+                // fall back to the div_id when a question has no number.
+                var label = (q.qnumber || "").trim() || q.name;
+                nameCell.textContent = label;
+                if (label !== q.name) {
+                    nameCell.title = q.name;
+                }
+                // "autograded" is the placeholder the autograder writes; only
+                // a real instructor comment is worth showing here.
+                if (q.comment && q.comment !== "autograded") {
+                    var comment = document.createElement("div");
+                    comment.className = "score-comment";
+                    comment.textContent = q.comment;
+                    nameCell.appendChild(comment);
+                }
+                tr.appendChild(nameCell);
+
+                var scoreCell = document.createElement("td");
+                scoreCell.className = "score-num";
+                if (q.score === null || q.score === undefined) {
+                    scoreCell.textContent = "—";
+                    scoreCell.classList.add("score-ungraded");
+                    scoreCell.title = "No score recorded";
+                } else {
+                    scoreCell.textContent = formatScore(q.score);
+                }
+                tr.appendChild(scoreCell);
+
+                var pointsCell = document.createElement("td");
+                pointsCell.className = "score-num";
+                pointsCell.textContent = formatScore(q.points);
+                tr.appendChild(pointsCell);
+
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            body.appendChild(table);
+        }
+
+        var link = document.createElement("p");
+        var anchor = document.createElement("a");
+        anchor.href =
+            "/assignment/student/studentreport?id=" +
+            encodeURIComponent(detail.username);
+        anchor.textContent = "See all work for " + detail.student_name;
+        link.appendChild(anchor);
+        body.appendChild(link);
+    }
+
+    function loadStudentScores() {
+        var title = document.getElementById("score-dialog-title");
+        var body = document.getElementById("score-dialog-body");
+        title.textContent = scoreContext.headerText;
+        body.replaceChildren();
+        var loading = document.createElement("p");
+        loading.textContent = "Loading…";
+        body.appendChild(loading);
+        openDialog(document.getElementById("score-dialog"));
+
+        return fetch(
+            "/assignment/instructor/assignments/" +
+                encodeURIComponent(scoreContext.assignmentId) +
+                "/student_scores?username=" +
+                encodeURIComponent(scoreContext.username),
+            { headers: { Accept: "application/json" } }
+        )
+            .then(function (resp) {
+                if (!resp.ok) {
+                    throw new Error("Request failed: " + resp.status);
+                }
+                return resp.json();
+            })
+            .then(function (data) {
+                showScoreDialog(data.detail);
+                return data.detail;
+            })
+            .catch(function () {
+                body.replaceChildren();
+                var err = document.createElement("p");
+                err.textContent = "Could not load the scores for this student.";
+                body.appendChild(err);
+                return null;
+            });
+    }
+
+    // Redraw the clicked cell in the same units the table was built with, so
+    // the gradebook agrees with the dialog without a page reload.
+    function updateGradeCell(detail) {
+        if (!scoreContext || !detail) {
+            return;
+        }
+        var value = "";
+        if (detail.total_score !== null && detail.total_score !== undefined) {
+            if (showPoints) {
+                value = formatScore(detail.total_score);
+            } else if (detail.assignment_points) {
+                value = (
+                    (Number(detail.total_score) / detail.assignment_points) *
+                    100
+                ).toFixed(2);
+            }
+        }
+        gbTable
+            .cell(scoreContext.rowIndex, scoreContext.columnIndex)
+            .data(value)
+            .draw(false);
+    }
+
+    // Re-score this one student on this one assignment from their saved
+    // answers. Manually graded questions are left alone (overwrite_manual is
+    // false); the total is rolled up afterwards by the same call.
+    function regradeStudent(button, detail) {
+        if (!scoreContext) {
+            return;
+        }
+        var context = scoreContext;
+        var questionIds = (detail.questions || [])
+            .map(function (q) {
+                return q.id;
+            })
+            .filter(function (id) {
+                return id !== null && id !== undefined;
+            });
+        if (!questionIds.length) {
+            return;
+        }
+        button.disabled = true;
+        button.textContent = "Regrading…";
+
+        fetch("/assignment/instructor/grader/regrade", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({
+                assignment_id: context.assignmentId,
+                question_ids: questionIds,
+                sids: [context.username],
+                overwrite_manual: false,
+                enforce_deadline: true,
+                recompute_totals: true,
+            }),
+        })
+            .then(function (resp) {
+                if (!resp.ok) {
+                    throw new Error("Request failed: " + resp.status);
+                }
+                return resp.json();
+            })
+            .then(function (data) {
+                var report = data.detail || {};
+                // Re-read the scores so the dialog and the table show what was
+                // actually written, not what we assume was written.
+                return loadStudentScores().then(function (fresh) {
+                    updateGradeCell(fresh);
+                    showRegradeReport(report);
+                });
+            })
+            .catch(function () {
+                button.disabled = false;
+                button.textContent = "Regrade this student";
+                var err = document.createElement("p");
+                err.className = "score-mismatch";
+                err.textContent = "Could not regrade this student.";
+                button.parentNode.appendChild(err);
+            });
+    }
+
+    function showRegradeReport(report) {
+        var body = document.getElementById("score-dialog-body");
+        var note = document.createElement("p");
+        note.className = "score-report";
+        var parts = [
+            "Regraded " +
+                (report.total || 0) +
+                (report.total === 1 ? " question" : " questions") +
+                ", " +
+                (report.changed || 0) +
+                " changed.",
+        ];
+        if (report.skipped_manual) {
+            parts.push(
+                report.skipped_manual +
+                    " manually graded and left alone."
+            );
+        }
+        if (report.no_submission) {
+            parts.push(report.no_submission + " with no submission.");
+        }
+        if (report.errors) {
+            parts.push(report.errors + " could not be regraded.");
+        }
+        note.textContent = parts.join(" ");
+        // Sits right under the assignment total, where the mismatch warning it
+        // replaces used to be, rather than at the bottom of the dialog.
+        body.insertBefore(note, body.firstChild.nextSibling);
+    }
+
     $(document).ready( function () {
         let t = document.getElementById('table');
         t.classList.add('stripe');
@@ -205,6 +588,10 @@ Grade Book
                 // handler, which stays active on the rest of the header.
                 var assignmentId = assignmentIdByColumn[headerText];
                 if (assignmentId !== undefined) {
+                    assignmentByColumnIndex[idx] = {
+                        id: assignmentId,
+                        name: headerText,
+                    };
                     // DataTables wraps the title in .dt-column-title; fall back to
                     // the header cell itself if that internal markup isn't present.
                     var titleEl = header.querySelector('.dt-column-title') || header;
@@ -238,6 +625,47 @@ Grade Book
             setAssignmentColumnVisibility(this.value);
         });
 
+        // Mark every grade cell in an assignment column as clickable. Redone on
+        // each draw because sorting/filtering replaces the row nodes.
+        function markGradeCells() {
+            Object.keys(assignmentByColumnIndex).forEach(function (idx) {
+                gbTable.cells(null, Number(idx)).every(function () {
+                    var node = this.node();
+                    if (node) {
+                        node.classList.add('grade-cell');
+                        node.setAttribute('title', 'Show scores for each question');
+                    }
+                });
+            });
+        }
+        markGradeCells();
+        gbTable.on('draw', markGradeCells);
+
+        // Delegate the click so it keeps working as DataTables redraws rows.
+        $('#table tbody').on('click', 'td.grade-cell', function () {
+            var cell = gbTable.cell(this);
+            if (!cell || cell.index() === undefined) {
+                return;
+            }
+            var column = cell.index().column;
+            var assignment = assignmentByColumnIndex[column];
+            if (!assignment) {
+                return;
+            }
+            var username = gbTable.cell(cell.index().row, USERNAME_COLUMN).data();
+            if (!username) {
+                return;
+            }
+            scoreContext = {
+                assignmentId: assignment.id,
+                username: username,
+                headerText: assignment.name,
+                rowIndex: cell.index().row,
+                columnIndex: column,
+            };
+            loadStudentScores();
+        });
+
         var lateDialog = document.getElementById('late-dialog');
         document
             .getElementById('late-dialog-close')
@@ -246,6 +674,17 @@ Grade Book
                     lateDialog.close();
                 } else {
                     lateDialog.removeAttribute('open');
+                }
+            });
+
+        var scoreDialog = document.getElementById('score-dialog');
+        document
+            .getElementById('score-dialog-close')
+            .addEventListener('click', function () {
+                if (typeof scoreDialog.close === 'function') {
+                    scoreDialog.close();
+                } else {
+                    scoreDialog.removeAttribute('open');
                 }
             });
     });

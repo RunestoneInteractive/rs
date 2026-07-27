@@ -31,6 +31,7 @@ from ..models import (
     GradeValidator,
     Library,
     Question,
+    QuestionGrade,
     Useinfo,
     UserCourse,
 )
@@ -239,6 +240,66 @@ async def fetch_late_students_for_assignment(assignment_id: int) -> List[dict]:
                 "username": row.sid,
                 "first_name": row.first_name,
                 "last_name": row.last_name,
+            }
+            for row in res.all()
+        ]
+
+
+async def fetch_student_assignment_scores(
+    assignment_id: int, sid: str, course_name: str
+) -> List[dict]:
+    """
+    Return the per-question scores one student earned on one assignment.
+
+    This is the drill-down behind a single gradebook cell: every question in the
+    assignment is listed (in the order the student sees it) whether or not it has
+    been answered, with the score from ``question_grades`` when there is one.
+
+    :param assignment_id: int, the id of the assignment
+    :param sid: str, the username of the student
+    :param course_name: str, the course the grades belong to
+    :return: List[dict], one entry per question in assignment order
+    """
+    query = (
+        select(
+            Question.id,
+            Question.name,
+            Question.qnumber,
+            Question.question_type,
+            Question.chapter,
+            Question.subchapter,
+            AssignmentQuestion.points,
+            AssignmentQuestion.reading_assignment,
+            QuestionGrade.score,
+            QuestionGrade.comment,
+        )
+        .select_from(AssignmentQuestion)
+        .join(Question, Question.id == AssignmentQuestion.question_id)
+        .outerjoin(
+            QuestionGrade,
+            and_(
+                QuestionGrade.div_id == Question.name,
+                QuestionGrade.sid == sid,
+                QuestionGrade.course_name == course_name,
+            ),
+        )
+        .where(AssignmentQuestion.assignment_id == assignment_id)
+        .order_by(AssignmentQuestion.sorting_priority, AssignmentQuestion.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [
+            {
+                "id": row.id,
+                "name": row.name,
+                "qnumber": row.qnumber,
+                "question_type": row.question_type,
+                "chapter": row.chapter,
+                "subchapter": row.subchapter,
+                "points": row.points,
+                "reading_assignment": bool(row.reading_assignment),
+                "score": float(row.score) if row.score is not None else None,
+                "comment": row.comment,
             }
             for row in res.all()
         ]

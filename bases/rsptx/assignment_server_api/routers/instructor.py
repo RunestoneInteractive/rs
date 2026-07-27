@@ -62,6 +62,10 @@ from rsptx.db.crud import (
     fetch_question_by_id,
     fetch_one_assignment,
     fetch_late_students_for_assignment,
+    fetch_student_assignment_scores,
+    fetch_grade,
+    fetch_user,
+    user_in_course,
     get_peer_votes,
     search_exercises,
     create_api_token,
@@ -540,6 +544,9 @@ async def get_assignment_gb(
             "is_instructor": user_is_instructor,
             "student_page": False,
             "assignment_id_by_column": json.dumps(assignment_id_by_column),
+            # The drill-down popup needs this to re-render a cell in the same
+            # units the table was built with after recomputing a total.
+            "show_points": json.dumps(show_points),
         },
     )
 
@@ -609,6 +616,57 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
             "assignment_name": assignment.name,
             "enforce_due": bool(assignment.enforce_due),
             "students": students,
+        },
+    )
+
+
+@router.get("/assignments/{assignment_id}/student_scores")
+@instructor_role_required()
+@with_course()
+async def get_student_assignment_scores(
+    request: Request, assignment_id: int, username: str, course=None
+):
+    """Return one student's score on every question in ``assignment_id``.
+
+    This backs the gradebook drill-down: clicking a single grade shows how that
+    total was earned, question by question.  ``username`` is a query parameter
+    rather than a path segment because usernames are frequently email addresses.
+    """
+    assignment = await fetch_one_assignment(assignment_id)
+    # Only expose data for an assignment that belongs to the instructor's course.
+    if not assignment or assignment.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
+    student = await fetch_user(username)
+    # ...and only for a student the instructor actually teaches.
+    if not student or not await user_in_course(student.id, course.id):
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Student not found in this course"
+        )
+
+    questions = await fetch_student_assignment_scores(
+        assignment_id, username, course.course_name
+    )
+    grade = await fetch_grade(student.id, assignment_id)
+
+    first = (student.first_name or "").strip()
+    last = (student.last_name or "").strip()
+
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "assignment_id": assignment_id,
+            "assignment_name": assignment.name,
+            "assignment_points": assignment.points,
+            "username": username,
+            "student_name": (f"{first} {last}").strip() or username,
+            "total_score": grade.score if grade else None,
+            # A manually entered total is expected to differ from the sum of the
+            # question scores; a computed one that differs is simply stale.
+            "manual_total": bool(grade.manual_total) if grade else False,
+            "questions": questions,
         },
     )
 

@@ -132,11 +132,12 @@ BEFORE_DUE = datetime.datetime(2019, 6, 1)
 AFTER_DUE = datetime.datetime(2020, 6, 1)
 
 
-async def _add_question(name):
+async def _add_question(name, qnumber=None):
     return await create_question(
         QuestionValidator(
             base_course=LATE_COURSE,
             name=name,
+            qnumber=qnumber,
             chapter="ch1",
             subchapter="sub1",
             author="test_instructor",
@@ -280,5 +281,131 @@ async def test_late_students_rejects_non_instructor(
     """A non-instructor (student) is rejected by @instructor_role_required()."""
     resp = await auth_student_client.get(
         f"/instructor/assignments/{late_work_assignment.id}/late_students"
+    )
+    assert resp.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# GET /instructor/assignments/{id}/student_scores
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+async def scored_student(instructor_user):
+    """A student actually enrolled in the instructor's course."""
+    from rsptx.db.crud import create_user, create_user_course_entry, fetch_user
+    from rsptx.db.models import AuthUserValidator
+
+    course = await fetch_course(LATE_COURSE)
+    existing = await fetch_user("scored_student")
+    if existing:
+        return existing
+
+    user = await create_user(
+        AuthUserValidator(
+            username="scored_student",
+            first_name="Scored",
+            last_name="Student",
+            password="xxx",
+            email="scored_student@example.com",
+            course_name=LATE_COURSE,
+            course_id=course.id,
+            donated=True,
+            active=True,
+            accept_tcp=True,
+            created_on=datetime.datetime(2020, 1, 1),
+            modified_on=datetime.datetime(2020, 1, 1),
+            registration_key="",
+            registration_id="",
+            reset_password_key="",
+        )
+    )
+    await create_user_course_entry(user.id, course.id)
+    return user
+
+
+@pytest.fixture(scope="session")
+async def scored_assignment(scored_student):
+    """An assignment with two questions, only one of which the student has a
+    score for."""
+    from rsptx.db.crud import create_question_grade_entry
+
+    course = await fetch_course(LATE_COURSE)
+    assignment = await _add_assignment(course.id, "scored_route_assignment", True)
+    q1 = await _add_question("scored_route_q1", qnumber="Q3.4.1")
+    # No qnumber: the popup falls back to the question name for this one.
+    q2 = await _add_question("scored_route_q2")
+    await _link_question(assignment.id, q1.id)
+    await _link_question(assignment.id, q2.id)
+    await create_question_grade_entry(
+        "scored_student", LATE_COURSE, "scored_route_q1", 7
+    )
+    # The question ids ride along; the popup posts them to /grader/regrade.
+    return assignment, {"scored_route_q1": q1.id, "scored_route_q2": q2.id}
+
+
+async def test_student_scores_lists_every_question(
+    auth_instructor_client, scored_assignment
+):
+    """Every question is listed, scored or not, with the score when there is one."""
+    assignment, question_ids = scored_assignment
+    resp = await auth_instructor_client.get(
+        f"/instructor/assignments/{assignment.id}/student_scores",
+        params={"username": "scored_student"},
+    )
+    assert resp.status_code == 200
+    detail = resp.json()["detail"]
+    assert detail["assignment_id"] == assignment.id
+    assert detail["username"] == "scored_student"
+    assert detail["student_name"]
+
+    by_name = {q["name"]: q for q in detail["questions"]}
+    assert by_name["scored_route_q1"]["score"] == 7
+    assert by_name["scored_route_q1"]["points"] == 10
+    # The popup labels questions by qnumber when there is one.
+    assert by_name["scored_route_q1"]["qnumber"] == "Q3.4.1"
+    # The ids are what the popup's regrade button posts to /grader/regrade.
+    assert by_name["scored_route_q1"]["id"] == question_ids["scored_route_q1"]
+    assert by_name["scored_route_q2"]["id"] == question_ids["scored_route_q2"]
+    # Unanswered questions still show up, with no score.
+    assert by_name["scored_route_q2"]["score"] is None
+    assert by_name["scored_route_q2"]["qnumber"] is None
+    # The popup uses this to explain a stored total that disagrees with the
+    # question scores; there is no Grade row here, so it is the default.
+    assert detail["manual_total"] is False
+    assert detail["total_score"] is None
+
+
+async def test_student_scores_unknown_student_404(
+    auth_instructor_client, scored_assignment
+):
+    """A student who is not in the instructor's course is not reported on."""
+    assignment, _ = scored_assignment
+    resp = await auth_instructor_client.get(
+        f"/instructor/assignments/{assignment.id}/student_scores",
+        params={"username": "no_such_student_at_all"},
+    )
+    assert resp.status_code == 404
+
+
+async def test_student_scores_other_course_forbidden(
+    auth_instructor_client, other_course_assignment
+):
+    """An instructor cannot read scores for an assignment in another course."""
+    resp = await auth_instructor_client.get(
+        f"/instructor/assignments/{other_course_assignment.id}/student_scores",
+        params={"username": "scored_student"},
+    )
+    assert resp.status_code == 404
+
+
+async def test_student_scores_rejects_non_instructor(
+    auth_student_client, scored_assignment
+):
+    """A non-instructor (student) is rejected by @instructor_role_required()."""
+    assignment, _ = scored_assignment
+    resp = await auth_student_client.get(
+        f"/instructor/assignments/{assignment.id}/student_scores",
+        params={"username": "scored_student"},
     )
     assert resp.status_code in (401, 403)
