@@ -1,0 +1,58 @@
+name: Assignment Builder Tests
+
+on:
+  pull_request:
+    paths:
+      - 'bases/rsptx/assignment_server_api/assignment_builder/**'
+      - '.github/workflows/test-assignment-builder.yml'
+
+defaults:
+  run:
+    working-directory: bases/rsptx/assignment_server_api/assignment_builder
+
+jobs:
+  vitest:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Two axes have bitten this suite before, so vary both without running
+        # the full cross product:
+        #  - timezone: fixtures built at UTC midnight land on the previous day
+        #    west of UTC, so year/date assertions passed only in UTC.
+        #  - node version: newer Node ships a native globalThis.localStorage
+        #    that shadows the one jsdom provides (see vitest.setup.ts).
+        include:
+          - node: '22'
+            timezone: UTC
+          - node: '24'
+            timezone: America/Chicago
+          - node: '24'
+            timezone: Asia/Tokyo
+
+    env:
+      TZ: ${{ matrix.timezone }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: bases/rsptx/assignment_server_api/assignment_builder/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -p tsconfig.build.json --noEmit
+
+      - name: Lint
+        run: npm run test:eslint
+
+      - name: Run tests
+        run: npx vitest run --coverage.enabled=false

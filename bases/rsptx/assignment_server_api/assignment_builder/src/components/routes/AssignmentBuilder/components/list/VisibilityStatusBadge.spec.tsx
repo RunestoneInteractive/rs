@@ -24,9 +24,9 @@ describe("getVisibilityStatus", () => {
   });
 
   it("reports pending visibility as an info chip before visible_on passes", () => {
-    const now = new Date("2026-01-01T00:00:00Z");
+    const now = new Date("2026-01-01T12:00:00Z");
     const status = getVisibilityStatus(
-      base({ visible: false, visible_on: "2026-02-01T00:00:00Z" }),
+      base({ visible: false, visible_on: "2026-02-01T12:00:00Z" }),
       now
     );
 
@@ -36,9 +36,9 @@ describe("getVisibilityStatus", () => {
   });
 
   it("flips to Visible once visible_on has passed", () => {
-    const now = new Date("2026-03-01T00:00:00Z");
+    const now = new Date("2026-03-01T12:00:00Z");
     const status = getVisibilityStatus(
-      base({ visible: false, visible_on: "2026-02-01T00:00:00Z" }),
+      base({ visible: false, visible_on: "2026-02-01T12:00:00Z" }),
       now
     );
 
@@ -47,12 +47,12 @@ describe("getVisibilityStatus", () => {
   });
 
   it("reports scheduled period before start as a single-line info range", () => {
-    const now = new Date("2026-01-01T00:00:00Z");
+    const now = new Date("2026-01-01T12:00:00Z");
     const status = getVisibilityStatus(
       base({
         visible: false,
-        visible_on: "2026-02-01T00:00:00Z",
-        hidden_on: "2026-03-01T00:00:00Z"
+        visible_on: "2026-02-01T12:00:00Z",
+        hidden_on: "2026-03-01T12:00:00Z"
       }),
       now
     );
@@ -63,12 +63,12 @@ describe("getVisibilityStatus", () => {
   });
 
   it("reports scheduled period in-window as a success chip with end date", () => {
-    const now = new Date("2026-02-15T00:00:00Z");
+    const now = new Date("2026-02-15T12:00:00Z");
     const status = getVisibilityStatus(
       base({
         visible: false,
-        visible_on: "2026-02-01T00:00:00Z",
-        hidden_on: "2026-03-01T00:00:00Z"
+        visible_on: "2026-02-01T12:00:00Z",
+        hidden_on: "2026-03-01T12:00:00Z"
       }),
       now
     );
@@ -79,12 +79,12 @@ describe("getVisibilityStatus", () => {
   });
 
   it("reports scheduled period after end as a neutral Hidden chip", () => {
-    const now = new Date("2026-04-01T00:00:00Z");
+    const now = new Date("2026-04-01T12:00:00Z");
     const status = getVisibilityStatus(
       base({
         visible: false,
-        visible_on: "2026-02-01T00:00:00Z",
-        hidden_on: "2026-03-01T00:00:00Z"
+        visible_on: "2026-02-01T12:00:00Z",
+        hidden_on: "2026-03-01T12:00:00Z"
       }),
       now
     );
@@ -95,9 +95,9 @@ describe("getVisibilityStatus", () => {
   });
 
   it("reports scheduled-hide for a visible assignment as an info chip before hidden_on", () => {
-    const now = new Date("2026-01-01T00:00:00Z");
+    const now = new Date("2026-01-01T12:00:00Z");
     const status = getVisibilityStatus(
-      base({ visible: true, hidden_on: "2026-02-01T00:00:00Z" }),
+      base({ visible: true, hidden_on: "2026-02-01T12:00:00Z" }),
       now
     );
 
@@ -107,9 +107,9 @@ describe("getVisibilityStatus", () => {
   });
 
   it("omits the year in chip labels when the date is in the current year", () => {
-    const now = new Date("2026-01-01T00:00:00Z");
+    const now = new Date("2026-01-01T12:00:00Z");
     const status = getVisibilityStatus(
-      base({ visible: false, visible_on: "2026-02-01T00:00:00Z" }),
+      base({ visible: false, visible_on: "2026-02-01T12:00:00Z" }),
       now
     );
 
@@ -117,9 +117,9 @@ describe("getVisibilityStatus", () => {
   });
 
   it("includes the year in chip labels when the date is in another year", () => {
-    const now = new Date("2026-01-01T00:00:00Z");
+    const now = new Date("2026-01-01T12:00:00Z");
     const status = getVisibilityStatus(
-      base({ visible: false, visible_on: "2027-02-01T00:00:00Z" }),
+      base({ visible: false, visible_on: "2027-02-01T12:00:00Z" }),
       now
     );
 
