@@ -111,7 +111,7 @@ def add_exception_handlers(app):
         secondary validation when populating our xxx_answers tables
         this catches those and returns a 422
         """
-        rslogger.error(exc)
+        rslogger.error(f"Level 2 Validation Error: {exc}")
 
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
