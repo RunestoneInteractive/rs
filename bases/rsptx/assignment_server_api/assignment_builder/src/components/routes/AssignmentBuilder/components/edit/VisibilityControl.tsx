@@ -139,7 +139,6 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
               <DateTimePicker
                 value={dateField.value}
                 onChange={(val) => dateField.onChange(val)}
-                utc
                 ariaLabel="Visible on date"
               />
             )}
@@ -158,7 +157,6 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
               <DateTimePicker
                 value={dateField.value}
                 onChange={(val) => dateField.onChange(val)}
-                utc
                 ariaLabel="Hidden on date"
               />
             )}
@@ -182,7 +180,6 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
                   id="visibility-visible-from"
                   value={dateField.value}
                   onChange={(val) => handleVisibleOnChange(val)}
-                  utc
                 />
               )}
             />
@@ -199,7 +196,6 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
                   id="visibility-hidden-after"
                   value={dateField.value}
                   onChange={(val) => handleHiddenOnChange(val)}
-                  utc
                 />
               )}
             />

@@ -1,6 +1,5 @@
 from typing import Union, List
 from datetime import timedelta
-from zoneinfo import ZoneInfo
 from rsptx.db.models import AuthUserValidator, DeadlineExceptionValidator
 from rsptx.db.crud import (
     is_assigned,
@@ -35,7 +34,7 @@ from rsptx.grading_helpers.scoring import (
 
 
 async def grade_submission(
-    user: AuthUserValidator, submission: LogItemIncoming, timezone: str = "UTC"
+    user: AuthUserValidator, submission: LogItemIncoming
 ) -> ScoringSpecification:
     """
     Grade a submission and store the results in the database.
@@ -64,7 +63,6 @@ async def grade_submission(
         user.course_id,
         submission.assignment_id,
         accommodation=accommodation,
-        timezone=timezone,
     )
     # Skip scoring for interaction events these are just logs that the student
     # did something with a selectquestion.  This is required to get accurate grades
@@ -337,9 +335,7 @@ def adjust_deadlines(
     return assignment_list
 
 
-async def has_late_submission(
-    username: str, assignment_id: int, timezone: str = "UTC"
-) -> bool:
+async def has_late_submission(username: str, assignment_id: int) -> bool:
     """
     Determine whether a student has saved work for any question on an
     assignment after its deadline.
@@ -356,8 +352,6 @@ async def has_late_submission(
 
     :param username: The student's username (``auth_user.username`` / ``sid``).
     :param assignment_id: The id of the assignment to check.
-    :param timezone: The course timezone used to interpret the due date, which
-        is stored in course-local time.
     :return: True if the student saved work after the enforced (and
         accommodated) deadline, False otherwise.
     """
@@ -376,11 +370,6 @@ async def has_late_submission(
     if accommodation and accommodation.duedate:
         deadline += timedelta(days=accommodation.duedate)
 
-    # The due date is stored in the course's local timezone, while useinfo
-    # timestamps are stored as naive UTC, so convert before comparing.
-    tz = ZoneInfo(timezone)
-    deadline_utc = (
-        deadline.replace(tzinfo=tz).astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
-    )
-
-    return await has_submissions_after_deadline(username, assignment_id, deadline_utc)
+    # Both the due date and the useinfo timestamps are naive UTC, so they are
+    # directly comparable.
+    return await has_submissions_after_deadline(username, assignment_id, deadline)

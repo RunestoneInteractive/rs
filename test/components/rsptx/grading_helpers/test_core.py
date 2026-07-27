@@ -51,10 +51,10 @@ async def test_returns_false_when_no_late_work():
 
 
 async def test_deadline_passed_to_query_in_utc():
-    # UTC course timezone: the naive duedate is used unchanged as the cutoff.
+    # duedate is stored as naive UTC and is used unchanged as the cutoff.
     a, d, h = _patch_crud(_assignment(duedate=datetime(2026, 6, 1, 23, 59, 0)))
     with a, d, h as has_submissions:
-        await core.has_late_submission("student1", 42, timezone="UTC")
+        await core.has_late_submission("student1", 42)
     args = has_submissions.call_args.args
     assert args[0] == "student1"
     assert args[1] == 42
@@ -69,13 +69,16 @@ async def test_accommodation_extends_deadline():
         accommodation=accommodation,
     )
     with a, d, h as has_submissions:
-        await core.has_late_submission("student1", 42, timezone="UTC")
+        await core.has_late_submission("student1", 42)
     assert has_submissions.call_args.args[2] == datetime(2026, 6, 4, 23, 59, 0)
 
 
-async def test_due_date_converted_from_course_timezone_to_utc():
-    # 23:59 on 2026-06-01 in New York (EDT, UTC-4) is 03:59 the next day in UTC.
-    a, d, h = _patch_crud(_assignment(duedate=datetime(2026, 6, 1, 23, 59, 0)))
+async def test_due_date_is_not_shifted_by_any_timezone():
+    # duedate is already UTC, so the cutoff must be passed through untouched no
+    # matter what the ambient local timezone of the process happens to be. This
+    # guards against someone reintroducing a course-local -> UTC conversion.
+    duedate = datetime(2026, 6, 1, 23, 59, 0)
+    a, d, h = _patch_crud(_assignment(duedate=duedate))
     with a, d, h as has_submissions:
-        await core.has_late_submission("student1", 42, timezone="America/New_York")
-    assert has_submissions.call_args.args[2] == datetime(2026, 6, 2, 3, 59, 0)
+        await core.has_late_submission("student1", 42)
+    assert has_submissions.call_args.args[2] == duedate

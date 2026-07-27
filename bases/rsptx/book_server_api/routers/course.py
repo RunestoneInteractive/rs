@@ -8,20 +8,17 @@
 #
 # Standard library
 # ----------------
-import json
 import datetime
 
 # Third-party imports
 # -------------------
-from typing import Optional
-from fastapi import APIRouter, Cookie, Request, Depends, status
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Request, Depends, status
 
 # Local application imports
 # -------------------------
 
 from rsptx.auth.session import auth_manager
-from rsptx.templates import get_jinja_templates, template_folder
+from rsptx.templates import get_jinja_templates, get_shared_templates
 from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
@@ -58,9 +55,7 @@ router = APIRouter(
 
 
 @router.api_route("/index", methods=["GET", "POST"])
-async def index(
-    request: Request, user=Depends(auth_manager), RS_info: Optional[str] = Cookie(None)
-):
+async def index(request: Request, user=Depends(auth_manager)):
     """Fetch current course information
        Fetch current assignment information
 
@@ -114,24 +109,16 @@ async def index(
             assignments = list(assignments) + exception_assignments
     assignments = adjust_deadlines(assignments, accommodations)
 
-    parsed_js = json.loads(RS_info) if RS_info else {}
-    timezoneoffset = parsed_js.get("tz_offset", None)
+    now = canonical_utcnow()
 
     def sort_key(assignment):
-        deadline = assignment.duedate
-        if timezoneoffset:
-            deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-            return (
-                deadline < canonical_utcnow(),
-                abs((deadline - canonical_utcnow()).total_seconds()),
-            )
-        else:
-            return (
-                assignment.duedate < canonical_utcnow(),
-                abs((assignment.duedate - canonical_utcnow()).total_seconds()),
-            )
+        # duedate is stored as naive UTC, so it is directly comparable to now.
+        # Upcoming assignments sort first, closest deadline first.
+        return (
+            assignment.duedate < now,
+            abs((assignment.duedate - now).total_seconds()),
+        )
 
-    now = canonical_utcnow()
     assignments.sort(key=sort_key)
 
     stats_list = await fetch_all_assignment_stats(course_name, user.id)
@@ -160,9 +147,9 @@ async def index(
         if book_path:
             templates = get_jinja_templates(book_path)
         else:
-            templates = Jinja2Templates(directory=template_folder)
+            templates = get_shared_templates()
     else:
-        templates = Jinja2Templates(directory=template_folder)
+        templates = get_shared_templates()
 
     return templates.TemplateResponse(
         "book/course/current_course.html",

@@ -36,7 +36,6 @@ from fastapi.responses import (
     RedirectResponse,
     HTMLResponse,
 )
-from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 import jwt
 
@@ -86,7 +85,7 @@ from rsptx.configuration import settings
 from rsptx.logging import rslogger
 from rsptx.auth.session import auth_manager
 from rsptx.response_helpers.core import canonical_utcnow
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 from rsptx.endpoint_validators import with_course, instructor_role_required
 
 from rsptx.lti1p3.pylti1p3.lineitem import LineItem
@@ -542,13 +541,16 @@ async def update_rsassignment_from_lti(
         )
         lms_due = datetime.datetime.fromisoformat(normalized_due_string)
 
-        # If LMS provided timezone info and course has a timezone, convert to course local time.
-        if lms_due.tzinfo is not None and course.timezone:
-            lms_due = lms_due.astimezone(ZoneInfo(course.timezone))
-            rslogger.info(
-                f"LTI1p3 - Converted to {lms_due} in timezone {course.timezone}"
-            )
-        lms_due = lms_due.replace(tzinfo=None)
+        # duedate is stored as naive UTC. A timestamp carrying an offset can be
+        # converted straight to UTC; a naive one has to be read as course-local
+        # wall clock first, which is what such a value meant before due dates
+        # moved to UTC. A course with no timezone is treated as UTC, matching
+        # the duedate migration.
+        if lms_due.tzinfo is None:
+            tz = ZoneInfo(course.timezone) if course.timezone else datetime.timezone.utc
+            lms_due = lms_due.replace(tzinfo=tz)
+        lms_due = lms_due.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        rslogger.info(f"LTI1p3 - Storing {lms_due} UTC for assignment {assign.name}")
         if (
             lms_due is not None
             and lms_due != assign.duedate
@@ -605,7 +607,7 @@ async def register(
 
     await upsert_lti1p3_config(lti_conf)
 
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     return templates.TemplateResponse(
         "admin/lti1p3/registration_confirm.html",
         request=request,
@@ -829,7 +831,7 @@ async def deep_link_login(request: Request):
         fapi_request, tool_conf, launch_data_storage=get_launch_data_storage()
     )
     rslogger.debug(f"LTI1p3 - rs-login request: {fapi_request.__dict__}")
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     tpl_kwargs = {
         "request": request,
         "launch_id": message_launch.get_launch_id(),
@@ -979,7 +981,7 @@ async def dynamic_link_entry(request: Request):
         "authentication_nonce": authentication_nonce,
     }
 
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     resp = templates.TemplateResponse(
         name="admin/lti1p3/pick_links.html", context=tpl_kwargs
     )

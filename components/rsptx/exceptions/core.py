@@ -7,7 +7,6 @@ from urllib.parse import quote
 from fastapi import Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 
@@ -16,7 +15,7 @@ from rsptx.configuration import settings
 from rsptx.db.crud import create_traceback
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 
 
 def add_exception_handlers(app):
@@ -146,7 +145,7 @@ def add_exception_handlers(app):
                 "timestamp": date,
             }
 
-            templates = Jinja2Templates(directory=template_folder)
+            templates = get_shared_templates()
             return templates.TemplateResponse("error_page.html", context)
         else:
             return JSONResponse(

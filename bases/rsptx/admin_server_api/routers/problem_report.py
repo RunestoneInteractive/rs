@@ -16,21 +16,20 @@ import httpx
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.crud import fetch_course, fetch_instructor_courses
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 
 router = APIRouter(
     prefix="/problem",
     tags=["problem-report"],
 )
 
-templates = Jinja2Templates(directory=template_folder)
+templates = get_shared_templates()
 
 # Browser-facing URL: nginx/caddy route /admin/problem/ -> container /problem/
 _REPORT_URL = "/admin/problem/report"

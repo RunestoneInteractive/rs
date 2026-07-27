@@ -130,7 +130,7 @@ Peer Instruction - Instructor
                             {{ assignment.name }} - Review
                         </a>
                     </td>
-                    <td>{{ assignment.duedate.strftime('%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
+                    <td>{{ assignment.duedate | course_datetime(course.timezone, '%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
                     <td>{{ assignment.description or '' }}</td>
                 </tr>
                 {% endfor %}

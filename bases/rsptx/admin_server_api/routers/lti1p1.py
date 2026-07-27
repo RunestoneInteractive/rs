@@ -23,7 +23,6 @@ from typing import Optional
 import oauth2
 from fastapi import APIRouter, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
 # Local application imports
@@ -54,7 +53,7 @@ from rsptx.lti1p1.core import (
 )
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 
 from .lti1p3 import add_w2py_session_cookie, get_domain, get_web2py_session_cookie
 
@@ -98,7 +97,7 @@ def _launch_url(request: Request) -> str:
 
 def _render_error(request: Request, errors: list) -> HTMLResponse:
     """Render the LTI launch error page."""
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     context = {"request": request, "lti_errors": errors}
     return templates.TemplateResponse(
         "admin/lti1p1/launch_error.html", context, status_code=400

@@ -40,7 +40,7 @@ Do Assignment
                 class="assignment-due-date notdue"
                 {% endif %}
                 >
-                <strong>Due:</strong> {{ assignment['duedate'] }}
+                <strong>Due:</strong> {{ assignment['duedate'] | course_datetime(course.timezone, "%a %d, %b %Y %I:%M %p") }}
             </div>
             {% if enforce_pastdue %}
                 <em>(Past due and no longer scoring submissions)</em>

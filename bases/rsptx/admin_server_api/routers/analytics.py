@@ -22,14 +22,13 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import instructor_role_required, with_course
 from rsptx.logging import rslogger
-from rsptx.templates import template_folder
+from rsptx.templates import format_course_datetime, get_shared_templates
 
 # ---------------------------------------------------------------------------
 # Router
@@ -40,9 +39,26 @@ router = APIRouter(
     tags=["analytics"],
 )
 
-templates = Jinja2Templates(directory=template_folder)
+templates = get_shared_templates()
+
 
 # ---------------------------------------------------------------------------
+def _format_duedate(value, course_timezone: Optional[str]) -> str:
+    """Render a duedate read via pandas as a course-local date string.
+
+    ``pd.read_sql_query`` yields ``pd.Timestamp`` (a ``datetime`` subclass) and
+    ``pd.NaT`` for nulls, and ``NaT`` is not caught by an ``is None`` check, so
+    screen for it before handing off to the shared formatter.
+    """
+    if value is None or pd.isna(value):
+        return ""
+    if hasattr(value, "to_pydatetime"):
+        value = value.to_pydatetime()
+    return format_course_datetime(
+        value, course_timezone, fmt="%Y-%m-%d", show_timezone=False
+    )
+
+
 # Redis helpers
 # ---------------------------------------------------------------------------
 
@@ -1213,16 +1229,12 @@ async def get_assignmentoverview(
         params={"course_name": course.course_name},
     )
     assignments = assignments_df.to_dict(orient="records")
-    # Convert Timestamps to strings for template rendering
+    # Convert Timestamps to strings for template rendering. duedate is stored
+    # as naive UTC, so it has to be shifted into the course timezone before the
+    # date is taken -- a late-evening deadline lands on the following day in
+    # UTC. No zone label: only the date is shown.
     for row in assignments:
-        dt = row.get("duedate")
-        if dt is not None and pd.notna(dt):
-            try:
-                row["duedate"] = dt.strftime("%Y-%m-%d")
-            except Exception:
-                row["duedate"] = str(dt)
-        else:
-            row["duedate"] = ""
+        row["duedate"] = _format_duedate(row.get("duedate"), course.timezone)
 
     context = {
         "request": request,
@@ -1381,14 +1393,7 @@ async def get_assignment_student_detail(
             detail=f"Assignment {assignment_id} not found",
         )
     assignment = assignment_row.iloc[0].to_dict()
-    dt = assignment.get("duedate")
-    if dt is not None and pd.notna(dt):
-        try:
-            assignment["duedate"] = dt.strftime("%Y-%m-%d")
-        except Exception:
-            assignment["duedate"] = str(dt)
-    else:
-        assignment["duedate"] = ""
+    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
 
     detail = _build_assignment_student_detail(
         engine, assignment_id, course.course_name, sid, tz_offset_hours

@@ -5,6 +5,7 @@ Test the analytics report helpers used by the Chapter Activity report.
 import pandas as pd
 
 from rsptx.admin_server_api.routers.analytics import (
+    _format_duedate,
     _pad_with_enrolled,
     _student_label,
 )
@@ -69,3 +70,34 @@ def test_pad_with_enrolled_no_roster_is_a_noop():
 
     assert list(padded.columns) == ["Kussman, Erin (ekussman)"]
     assert padded["Kussman, Erin (ekussman)"].tolist() == [3]
+
+
+# _format_duedate
+# ---------------
+# duedate is stored as naive UTC and these reports show a date only, so the
+# value has to be shifted into the course timezone before the date is taken --
+# a late-evening deadline falls on the following day in UTC.
+
+
+def test_format_duedate_shifts_into_the_course_timezone():
+    # 2026-09-02 04:59 UTC is 2026-09-01 in Chicago.
+    stamp = pd.Timestamp("2026-09-02 04:59:00")
+    assert _format_duedate(stamp, "America/Chicago") == "2026-09-01"
+
+
+def test_format_duedate_without_a_timezone_stays_utc():
+    stamp = pd.Timestamp("2026-09-02 04:59:00")
+    assert _format_duedate(stamp, None) == "2026-09-02"
+
+
+def test_format_duedate_handles_pandas_null():
+    # pd.NaT is not caught by an `is None` check and would otherwise render as
+    # the string "NaT".
+    assert _format_duedate(pd.NaT, "America/Chicago") == ""
+    assert _format_duedate(None, "America/Chicago") == ""
+
+
+def test_format_duedate_omits_any_timezone_label():
+    stamp = pd.Timestamp("2026-09-02 04:59:00")
+    assert _format_duedate(stamp, "America/Chicago") == "2026-09-01"
+    assert "CDT" not in _format_duedate(stamp, "America/Chicago")

@@ -9,7 +9,7 @@ import { ColumnDef, OnChangeFn, SortingState } from "@tanstack/react-table";
 import classNames from "classnames";
 
 import { Assignment } from "@/types/assignment";
-import { formatLocalDateForDisplay, formatUTCDateForDisplay } from "@/utils/date";
+import { formatUTCDateForDisplay } from "@/utils/date";
 
 import { VisibilityDropdown } from "./VisibilityDropdown";
 
@@ -169,7 +169,7 @@ export const AssignmentList = ({
           cellClassName: classNames(styles.dateCell, styles.clickableCell),
           onCellClick: onEdit
         },
-        cell: ({ row }) => formatLocalDateForDisplay(row.original.duedate, DATE_FORMAT)
+        cell: ({ row }) => formatUTCDateForDisplay(row.original.duedate, DATE_FORMAT)
       },
       {
         accessorKey: "updated_date",
