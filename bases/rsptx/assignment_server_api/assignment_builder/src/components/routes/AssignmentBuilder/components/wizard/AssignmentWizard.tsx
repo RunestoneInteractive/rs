@@ -16,6 +16,8 @@ import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
+import { CourseTimezoneNotice } from "../edit/CourseTimezoneNotice";
+
 import { VisibilityControl } from "../edit/VisibilityControl";
 
 import stepperStyles from "@/components/ui/WizardStepper.module.css";
@@ -149,11 +151,14 @@ export const AssignmentWizard = ({
             control={control}
             defaultValue=""
             render={({ field }) => (
-              <DateTimePicker
-                id="wizard-due-date"
-                value={field.value}
-                onChange={(val) => field.onChange(val)}
-              />
+              <>
+                <DateTimePicker
+                  id="wizard-due-date"
+                  value={field.value}
+                  onChange={(val) => field.onChange(val)}
+                />
+                <CourseTimezoneNotice value={field.value} />
+              </>
             )}
           />
         </div>

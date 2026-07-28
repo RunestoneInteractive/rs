@@ -9,6 +9,7 @@ import jinja2
 
 from rsptx.templates import core
 from rsptx.templates.core import (
+    course_datetime_tag,
     format_course_datetime,
     get_shared_templates,
     install_filters,
@@ -146,3 +147,73 @@ def test_shared_templates_have_the_filter_registered():
         d=STORED_UTC, tz="America/Chicago"
     )
     assert rendered == "Sep 01, 2026 11:59 PM CDT"
+
+
+# course_datetime_tag
+# -------------------
+# Deadlines render on the reader's own clock, so the server emits a <time>
+# element carrying the UTC instant and JS rewrites the text. The text rendered
+# here is the no-JS fallback and must still be correct and labelled.
+
+
+def test_tag_carries_the_utc_instant_and_course_local_fallback():
+    tag = str(course_datetime_tag(STORED_UTC, "America/Chicago"))
+    assert 'datetime="2026-09-02T04:59:00Z"' in tag
+    assert ">Sep 01, 2026 11:59 PM CDT</time>" in tag
+
+
+def test_tag_marks_itself_for_localization_with_a_style():
+    assert 'data-rs-localize="long"' in str(course_datetime_tag(STORED_UTC, "UTC"))
+    assert 'data-rs-localize="short"' in str(
+        course_datetime_tag(STORED_UTC, "UTC", style="short")
+    )
+
+
+def test_tag_short_style_uses_the_short_format():
+    assert ">2026-09-01 23:59 CDT</time>" in str(
+        course_datetime_tag(STORED_UTC, "America/Chicago", style="short")
+    )
+
+
+def test_tag_keeps_course_time_in_the_title():
+    tag = str(course_datetime_tag(STORED_UTC, "America/Chicago"))
+    assert 'title="Sep 01, 2026 11:59 PM CDT course time"' in tag
+
+
+def test_tag_unknown_style_falls_back_to_long():
+    assert ">Sep 01, 2026 11:59 PM CDT</time>" in str(
+        course_datetime_tag(STORED_UTC, "America/Chicago", style="nonsense")
+    )
+
+
+def test_tag_renders_the_empty_placeholder_for_none():
+    assert str(course_datetime_tag(None, "UTC")) == ""
+    assert str(course_datetime_tag(None, "UTC", empty="N/A")) == "N/A"
+
+
+def test_tag_escapes_the_empty_placeholder():
+    assert (
+        str(course_datetime_tag(None, "UTC", empty="<b>x</b>"))
+        == "&lt;b&gt;x&lt;/b&gt;"
+    )
+
+
+def test_tag_passes_through_an_already_formatted_value():
+    assert str(course_datetime_tag("Sep 01", "UTC")) == "Sep 01"
+
+
+def test_tag_does_not_double_shift_an_aware_datetime():
+    aware = STORED_UTC.replace(tzinfo=datetime.timezone.utc)
+    assert str(course_datetime_tag(aware, "America/Chicago")) == str(
+        course_datetime_tag(STORED_UTC, "America/Chicago")
+    )
+
+
+def test_tag_is_registered_as_a_jinja_global():
+    env = get_shared_templates().env
+    assert "course_datetime_tag" in env.globals
+    rendered = env.from_string("{{ course_datetime_tag(d, tz) }}").render(
+        d=STORED_UTC, tz="America/Chicago"
+    )
+    # Markup, so the element is not escaped into text.
+    assert rendered.startswith("<time ")

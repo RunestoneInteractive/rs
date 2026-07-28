@@ -24,6 +24,8 @@ import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
+import { CourseTimezoneNotice } from "./CourseTimezoneNotice";
+
 import { AssignmentReadings } from "../reading/AssignmentReadings";
 import { VisibilityControl } from "./VisibilityControl";
 
@@ -164,11 +166,14 @@ export const AssignmentEdit = ({
             control={control}
             defaultValue=""
             render={({ field }) => (
-              <DateTimePicker
-                id="edit-due-date"
-                value={field.value}
-                onChange={(val) => field.onChange(val)}
-              />
+              <>
+                <DateTimePicker
+                  id="edit-due-date"
+                  value={field.value}
+                  onChange={(val) => field.onChange(val)}
+                />
+                <CourseTimezoneNotice value={field.value} />
+              </>
             )}
           />
         </div>

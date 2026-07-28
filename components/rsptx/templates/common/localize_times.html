@@ -1,0 +1,7 @@
+{# Rewrites <time data-rs-localize> elements into the viewer's timezone.
+
+   Included per page rather than from _base.html on purpose: PreTeXt books ship
+   their own _base.html, and get_jinja_templates() searches the book directory
+   first, so a base-template include silently disappears for those courses.
+   Any page that renders course_datetime_tag() needs this include. #}
+<script src="/staticAssets/js/localize-times.js"></script>

@@ -22,6 +22,10 @@
   {% endif %}
   eBookConfig.useRunestoneServices = true;
   eBookConfig.basecourse = "{{course.base_course}}";
+  // Deadlines are shown on the viewer's own clock. The course timezone is
+  // exposed so the assignment builder can warn an instructor whose browser is
+  // in a different zone than the course they are setting deadlines for.
+  eBookConfig.courseTimezone = "{{ course.timezone | default('', true) }}";
   eBookConfig.course_attrs = {{ course_attrs | default({}) | tojson | safe }};
   eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
   eBookConfig.new_server_prefix = "/ns";
