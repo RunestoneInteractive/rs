@@ -45,17 +45,54 @@ class RSLoginManager(LoginManager):
     In production (HTTPS) we need SameSite=None; Secure for LTI iframe support.
     In development (HTTP / localhost) those flags cause browsers to silently drop
     the cookie, so we fall back to SameSite=Lax; Secure=False.
+
+    The cookie is scoped to ``LOAD_BALANCER_HOST`` when that is set. A Domain
+    attribute also matches subdomains (RFC 6265), so this is what lets a session
+    started on runestone.academy be recognised by the author server, which runs
+    on its own host. web2py has always scoped the same cookie this way (see
+    ``models/db.py``); leaving it off here meant a login issued by the admin
+    server was host-only and did not reach author.runestone.academy.
+
+    Without LOAD_BALANCER_HOST -- local development and single-host installs --
+    no Domain is sent and the cookie stays host-only, which is correct there:
+    browsers reject a Domain of "localhost".
     """
+
+    @property
+    def cookie_domain(self) -> Optional[str]:
+        """The Domain to scope the auth cookie to, or None to keep it host-only."""
+        return settings.load_balancer_host or None
 
     def set_cookie(self, response, token):
         production = settings.server_config == "production"
+        domain = self.cookie_domain
+        if domain:
+            # Anyone who logged in before the cookie was scoped still has a
+            # host-only cookie of the same name. Browsers keep that as a
+            # separate cookie and send both, so expire it here rather than
+            # leaving two tokens in play.
+            response.delete_cookie(key=self.cookie_name, path="/")
         response.set_cookie(
             key=self.cookie_name,
             value=token,
             httponly=True,
             samesite="None" if production else "Lax",
             secure=production,
+            domain=domain,
+            path="/",
         )
+
+    def delete_cookie(self, response):
+        """Clear the auth cookie, matching however set_cookie scoped it.
+
+        A Domain mismatch here is silent: the browser keeps the cookie and the
+        user stays logged in, so both variants are cleared.
+        """
+        domain = self.cookie_domain
+        response.delete_cookie(key=self.cookie_name, path="/", domain=domain)
+        if domain:
+            # Also clear a pre-existing host-only cookie.
+            response.delete_cookie(key=self.cookie_name, path="/")
 
 
 try:
