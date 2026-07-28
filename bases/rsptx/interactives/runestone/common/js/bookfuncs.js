@@ -1269,20 +1269,19 @@ window.addEventListener("DOMContentLoaded", function (event) {
                 "groups_3"
             ),
         );
+        // On runestone.academy the author server is its own host, so this has to
+        // be absolute. Single-proxy deployments set authorServerUrl to /author.
+        let authorUrl =
+            (eBookConfig.authorServerUrl ||
+                "https://author.runestone.academy/author") + "/";
         if (eBookConfig.isAuthor) {
             menuContentArea.appendChild(
-                makeLink(
-                    "https://author.runestone.academy/author/",
-                    "Author Dashboard",
-                ),
+                makeLink(authorUrl, "Author Dashboard"),
             );
         }
         if (eBookConfig.isEditor) {
             menuContentArea.appendChild(
-                makeLink(
-                    "https://author.runestone.academy/author/",
-                    "Editor Dashboard",
-                ),
+                makeLink(authorUrl, "Editor Dashboard"),
             );
         }
         menuContentArea.appendChild(

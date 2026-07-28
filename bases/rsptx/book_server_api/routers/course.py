@@ -189,6 +189,7 @@ async def index(
             "visibility_map": visibility_map,
             "course_attrs": attrs,
             "base_url": construct_course_url(course),
+            "settings": settings,
         },
     )
 
