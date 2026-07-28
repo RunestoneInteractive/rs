@@ -19,6 +19,14 @@
 {% block content %}
 <div>
     <h2>Edit book metadata for {{book}}</h2>
+    <section aria-labelledby="source-repository-heading">
+        <h3 id="source-repository-heading">Source repository</h3>
+        {% if github_url %}
+        <p><strong>GitHub repository:</strong> <code id="github-repository">{{ github_url }}</code></p>
+        {% else %}
+        <p id="github-repository">No GitHub repository is recorded for this book.</p>
+        {% endif %}
+    </section>
     <form method="POST" action="/author/editlibrary/{{book}}">
         {% for field in form %}
             {{ with_errors(field)}}

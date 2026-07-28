@@ -363,7 +363,13 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
         return RedirectResponse(url="/author/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
         "author/editlibrary.html",
-        context=dict(request=request, form=form, book=book, course=course),
+        context=dict(
+            request=request,
+            form=form,
+            book=book,
+            course=course,
+            github_url=book_data.github_url if book_data else None,
+        ),
     )
 
 
