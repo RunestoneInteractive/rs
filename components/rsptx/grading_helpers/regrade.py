@@ -289,13 +289,23 @@ def apply_threshold_score(
 
 
 async def _recompute_total_for_user(
-    user: AuthUserValidator, assignment: AssignmentValidator
+    user: AuthUserValidator, assignment: AssignmentValidator, course_name: str
 ) -> None:
+    """Roll the student's ``question_grades`` up into their ``grades`` row.
+
+    ``course_name`` is the course the assignment belongs to, and must be passed
+    in rather than read off ``user.course_name``. ``auth_user.course_name`` is
+    whichever course the student currently has *active*, which is not
+    necessarily the one being graded: the roster comes from ``user_courses``, so
+    it includes students who have since moved on to another course. Scoring off
+    the active course made ``fetch_assignment_scores`` match no ``question_grades``
+    rows at all and silently rolled the total up to 0.
+    """
     grade = await fetch_grade(user.id, assignment.id)
     if grade and grade.manual_total:
         return
 
-    res = await fetch_assignment_scores(assignment.id, user.course_name, user.username)
+    res = await fetch_assignment_scores(assignment.id, course_name, user.username)
     total = 0
     for row in res:
         total += row.score or 0
@@ -308,7 +318,6 @@ async def _recompute_total_for_user(
     else:
         new_grade = GradeValidator(
             auth_user=user.id,
-            course_name=user.course_name,
             assignment=assignment.id,
             score=total,
             manual_total=False,
@@ -340,7 +349,7 @@ async def recompute_totals_for(
     processed = 0
     for user in targets:
         try:
-            await _recompute_total_for_user(user, assignment)
+            await _recompute_total_for_user(user, assignment, course.course_name)
             processed += 1
         except Exception as e:  # pragma: no cover - defensive
             rslogger.error(f"recompute totals failed sid={user.username}: {e}")
@@ -398,7 +407,9 @@ async def regrade_batch(
             user = user_map.get(sid)
             if user is not None:
                 try:
-                    await _recompute_total_for_user(user, assignment)
+                    await _recompute_total_for_user(
+                        user, assignment, course.course_name
+                    )
                 except Exception as e:  # pragma: no cover - defensive
                     rslogger.error(f"recompute totals failed sid={sid}: {e}")
 
