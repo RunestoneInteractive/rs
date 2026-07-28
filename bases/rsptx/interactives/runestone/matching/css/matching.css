@@ -194,6 +194,7 @@
     stroke: #3498db;
     stroke-opacity: 1;
     stroke-width: 4;
+    stroke-dasharray: 15 5 2 5;
     outline: none;
 }
 
