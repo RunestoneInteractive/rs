@@ -331,6 +331,29 @@ function addReadingList() {
  * @param {ParentNode} root - where to look; defaults to the whole document.
  * @returns {Object} activity ids mapped to 0, plus the ``page`` pseudo-activity.
  */
+// Navigation and reference pages rather than content: they carry no activities,
+// so they get no progress bar, no completion button and no highlighting. Keep
+// this as the single list -- it used to be spelled out separately in
+// user-highlights.js and the sphinx progress template, and the copies had
+// drifted apart (genindex.html was missing here, which left a progress bar on
+// the Book Index page).
+export const NON_CONTENT_PAGES = [
+    "index.html",
+    "genindex.html",
+    "toctree.html",
+    "toc.html",
+    "navhelp.html",
+    "assignments.html",
+    "Exercises.html",
+    "search.html",
+];
+
+/** True when pathname names one of the NON_CONTENT_PAGES. */
+export function isNonContentPage(pathname = window.location.pathname) {
+    let page = pathname.split("/").pop().toLowerCase();
+    return NON_CONTENT_PAGES.some((p) => p.toLowerCase() === page);
+}
+
 export function countActivitiesInPage(root = document) {
     let activities = { page: 0 };
     root.querySelectorAll(".runestone").forEach(function (e, index) {
@@ -349,9 +372,13 @@ export function countActivitiesInPage(root = document) {
     return activities;
 }
 
-class PageProgressBar {
+export class PageProgressBar {
     constructor(actDict) {
         this.possible = 0;
+        // The page itself counts as one item and is attempted as soon as it is
+        // opened. That is what lets a page with no activities on it still be
+        // completed. It is deliberately kept out of the numbers shown to the
+        // reader -- see activitiesAttempted/activitiesPossible below.
         this.total = 1;
         if (actDict && "assignment_spec" in actDict) {
             this.assignment_spec = actDict.assignment_spec;
@@ -362,13 +389,15 @@ class PageProgressBar {
         } else {
             this.activities = countActivitiesInPage();
         }
+        // The server builds its dict from the question table, so it has no
+        // entry for the page, while countActivitiesInPage() adds one. Normalise
+        // it so logged in and logged out readers get the same counts.
+        if (!("page" in this.activities)) {
+            this.activities.page = 0;
+        }
         this.calculateProgress();
-        // Hide the progress bar on the index page.
-        if (
-            window.location.pathname.match(
-                /.*\/(index.html|toctree.html|Exercises.html|search.html)$/i,
-            )
-        ) {
+        // Hide the progress bar on navigation pages, which have no activities.
+        if (isNonContentPage()) {
             const scprogresscontainer = document.getElementById(
                 "scprogresscontainer",
             );
@@ -388,12 +417,27 @@ class PageProgressBar {
         }
     }
 
+    // The counts shown beside the bar describe "activities on this page", and
+    // the page entry is not one of them -- reporting it made a freshly opened
+    // page read "1 of 4" when the reader could only see three activities.
+    // Progress percentage still uses total/possible so that opening the page
+    // counts toward completion.
+    get activitiesAttempted() {
+        return Math.max(this.total - 1, 0);
+    }
+
+    get activitiesPossible() {
+        return Math.max(this.possible - 1, 0);
+    }
+
     renderProgress() {
         let value = 0;
         const scprogresstotal = document.getElementById("scprogresstotal");
-        if (scprogresstotal) scprogresstotal.textContent = this.total;
+        if (scprogresstotal)
+            scprogresstotal.textContent = this.activitiesAttempted;
         const scprogressposs = document.getElementById("scprogressposs");
-        if (scprogressposs) scprogressposs.textContent = this.possible;
+        if (scprogressposs)
+            scprogressposs.textContent = this.activitiesPossible;
         try {
             value = (100 * this.total) / this.possible;
         } catch (e) {
@@ -456,9 +500,11 @@ class PageProgressBar {
             this.total++;
             let val = (100 * this.total) / this.possible;
             const scprogresstotal2 = document.getElementById("scprogresstotal");
-            if (scprogresstotal2) scprogresstotal2.textContent = this.total;
+            if (scprogresstotal2)
+                scprogresstotal2.textContent = this.activitiesAttempted;
             const scprogressposs2 = document.getElementById("scprogressposs");
-            if (scprogressposs2) scprogressposs2.textContent = this.possible;
+            if (scprogressposs2)
+                scprogressposs2.textContent = this.activitiesPossible;
             let subchapterprogress2 =
                 document.getElementById("subchapterprogress");
             if (
