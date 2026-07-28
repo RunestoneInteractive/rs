@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "engines": {
-    "npm": ">=8.0.0",
-    "node": ">=18.0.0"
+    "npm": ">=10.0.0",
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@aarkue/tiptap-math-extension": "^1.3.4",
