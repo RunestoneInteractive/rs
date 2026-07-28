@@ -26,6 +26,13 @@
         <input type="submit" name="submit" />
         <button type="button" onclick="window.history.back();" name="Cancel">Go Back (Cancel)</button>
     </form>
+    <section aria-labelledby="source-repository-heading">
+        {% if github_url %}
+        <p><strong>GitHub repository:</strong> <code id="github-repository">{{ github_url }}</code></p>
+        {% else %}
+        <p id="github-repository">No GitHub repository is recorded for this book.</p>
+        {% endif %}
+    </section>
 </div>
 
 <p>Note: The Available for courses checkbox will make your course visible on the create a custom course page.  The Visible to Everyone in Library will make it available to browse in the library.  If the home page for your course is not index.html you can change it on Main page.</p>
