@@ -17,6 +17,16 @@ due dates.  Those rows are left byte-identical and their timezone is backfilled
 to ``'UTC'``, which matches the fallback the application already used when no
 timezone and no browser cookie were available.
 
+Leaving a NULL-timezone course alone is only harmless once its deadlines have
+passed.  A course still running would keep the wall clock its instructor typed
+while that value starts being read as UTC, so ``upgrade()`` refuses to run
+while any NULL-timezone course has a due date in the future.  Setting
+``courses.timezone`` on those courses first converts them correctly along with
+everyone else; doing it afterwards is far more work, because by then the due
+dates are fixed instants and nothing records which zone they were meant to be
+in.  Set ``DUEDATE_UTC_ALLOW_NULL_TIMEZONE=1`` to proceed anyway and have those
+deadlines treated as UTC.
+
 The ids of the courses whose timezone was backfilled are recorded in
 ``duedate_utc_tz_backfill`` so ``downgrade()`` can restore NULL for exactly
 those courses and no others.  That table is dropped by ``downgrade()``.
@@ -28,6 +38,7 @@ changed while the upgrade is in effect.
 """
 
 import logging
+import os
 from typing import Sequence, Union
 
 from alembic import op
@@ -44,6 +55,10 @@ depends_on: Union[str, Sequence[str], None] = None
 logger = logging.getLogger("alembic.runtime.migration")
 
 BACKFILL_TABLE = "duedate_utc_tz_backfill"
+
+# Escape hatch for the live-course guard below, for the case where an
+# operator has decided those courses really should be treated as UTC.
+ALLOW_NULL_TIMEZONE_ENV = "DUEDATE_UTC_ALLOW_NULL_TIMEZONE"
 
 # Postgres ``AT TIME ZONE`` is direction sensitive:
 #   naive timestamp  AT TIME ZONE 'zone' -> timestamptz (reads the naive value as
@@ -113,6 +128,60 @@ def _assert_timezones_are_resolvable(conn) -> None:
         )
 
 
+LIVE_NULL_TIMEZONE_COURSES = sa.text(
+    """
+    SELECT c.id, c.course_name, max(a.duedate) AS latest_duedate
+      FROM courses c
+      JOIN assignments a ON a.course = c.id
+     WHERE c.timezone IS NULL
+     GROUP BY c.id, c.course_name
+    HAVING max(a.duedate) > (now() AT TIME ZONE 'UTC')
+     ORDER BY max(a.duedate) DESC
+    """
+)
+
+
+def _assert_no_live_courses_without_a_timezone(conn) -> None:
+    """Refuse to convert a still-running course that has no timezone.
+
+    A NULL timezone is left alone by this migration and backfilled to 'UTC',
+    which is harmless for a finished course but not for one with deadlines
+    still ahead of it: its due dates keep the wall clock an instructor typed
+    while that value starts being read as UTC.
+
+    Setting ``courses.timezone`` before running this migration converts those
+    courses correctly along with everyone else's. Doing it afterwards is much
+    more work, because by then the due dates are fixed instants and nothing
+    records which zone they were meant to be in -- so block here rather than
+    let the ordering be got wrong silently.
+
+    The comparison is approximate: due dates are still course-local at this
+    point, so a course is judged live to within its UTC offset. That is well
+    inside the granularity this check cares about.
+    """
+    if os.environ.get(ALLOW_NULL_TIMEZONE_ENV) == "1":
+        logger.warning(
+            "%s=1: converting due dates even though some live courses have no "
+            "timezone. Their deadlines will be read as UTC.",
+            ALLOW_NULL_TIMEZONE_ENV,
+        )
+        return
+
+    live = conn.execute(LIVE_NULL_TIMEZONE_COURSES).fetchall()
+    if live:
+        detail = "; ".join(
+            f"course {r.id} ({r.course_name!r}) latest due {r.latest_duedate}"
+            for r in live
+        )
+        raise RuntimeError(
+            "Cannot convert assignment due dates to UTC: these courses have "
+            f"deadlines in the future but no timezone set: {detail}. Set "
+            "courses.timezone for them and re-run -- their due dates will then "
+            "convert correctly. To proceed anyway and have their deadlines "
+            f"treated as UTC, set {ALLOW_NULL_TIMEZONE_ENV}=1."
+        )
+
+
 def _backfill_table_exists(conn) -> bool:
     return (
         conn.execute(
@@ -126,6 +195,7 @@ def upgrade() -> None:
     conn = op.get_bind()
 
     _assert_timezones_are_resolvable(conn)
+    _assert_no_live_courses_without_a_timezone(conn)
 
     shifted = conn.execute(LOCAL_TO_UTC).rowcount
     logger.info("duedate -> UTC: shifted %s assignment(s)", shifted)

@@ -73,6 +73,18 @@ def migration(conn):
 def seeded(conn):
     """Insert one course per timezone plus its assignments. Returns ids."""
     ids = {}
+    # The shared test database is seeded with courses that have no timezone and
+    # far-future deadlines, which the live-course guard rightly objects to.
+    # Give those a timezone so each test controls the precondition it is
+    # actually exercising. Rolled back with everything else.
+    conn.execute(
+        sa.text(
+            "UPDATE courses SET timezone = 'UTC' "
+            " WHERE timezone IS NULL "
+            "   AND id IN (SELECT course FROM assignments)"
+        )
+    )
+
     course_ids = {}
     for label, tz, local, _expected in CASES:
         if tz not in course_ids:
@@ -219,3 +231,96 @@ def test_unresolvable_timezone_on_a_course_without_assignments_does_not_block(
         )
     )
     migration.upgrade()  # must not raise
+
+
+# Live courses with no timezone
+# -----------------------------
+# A NULL timezone is left alone and backfilled to 'UTC'. That is harmless for a
+# finished course, but a course with deadlines still ahead of it would have its
+# typed wall clock silently start being read as UTC. Setting the timezone first
+# converts it correctly, so the migration blocks rather than let that ordering
+# be got wrong.
+
+
+def _add_course(conn, name, timezone, duedate):
+    course_id = conn.execute(
+        sa.text(
+            "INSERT INTO courses (course_name, base_course, timezone, "
+            "     term_start_date, login_required, allow_pairs, "
+            "     downloads_enabled, courselevel, institution) "
+            "VALUES (:n, :n, :tz, '2026-01-01', 'F', 'F', 'F', '', '') "
+            "RETURNING id"
+        ),
+        {"n": name, "tz": timezone},
+    ).scalar()
+    conn.execute(
+        sa.text(
+            "INSERT INTO assignments (course, name, duedate, visible, "
+            "     released, from_source, points) "
+            "VALUES (:c, :n, :d, 'F', 'F', 'F', 10)"
+        ),
+        {"c": course_id, "n": f"{name}-assignment", "d": duedate},
+    )
+    return course_id
+
+
+def _future():
+    return datetime.datetime.now(datetime.timezone.utc).replace(
+        tzinfo=None
+    ) + datetime.timedelta(days=30)
+
+
+def _past():
+    return datetime.datetime.now(datetime.timezone.utc).replace(
+        tzinfo=None
+    ) - datetime.timedelta(days=30)
+
+
+def test_live_course_without_a_timezone_blocks_the_upgrade(conn, migration, seeded):
+    _add_course(conn, "duedate-utc-test-live-null", None, _future())
+
+    with pytest.raises(RuntimeError, match="duedate-utc-test-live-null"):
+        migration.upgrade()
+
+
+def test_the_block_names_the_fix(conn, migration, seeded):
+    _add_course(conn, "duedate-utc-test-live-null-2", None, _future())
+
+    with pytest.raises(RuntimeError, match="Set courses.timezone"):
+        migration.upgrade()
+
+
+def test_a_finished_course_without_a_timezone_does_not_block(conn, migration, seeded):
+    # The seeded null-tz course is already in the past; add another for clarity.
+    _add_course(conn, "duedate-utc-test-done-null", None, _past())
+
+    migration.upgrade()  # must not raise
+
+
+def test_setting_the_timezone_lets_the_upgrade_proceed(conn, migration, seeded):
+    course_id = _add_course(conn, "duedate-utc-test-fixed", None, _future())
+
+    with pytest.raises(RuntimeError):
+        migration.upgrade()
+
+    conn.execute(
+        sa.text("UPDATE courses SET timezone = 'America/Chicago' WHERE id = :id"),
+        {"id": course_id},
+    )
+
+    migration.upgrade()  # must not raise
+
+
+def test_the_env_override_allows_the_upgrade(conn, migration, seeded, monkeypatch):
+    _add_course(conn, "duedate-utc-test-override", None, _future())
+    monkeypatch.setenv(migration.ALLOW_NULL_TIMEZONE_ENV, "1")
+
+    migration.upgrade()  # must not raise
+
+
+def test_the_env_override_only_accepts_exactly_one(conn, migration, seeded, monkeypatch):
+    _add_course(conn, "duedate-utc-test-override-2", None, _future())
+    monkeypatch.setenv(migration.ALLOW_NULL_TIMEZONE_ENV, "yes")
+
+    with pytest.raises(RuntimeError):
+        migration.upgrade()
