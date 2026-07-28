@@ -11,7 +11,7 @@
  * page with no activities be completed -- but it is not one of the "activities
  * on this page" the reader can see, so it is kept out of the displayed counts.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import {
     isNonContentPage,
@@ -31,6 +31,93 @@ activities on this page.
 
 const attempted = () => document.getElementById("scprogresstotal").textContent;
 const possible = () => document.getElementById("scprogressposs").textContent;
+
+/**
+ * Build a bar whose reading score reporting is stubbed, so tests can assert
+ * exactly when the score would be sent.
+ */
+function barWithSpy(activities, assignment_spec) {
+    const sent = vi.fn().mockResolvedValue(undefined);
+    const spec = { ...activities };
+    if (assignment_spec !== undefined) {
+        spec.assignment_spec = assignment_spec;
+    }
+    class Bar extends PageProgressBar {
+        sendCompletedReadingScore() {
+            sent();
+            return Promise.resolve();
+        }
+    }
+    return { bar: new Bar(spec), sent };
+}
+
+describe("reading score threshold", () => {
+    beforeEach(() => {
+        document.body.innerHTML = progressMarkup();
+        window.eBookConfig = { isLoggedIn: true };
+    });
+
+    it("does not send the score before the required activities are done", () => {
+        // Two of three done against a requirement of three. The page entry used
+        // to be counted here, which sent the score one activity early.
+        const { sent } = barWithSpy(
+            { q1: 1, q2: 1, q3: 0 },
+            { activities_required: 3 },
+        );
+
+        expect(sent).not.toHaveBeenCalled();
+    });
+
+    it("sends the score once the required activities are done", () => {
+        const { sent } = barWithSpy(
+            { q1: 1, q2: 1, q3: 1 },
+            { activities_required: 3 },
+        );
+
+        expect(sent).toHaveBeenCalled();
+    });
+
+    it("sends the score when nothing specific is required", () => {
+        // activities_required null means reading the page is enough.
+        const { sent } = barWithSpy(
+            { q1: 0, q2: 0, q3: 0 },
+            { activities_required: null },
+        );
+
+        expect(sent).toHaveBeenCalled();
+    });
+
+    it("sends the score on a page that has no activities at all", () => {
+        const { sent } = barWithSpy({}, { activities_required: null });
+
+        expect(sent).toHaveBeenCalled();
+    });
+
+    it("records the page's activity count when none was specified", () => {
+        const { bar } = barWithSpy(
+            { q1: 0, q2: 0, q3: 0 },
+            { activities_required: null },
+        );
+
+        // updateProgress() compares against this later, so it has to describe
+        // real activities rather than including the page.
+        expect(bar.assignment_spec.activities_required).toBe(3);
+    });
+
+    it("sends the score from updateProgress on the last required activity", () => {
+        const { bar, sent } = barWithSpy(
+            { q1: 0, q2: 0 },
+            { activities_required: 2 },
+        );
+        expect(sent).not.toHaveBeenCalled();
+
+        bar.updateProgress("q1");
+        expect(sent).not.toHaveBeenCalled();
+
+        bar.updateProgress("q2");
+        expect(sent).toHaveBeenCalled();
+    });
+});
 
 describe("isNonContentPage", () => {
     it("treats the Book Index as a navigation page (#613)", () => {

@@ -464,11 +464,22 @@ export class PageProgressBar {
             // This handles the case where there are no activities on the page or
             //  where the user completed activities on the assignment page and now
             //  is viewing the reading page.
-            let completeActivities = this.total; // subtract 1 for the page reading which is in total but not an activity
-            let requiredActivities =
-                this.assignment_spec.activities_required || 1;
-            if (this.assignment_spec.activities_required === null) {
-                this.assignment_spec.activities_required = this.possible; // if activities_required is null, then there are none on the page
+            // activities_required counts activities the reader completes, so
+            // compare against activitiesAttempted rather than total -- total
+            // includes the page itself, which used to send the reading score
+            // one activity early.
+            let completeActivities = this.activitiesAttempted;
+            let requiredActivities = this.assignment_spec.activities_required;
+            if (
+                requiredActivities === null ||
+                requiredActivities === undefined
+            ) {
+                // Nothing specific is required on this page, so opening it is
+                // enough. Record how many activities are here for the check in
+                // updateProgress().
+                requiredActivities = 0;
+                this.assignment_spec.activities_required =
+                    this.activitiesPossible;
             }
             if (completeActivities >= requiredActivities) {
                 this.sendCompletedReadingScore().then(() => {
@@ -516,7 +527,8 @@ export class PageProgressBar {
             if (
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
-                this.total >= this.assignment_spec.activities_required
+                this.activitiesAttempted >=
+                    this.assignment_spec.activities_required
             ) {
                 console.log("Required activities completed");
                 this.sendCompletedReadingScore().then(() => {
