@@ -25,6 +25,7 @@
   eBookConfig.course_attrs = {{ course_attrs | default({}) | tojson | safe }};
   eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
   eBookConfig.new_server_prefix = "/ns";
+  eBookConfig.authorServerUrl = "{{settings.author_server_url}}";
   eBookConfig.websocketUrl = "{{settings.websocket_url}}"
   eBookConfig.enableDebug = true ? "{{settings.debug}}" == "True" : false;
 </script>

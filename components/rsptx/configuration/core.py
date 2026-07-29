@@ -142,6 +142,15 @@ class Settings(BaseSettings):
     # Override with the LOGIN_URL environment variable if needed.
     login_url: str = "/admin/auth/login"
 
+    # Base URL for the author server. On runestone.academy the author server runs
+    # on its own host, separate from the pool of worker servers that serve books,
+    # assignments and admin, so this must be absolute -- a root-relative path
+    # would land on a worker, which does not run the author server. Deployments
+    # that run everything behind a single proxy (docker compose, self-hosted)
+    # should set ``AUTHOR_SERVER_URL=/author`` so the links stay on their host.
+    # No trailing slash; callers append the path they want.
+    author_server_url: str = "https://author.runestone.academy/author"
+
     # Public-facing host used to build absolute URLs (e.g. course links in
     # emails). Populated from the matching environment variables by
     # pydantic-settings. In production set ``LOAD_BALANCER_HOST`` (preferred,

@@ -170,7 +170,7 @@ async def login_post(
 @router.get("/logout")
 async def logout():
     response = RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
-    response.delete_cookie(auth_manager.cookie_name)
+    auth_manager.delete_cookie(response)
     return response
 
 
@@ -642,7 +642,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
 
     await delete_user(user.username)
     response = RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
-    response.delete_cookie(auth_manager.cookie_name)
+    auth_manager.delete_cookie(response)
     return response
 
 

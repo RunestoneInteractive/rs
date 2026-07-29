@@ -5,6 +5,7 @@
 "use strict";
 
 import { outerWidth, animate } from "./domutil.js";
+import { isNonContentPage } from "./bookfuncs.js";
 import "../css/user-highlights.css";
 
 /*
@@ -33,11 +34,7 @@ async function fetchJson(url, params) {
 
 async function getCompletions() {
     // Get the completion status
-    if (
-        window.location.href.match(
-            /(\/index.html|toctree.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html)/,
-        )
-    ) {
+    if (isNonContentPage()) {
         return;
     }
 
@@ -98,11 +95,7 @@ function showLastPositionBanner() {
 }
 
 function addNavigationAndCompletionButtons() {
-    if (
-        window.location.href.match(
-            /(index.html|genindex.html|navhelp.html|toc.html|assignments.html|Exercises.html|toctree.html)/,
-        )
-    ) {
+    if (isNonContentPage()) {
         return;
     }
     var completionButton = document.getElementById("completionButton");

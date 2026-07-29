@@ -162,6 +162,7 @@ services:
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
       - LOGIN_URL=/admin/auth/login
+      - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
       - WORKER_NAME=${HOSTNAME}
       - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
       - SPACES_KEY=${SPACES_KEY}
@@ -291,6 +292,7 @@ services:
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
 
     depends_on:
       <<: *needs-preflight
@@ -566,6 +568,7 @@ services:
       - DOCKER_COMPOSE=1
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
+      - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
       - FORWARDED_ALLOW_IPS=*
 
     depends_on:

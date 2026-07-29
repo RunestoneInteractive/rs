@@ -40,7 +40,7 @@
           {% if is_instructor == True or is_instructor | lower == "true" %}
           <a class="dropdown-item" href="/admin/instructor/menu"><span class="caption-wrap"><i class="ti ti-settings"></i><span>Instructor Dashboard</span></span></a>
           <a class="dropdown-item" href="/assignment/peer/instructor"><span class="caption-wrap"><i class="ti ti-users-group"></i><span>Peer Instruction (Instructor)</span></span></a>
-          <a class="dropdown-item" href="https://author.runestone.academy/author/"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Author Tools</span></span></a>
+          <a class="dropdown-item" href="{{ settings.author_server_url if settings is defined else 'https://author.runestone.academy/author' }}/"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Author Tools</span></span></a>
           <a class="dropdown-item" href="/runestone/admin/manage_exercises"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Editorial Page</span></span></a>
           <a class="dropdown-item" href="/assignment/instructor/invoice_request"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Request Invoice</span></span></a>
           <div class="dropdown-divider"></div>
