@@ -57,7 +57,13 @@ jobs:
       - name: Install dependencies
         # uv installs the default groups (dev + docs, see [tool.uv] in
         # pyproject.toml), matching what `poetry install` pulled in before.
-        run: uv sync
+        #
+        # pycairo publishes no Linux wheels, so installing it means compiling
+        # against system cairo headers the runner doesn't have. It is only here
+        # transitively (pretext[prefigure] -> prefig[text] -> pycairo) and none
+        # of these tests touch pretext, so skip it rather than apt-installing
+        # libcairo2-dev and building a C extension on every run.
+        run: uv sync --no-install-package pycairo
 
       - name: Create stub static asset directories
         run: |
@@ -65,4 +71,6 @@ jobs:
           mkdir -p bases/rsptx/assignment_server_api/staticAssets
 
       - name: Run tests
-        run: uv run pytest -v --tb=short
+        # --no-sync: `uv run` otherwise re-syncs the environment, which would
+        # undo the pycairo exclusion above and fail the same way.
+        run: uv run --no-sync pytest -v --tb=short
