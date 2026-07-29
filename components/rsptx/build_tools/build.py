@@ -96,7 +96,9 @@ def cli(config, verbose, all, core, service, clean, skip_pre, skip_tests):
     if clean:
         clean_all()
 
-    if not service and not all:
+    if core:
+        click.echo("Building core services")
+    if not service and not all and not core:
         click.echo("No services specified, building core services")
         core = True
 
