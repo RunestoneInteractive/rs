@@ -189,6 +189,12 @@ Peer Instruction Dashboard - {{ assignment_name }}
         font-size: 38px; font-weight: 600; color: #1f2937;
         font-variant-numeric: tabular-nums; line-height: 1; flex-shrink: 0;
     }
+    /* Each vote gets its own line so vote 1's total stays put once vote 2 starts to allow for easy comparison*/
+    #counter1 p, #counter2 p {
+        margin: 0 0 2px 0;
+        font-size: 16px; font-weight: 600; color: #1f2937;
+        font-variant-numeric: tabular-nums;
+    }
     .vote-count-main { font-size: 13px; font-weight: 600; color: var(--af-ink-2); }
     .vote-count-sub  { font-size: 12px; color: var(--af-ink-3); margin-top: 2px; }
 
@@ -377,8 +383,6 @@ Peer Instruction Dashboard - {{ assignment_name }}
         </div>
 
         <div id="pi-live-vote-graph" class="col-md-6">
-            <div id="counter1" style="display:none"></div>
-            <div id="counter2" style="display:none"></div>
 
             <div class="vote-panel">
                 <div class="vote-panel-head">
@@ -387,12 +391,9 @@ Peer Instruction Dashboard - {{ assignment_name }}
                 </div>
 
                 <div class="vote-count-strip">
-                    <span class="vote-count-big" id="answerCountDisplay">—</span>
                     <div>
-                        <div class="vote-count-main" id="answerCountLabel">answers received</div>
-                        <div class="vote-count-sub" id="vote1CountLabel" style="display:none">
-                            Vote 1 count: <span id="vote1CountDisplay">—</span>
-                        </div>
+                        <div id="counter1"></div>
+                        <div id="counter2"></div>
                         <div class="vote-count-sub" id="messDisplay" style="display:none">
                             <span id="messNum">0</span> messages sent
                         </div>
@@ -466,9 +467,6 @@ Peer Instruction Dashboard - {{ assignment_name }}
         if (startTime2 === null) { counterel = document.querySelector("#counter1"); v = 1; }
         else                     { counterel = document.querySelector("#counter2"); v = 2; }
 
-        const countDisplay = document.getElementById('answerCountDisplay');
-        if (countDisplay) countDisplay.textContent = spec.count;
-
         if (v === 1) {
             const pctResp = await fetch(new Request("/assignment/peer/api/percent_correct", { method: "POST", headers: jsheaders, body: JSON.stringify(data) }));
             if (pctResp.ok) {
@@ -480,8 +478,6 @@ Peer Instruction Dashboard - {{ assignment_name }}
             }
         } else {
             counterel.innerHTML = `<p>Vote ${v} Answers: ${spec.count}</p>`;
-            const vote1Label = document.getElementById('vote1CountLabel');
-            if (vote1Label) vote1Label.style.display = '';
         }
 
         if (spec.mess_count > 0) {
