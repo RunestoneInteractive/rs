@@ -734,7 +734,7 @@ def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name
         db_context["chapters"]
         .insert()
         .values(
-            chapter_name=f"{cnum} {chapter.find('./title').text}",
+            chapter_name=f"{chapter.find('./title').text}",
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
             chapter_num=cnum,
@@ -808,7 +808,7 @@ def _process_single_subchapter(
         titletext = " ".join(
             [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
         )
-    titletext = f"{scnum} {titletext.strip()}"
+    titletext = f"{titletext.strip()}"
 
     # Insert subchapter
     ins = (
