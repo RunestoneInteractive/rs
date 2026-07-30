@@ -352,6 +352,16 @@ export const GraderQuestionsPage: React.FC = () => {
   const toolbar = (
     <div className={styles.toolbar}>
       <div className={styles.toolbarGroup}>
+        {activeViewMode === "cards" && (
+          <Button
+            variant="default"
+            size="xs"
+            disabled={selectedQuestionIds.length === data.questions.length}
+            onClick={() => setSelectedQuestionIds(data.questions.map((q) => q.id))}
+          >
+            Select all
+          </Button>
+        )}
         <Tooltip label="Select at least one question" position="bottom" disabled={hasSelection}>
           <Button
             leftSection={<Icon name="refresh" size={14} />}
