@@ -98,7 +98,14 @@ export class ActiveCode extends RunestoneBase {
         this.hidecode = getDataValue(orig, "hidecode");
         this.chatcodes = getDataValue(orig, "chatcodes");
         this.hidehistory = getDataValue(orig, "hidehistory");
-        this.question = document.getElementById(`${this.divid}_question`);
+        // Look for the statement inside this component, not the whole document.
+        // The same divid can appear more than once at a time -- a toggle
+        // question's preview panel and the multi-grader both do this -- and a
+        // global lookup would find the other copy's statement and (in
+        // createControls) move it into this editor, leaving two statements.
+        this.question = opts.orig.querySelector(
+            `[id="${this.divid}_question"]`,
+        );
         this.tie = getDataValue(orig, "tie");
         this.dburl = getDataValue(orig, "dburl");
         this.runButton = null;

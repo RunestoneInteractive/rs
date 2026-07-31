@@ -350,8 +350,7 @@ export default class SelectOne extends RunestoneBase {
             // if "transfer" in toggle options, and if current question type is Parsons and selected question type is active code, then add "Transfer" button to preview panel
             if (toggleOptions.includes("transfer")) {
                 var currentType =
-                    document.getElementById(parentID).dataset
-                        .toggleCurrentType;
+                    document.getElementById(parentID).dataset.toggleCurrentType;
                 var selectedType =
                     toggleQuestionTypes[toggleQuestionSelect.selectedIndex];
                 if (
@@ -388,6 +387,10 @@ export default class SelectOne extends RunestoneBase {
             .getElementById(parentID)
             .getElementsByTagName("select")[0];
         document.getElementById(selectorId).innerHTML = ""; // need to check whether this is even necessary
+        // Tear the preview down first: it holds a copy of the question we are
+        // about to render, and two live copies of the same divid at once
+        // confuse components that look their pieces up by id.
+        document.getElementById("toggle-preview").innerHTML = "";
         await renderRunestoneComponent(htmlsrc, selectorId, {
             selector_id: selectorId,
             is_toggle: this.toggleOptions,
@@ -399,7 +402,6 @@ export default class SelectOne extends RunestoneBase {
             {},
         );
         await fetch(request);
-        document.getElementById("toggle-preview").innerHTML = "";
         let parentDiv = document.getElementById(parentID);
         parentDiv.dataset.toggleCurrent = selectedQuestion;
         parentDiv.dataset.toggleCurrentType =

@@ -165,6 +165,59 @@ describe("controls", () => {
     });
 });
 
+describe("the question statement", () => {
+    const statement = (id) =>
+        `<div id="${id}_question" class="ac_question"><p>Set result to 42.</p></div>`;
+
+    it("moves the statement to the top of the component", () => {
+        const ac = makeActiveCode({ question: statement("test_ac_1") });
+        expect(ac.outerDiv.firstChild).toBe(ac.question);
+        expect(ac.containerDiv.querySelectorAll(".ac_question").length).toBe(1);
+    });
+
+    it("drops a statement that is only whitespace", () => {
+        const ac = makeActiveCode({
+            question:
+                '<div id="test_ac_1_question" class="ac_question"> </div>',
+        });
+        expect(ac.containerDiv.querySelector(".ac_question")).toBeNull();
+    });
+
+    // #1328: a toggle question renders the same activecode in its preview panel
+    // and again in place. Looking the statement up globally found the *other*
+    // copy and moved it here, so the statement showed twice.
+    it("ignores a same-divid statement elsewhere in the document", () => {
+        document.body.innerHTML = `
+          <div id="toggle-preview">
+            <div class="runestone">
+              <div data-component="activecode" id="dup_ac" class="ac_section">
+                ${statement("dup_ac")}
+                <textarea data-lang="python">x = 0</textarea>
+              </div>
+            </div>
+          </div>
+          <div id="sel-toggleSelectedQuestion">
+            <div class="runestone">
+              <div data-component="activecode" id="dup_ac" class="ac_section">
+                ${statement("dup_ac")}
+                <textarea data-lang="python">x = 0</textarea>
+              </div>
+            </div>
+          </div>`;
+        const preview = document.getElementById("toggle-preview");
+        const inPlace = document.getElementById("sel-toggleSelectedQuestion");
+        const ac = new ActiveCode({
+            orig: inPlace.querySelector("[data-component=activecode]"),
+            useRunestoneServices: false,
+            python3: true,
+        });
+        expect(ac.containerDiv.querySelectorAll(".ac_question").length).toBe(1);
+        expect(ac.outerDiv.firstChild).toBe(ac.question);
+        // the preview copy is left where it was
+        expect(preview.querySelectorAll(".ac_question").length).toBe(1);
+    });
+});
+
 describe("hidecode", () => {
     it("hides the editor and shows a Show Code button", () => {
         const ac = makeActiveCode({ attrs: 'data-hidecode="true"' });
