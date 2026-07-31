@@ -16,7 +16,13 @@ Assignment Builder
 
 {% block content %}
 {% include 'common/ebook_config.html' %}
-<div class="hidden-content process-math" style="display: none">
+{# The course's latex macros. This div is *not* typeset by MathJax -- it is a
+   verbatim carrier that componentFuncs.js reads and hands to the component
+   factory as opt.preamble.  It must carry tex2jax_ignore (see ignoreHtmlClass
+   in common/static_assets_min.html): without it MathJax's page-load pass
+   rewrites the `\$` in `\newcommand{\dollar}{\$}` into `<span>$</span>`, which
+   splits the text run and makes the preamble unparseable downstream. #}
+<div class="hidden-content tex2jax_ignore" id="latex_preamble" style="display: none">
   {{latex_preamble}}
 </div>
 <script>

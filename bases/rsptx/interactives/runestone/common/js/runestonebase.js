@@ -699,22 +699,18 @@ class AutoQueue extends Queue {
                         `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`,
                     );
                     if (qq.preamble) {
+                        // Typesetting the preamble registers its \newcommand and
+                        // \DeclareMathOperator definitions with the TeX input jax.
+                        // Those definitions are global and persist for every later
+                        // typesetPromise call on the page, so the component does not
+                        // need its own copy of the preamble -- see issue #1248, where
+                        // prepending a copy put the raw macro source on screen.
                         await MathJax.typesetPromise([qq.preamble]);
-                        // Use insertAdjacentElement to preserve existing DOM elements and event listeners
-                        // instead of overwriting innerHTML which destroys event handlers
-                        let preambleDiv = document.createElement("div");
-                        preambleDiv.innerHTML = qq.preamble.innerHTML;
-                        item.component.insertAdjacentElement(
-                            "afterbegin",
-                            preambleDiv,
-                        );
                         console.log(
                             `MathJax typeset the preamble for ${item.component.id}`,
                         );
-                        return await MathJax.typesetPromise([item.component]);
-                    } else {
-                        return await MathJax.typesetPromise([item.component]);
                     }
+                    return await MathJax.typesetPromise([item.component]);
                 },
             );
 
