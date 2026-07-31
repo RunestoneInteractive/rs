@@ -37,3 +37,49 @@ Static Assets
 One important note about static assets.  That is things found in ``components/rsptx/templates/staticAssets`` for performance reasons when docker is running we serve those files **directly** from the nginx server.  So if you are working on those files you will need to rebuild/restart nginx to see the changes.  That is quite fast.  ``./build --one nginx --restart``
 
 
+Showing Dates and Times on a Page
+---------------------------------
+
+Datetimes are stored in the database as **naive UTC** -- that includes
+``assignments.duedate``, which used to be stored in course-local wall clock
+time and was converted by migration ``c4e8a1f7b2d9``.  Never render one
+directly with ``strftime`` or ``{{ value }}``: the reader would see UTC and
+silently mis-read a deadline.
+
+Use the ``course_datetime_tag()`` Jinja global instead::
+
+    {{ course_datetime_tag(assignment.duedate, course.timezone) }}
+
+It emits a ``<time>`` element carrying the instant in UTC, with the
+course-local time as the visible text and in the ``title``.  A companion
+script rewrites the text into **the viewer's own timezone**, so a student
+enrolled from another timezone -- or simply travelling -- never has to do the
+conversion themselves under time pressure.  The course time stays in the
+tooltip so a student comparing notes with a classmate can still see the frame
+the course itself uses.  Pass ``style="short"`` for a compact
+``YYYY-MM-DD HH:MM`` rendering, and ``empty="N/A"`` for the text to use when
+the value is ``None``.
+
+.. warning:: Every page using ``course_datetime_tag()`` must include the
+   localize script itself
+
+   ::
+
+       {% include 'common/localize_times.html' %}
+
+   Put it in the page's ``js`` block, not in ``_base.html``.  PreTeXt books
+   ship their own ``_base.html``, and ``get_jinja_templates()`` puts the book
+   directory ahead of the shared template folder in its ``ChoiceLoader``, so a
+   base-template include silently disappears for exactly those courses.  The
+   failure is quiet and easy to miss: the page still renders, but every time
+   is left showing course-local time instead of the reader's, which looks
+   plausible until a reader in another timezone reads it.
+
+If you need a plain string rather than a ``<time>`` element -- for a CSV
+export, an email, or a log line, where there is no browser to localize it --
+use ``format_course_datetime()`` from ``rsptx.templates.core``, which renders
+the course-local wall clock time directly.  A course with no timezone set is
+treated as UTC, matching the migration; an unrecognized timezone name falls
+back to UTC rather than raising, so a bad value cannot take a page down.
+
+
