@@ -31,6 +31,7 @@ from rsptx.db.models import AuthUserValidator
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
+from rsptx.validation.fields import clean_text, validate_password, validate_text_field
 
 router = APIRouter(
     prefix="/auth",
@@ -205,10 +206,33 @@ async def register_post(
     if username_error:
         errors.append(username_error)
 
+    # Trim the free-text fields before validating or storing them. Without this a
+    # name of " " was accepted and became the student's name on every roster.
+    first_name = clean_text(first_name)
+    last_name = clean_text(last_name)
+    email = clean_text(email)
+    institution = clean_text(institution)
+
+    for value, label in (
+        (first_name, "First name"),
+        (last_name, "Last name"),
+        (email, "Email"),
+    ):
+        field_error = validate_text_field(value, label)
+        if field_error:
+            errors.append(field_error)
+
+    institution_error = validate_text_field(
+        institution, "Institution name", required=False
+    )
+    if institution_error:
+        errors.append(institution_error)
+
     if password != password2:
         errors.append("Passwords do not match.")
-    if len(password) < 6:
-        errors.append("Password must be at least 6 characters.")
+    password_error = validate_password(password)
+    if password_error:
+        errors.append(password_error)
 
     existing = await fetch_user(username)
     if _user_exists(existing):

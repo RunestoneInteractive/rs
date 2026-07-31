@@ -14,6 +14,7 @@ from fastapi.responses import (
 )
 from pydantic import BaseModel
 import csv
+import re
 from io import StringIO
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -62,6 +63,7 @@ from rsptx.db.crud import (
 from rsptx.auth.session import auth_manager
 from rsptx.auth.email import send_welcome_email
 from rsptx.templates import get_shared_templates
+from rsptx.validation.fields import clean_text, validate_text_field
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.logging import rslogger
@@ -82,6 +84,11 @@ router = APIRouter(
     prefix="/instructor",
     tags=["instructor"],
 )
+
+# A course name becomes part of a URL path, so it is restricted to the same
+# characters rsmanage enforces. A name with spaces used to be accepted here and
+# produced a course whose pages would not render.
+COURSE_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 rslogger.info("Registering instructor API routes")
 
@@ -1399,6 +1406,28 @@ async def post_create_course_page(
     templates = get_shared_templates()
     # Prepare course data for validator
     try:
+        # Validate the free-text fields before they reach the database. Without
+        # this, an over-long institution or course name failed with a raw column
+        # overflow, and a course name containing spaces was accepted but produced
+        # a course whose pages would not render.
+        institution = clean_text(institution)
+        projectname = clean_text(projectname)
+        field_errors = [
+            err
+            for err in (
+                validate_text_field(institution, "Institution"),
+                validate_text_field(projectname, "Course name"),
+            )
+            if err
+        ]
+        if projectname and not COURSE_NAME_RE.match(projectname):
+            field_errors.append(
+                "Course name may only contain letters, digits, hyphens, and "
+                "underscores (no spaces)."
+            )
+        if field_errors:
+            raise ValueError(" ".join(field_errors))
+
         course_data = {
             "course_name": projectname,
             "term_start_date": _parse_start_date(startdate),

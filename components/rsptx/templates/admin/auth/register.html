@@ -20,11 +20,13 @@
             <div class="form-group col-md-6">
                 <label for="first_name">First Name</label>
                 <input type="text" class="form-control" id="first_name" name="first_name"
+                       maxlength="512"
                        value="{{ submitted.first_name if submitted is defined else '' }}" required autofocus>
             </div>
             <div class="form-group col-md-6">
                 <label for="last_name">Last Name</label>
                 <input type="text" class="form-control" id="last_name" name="last_name"
+                       maxlength="512"
                        value="{{ submitted.last_name if submitted is defined else '' }}" required>
             </div>
         </div>
