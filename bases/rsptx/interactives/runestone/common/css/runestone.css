@@ -490,7 +490,7 @@ input[type="button"].btn.btn-sm {
 .btn-default[disabled]:hover {
     color: #ffffff;
     background-color: var(--codeButtons);
-    border-color: var(codeButtonsBorder);
+    border-color: var(--codeButtonsBorder);
 }
 
 .btn-default:hover,
