@@ -320,7 +320,9 @@ def process_one_book(spec: BookSpec, ctx: BuildCtx, session_maker=None) -> tuple
     try:
         course = spec.basecourse
         repodir, workdir = resolve_dirs(ctx.book_path, spec)
-
+        # check for ctx.book_path / spec.basecourse if it does not exist then create the folder
+        if not (ctx.book_path / spec.basecourse).is_dir():
+            (ctx.book_path / spec.basecourse).mkdir(parents=True, exist_ok=True)
         pulled = None  # None means the pull was skipped (--deploy-only)
         pull_msg = ""
         build_res = {"completed": True, "status": "Build skipped (--deploy-only)"}
