@@ -2267,36 +2267,20 @@ Yet another is that there is an internal error.  The internal error message is: 
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/\n/g, "<br/>");
-        // todo: try to make this use the suspension mechanism in skulpt
-        return new Sk.misceval.promiseToSuspension(
-            new Promise(
-                function (resolve) {
-                    setTimeout(
-                        function () {
-                            if (this.outputLineCount < 1000) {
-                                this.output.insertAdjacentHTML(
-                                    "beforeend",
-                                    text,
-                                );
-                                this.outputLineCount += 1;
-                                resolve(Sk.builtin.none.none$);
-                            } else {
-                                if (this.outputLineCount == 1000) {
-                                    this.output.insertAdjacentHTML(
-                                        "beforeend",
-                                        "Too Much output",
-                                    );
-                                    this.outputLineCount += 1;
-                                    stopExecution = true;
-                                    resolve(Sk.builtin.none.none$);
-                                }
-                            }
-                        }.bind(this),
-                        1,
-                    );
-                }.bind(this),
-            ),
-        );
+        // Write synchronously.  Skulpt's `Sk.builtin.file.prototype.write`
+        // throws away whatever Sk.output returns, so a suspension here is
+        // never awaited by the interpreter.  Deferring the DOM write to a
+        // timer therefore let a following `input()` reach its synchronous
+        // window.prompt first -- the prompt blocks the main thread, the timer
+        // never gets to run, and print/input appear out of order.  See #475.
+        if (this.outputLineCount < 1000) {
+            this.output.insertAdjacentHTML("beforeend", text);
+            this.outputLineCount += 1;
+        } else {
+            this.output.insertAdjacentHTML("beforeend", "Too Much output");
+            this.outputLineCount += 1;
+            stopExecution = true;
+        }
     }
 
     filewriter(fobj, bytes) {

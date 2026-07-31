@@ -207,8 +207,7 @@ describe("running python with skulpt", () => {
         });
         await ac.runProg();
         expect(ac.errinfo).toBe("success");
-        // stdout writes are appended from 1ms timeouts; let them flush
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        // stdout writes land synchronously -- no flush wait needed. See #475.
         expect(ac.output.innerHTML).toContain("2 &lt; 3");
         expect(ac.output.textContent).toContain("done");
     });
@@ -233,6 +232,53 @@ describe("running python with skulpt", () => {
         await ac.runProg();
         expect(ac.history.length).toBe(before + 1);
         expect(ac.history[ac.history.length - 1]).toBe("print('two')");
+    });
+});
+
+describe("print and input stay in order (#475)", () => {
+    // Skulpt's file.write discards whatever Sk.output returns, so outputfun
+    // must not defer its DOM write: input() calls window.prompt synchronously
+    // and blocks the main thread, so a deferred write would never be seen
+    // before the prompt appears.
+    it("writes output synchronously rather than returning a suspension", () => {
+        const ac = makeActiveCode();
+        const result = ac.outputfun("hello\n");
+        // observable immediately, with no timer flush
+        expect(ac.output.innerHTML).toBe("hello<br>");
+        expect(result).toBeUndefined();
+    });
+
+    it("shows each print before the input prompt that follows it", async () => {
+        const ac = makeActiveCode({
+            id: "test_ac_io",
+            code: [
+                "for i in range(2):",
+                "    print('before', i)",
+                "    answer = input('prompt ' + str(i))",
+            ].join("\n"),
+        });
+
+        // Record what is already on screen each time the modal would open.
+        const seenAtPrompt = [];
+        const origPrompt = window.prompt;
+
+        window.prompt = (message) => {
+            seenAtPrompt.push({ message, dom: ac.output.textContent });
+            return "x";
+        };
+        try {
+            await ac.runProg();
+        } finally {
+            window.prompt = origPrompt;
+        }
+
+        expect(seenAtPrompt.map((s) => s.message)).toEqual([
+            "prompt 0",
+            "prompt 1",
+        ]);
+        // the matching print is visible by the time each prompt opens
+        expect(seenAtPrompt[0].dom).toContain("before 0");
+        expect(seenAtPrompt[1].dom).toContain("before 1");
     });
 });
 
