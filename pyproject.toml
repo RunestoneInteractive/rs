@@ -111,6 +111,10 @@ dev = [
     "pre-commit>=4.5.1,<5",
     "ruff>=0.15.2,<0.16",
     "polylith-cli>=1.40.0",
+    # Nothing imports this directly: uvicorn --reload picks watchfiles when it is
+    # installed and otherwise falls back to StatReload, which stats the whole
+    # tree every 0.25s and burns most of a core. See issue #371.
+    "watchfiles>=1.0,<2",
 ]
 docs = [
     "sphinx-click>=6.0.0,<7",
