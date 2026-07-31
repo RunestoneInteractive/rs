@@ -10,15 +10,16 @@
     body.pi-hide-feedback .oneq .alert-danger { display: none !important; }
     body.pi-hide-feedback .oneq .ptx-runestone-container > div > .alert { display: none !important; }
     body.pi-hide-feedback .oneq [id$="_feedback"] { display: none !important; }
-    .oneq .runestone.isCorrect::before,
-    .oneq .runestone.isCorrect::after,
-    .oneq .runestone.isInCorrect::before,
-    .oneq .runestone.isInCorrect::after { display: none !important; }
-    .oneq .runestone.isCorrect,
-    .oneq .runestone.isInCorrect { outline: none !important; border-style: solid !important; }
-    .oneq ul.form-group li { outline: none !important; border: none !important; }
-    .oneq li label, .oneq li { outline: none !important; }
-    .oneq * { outline: none !important; }
+    body.pi-hide-feedback .oneq .runestone.isCorrect::before,
+    body.pi-hide-feedback .oneq .runestone.isCorrect::after,
+    body.pi-hide-feedback .oneq .runestone.isInCorrect::before,
+    body.pi-hide-feedback .oneq .runestone.isInCorrect::after { display: none !important; }
+    body.pi-hide-feedback .oneq .runestone.isCorrect,
+    body.pi-hide-feedback .oneq .runestone.isInCorrect { outline: none !important; border-style: solid !important; }
+    body.pi-hide-feedback .oneq ul.form-group li { outline: none !important; border: none !important; }
+    body.pi-hide-feedback .oneq li label,
+    body.pi-hide-feedback .oneq li { outline: none !important; }
+    body.pi-hide-feedback .oneq * { outline: none !important; }
     body.pi-async-loading .oneq { opacity: 0; }
     .navbar { position: fixed !important; top: 0 !important; width: 100% !important; z-index: 1030 !important; margin-left: 0 !important; margin-right: 0 !important; }
     h2 { font-size: 1.8em !important; margin-top: 4px !important; margin-bottom: 4px !important; }
@@ -88,24 +89,6 @@
       font-size:13px; font-weight:500; color:var(--pi-blue-deep);
     }
 
-    .pi-tab-bar { display:flex; border-bottom:1px solid var(--pi-line); }
-    .pi-tab {
-      flex:1; padding:9px 12px; background:none; border:none;
-      border-bottom:2px solid transparent; font-size:14px; color:var(--pi-ink3);
-      cursor:pointer; display:flex; align-items:center; gap:6px;
-      margin-bottom:-1px; transition:color .15s;
-    }
-    .pi-tab:hover { color:var(--pi-ink); }
-    .pi-tab.active { color:var(--pi-blue-deep); border-bottom-color:var(--pi-blue); font-weight:500; }
-    .pi-tab-num {
-      display:inline-flex; align-items:center; justify-content:center;
-      width:20px; height:20px; border-radius:50%;
-      background:var(--pi-line); color:var(--pi-ink3);
-      font-size:12px; font-weight:600; flex-shrink:0;
-    }
-    .pi-tab.active .pi-tab-num { background:var(--pi-blue-soft); color:var(--pi-blue-deep); }
-    .pi-tab-num.done { background:var(--pi-blue-soft) !important; color:var(--pi-blue-deep) !important; }
-
     .pi-pane { padding:16px; position:relative; }
 
     .pi-pane-lock {
@@ -132,34 +115,20 @@
     .pi-reasoning-footer { display:flex; justify-content:flex-end; }
     #submitReflection:disabled { opacity:0.5; }
 
-    #piTabBody2 { padding:0; position:relative; }
-
-    .pi-reasoning-bar {
-      display:none; align-items:baseline; gap:8px;
-      padding:7px 12px; background:#f9fafb;
-      border-bottom:1px solid var(--pi-line);
-    }
-    .pi-reasoning-bar.visible { display:flex; cursor:pointer; }
-    .pi-reasoning-bar.visible:hover { background:#f0f1f3; }
-    .pi-reasoning-bar-label {
-      font-size:10px; font-weight:700; letter-spacing:.06em;
-      color:var(--pi-ink3); text-transform:uppercase;
-      white-space:nowrap; flex-shrink:0;
-    }
-    .pi-reasoning-bar-text {
-      font-size:13px; font-style:italic; color:var(--pi-ink2);
-      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-    }
-
     #llmChat {
-      height:370px; overflow-y:auto;
+      max-height:370px; overflow-y:auto;
       display:flex; flex-direction:column;
-      padding:10px 14px;
     }
+    #llmChat:empty { display:none; }
+
+    #justificationComposer { padding-top:10px; }
+    #llmChat:empty + #themePickerRow + #justificationComposer,
+    #llmChat:empty + #justificationComposer { padding-top:0; }
 
     .pi-composer {
       display:flex; gap:6px; align-items:center;
-      padding:8px 12px; border-top:1px solid var(--pi-line);
+      padding:8px 0 0 0; border-top:1px solid var(--pi-line);
+      margin-top:10px;
     }
     #llmReplyInput { flex:1; font-size:14px; }
 
@@ -190,6 +159,27 @@
     }
     .pi-response-card-text { font-size:14px; color:var(--pi-ink); line-height:1.5; }
     .pi-no-responses { font-size:14px; color:var(--pi-ink3); font-style:italic; }
+    .pi-class-responses {
+      border-top:1px solid var(--pi-line); margin-top:12px; padding-top:12px;
+    }
+    .pi-your-reasoning {
+      border:1px solid var(--pi-line2); border-radius:6px;
+      padding:12px 14px; background:#fff;
+    }
+    .pi-theme-chip {
+      display:inline-block; align-self:flex-start;
+      font-size:12px; color:var(--pi-ink3);
+      background:#f3f4f6; border:1px solid var(--pi-line2);
+      border-radius:20px; padding:3px 10px; margin-bottom:10px;
+    }
+    .pi-response-summary {
+      border:1px solid var(--pi-line2); border-radius:6px;
+      padding:12px 14px; margin-bottom:12px; background:#fafbfc;
+    }
+    .pi-summary-note {
+      font-size:11.5px; color:var(--pi-ink3); font-style:italic; margin-top:8px;
+    }
+    .pi-show-more { margin:4px 0 8px 0; }
 
     .theme-picker{ padding:0 0 10px 0; }
     .theme-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:10px; }
@@ -298,6 +288,8 @@
 
 <script>
   document.body.classList.add('pi-async-loading');
+  // Hide correctness until the second vote is submitted
+  document.body.classList.add('pi-hide-feedback');
   window.ASYNC_LLM_ENABLED = {{ 'true' if llm_enabled else 'false' }};
   window.DISABLE_LLMTEST = true;
   window.PI_LLM_MODE = {{ 'true' if llm_enabled else 'false' }};
@@ -311,6 +303,8 @@
   eBookConfig.basecourse = "{{ course.base_course }}";
   eBookConfig.host = window.location.origin;
   eBookConfig.isLoggedIn = true;
+  eBookConfig.peer = true;
+  eBookConfig.peerMode = "async";
 </script>
 
 <div id="peer_async_root" data-div_id="{{ current_question.name if current_question else '' }}">
@@ -377,20 +371,14 @@
           <span class="pi-pick-chip">Your pick:&nbsp;<span id="current_answer">—</span></span>
         </div>
 
-        <div class="pi-tab-bar">
-          <button class="pi-tab active" id="piTab1Btn" onclick="showPiTab(1)">
-            <span class="pi-tab-num" id="piTabNum1">2</span>Your reasoning
-          </button>
-          <button class="pi-tab" id="piTab2Btn" onclick="showPiTab(2)">
-            <span class="pi-tab-num" id="piTabNum2">3</span>{% if llm_enabled %}Discuss with peer{% else %}Class responses{% endif %}
-          </button>
-        </div>
-
-        <div class="pi-pane" id="piTabBody1">
+        <div class="pi-pane" id="piConversation">
           <div class="pi-pane-lock" id="justificationOverlay">
             <div class="pi-pane-lock-title">Answer the question first</div>
             <div class="pi-pane-lock-sub">Submit your first vote to write your justification.</div>
           </div>
+
+          <div id="llmChat"></div>
+
           <div id="themePickerRow" style="display:none;">
             <div class="theme-picker">
               <div class="theme-head">
@@ -406,28 +394,19 @@
               </div>
             </div>
           </div>
-          <p class="pi-reasoning-prompt">
-            Please explain why you chose <strong><span id="current_answer_prompt">—</span></strong>.
-          </p>
-          <textarea id="messageText" placeholder="Write your reasoning here…" disabled></textarea>
-          <div class="pi-reasoning-footer">
-            <button id="submitReflection" type="button" class="btn btn-primary" disabled>
-              {% if llm_enabled %}Continue to discussion →{% else %}Submit{% endif %}
-            </button>
+          <div id="justificationComposer">
+            <p class="pi-reasoning-prompt">
+              Please explain why you chose <strong><span id="current_answer_prompt">—</span></strong>.
+            </p>
+            <textarea id="messageText" placeholder="Write your reasoning here…" disabled></textarea>
+            <div class="pi-reasoning-footer">
+              <button id="submitReflection" type="button" class="btn btn-primary" disabled>
+                {% if llm_enabled %}Send{% else %}Submit{% endif %}
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div id="piTabBody2" style="display:none;">
-          <div class="pi-pane-lock" id="piTab2Lock">
-            <div class="pi-pane-lock-title">Write your reasoning first</div>
-            <div class="pi-pane-lock-sub">{% if llm_enabled %}Once you submit, your LLM peer will respond.{% else %}Submit your reasoning to see how the class responded.{% endif %}</div>
-          </div>
-          <div class="pi-reasoning-bar" id="piReasoningBar" onclick="showPiTab(1)" title="Click to view your reasoning">
-            <span class="pi-reasoning-bar-label">Your reasoning</span>
-            <span class="pi-reasoning-bar-text" id="piReasoningBarText" title=""></span>
-          </div>
-          <div id="llmChat"></div>
-          <div class="pi-composer">
+          <div class="pi-composer" id="replyComposer" style="display:none;">
             <input id="llmReplyInput" class="form-control form-control-sm" type="text" placeholder="Reply…" />
             <button id="llmReplyBtn" class="btn btn-secondary btn-sm">Send</button>
           </div>
@@ -488,28 +467,9 @@
   window._vote2Enabled = false;
   window._vote1Locked = false;
 
-  function showPiTab(n) {
-    if (n === 2) {
-      const lock = document.getElementById('piTab2Lock');
-      if (lock && lock.style.display !== 'none') return;
-    }
-    const t1 = document.getElementById('piTabBody1');
-    const t2 = document.getElementById('piTabBody2');
-    const b1 = document.getElementById('piTab1Btn');
-    const b2 = document.getElementById('piTab2Btn');
-    if (n === 1) {
-      if (t1) t1.style.display = 'block';
-      if (t2) t2.style.display = 'none';
-      if (b1) b1.classList.add('active');
-      if (b2) b2.classList.remove('active');
-    } else {
-      if (t1) t1.style.display = 'none';
-      if (t2) t2.style.display = 'block';
-      if (b1) b1.classList.remove('active');
-      if (b2) b2.classList.add('active');
-      const chat = document.getElementById('llmChat');
-      if (chat) setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 30);
-    }
+  function showPiTab() {
+    const chat = document.getElementById('llmChat');
+    if (chat) setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 30);
   }
 
   function updateVoteBar(exchanges) {
@@ -540,6 +500,33 @@
     } catch (e) {
       console.warn("vote lock toggle failed", e);
     }
+  }
+
+  // After vote 2 the answer is locked in, but students can still click
+  // through the choices to see which are correct and read any feedback.
+  function enableAnswerExploration() {
+    const comp = window.componentMap[currentQuestion];
+    const fb = document.getElementById(currentQuestion + "_feedback");
+    if (!comp || !comp.optionArray || !fb) return;
+
+    if (typeof comp.enableInteraction === "function") comp.enableInteraction();
+    comp.optionArray.forEach((o) => { if (o.input) o.input.disabled = false; });
+    if (comp.submitButton) comp.submitButton.disabled = true;
+
+    const showFeedback = () => {
+      try {
+        comp.checkCurrentAnswer();
+        comp.renderFeedback();
+        fb.style.display = "";
+      } catch (e) {
+        console.warn("Could not render feedback", e);
+      }
+    };
+
+    comp.optionArray.forEach((o) => {
+      if (o.input) o.input.addEventListener("change", showFeedback);
+    });
+    showFeedback();
   }
 
   function lockVote1AndReflection() {
@@ -624,7 +611,6 @@
       window._piFeedbackObserver.disconnect();
       window._piFeedbackObserver = null;
     }
-    document.body.classList.remove("pi-hide-feedback");
   }
 
   function enableSecondVoteAsync() {
@@ -703,6 +689,24 @@ function appendMsg(role, text) {
   chat.scrollTop = chat.scrollHeight;
 }
 
+function appendYourReasoning(text) {
+  const chat = document.getElementById("llmChat");
+  const block = document.createElement("div");
+  block.className = "pi-your-reasoning";
+
+  const label = document.createElement("div");
+  label.className = "pi-response-card-meta";
+  label.textContent = "Your reasoning";
+
+  const body = document.createElement("div");
+  body.className = "pi-response-card-text";
+  body.textContent = text;
+
+  block.appendChild(label);
+  block.appendChild(body);
+  chat.appendChild(block);
+}
+
 function showTypingIndicator() {
   const chat = document.getElementById("llmChat");
   const wrap = document.createElement("div");
@@ -729,32 +733,34 @@ function hideTypingIndicator() {
 }
 
 function collapseJustification(text) {
+  // The justification is now the first message in the conversation, so swap
+  // the justification composer out for the reply composer.
+  const composer = document.getElementById('justificationComposer');
+  if (composer) composer.style.display = 'none';
+  const themeRow = document.getElementById('themePickerRow');
+  if (themeRow) themeRow.style.display = 'none';
+
+  // The picker is gone now, so name the theme the peer is talking in
+  if (window._selectedTheme) {
+    const theme = (window.PI_THEMES || []).find(t => t.id === window._selectedTheme);
+    const chat = document.getElementById('llmChat');
+    if (theme && chat && !document.getElementById('piThemeChip')) {
+      const chip = document.createElement('div');
+      chip.id = 'piThemeChip';
+      chip.className = 'pi-theme-chip';
+      chip.textContent = `Your peer will use examples from: ${theme.label}`;
+      chat.appendChild(chip);
+    }
+  }
+  const reply = document.getElementById('replyComposer');
+  if (reply) reply.style.display = '';
+
   const ta = document.getElementById('messageText');
-  const btn = document.getElementById('submitReflection');
-  const num1 = document.getElementById('piTabNum1');
   if (ta) ta.disabled = true;
-  if (btn) { btn.disabled = true; btn.textContent = '✓ Submitted'; }
-  if (num1) num1.classList.add('done');
+  const btn = document.getElementById('submitReflection');
+  if (btn) btn.disabled = true;
 
-  const bar = document.getElementById('piReasoningBar');
-  const barText = document.getElementById('piReasoningBarText');
-  if (bar) bar.classList.add('visible');
-  if (barText) {
-    const preview = text.length > 120 ? text.slice(0, 120) + '…' : text;
-    barText.textContent = preview;
-    barText.title = text;
-  }
-
-  const lock2 = document.getElementById('piTab2Lock');
-  if (lock2) lock2.style.display = 'none';
-
-  const num2 = document.getElementById('piTabNum2');
-  if (num2) {
-    num2.style.background = 'var(--pi-blue-soft)';
-    num2.style.color = 'var(--pi-blue-deep)';
-  }
-
-  showPiTab(2);
+  showPiTab();
   updateVoteBar(0);
 }
 
@@ -835,7 +841,11 @@ function collapseJustification(text) {
     const themeTrigEl = document.getElementById("themeTrigger");
     if (themeTrigEl) { themeTrigEl.disabled = true; themeTrigEl.style.pointerEvents = "none"; themeTrigEl.style.opacity = "0.6"; }
     collapseJustification(reflection);
-    appendMsg("user", reflection);
+    if (window.PI_LLM_MODE === true) {
+      appendMsg("user", reflection);
+    } else {
+      appendYourReasoning(reflection);
+    }
 
     const disclaimer = document.getElementById("llmDisclaimer");
     if (disclaimer) disclaimer.style.display = "block";
@@ -866,26 +876,101 @@ function collapseJustification(text) {
         </div>`;
       }
       if (spec.mess) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = spec.mess;
-        const items = tmp.querySelectorAll('li');
+        let items = spec.items || [];
+        if (!items.length && spec.mess) {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = spec.mess;
+          items = Array.from(tmp.querySelectorAll('li')).map(
+            li => li.textContent.replace(/^[^:]+said:\s*/i, '').trim()
+          );
+        }
+
         if (items.length > 0) {
-          chat.innerHTML += `<div class="pi-responses-count-row">${items.length} classmate response${items.length === 1 ? '' : 's'}</div>`;
-          items.forEach((li, i) => {
-            const text = li.textContent.replace(/^[^:]+said:\s*/i, '').trim();
-            chat.innerHTML += `<div class="pi-response-card">
-              <div class="pi-response-card-meta">Classmate ${i + 1}</div>
-              <div class="pi-response-card-text">${text}</div>
-            </div>`;
-          });
+          // Class responses are a reference section, not part of the conversation
+          const panel = document.createElement('div');
+          panel.className = 'pi-class-responses';
+          chat.appendChild(panel);
+
+          if (spec.summary) {
+            const sum = document.createElement('div');
+            sum.className = 'pi-response-summary';
+            const meta = document.createElement('div');
+            meta.className = 'pi-response-card-meta';
+            meta.textContent = 'AI summary of classmate responses';
+            const body = document.createElement('div');
+            body.className = 'pi-response-card-text';
+            body.textContent = spec.summary;
+            const note = document.createElement('div');
+            note.className = 'pi-summary-note';
+            note.textContent = 'Written by AI from the responses below. It can make mistakes.';
+            sum.appendChild(meta);
+            sum.appendChild(body);
+            sum.appendChild(note);
+            panel.appendChild(sum);
+          }
+
+          // Show a handful at random so students aren't buried in responses
+          const shuffled = items.slice();
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          const INITIAL = 4;
+
+          const countRow = document.createElement('div');
+          countRow.className = 'pi-responses-count-row';
+          countRow.textContent = `${items.length} classmate response${items.length === 1 ? '' : 's'}`;
+          panel.appendChild(countRow);
+
+          const renderCards = (list, startIdx) => {
+            list.forEach((text, i) => {
+              const card = document.createElement('div');
+              card.className = 'pi-response-card';
+              const meta = document.createElement('div');
+              meta.className = 'pi-response-card-meta';
+              meta.textContent = `Classmate ${startIdx + i + 1}`;
+              const body = document.createElement('div');
+              body.className = 'pi-response-card-text';
+              body.textContent = text;
+              card.appendChild(meta);
+              card.appendChild(body);
+              panel.appendChild(card);
+            });
+          };
+
+          renderCards(shuffled.slice(0, INITIAL), 0);
+
+          // Reveal another batch at a time rather than dumping the rest at once
+          let shown = INITIAL;
+          if (shuffled.length > shown) {
+            const moreBtn = document.createElement('button');
+            moreBtn.type = 'button';
+            moreBtn.className = 'btn btn-secondary btn-sm pi-show-more';
+            const labelMore = () => {
+              const left = shuffled.length - shown;
+              moreBtn.textContent = `Show ${Math.min(INITIAL, left)} more (${left} left)`;
+            };
+            labelMore();
+            moreBtn.addEventListener('click', function () {
+              const next = shuffled.slice(shown, shown + INITIAL);
+              renderCards(next, shown);
+              shown += next.length;
+              if (shown >= shuffled.length) {
+                moreBtn.remove();
+              } else {
+                labelMore();
+                panel.appendChild(moreBtn);
+              }
+            });
+            panel.appendChild(moreBtn);
+          }
         } else {
           chat.innerHTML += `<p class="pi-no-responses">${spec.mess}</p>`;
         }
       }
-      const replyInput = document.getElementById("llmReplyInput");
-      const replyBtn = document.getElementById("llmReplyBtn");
-      if (replyInput) replyInput.style.display = "none";
-      if (replyBtn) replyBtn.style.display = "none";
+      // No back-and-forth in the standard condition
+      const replyComposer = document.getElementById("replyComposer");
+      if (replyComposer) replyComposer.style.display = "none";
 
       const bar = document.getElementById("piVoteBar");
       if (bar) bar.classList.add("active");
@@ -914,6 +999,7 @@ function collapseJustification(text) {
             div_id: currentQuestion,
             selected_answer: selected,
             messages: window._llmMessages,
+            reflection: reflection,
             theme_id: window._selectedTheme || "",
             analogy_mapping: window._analogyMapping || ""
           })
@@ -1254,18 +1340,14 @@ function updateLikertSubmitState() {
 function showLikertPanel() {
     renderLikertPanel();
 
-    const tabBar = document.querySelector(".pi-tab-bar");
-    const tabBody1 = document.getElementById("piTabBody1");
-    const tabBody2 = document.getElementById("piTabBody2");
+    const conversation = document.getElementById("piConversation");
     const voteBar = document.getElementById("piVoteBar");
     const likertPanel = document.getElementById("piLikertPanel");
 
     const panelTitle = document.querySelector(".pi-panel-title");
     const pickChip = document.querySelector(".pi-pick-chip");
 
-    if (tabBar) tabBar.style.display = "none";
-    if (tabBody1) tabBody1.style.display = "none";
-    if (tabBody2) tabBody2.style.display = "none";
+    if (conversation) conversation.style.display = "none";
     if (voteBar) voteBar.style.display = "none";
 
     if (panelTitle) panelTitle.textContent = "Final reflection";
@@ -1474,6 +1556,9 @@ function bindLikertSubmitHandler() {
               window._vote2Enabled = false;
 
               setVoteInputsLocked(true);
+              stopFeedbackGuard();
+              document.body.classList.remove("pi-hide-feedback");
+              setTimeout(enableAnswerExploration, 0);
 
               if (!window.PI_ENABLE_LIKERT) {
                 updateStepBanner(4);
@@ -1481,16 +1566,6 @@ function bindLikertSubmitHandler() {
               enableNextQuestionBtn();
               if (window.PI_ENABLE_LIKERT) {
                 showLikertPanel();
-              }
-}
-            if (studentSubmittedVote2) {
-              try {
-                const comp = window.componentMap[currentQuestion];
-                if (comp && typeof comp.showFeedback === "function") {
-                  comp.showFeedback();
-                }
-              } catch (e) {
-                console.warn("Could not show correctness feedback", e);
               }
             }
           });

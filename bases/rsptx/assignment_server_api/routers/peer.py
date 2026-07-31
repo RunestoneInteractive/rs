@@ -12,6 +12,7 @@
 import datetime
 import json
 import random
+import re
 import sys
 from typing import Optional
 
@@ -1488,13 +1489,19 @@ async def get_async_explainer(
             msg_result = await session.execute(msg_query)
             messages = msg_result.scalars().all()
 
+            wrapper_re = re.compile(
+                r"^\s*i chose answer\s+\S+\.\s*my explanation was:\s*", re.I
+            )
+
             all_msgs = []
             last_per_sid = {}
             for row in messages:
                 if row.event == "sendmessage" and row.act.startswith("to:llm:"):
                     continue
                 if row.event == "reflection":
-                    msg = row.act
+                    msg = wrapper_re.sub("", row.act).strip()
+                    if not msg:
+                        continue
                 else:
                     try:
                         msg = row.act.split(":", 2)[2]
@@ -1513,8 +1520,44 @@ async def get_async_explainer(
         else:
             mess = "<ul>" + "".join(parts) + "</ul>"
 
+        # Summarize the justifications when the course has an API key so
+        summary = ""
+        items = [msg for _, msg in all_msgs]
+        if items:
+            try:
+                from rsptx.db.crud import fetch_course
+
+                course_row = await fetch_course(course)
+                if course_row and await _llm_enabled_async(course_row.id):
+                    joined = "\n".join(f"- {m}" for m in items)
+                    summary = await _call_openai_async(
+                        [
+                            {
+                                "role": "system",
+                                "content": (
+                                    "summarize what classmates said about this question in 2 to 3 short sentences.\n"
+                                    "describe only the reasoning that is actually present in the responses. do not invent or infer opinions that are not written there.\n"
+                                    "never mention answer choices or letters at all, not as correct, not as incorrect, not as what anyone picked.\n"
+                                    "if the responses are too short or empty to say anything meaningful, just say that classmates did not leave much detail.\n"
+                                    "use plain casual language and do not name individual students."
+                                ),
+                            },
+                            {"role": "user", "content": joined},
+                        ],
+                        course_row.id,
+                    )
+            except Exception:
+                rslogger.exception("Failed to summarize justifications")
+
         return JSONResponse(
-            content={"mess": mess, "user": "", "answer": "", "responses": {}}
+            content={
+                "mess": mess,
+                "items": items,
+                "summary": summary,
+                "user": "",
+                "answer": "",
+                "responses": {},
+            }
         )
 
     except Exception as e:
@@ -1612,13 +1655,13 @@ async def _generate_analogy_mapping_async(
         f"The student chose '{theme_label}' as their analogy theme.\n\n"
         f"Step 1: Identify the underlying CS concept this question is testing — one sentence, specific about what structurally happens (not just the topic name).\n\n"
         f"Step 2: Break the question's structure down into its meaningful spatial or logical elements — the starting point, the required location to perform the action, the target item, and the action itself. Do NOT include the command syntax itself as an element. Do NOT evaluate the outcome or describe dependencies (do not write elements like 'the outcome depends on...' or 'the action requires...'). Focus only on what factually exists: where the student currently is, where the target item is, and what location is needed to perform the action. Describe elements factually and neutrally. The structure should describe what exists, not what the right reasoning is. Use bullet points, one element per line.\n\n"
-        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}' (e.g. 'dairy section', 'frozen foods aisle', 'checkout counter'). The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or restricted area (e.g. do not use 'back stockroom' in a grocery store — customers do not go there; use a specific aisle or section instead). The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location: reach for a jar on a shelf, use the blender on the counter, pick up a bag at a carousel, order at a specific counter. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
+        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}'. Every single item on the right side of the mapping MUST be a real, nameable part of '{theme_label}' and nothing else — do not borrow places, objects, or vocabulary from any other setting. The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or otherwise restricted area that an ordinary person in '{theme_label}' could not walk into. The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location, choosing an item and action that genuinely belong to '{theme_label}'. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
         f"Step 4: Write the first message the LLM peer will send to the student. This message should:\n"
         f"- Be in casual, lowercase, peer voice — like a student talking to another student\n"
         f"- Use minimal commas\n"
         f"- Introduce the scene to the student from scratch — they have never heard of this scenario. Do not say 'i'm picturing X' or reference the scenario as if they already know it. Start with 'imagine you're in...' or 'so picture this...' to actually place them in the situation\n"
         f"- Set the scene in 1-2 sentences using theme vocabulary only — no file paths, no CS terms, no variable names\n"
-        f"- Name the specific locations from your mapping (e.g. 'the dairy section' not 'an aisle') so the conversation is grounded from the start\n"
+        f"- Name the specific locations from your mapping rather than vague ones, so the conversation is grounded from the start\n"
         f"- After placing them in the scene, ask a specific, concrete location question using the exact mapped action — e.g. 'can you board your flight from the lobby or do you need to get to gate 12 first?' not vague questions like 'can you use it from here' or 'where does the item end up'. The action in the question must be the specific mapped action, not a generic 'use it' or 'access it'.\n"
         f"- Do NOT assume the student is wrong — the question works whether they are right or wrong\n"
         f"- Never imply the student is wrong or ask a rhetorical question with an obvious answer\n"
@@ -1741,7 +1784,7 @@ async def get_async_llm_reflection(
                         sid=user.username,
                         div_id=div_id,
                         event="reflection",
-                        act=content,
+                        act=(data.get("reflection") or "").strip() or content,
                         timestamp=datetime.datetime.utcnow(),
                     )
                 )
@@ -1806,7 +1849,7 @@ async def get_async_llm_reflection(
                     f"{analogy_mapping}\n"
                     f"\n"
                     f"use this mapping to frame your conversation naturally. the student has never seen this mapping — you are introducing this scenario to them for the first time.\n"
-                    f"IMPORTANT: in conversation only ever use the RIGHT side of the mapping (the theme terms). never use the LEFT side (the CS/file system terms) when talking in the analogy — so if the mapping says 'project/ folder -> dairy section' you say 'dairy section' never 'project folder' or 'project aisle'. this means never say words like 'staging', 'commit', 'repository', 'directory', 'git', or any CS term while you are in the analogy — stay fully in theme vocabulary until the explicit bridge-back moment.\n"
+                    f"IMPORTANT: in conversation only ever use the RIGHT side of the mapping (the theme terms). never use the LEFT side (the CS/file system terms) when talking in the analogy — if the mapping says 'X folder -> some place in {theme_label}' you name that place, never the folder. this means never say words like 'staging', 'commit', 'repository', 'directory', 'git', or any CS term while you are in the analogy — stay fully in '{theme_label}' vocabulary until the explicit bridge-back moment. everything you describe must come from '{theme_label}' and no other setting.\n"
                     f"in your first message: paint the scenario in natural language — describe the situation as if you are telling a story, not reading a list. do not recite the mapping labels (e.g. do not say 'the move action' or 'forest of wisdom' as if they are technical terms — say 'imagine you're walking through...' or 'so you're in the...'). place the student in the scene concretely, then connect it to what they said, then ask a question. do not say 'our scenario' — introduce it fresh.\n"
                     f"in follow-ups: keep using the theme vocabulary. if the student engages with it, build on it. when they seem to understand the structure through the theme, bridge back to the actual question.\n"
                     f"do not formally announce the analogy. do not say 'in the {theme_label} analogy' or 'using {theme_label} as a metaphor'. just talk in those terms naturally.\n"
