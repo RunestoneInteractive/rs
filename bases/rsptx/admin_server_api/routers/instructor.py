@@ -947,6 +947,13 @@ async def enroll_students(
     enrolled = 0
     for row in reader:
         rslogger.info(f"Processing row: {row}")
+        # Spreadsheet exports routinely carry stray whitespace -- most painfully a
+        # newline inside a cell, which used to be stored verbatim and then break
+        # eBookConfig (and therefore every component) on the student's pages.
+        row = [field.strip() for field in row]
+        if not any(row):
+            # A blank line, e.g. the trailing newline at the end of the file.
+            continue
         if len(row) < 6:
             results.append(
                 {
