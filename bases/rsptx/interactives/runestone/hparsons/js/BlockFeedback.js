@@ -21,11 +21,33 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.solved = false;
         // TODO: not sure what is the best way to do this
         this.grader = new BlockBasedGrader();
-        const solutionIndices = this.hparsons.blockAnswer.map(Number);
-        this.solution = solutionIndices;
-        this.grader.solution = solutionIndices;
+        // Grade on block *content*, not on block index. Two blocks holding the
+        // same text are interchangeable, so a solution that uses the same text
+        // twice (issue #1194: a query with two "=" blocks) must accept either
+        // one in either position. Content is read from the authored source
+        // blocks rather than from the DOM so that math blocks -- whose rendered
+        // text MathJax rewrites -- still compare correctly.
+        this.solution = this.hparsons.blockAnswer.map((index) =>
+            this.blockContent(index),
+        );
+        this.grader.solution = this.solution;
         this.answerArea =
             this.hparsons.hparsonsInput.querySelector(".drop-area");
+    }
+
+    // The authored source text for a block index. An index with no source block
+    // gets a sentinel that can never match a solution block.
+    blockContent(index) {
+        const blocks = this.hparsons.originalBlocks || [];
+        const content = blocks[Number(index)];
+        return content === undefined ? `\u0000unknown-block-${index}` : content;
+    }
+
+    // The contents of the blocks currently in the answer area, in order.
+    currentAnswerContent() {
+        return this.hparsons.hparsonsInput
+            .getBlockIndices()
+            .map((index) => this.blockContent(index));
     }
 
     // Called when check button clicked (block-based Feedback)
@@ -58,7 +80,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         if (!this.solved) {
             this.checkCount++;
             this.clearFeedback();
-            this.grader.answer = this.hparsons.hparsonsInput.getBlockIndices();
+            this.grader.answer = this.currentAnswerContent();
             this.grade = this.grader.grade();
             if (this.grade == "correct") {
                 this.hparsons.runButton.disabled = true;
@@ -101,9 +123,22 @@ export default class BlockFeedback extends HParsonsFeedback {
             var inSolution = [];
             var inSolutionIndexes = [];
             var notInSolution = [];
+            // Match each answer block to a solution position by content, not by
+            // block index, so interchangeable blocks are not flagged. Each
+            // solution position is claimed at most once, leftmost first, so
+            // repeated content lines up in order.
+            var claimed = new Set();
             for (let i = 0; i < answerBlocks.length; i++) {
                 var block = answerBlocks[i];
-                var index = this.solution.indexOf(Number(block.dataset.index));
+                var content = this.blockContent(block.dataset.index);
+                var index = -1;
+                for (let j = 0; j < this.solution.length; j++) {
+                    if (!claimed.has(j) && this.solution[j] === content) {
+                        index = j;
+                        claimed.add(j);
+                        break;
+                    }
+                }
                 if (index == -1) {
                     notInSolution.push(block);
                 } else {

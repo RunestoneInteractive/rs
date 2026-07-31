@@ -33,7 +33,12 @@ export default class HParsons extends RunestoneBase {
             this.language = "math";
         }
         if (this.isBlockGrading) {
-            this.blockAnswer = orig.getAttribute("data-blockanswer").split(" ");
+            // Extra whitespace in the attribute would otherwise produce empty
+            // tokens, which Number() turns into a spurious block 0.
+            this.blockAnswer = orig
+                .getAttribute("data-blockanswer")
+                .trim()
+                .split(/\s+/);
         }
         this.divid = opts.orig.id;
         this.containerDiv = opts.orig;
