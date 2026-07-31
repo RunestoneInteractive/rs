@@ -16,7 +16,7 @@ Before running the setup script, you need:
   - The Docker Desktop installer should match your machine (e.g., if you are on a Windows machine, download Docker Desktop for Windows).
   - Sign in to Docker Desktop when prompted on first launch. Signing in keeps your file sharing path settings saved across restarts. If you skip sign-in, Docker may lose your shared folder configuration each time it closes.
   - Make sure Docker Desktop is running before starting the setup
-  - For Windows: Enable WSL2 integration in Docker Desktop settings
+  - For Windows: Enable WSL2 integration in Docker Desktop (Settings → Resources → WSL Integration)
   - All paths should use a Linux-style directory format rather than Windows paths (especially if you plan to contribute directly to Runestone Academy).
   - **Important**: Configure file sharing in Docker Desktop (Settings → Resources → File Sharing) to include the directory where you'll create your Runestone configuration and your ``BOOK_PATH`` directory. Without this, Docker won't be able to access your book files.
 
@@ -36,10 +36,45 @@ Before running the setup script, you need:
   - Most users will want to add books, so this is recommended
   - You can install it later if you skip book setup initially
 
+You will also be asked for a ``BOOK_PATH`` — a directory on your machine where
+your books will live. Create it before you start; the next section walks through
+it, and Step 3 of :ref:`how-setup-works` explains it in full.
+
 Quick Start
 -----------
 
-Get Runestone running with a single command:
+**Before you run the setup command:**
+
+#. Make sure you have the prerequisites installed (see above).
+
+#. **Make sure Docker Desktop is running.** The setup script starts containers
+   immediately and cannot do anything without it.
+
+#. Create the directory where your books will live. This becomes your
+   ``BOOK_PATH``:
+
+   .. code-block:: bash
+
+      mkdir -p ~/runestone/books
+
+   This creates the directory at ``/home/<youruser>/runestone/books``. Use that
+   full path when the script asks for your books path, and when adding the
+   directory to Docker's file sharing settings.
+
+   Windows users: run this in your WSL2 terminal (Ubuntu), **not** in File
+   Explorer or PowerShell. Everything must stay in the Linux filesystem.
+
+#. Change into the directory where you want the configuration files created.
+   The parent of your books directory is a good choice:
+
+   .. code-block:: bash
+
+      cd ~/runestone
+
+#. Windows users: run the setup from a WSL2 terminal, not PowerShell or Command
+   Prompt.
+
+Then get Runestone running with a single command:
 
 .. code-block:: bash
 
@@ -47,11 +82,20 @@ Get Runestone running with a single command:
 
 The script will guide you through an interactive setup process, asking questions along the way to configure your Runestone server.
 
-**Before running the command:**
+.. note::
 
-#. Navigate to where you want the configuration files created (e.g., ``mkdir ~/runestone && cd ~/runestone``)
-#. Make sure you have the prerequisites installed (see above)
-#. For Windows users: Run this from a WSL2 terminal, not PowerShell or Command Prompt
+   **If you plan to contribute to a book**, answer ``n`` when the script offers
+   to add a book. The script clones the book's upstream repository, which leaves
+   you unable to push your changes. Instead, fork the book on GitHub first, then
+   clone your fork into your ``BOOK_PATH`` directory yourself:
+
+   .. code-block:: bash
+
+      cd ~/runestone/books
+      git clone https://github.com/<your-username>/<book-repo>.git
+
+   Then register and build it with ``rsmanage addbookauthor`` and
+   ``rsmanage build``, as described in Step 7 of :ref:`how-setup-works`.
 
 **After setup completes:**
 
@@ -161,6 +205,18 @@ The command to update the database is:
 
 **Troubleshooting:**
 
+If migrations still fail after that — usually because the database and Alembic
+disagree about which revision is current — mark the database as being at the
+latest revision and confirm it:
+
+.. code-block:: bash
+
+   docker compose run --rm rsmanage alembic stamp head
+   docker compose run --rm rsmanage alembic current
+
+The second command should print the current revision with ``(head)`` next to it.
+If it does, the mismatch is resolved.
+
 If you used the automated setup script (``init_runestone.sh``), check the ``init_runestone.log`` file in the rs directory for detailed information about the setup process. This log can help diagnose any issues that occurred during initialization.
 
 For database issues, you can reset the database by running ``docker compose down -v`` to remove all volumes, then re-run the initialization steps (either manually or via ``./init_runestone.sh``).
@@ -188,6 +244,8 @@ The script will detect that ``docker-compose.yml`` and ``sample.env`` already ex
 For most users just running a Runestone server, cloning the repository is not necessary.
 
 **For full development environment setup** (building from source, running tests, etc.), see the :doc:`developing` documentation.
+
+.. _how-setup-works:
 
 How the Setup Script Works
 ---------------------------
