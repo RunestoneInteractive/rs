@@ -7,6 +7,8 @@ load({
         msg_activecode_loaded_code: "Loaded your saved code.",
         msg_activecode_no_saved_code: "No saved code.",
         msg_activecode_run_code: "Run",
+        msg_activecode_input_submit: "Submit",
+        msg_activecode_input_label: "Program input",
         msg_activecode_show_feedback: "Show Feedback",
         msg_activecode_show_code: "Show Code",
         msg_activecode_hide_code: "Hide Code",

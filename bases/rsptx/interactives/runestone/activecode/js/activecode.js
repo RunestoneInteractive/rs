@@ -123,6 +123,8 @@ export class ActiveCode extends RunestoneBase {
             this.enablePartner = true;
         }
         this.output = null; // create pre for output
+        this.inputRow = null; // inline input() widget, while one is pending
+        this.inputCount = 0; // makes each input field's id unique
         this.graphics = null; // create div for turtle graphics
         this.codecoach = null; // div for Code Coaches
         this.codelens = null;
@@ -2282,6 +2284,85 @@ Yet another is that there is an internal error.  The internal error message is: 
             stopExecution = true;
         }
     }
+    // Supply input() with a value, using a field at the end of the output pane
+    // rather than window.prompt.  The built-in modal dims the whole page and
+    // opens at the top of the window, away from the output it refers to; this
+    // reads like a terminal instead.
+    //
+    // Returning a promise is what makes it work at all: Skulpt turns a thenable
+    // from inputfun into a real suspension (Sk.builtin.file.$readline), so the
+    // interpreter yields to the event loop and everything printed so far is
+    // painted while we wait.  See #475.
+    inputfun(promptText) {
+        return new Promise((resolve) => {
+            // A program can call input() on a run that started with the output
+            // pane still hidden -- never leave the field where it can't be seen.
+            this.outDiv.style.visibility = "visible";
+            this.removeInputRow();
+
+            let row = document.createElement("span");
+            row.classList.add("ac-input-row");
+            let fieldId = `${this.divid}_input_${this.inputCount}`;
+            this.inputCount += 1;
+
+            let label = document.createElement("label");
+            label.classList.add("ac-input-prompt");
+            label.setAttribute("for", fieldId);
+            // input() is often called with no prompt at all; the field still
+            // needs an accessible name.
+            label.textContent = promptText
+                ? promptText
+                : t("msg_activecode_input_label");
+
+            let field = document.createElement("input");
+            field.type = "text";
+            field.id = fieldId;
+            field.classList.add("ac-input-field");
+            field.setAttribute("autocomplete", "off");
+
+            let button = document.createElement("button");
+            button.type = "button";
+            button.classList.add("ac-input-submit");
+            button.textContent = t("msg_activecode_input_submit");
+
+            row.appendChild(label);
+            row.appendChild(field);
+            row.appendChild(button);
+            this.output.appendChild(row);
+            this.inputRow = row;
+
+            const submit = (value) => {
+                this.removeInputRow();
+                // Echo the prompt and what was typed, the way a terminal does,
+                // so the transcript still reads top to bottom afterwards.
+                this.outputfun(`${promptText || ""}${value}\n`);
+                resolve(value);
+            };
+
+            button.addEventListener("click", () => submit(field.value));
+            field.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    submit(field.value);
+                } else if (e.key === "Escape") {
+                    // Matches the old cancelled-prompt behavior: an empty line,
+                    // so a stuck program can always be let go.
+                    e.preventDefault();
+                    submit("");
+                }
+            });
+
+            this.output.scrollTop = this.output.scrollHeight;
+            field.focus();
+        });
+    }
+    // Drop any pending input widget.  Safe to call when there isn't one.
+    removeInputRow() {
+        if (this.inputRow) {
+            this.inputRow.remove();
+            this.inputRow = null;
+        }
+    }
 
     filewriter(fobj, bytes) {
         let filecomponent = document.getElementById(fobj.name);
@@ -2586,6 +2667,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         var prog = await this.buildProg(true);
         this.coachCode = prog;
         this.saveCode = "True";
+        this.removeInputRow();
         this.output.textContent = "";
         if (this.unit_results_divid) {
             let urdiv = document.getElementById(
@@ -2606,6 +2688,7 @@ Yet another is that there is an internal error.  The internal error message is: 
         }
         Sk.configure({
             output: this.outputfun.bind(this),
+            inputfun: this.inputfun.bind(this),
             read: this.fileReader,
             filewrite: this.filewriter.bind(this),
             __future__: Sk.python3,

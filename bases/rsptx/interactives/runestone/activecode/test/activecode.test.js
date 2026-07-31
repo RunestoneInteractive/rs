@@ -236,16 +236,162 @@ describe("running python with skulpt", () => {
 });
 
 describe("print and input stay in order (#475)", () => {
-    // Skulpt's file.write discards whatever Sk.output returns, so outputfun
-    // must not defer its DOM write: input() calls window.prompt synchronously
-    // and blocks the main thread, so a deferred write would never be seen
-    // before the prompt appears.
+    // Two things had to be true for a program that mixes print() and input()
+    // to read correctly.  Skulpt's file.write discards whatever Sk.output
+    // returns, so outputfun must not defer its DOM write; and input() must
+    // suspend the interpreter -- which it only does when inputfun returns a
+    // thenable -- so the browser gets to paint before the student is asked.
+    function inputField(ac) {
+        return ac.output.querySelector(".ac-input-field");
+    }
+
+    // The interpreter is suspended while a widget is up, so drive it the way a
+    // student would: wait for the field, type, press Enter.
+    function waitForInputField(ac, timeout = 2000) {
+        return new Promise((resolve, reject) => {
+            const deadline = Date.now() + timeout;
+            const check = () => {
+                const field = inputField(ac);
+
+                if (field) {
+                    resolve(field);
+                } else if (Date.now() > deadline) {
+                    reject(new Error("no input field appeared"));
+                } else {
+                    setTimeout(check, 5);
+                }
+            };
+
+            check();
+        });
+    }
+
+    async function answer(ac, value) {
+        const field = await waitForInputField(ac);
+
+        field.value = value;
+        field.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+    }
+
     it("writes output synchronously rather than returning a suspension", () => {
         const ac = makeActiveCode();
         const result = ac.outputfun("hello\n");
+
         // observable immediately, with no timer flush
         expect(ac.output.innerHTML).toBe("hello<br>");
         expect(result).toBeUndefined();
+    });
+
+    it("returns a thenable from inputfun so skulpt suspends on it", async () => {
+        // Skulpt only builds a Suspension when inputfun returns a thenable
+        // (Sk.builtin.file.$readline).  Returning a plain value would run
+        // straight through and never yield to the browser.
+        const ac = makeActiveCode();
+        const pending = ac.inputfun("q");
+
+        expect(typeof pending.then).toBe("function");
+        await answer(ac, "42");
+        await expect(pending).resolves.toBe("42");
+    });
+
+    it("asks for input inline in the output pane, not through window.prompt", async () => {
+        const ac = makeActiveCode();
+        const orig = window.prompt;
+        let promptCalls = 0;
+
+        window.prompt = () => {
+            promptCalls += 1;
+            return "";
+        };
+        try {
+            const pending = ac.inputfun("Guess the number:");
+            const field = inputField(ac);
+
+            expect(field).not.toBeNull();
+            // inside the output pane, so it sits with the text it belongs to
+            expect(ac.output.contains(field)).toBe(true);
+            expect(document.activeElement).toBe(field);
+            expect(promptCalls).toBe(0);
+
+            // the prompt names the field, so screen readers announce it
+            const label = ac.output.querySelector(".ac-input-prompt");
+
+            expect(label.textContent).toBe("Guess the number:");
+            expect(label.getAttribute("for")).toBe(field.id);
+
+            await answer(ac, "7");
+            await pending;
+        } finally {
+            window.prompt = orig;
+        }
+    });
+
+    it("echoes the prompt and answer, then clears the widget", async () => {
+        const ac = makeActiveCode();
+        const pending = ac.inputfun("Name? ");
+
+        await answer(ac, "Ada");
+        await expect(pending).resolves.toBe("Ada");
+        expect(inputField(ac)).toBeNull();
+        // the transcript still reads top to bottom afterwards
+        expect(ac.output.textContent).toContain("Name? Ada");
+    });
+
+    it("submits with the button as well as the Enter key", async () => {
+        const ac = makeActiveCode();
+        const pending = ac.inputfun("q");
+        const field = await waitForInputField(ac);
+
+        field.value = "clicked";
+        ac.output.querySelector(".ac-input-submit").click();
+        await expect(pending).resolves.toBe("clicked");
+    });
+
+    it("treats Escape as an empty line so a stuck program can be let go", async () => {
+        const ac = makeActiveCode();
+        const pending = ac.inputfun("q");
+        const field = await waitForInputField(ac);
+
+        field.value = "ignored";
+        field.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        await expect(pending).resolves.toBe("");
+    });
+
+    it("gives an unprompted input() an accessible name anyway", async () => {
+        const ac = makeActiveCode();
+        const pending = ac.inputfun("");
+
+        expect(
+            ac.output.querySelector(".ac-input-prompt").textContent,
+        ).not.toBe("");
+        await answer(ac, "x");
+        await pending;
+    });
+
+    it("hands the promise-returning inputfun to skulpt", async () => {
+        // Guards the Sk.configure wiring: without it skulpt falls back to its
+        // own synchronous window.prompt and none of the above applies.
+        const ac = makeActiveCode({ id: "test_ac_cfg", code: "print('hi')" });
+
+        await ac.runProg();
+        const res = window.Sk.inputfun("q");
+
+        expect(typeof res.then).toBe("function");
+        await answer(ac, "x");
+        await res;
+    });
+
+    it("clears a pending input widget when the program is run again", async () => {
+        const ac = makeActiveCode();
+
+        ac.inputfun("q");
+        expect(inputField(ac)).not.toBeNull();
+        await ac.runProg();
+        expect(inputField(ac)).toBeNull();
     });
 
     it("shows each print before the input prompt that follows it", async () => {
@@ -257,26 +403,24 @@ describe("print and input stay in order (#475)", () => {
                 "    answer = input('prompt ' + str(i))",
             ].join("\n"),
         });
-
-        // Record what is already on screen each time the modal would open.
         const seenAtPrompt = [];
-        const origPrompt = window.prompt;
+        const running = ac.runProg();
 
-        window.prompt = (message) => {
-            seenAtPrompt.push({ message, dom: ac.output.textContent });
-            return "x";
-        };
-        try {
-            await ac.runProg();
-        } finally {
-            window.prompt = origPrompt;
+        for (const value of ["x", "y"]) {
+            await waitForInputField(ac);
+            // what the student can read at the moment they are asked
+            seenAtPrompt.push({
+                label: ac.output.querySelector(".ac-input-prompt").textContent,
+                dom: ac.output.textContent,
+            });
+            await answer(ac, value);
         }
+        await running;
 
-        expect(seenAtPrompt.map((s) => s.message)).toEqual([
+        expect(seenAtPrompt.map((s) => s.label)).toEqual([
             "prompt 0",
             "prompt 1",
         ]);
-        // the matching print is visible by the time each prompt opens
         expect(seenAtPrompt[0].dom).toContain("before 0");
         expect(seenAtPrompt[1].dom).toContain("before 1");
     });

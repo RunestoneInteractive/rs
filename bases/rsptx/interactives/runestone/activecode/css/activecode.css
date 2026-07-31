@@ -80,6 +80,65 @@
     background-color: var(--ac-out-background);
 }
 
+/* Inline replacement for window.prompt on input().  Lives at the end of the
+   output pane so it reads like a terminal cursor rather than dimming the page
+   and opening at the top of the window. */
+.ac-input-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4em;
+    /* The output pane is overflow:auto, so the field's border and focus ring
+       are clipped if the row sits flush against its bottom edge. */
+    margin: 0.3em 0 0.5em;
+}
+
+.ac-input-prompt {
+    margin: 0;
+    font-family: inherit;
+    font-weight: bold;
+    white-space: pre-wrap;
+}
+
+.ac-input-field {
+    /* sized, not stretched, so Submit stays next to the field; shrinks rather
+       than overflowing on a narrow screen */
+    flex: 0 1 22em;
+    min-width: 6em;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0.25em 0.4em;
+    border: 1px solid var(--componentBorderColor, #767676);
+    border-radius: 3px;
+    /* pair the background and the text colour: both follow the theme, so the
+       field stays readable in dark mode */
+    background-color: var(--background, #fff);
+    color: var(--bodyFont, #000);
+}
+
+.ac-input-field:focus {
+    outline: 2px solid var(--componentBorderColor, #2b6cb0);
+    outline-offset: 1px;
+}
+
+/* Coloured like the component's other buttons (--codeButtons is themed), so it
+   reads as a button rather than as part of the output in either mode. */
+.ac-input-submit {
+    font-family: inherit;
+    font-size: 0.9em;
+    padding: 0.25em 0.7em;
+    border: 1px solid var(--codeButtonsBorder, #474949);
+    border-radius: 3px;
+    background-color: var(--codeButtons, #474949);
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.ac-input-submit:hover,
+.ac-input-submit:focus {
+    filter: brightness(1.2);
+}
+
 .python_check_results pre,
 .ac_section .error pre,
 .ac-modal-body .error pre {
