@@ -999,7 +999,9 @@ function shouldShowStudyCluesWidget() {
         "Test-py4e-int",
         "virginiatech_py4e-int_spring26",
         "umsi101_fall26",
-        "csci150-26sp-michael",
+        "csawesome2_studyclues_test",
+        "httlacs_studyclues_test",
+        "py4e_studyclues_test",
     ];
     const host = window.location.hostname;
 
