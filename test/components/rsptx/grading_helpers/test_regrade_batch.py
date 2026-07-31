@@ -1,3 +1,4 @@
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -160,3 +161,51 @@ async def test_rollup_uses_the_graded_course():
     assert fetch_scores.await_args.args == (assignment.id, "testcourse", "student1")
     assert upsert.await_args.args[0].score == 7.0
     assert lti.await_args.args[2] == 7.0
+
+
+# _effective_deadline
+# -------------------
+# duedate is stored as naive UTC, the same frame as the answer timestamps it is
+# compared against in regrade_one. This function previously returned a
+# course-local duedate that was compared straight against UTC timestamps, so
+# batch regrades silently used a cutoff that was off by the course's UTC
+# offset. These tests pin the frame.
+
+
+def _dated_assignment(duedate):
+    return SimpleNamespace(id=42, points=10, threshold_pct=None, duedate=duedate)
+
+
+def test_effective_deadline_returns_the_duedate_unchanged():
+    duedate = datetime(2026, 9, 2, 4, 59)
+    assert regrade._effective_deadline(_dated_assignment(duedate), None) == duedate
+
+
+def test_effective_deadline_applies_accommodation_days():
+    duedate = datetime(2026, 9, 2, 4, 59)
+    accommodation = SimpleNamespace(duedate=3)
+    assert regrade._effective_deadline(
+        _dated_assignment(duedate), accommodation
+    ) == datetime(2026, 9, 5, 4, 59)
+
+
+def test_effective_deadline_ignores_accommodation_without_extra_days():
+    duedate = datetime(2026, 9, 2, 4, 59)
+    for accommodation in (None, SimpleNamespace(duedate=None), SimpleNamespace()):
+        assert (
+            regrade._effective_deadline(_dated_assignment(duedate), accommodation)
+            == duedate
+        )
+
+
+def test_effective_deadline_is_none_when_no_duedate():
+    assert regrade._effective_deadline(_dated_assignment(None), None) is None
+
+
+def test_effective_deadline_does_not_apply_a_timezone_shift():
+    # Guards against reintroducing a course-local -> UTC conversion here. The
+    # cutoff must be usable as-is against naive UTC answer timestamps.
+    duedate = datetime(2026, 9, 2, 4, 59)
+    result = regrade._effective_deadline(_dated_assignment(duedate), None)
+    assert result.tzinfo is None
+    assert result == duedate

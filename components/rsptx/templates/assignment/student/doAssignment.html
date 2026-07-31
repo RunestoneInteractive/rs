@@ -40,7 +40,7 @@ Do Assignment
                 class="assignment-due-date notdue"
                 {% endif %}
                 >
-                <strong>Due:</strong> {{ assignment['duedate'] }}
+                <strong>Due:</strong> {{ course_datetime_tag(assignment['duedate'], course.timezone) }}
             </div>
             {% if enforce_pastdue %}
                 <em>(Past due and no longer scoring submissions)</em>
@@ -236,4 +236,8 @@ Do Assignment
 
 <script src="/staticAssets/assignment/student.js" type="text/javascript"></script>
 
+{% endblock %}
+
+{% block js %}
+{% include 'common/localize_times.html' %}
 {% endblock %}

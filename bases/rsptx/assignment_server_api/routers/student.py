@@ -14,7 +14,6 @@
 # Standard library
 # ----------------
 import csv
-import datetime
 import io
 from typing import Optional
 import json
@@ -30,7 +29,6 @@ from fastapi.responses import (
     RedirectResponse,
     StreamingResponse,
 )
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 # Local application imports
@@ -67,7 +65,11 @@ from rsptx.grading_helpers.regrade import RegradeOptions, regrade_batch
 from rsptx.db.models import GradeValidator, UseinfoValidation, CoursesValidator
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.auth.session import auth_manager, is_instructor
-from rsptx.templates import template_folder, get_jinja_templates
+from rsptx.templates import (
+    format_course_datetime,
+    get_jinja_templates,
+    get_shared_templates,
+)
 from rsptx.response_helpers import construct_course_url, safe_join
 from rsptx.response_helpers.core import (
     make_json_response,
@@ -92,7 +94,6 @@ async def get_assignments(
     request: Request,
     user=Depends(auth_manager),
     response_class=HTMLResponse,
-    RS_info: Optional[str] = Cookie(None),
 ):
     """Create the chooseAssignment page for the user.
 
@@ -139,25 +140,16 @@ async def get_assignments(
             ]
             assignments = list(assignments) + exception_assignments
 
-    parsed_js = json.loads(RS_info) if RS_info else {}
-    timezoneoffset = parsed_js.get("tz_offset", None)
+    now = canonical_utcnow()
 
     def sort_key(assignment):
-        deadline = assignment.duedate
-        if timezoneoffset:
-            deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-            return (
-                deadline < canonical_utcnow(),
-                abs((deadline - canonical_utcnow()).total_seconds()),
-            )
-        else:
-            return (
-                assignment.duedate < canonical_utcnow(),
-                abs((assignment.duedate - canonical_utcnow()).total_seconds()),
-            )
+        # duedate is stored as naive UTC, so it is directly comparable to now.
+        return (
+            assignment.duedate < now,
+            abs((assignment.duedate - now).total_seconds()),
+        )
 
     # Sort assignments: upcoming assignments first (closest to current date), past due assignments last
-    now = canonical_utcnow()
     assignments.sort(key=sort_key)
     stats_list = await fetch_all_assignment_stats(course.course_name, user.id)
     stats = {}
@@ -190,9 +182,9 @@ async def get_assignments(
                 "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
                 course.course_name,
             )
-            templates = Jinja2Templates(directory=template_folder)
+            templates = get_shared_templates()
     else:
-        templates = Jinja2Templates(directory=template_folder)
+        templates = get_shared_templates()
 
     context = dict(
         course=course,
@@ -301,19 +293,27 @@ def _build_chapter_progress(chapters, subchapters, progress):
     return result
 
 
-async def _build_assignment_grades(course_name, target_id, student_view):
+async def _build_assignment_grades(
+    course_name, target_id, student_view, course_timezone=None
+):
     """Build the per-assignment grade table (score, percent, class average).
 
     :param course_name: The course name.
     :param target_id: The auth_user id of the student being reported on.
     :param student_view: bool, True when a student is viewing their own report;
         unreleased assignments are shown as N/A in that case.
+    :param course_timezone: The course timezone used to render due dates, which
+        are stored as naive UTC.
     :return: dict keyed by assignment name.
     """
     assignments = await fetch_assignments(course_name, fetch_all=True)
     grades = {}
     for assign in assignments:
-        due_date = assign.duedate.date().strftime("%m-%d-%Y")
+        # Shift into course-local time before taking the date: a late-evening
+        # deadline falls on the following day in UTC.
+        due_date = format_course_datetime(
+            assign.duedate, course_timezone, fmt="%m-%d-%Y", show_timezone=False
+        )
         entry = {
             "score": "N/A",
             "pct": "N/A",
@@ -411,13 +411,13 @@ async def studentreport(
 
     # Grades ------------------------------------------------------------------
     grades = await _build_assignment_grades(
-        course.course_name, target_user.id, student_view
+        course.course_name, target_user.id, student_view, course.timezone
     )
 
     # Recent activity ---------------------------------------------------------
     activity = await fetch_recent_useinfo(sid, course.course_name)
 
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     context = dict(
         request=request,
         course=course,
@@ -928,13 +928,11 @@ async def doAssignment(
     else:
         is_graded = False
 
-    timezoneoffset = parsed_js.get("tz_offset", None)
-
     timestamp = canonical_utcnow()
+    # duedate is stored as naive UTC, so it is directly comparable to timestamp.
+    # The template renders it in the course timezone via the course_datetime
+    # filter, so leave the datetime itself intact here.
     deadline = assignment.duedate
-    if timezoneoffset:
-        deadline = deadline + datetime.timedelta(hours=float(timezoneoffset))
-    assignment.duedate = assignment.duedate.strftime("%a %d, %b %Y %I:%M %p")
     enforce_pastdue = False
     if assignment.enforce_due and timestamp > deadline:
         enforce_pastdue = True
@@ -959,11 +957,11 @@ async def doAssignment(
                 "Unsafe or invalid book_path computed for course %s; falling back to shared templates",
                 course.course_name,
             )
-            templates = Jinja2Templates(directory=template_folder)
+            templates = get_shared_templates()
     else:
-        templates = Jinja2Templates(directory=template_folder)
+        templates = get_shared_templates()
 
-    # templates = Jinja2Templates(directory=template_folder)
+    # templates = get_shared_templates()
     # reverse the order of the keys in the preambles dictionary so that the first key I added is now the last
     # this will ensure that when multiple preamble definitions are used the last one is from the current course
     preambles = dict((k, v) for k, v in reversed(preambles.items()))

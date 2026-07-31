@@ -172,7 +172,6 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                 <DateTimePicker
                   value={visibleOn}
                   onChange={handleVisibleOnChange}
-                  utc
                   withinPortal={false}
                   ariaLabel="Visible on date"
                 />
@@ -185,7 +184,6 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                 <DateTimePicker
                   value={hiddenOn}
                   onChange={handleHiddenOnChange}
-                  utc
                   withinPortal={false}
                   ariaLabel="Hidden on date"
                 />
@@ -202,7 +200,6 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                   <DateTimePicker
                     value={visibleOn}
                     onChange={handleVisibleOnChange}
-                    utc
                     withinPortal={false}
                     ariaLabel="Visible from date"
                   />
@@ -214,7 +211,6 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                   <DateTimePicker
                     value={hiddenOn}
                     onChange={handleHiddenOnChange}
-                    utc
                     withinPortal={false}
                     ariaLabel="Hidden after date"
                   />

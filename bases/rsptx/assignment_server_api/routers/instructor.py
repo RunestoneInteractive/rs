@@ -21,7 +21,6 @@ from fastapi.responses import (
     JSONResponse,
     StreamingResponse,
 )
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
@@ -86,7 +85,7 @@ from rsptx.db.crud.assignment import (
     is_assignment_visible_to_students,
 )
 from rsptx.auth.session import auth_manager, is_instructor
-from rsptx.templates import template_folder
+from rsptx.templates import format_course_datetime, get_shared_templates
 from rsptx.configuration import settings
 from rsptx.response_helpers import construct_course_url
 from rsptx.response_helpers.core import (
@@ -245,7 +244,9 @@ async def review_peer_assignment(
         "assignment_details": {
             "id": assignment.id,
             "name": assignment.name,
-            "due_date": assignment.duedate.strftime("%Y-%m-%d %H:%M:%S"),
+            "due_date": format_course_datetime(
+                assignment.duedate, course.timezone, fmt="%Y-%m-%d %H:%M:%S"
+            ),
             "visible": assignment.visible,
             "released": assignment.released,
             "description": assignment.description,
@@ -259,7 +260,7 @@ async def review_peer_assignment(
         "settings": settings,
     }
 
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     response = templates.TemplateResponse(
         "assignment/instructor/reviewPeerAssignment.html", context
     )
@@ -522,7 +523,7 @@ async def get_assignment_gb(
             names[row.username] = row.first_name + " " + row.last_name
 
     # pt = pt.drop(columns=["username"], axis=1)
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     # rename the columns in cols to cols_plus_points
     rename_dict = {old: new for old, new in zip(cols, display_cols)}
     pt = pt.rename(columns=rename_dict)
@@ -1230,7 +1231,7 @@ async def get_builder(
             return RedirectResponse(url="/")
 
     reactdir = pathlib.Path(__file__).parent.parent / "react"
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     wp_imports = get_webpack_static_imports(course)
     react_imports = get_react_imports(reactdir)
     course_attrs = await fetch_all_course_attributes(course.id)
@@ -1337,7 +1338,7 @@ async def make_invoice_request(
         is_instructor=user_is_instructor,
         referer=referer,
     )
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     response = templates.TemplateResponse("assignment/instructor/invoice.html", context)
 
     return response
@@ -1560,7 +1561,7 @@ async def do_assignment_summary(
         "is_instructor": True,
         "student_page": False,
     }
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     response = templates.TemplateResponse(
         "assignment/instructor/assignment_summary.html", context
     )
@@ -1743,7 +1744,7 @@ async def get_add_token_page(
 
     total_tokens = len(tokens)
 
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
     context = {
         "course": course,
         "user": user,

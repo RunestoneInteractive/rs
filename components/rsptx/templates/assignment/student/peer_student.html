@@ -122,7 +122,7 @@ Peer Instruction
                         <span class="not-available">Not Available</span>
                         {% endif %}
                     </td>
-                    <td>{{ assignment.duedate.strftime('%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
+                    <td>{{ course_datetime_tag(assignment.duedate, course.timezone, style='short', empty='N/A') }}</td>
                     <td>{{ assignment.description or '' }}</td>
                 </tr>
                 {% endfor %}
@@ -137,5 +137,6 @@ Peer Instruction
 {% endblock %}
 
 {% block js %}
+{% include 'common/localize_times.html' %}
 <!-- Add any peer-specific JavaScript here -->
 {% endblock %}

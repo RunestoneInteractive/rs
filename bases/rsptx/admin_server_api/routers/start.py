@@ -12,16 +12,15 @@ does not depend on ``auth_manager``.
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 
 router = APIRouter(
     prefix="/get-started",
     tags=["get-started"],
 )
 
-templates = Jinja2Templates(directory=template_folder)
+templates = get_shared_templates()
 
 
 @router.get("", response_class=HTMLResponse)

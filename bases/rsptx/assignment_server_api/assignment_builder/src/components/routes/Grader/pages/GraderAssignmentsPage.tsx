@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
+import { parseUTCDate } from "@/utils/date";
 import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 
 import { ReleaseStatusBadge } from "../components/ReleaseStatusBadge";
@@ -23,7 +24,9 @@ const VIEW_MODE_STORAGE_KEY = "grader.assignmentsViewMode";
 const formatDate = (iso?: string | null) => {
   if (!iso) return "No due date";
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    // duedate arrives as a naive UTC string; parseUTCDate renders it in the
+    // viewer's local timezone rather than reading it as already-local.
+    return parseUTCDate(iso).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
       year: "numeric"
@@ -202,7 +205,7 @@ export const GraderAssignmentsPage: React.FC = () => {
 
   const allRows: AssignmentRow[] = assignments.map((a) => ({
     ...a,
-    duedateDate: a.duedate ? new Date(a.duedate) : null,
+    duedateDate: a.duedate ? parseUTCDate(a.duedate) : null,
     duedateDisplay: formatDate(a.duedate)
   })) as AssignmentRow[];
 

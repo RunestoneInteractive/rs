@@ -4,7 +4,6 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from pydal.validators import CRYPT
 
 from rsptx.auth.email import send_email
@@ -31,14 +30,14 @@ from rsptx.db.crud import (
 from rsptx.db.models import AuthUserValidator
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 
 router = APIRouter(
     prefix="/auth",
     tags=["auth"],
 )
 
-templates = Jinja2Templates(directory=template_folder)
+templates = get_shared_templates()
 
 # All browser-facing URLs use /admin/auth/... (nginx routes /admin/auth/ → container /auth/)
 _LOGIN = "/admin/auth/login"

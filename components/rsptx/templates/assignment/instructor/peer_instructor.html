@@ -130,7 +130,7 @@ Peer Instruction - Instructor
                             {{ assignment.name }} - Review
                         </a>
                     </td>
-                    <td>{{ assignment.duedate.strftime('%Y-%m-%d %H:%M') if assignment.duedate else 'N/A' }}</td>
+                    <td>{{ course_datetime_tag(assignment.duedate, course.timezone, style='short', empty='N/A') }}</td>
                     <td>{{ assignment.description or '' }}</td>
                 </tr>
                 {% endfor %}
@@ -145,6 +145,7 @@ Peer Instruction - Instructor
 {% endblock %}
 
 {% block js %}
+{% include 'common/localize_times.html' %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const toggles = document.querySelectorAll('.visibility-toggle');

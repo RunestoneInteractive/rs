@@ -4,23 +4,20 @@ import { Icon } from "@components/ui/Icon";
 import classNames from "classnames";
 import DatePicker from "react-datepicker";
 
-import {
-  convertDateToISO,
-  convertDateToLocalISO,
-  getDatePickerFormat,
-  parseUTCDate,
-  parseLocalDate
-} from "@/utils/date";
+import { convertDateToISO, getDatePickerFormat, parseUTCDate } from "@/utils/date";
 
 import styles from "./DateTimePicker.module.css";
 
+/**
+ * The picker shows and edits dates in the viewer's local timezone, but every
+ * datetime the backend stores -- duedate, visible_on, hidden_on -- is naive
+ * UTC, so values always cross this boundary as UTC.
+ */
 interface DateTimePickerProps {
   value: string | null | undefined;
   onChange: (isoString: string) => void;
   placeholder?: string;
   className?: string;
-  /** If true, treat dates as UTC. If false (default), treat as local time. */
-  utc?: boolean;
   /** If false, render the calendar inline instead of portaling it to #root. */
   withinPortal?: boolean;
   id?: string;
@@ -32,18 +29,17 @@ export const DateTimePicker = ({
   onChange,
   placeholder = "Select date and time",
   className,
-  utc = false,
   withinPortal = true,
   id,
   ariaLabel
 }: DateTimePickerProps) => {
   const handleChange = (date: Date | null) => {
     if (date) {
-      onChange(utc ? convertDateToISO(date) : convertDateToLocalISO(date));
+      onChange(convertDateToISO(date));
     }
   };
 
-  const parseDate = (val: string) => (utc ? parseUTCDate(val) : parseLocalDate(val));
+  const parseDate = (val: string) => parseUTCDate(val);
 
   return (
     <div className={classNames(styles.wrapper, className)}>

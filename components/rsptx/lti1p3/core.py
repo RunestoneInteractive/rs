@@ -76,7 +76,14 @@ def update_line_item_from_assignment(
         get_assignment_score_resource_id(rs_course, rs_assignment)
     )
     if push_duedate:
-        line_item.set_end_date_time(rs_assignment.duedate.isoformat())
+        # duedate is stored as naive UTC. Send it with an explicit offset,
+        # matching the format time_now() uses -- without one the LMS is free to
+        # read it as its own local time and silently shift the deadline.
+        line_item.set_end_date_time(
+            rs_assignment.duedate.replace(tzinfo=datetime.timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
     line_item.set_tag("grade")
     line_item.set_score_maximum(rs_assignment.points if use_pts else 100)
     return line_item

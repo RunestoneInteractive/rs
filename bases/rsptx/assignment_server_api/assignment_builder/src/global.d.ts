@@ -7,6 +7,8 @@ declare global {
     username: string;
     isLoggedIn: boolean;
     author: string;
+    /** IANA timezone of the course, e.g. "America/Chicago". */
+    courseTimezone: string;
   }>;
 
   interface Window {

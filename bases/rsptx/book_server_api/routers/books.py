@@ -315,15 +315,8 @@ async def serve_page(
         activity_info = await fetch_page_activity_counts(
             chapter, subchapter, course_row.base_course, course_name, user.username
         )
-        if not course_row.timezone:
-            if RS_info:
-                tz = json.loads(RS_info).get("timezone", "UTC")
-            else:
-                tz = "UTC"
-        else:
-            tz = course_row.timezone
         assignment__spec = await fetch_reading_assignment_spec(
-            chapter, subchapter, course_row.id, timezone=tz
+            chapter, subchapter, course_row.id
         )
         if assignment__spec:
             activity_info["assignment_spec"] = dict(**assignment__spec._mapping)

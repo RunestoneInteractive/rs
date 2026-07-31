@@ -188,16 +188,7 @@ async def log_book_event(
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
         if entry.event != "timedExam" and entry.event != "selectquestion":
-            course = await fetch_course(user.course_name)
-            if course.timezone:
-                tz = course.timezone
-            else:
-                if hasattr(request.state, "timezone"):
-                    tz = request.state.timezone
-                    rslogger.debug(f"Using timezone {tz} from request state")
-                else:
-                    tz = "UTC"
-            scoreSpec = await grade_submission(user, entry, tz)
+            scoreSpec = await grade_submission(user, entry)
             response_dict.update(scoreSpec.model_dump())
 
     if idx:

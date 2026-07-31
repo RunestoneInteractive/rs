@@ -98,6 +98,11 @@ async def _fetch_answer_rows(tbl, div_id: str, course_name: str, sid: str):
 
 
 def _effective_deadline(assignment: AssignmentValidator, accommodation):
+    """Return the assignment deadline as naive UTC, with any accommodation applied.
+
+    ``Assignment.duedate`` is stored as naive UTC, the same as the answer table
+    timestamps it gets compared against, so no timezone conversion belongs here.
+    """
     deadline = assignment.duedate
     if deadline is None:
         return None

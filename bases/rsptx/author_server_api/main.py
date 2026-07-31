@@ -26,7 +26,6 @@ import aiofiles
 from fastapi import Body, FastAPI, Request, Depends, status
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from celery.result import AsyncResult
 import pandas as pd
 from sqlalchemy import create_engine
@@ -73,7 +72,7 @@ from rsptx.visualization.authorImpact import (
     get_course_graph,
 )
 from rsptx.auth.session import auth_manager
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates, template_folder
 
 logger = logging.getLogger("runestone")
 handler = logging.StreamHandler(sys.stdout)
@@ -88,7 +87,7 @@ app = FastAPI()
 # We need to create a path that will work inside and outside of docker.
 base_dir = pathlib.Path(template_folder)
 app.mount("/static", StaticFiles(directory=base_dir / "staticAssets"), name="static")
-templates = Jinja2Templates(directory=template_folder)
+templates = get_shared_templates()
 
 add_exception_handlers(app)
 

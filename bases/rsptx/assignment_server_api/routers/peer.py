@@ -21,7 +21,6 @@ import pandas as pd
 # -------------------
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
@@ -52,7 +51,7 @@ from rsptx.logging import rslogger
 from rsptx.response_helpers.core import (
     get_webpack_static_imports,
 )
-from rsptx.templates import template_folder
+from rsptx.templates import get_shared_templates
 
 # Analogy themes for async LLM mode
 # ==================================
@@ -98,7 +97,7 @@ async def get_peer_instructor(
     Display the peer instruction instructor interface showing all peer assignments.
     """
     rslogger.info(f"Rendering peer instructor page for course: {course.course_name}")
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
 
     # Fetch all peer assignments for the course
     all_assignments = await fetch_assignments(course.course_name, fetch_all=True)
@@ -140,7 +139,7 @@ async def get_peer_dashboard(
     This is where instructors control the flow of peer instruction.
     """
     rslogger.info(f"Peer dashboard for assignment {assignment_id}, next={next}")
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
 
     # Fetch the assignment
     assignment = await fetch_one_assignment(assignment_id)
@@ -285,7 +284,7 @@ async def get_peer_extra(
     Meant to be opened on a separate device so students can't see it.
     """
     rslogger.info(f"Peer extra info for assignment {assignment_id}")
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
 
     assignment = await fetch_one_assignment(assignment_id)
     questions_result = await fetch_assignment_questions(assignment_id)
@@ -353,7 +352,7 @@ async def get_peer_student(
     Display the peer instruction student interface showing available peer assignments.
     """
     rslogger.info(f"Rendering peer student page for user: {user.username}")
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
 
     # Fetch visible peer assignments for the student
     all_assignments = await fetch_assignments(
@@ -393,7 +392,7 @@ async def get_peer_question(
     Display the current peer instruction question for in-class participation.
     """
     rslogger.info(f"Peer question for assignment {assignment_id}, user {user.username}")
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
 
     # Fetch the assignment and its questions
     assignment = await fetch_one_assignment(assignment_id)
@@ -516,7 +515,7 @@ async def get_peer_async(
     rslogger.info(
         f"Peer async for assignment {assignment_id}, question {question_num}, user {user.username}"
     )
-    templates = Jinja2Templates(directory=template_folder)
+    templates = get_shared_templates()
 
     assignment = await fetch_one_assignment(assignment_id)
     if not assignment:
