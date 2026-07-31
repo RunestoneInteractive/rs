@@ -43,8 +43,6 @@ from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
 
-rslogger.setLevel("WARNING")
-
 
 # Return the synchronous database URL for the current SERVER_CONFIG.
 #
@@ -719,6 +717,9 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
 
 def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name):
     """Process a single chapter and return its database ID."""
+    rslogger.info(
+        f"Processing chapter {chapter.find('./id').text if chapter.find('./id') is not None else 'Unknown'}"
+    )
     cnum_text = chapter.find("./number").text
     if not cnum_text:
         cnum = chap_counter
@@ -780,6 +781,9 @@ def _process_subchapters(sess, db_context, chapter, chapid, course_name):
 def _process_single_subchapter(
     sess, db_context, chapter, subchapter, chapid, subchap_counter, course_name
 ):
+    rslogger.info(
+        f"Processing subchapter {subchapter.find('./id').text if subchapter.find('./id') is not None else 'Unknown'}"
+    )
     """Process a single subchapter and its contents."""
     scnum_text = subchapter.find("./number").text
     if scnum_text:
@@ -926,7 +930,9 @@ def _process_single_timed_assignment(
 ):
     """Process a timed assignment subchapter."""
     subchapter = subchapter.find("./ul[@data-component='timedAssessment']")
-    rslogger.info("Processing timed assignment subchapter")
+    rslogger.info(
+        f"Processing timed assignment subchapter {subchapter.find('./id').text if subchapter.find('./id') is not None else 'Unknown'}"
+    )
     titletext = subchapter.find("./title")
     if titletext is not None:
         titletext = titletext.text.strip()
@@ -1059,6 +1065,12 @@ def _process_single_question(
     sess, db_context, chapter, subchapter, question, course_name
 ):
     """Process a single question element."""
+    try:
+        rslogger.info(f"Processing question {question.find('./label').text}")
+    except Exception:
+        rslogger.error(
+            f"Error processing question: {ET.tostring(question).decode('utf8')}"
+        )
     # Extract question content
     dbtext = " ".join(
         [ET.tostring(y).decode("utf8") for y in question.findall("./htmlsrc/*")]
@@ -1114,7 +1126,6 @@ def _process_single_question(
         author=db_context["author"],
         owner=db_context["owner"],
     )
-
     # Insert or update question
     namekey = old_ww_id if old_ww_id else idchild
     _upsert_question(sess, db_context, namekey, valudict, course_name)
