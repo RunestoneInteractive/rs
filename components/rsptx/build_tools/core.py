@@ -362,7 +362,7 @@ def check_project_ptx(click=click, course=None, target="runestone"):
         )
         docid = course
     else:
-        docid = docid_list[0]
+        docid = docid_list[0].strip()
 
     if course is not None and docid != course:
         click.echo(f"Error course: {course} does not match document-id: {docid}")
