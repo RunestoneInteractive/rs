@@ -97,12 +97,34 @@ async def is_editor(userid: int) -> bool:
     :rtype: bool
     """
     ed = await fetch_group("editor")
+    if ed is None:
+        # No editor group has been created in this database, so nobody is one.
+        return False
     row = await fetch_membership(ed.id, userid)
 
     if row:
         return True
     else:
         return False
+
+
+async def fetch_editor_basecourses(user_id: int) -> list:
+    """
+    Retrieve the base courses a user is an editor for.
+
+    :param user_id: The ID of the editor.
+    :type user_id: int
+    :return: A list of base course names.
+    :rtype: list
+    """
+    query = (
+        select(EditorBasecourse.base_course)
+        .where(EditorBasecourse.editor == user_id)
+        .order_by(EditorBasecourse.base_course)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return list(res.scalars().fetchall())
 
 
 async def create_editor_for_basecourse(user_id: int, bc_name: str) -> EditorBasecourse:

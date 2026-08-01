@@ -108,6 +108,7 @@ from .group import (
     create_group,
     create_editor_for_basecourse,
     create_membership,
+    fetch_editor_basecourses,
     fetch_group,
     fetch_membership,
     is_author,
@@ -189,6 +190,7 @@ from .practice import (
 
 from .question import (
     count_matching_questions,
+    delete_question_by_name,
     create_question_grade_entry,
     create_question,
     create_user_experiment_entry,
@@ -200,6 +202,7 @@ from .question import (
     fetch_previous_selections,
     fetch_question,
     fetch_question_by_id,
+    fetch_flagged_questions,
     fetch_questions_for_chapter_subchapter,
     fetch_question_count_per_subchapter,
     fetch_question_grade,
@@ -430,6 +433,7 @@ __all__ += [
     "create_group",
     "create_editor_for_basecourse",
     "create_membership",
+    "fetch_editor_basecourses",
     "fetch_group",
     "fetch_membership",
     "is_author",
@@ -459,6 +463,7 @@ __all__ += [
 # from .question
 __all__ += [
     "count_matching_questions",
+    "delete_question_by_name",
     "create_question",
     "create_question_grade_entry",
     "create_user_experiment_entry",
@@ -470,6 +475,7 @@ __all__ += [
     "fetch_previous_selections",
     "fetch_question",
     "fetch_question_by_id",
+    "fetch_flagged_questions",
     "fetch_questions_for_chapter_subchapter",
     "fetch_question_count_per_subchapter",
     "fetch_question_grade",

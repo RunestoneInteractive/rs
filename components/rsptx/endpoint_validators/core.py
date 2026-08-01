@@ -7,7 +7,7 @@ from functools import wraps
 from fastapi import HTTPException, status
 from rsptx.auth.session import auth_manager, is_instructor
 
-from rsptx.db.crud import fetch_course, is_author, fetch_books_by_author
+from rsptx.db.crud import fetch_course, is_author, is_editor, fetch_books_by_author
 
 
 def instructor_role_required():
@@ -33,6 +33,43 @@ def instructor_role_required():
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=f"User {user.username} is not an instructor in this runestone course.",
+                )
+            # Pass the resolved user along if it is in kwargs
+            if "user" in kwargs:
+                kwargs["user"] = user
+            # Continue execution of the original function
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def editor_role_required():
+    """Restrict an endpoint to members of the ``editor`` group.
+
+    Editors are the small set of people allowed to curate the questions in the
+    books they edit -- see the editorial page on the admin server.  Membership
+    is granted with ``rsmanage addeditor``.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Extracting Request and User from kwargs
+            request = kwargs.get("request")
+            user = await auth_manager(request)
+
+            if not user or not getattr(user, "id", None):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid user or missing attributes",
+                )
+
+            if not await is_editor(user.id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"User {user.username} is not an editor.",
                 )
             # Pass the resolved user along if it is in kwargs
             if "user" in kwargs:

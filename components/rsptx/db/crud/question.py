@@ -78,6 +78,46 @@ async def fetch_question_by_id(question_id: int) -> Optional[QuestionValidator]:
         return QuestionValidator.from_orm(row)
 
 
+async def fetch_flagged_questions(base_course: str) -> List[QuestionValidator]:
+    """
+    Fetch every question in a base course that a reader has flagged for
+    editorial review.  Used by the editorial page (``manage_exercises``).
+
+    :param base_course: str, the base course to search
+    :return: List[QuestionValidator], the flagged questions ordered by chapter
+    """
+    query = (
+        select(Question)
+        .where(
+            (Question.base_course == base_course)
+            & (Question.review_flag == True)  # noqa: E712
+        )
+        .order_by(Question.chapter, Question.name)
+    )
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [QuestionValidator.from_orm(x) for x in res.scalars().fetchall()]
+
+
+async def delete_question_by_name(name: str, base_course: str) -> int:
+    """
+    Delete a question identified by its name (div_id) within a base course.
+    ``(base_course, name)`` is unique, so at most one row is removed.
+
+    :param name: str, the name (div_id) of the question
+    :param base_course: str, the base course the question belongs to
+    :return: int, the number of rows deleted
+    """
+    stmt = delete(Question).where(
+        (Question.name == name) & (Question.base_course == base_course)
+    )
+
+    async with async_session.begin() as session:
+        res = await session.execute(stmt)
+        return res.rowcount
+
+
 async def count_matching_questions(name: str) -> int:
     """
     Count the number of Question entries that match the given name.

@@ -1,0 +1,107 @@
+{% extends "admin/_admin_base.html" %}
+{# Rendering the flagged questions as live Runestone components needs the
+   book's webpack bundles, which declare jQuery as an external. #}
+{% set needs_jquery = true %}
+
+{% block title %}
+Editorial Page
+{% endblock %}
+
+{% block page_css %}
+{% include 'common/static_assets.html' %}
+<style>
+    /* Keep a wide component (activecode, parsons) inside its card. */
+    #questions .ac_section > * {
+        max-width: 100%;
+    }
+
+    .flagged-question {
+        border: 1px solid var(--componentBorderColor, #ccc);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .flagged-question .question-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .flagged-question .question-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .flagged-question .question-actions .btn {
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'common/ebook_config.html' %}
+
+<div class="hidden-content" style="display: none">
+    \( {{ latex_preamble }} \)
+</div>
+
+<div class="admin-page">
+    <div class="page-header">
+        <h1>Editorial Page</h1>
+        <p>Questions readers have flagged for review in the books you edit.</p>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div class="course-info">
+        <h3>Books you edit</h3>
+        <p>{{ base_courses | join(', ') if base_courses else 'None -- ask a Runestone admin to add you as an editor of a book.' }}</p>
+    </div>
+
+    <h3>Questions for Review</h3>
+    <p>Please delete the questions that are clearly inappropriate or just
+        experimental. If a question is fine as it stands, clear its flag to take
+        it off this list.</p>
+
+    {% if questions %}
+    <div id="questions" class="runestone-sphinx">
+        {% for q in questions %}
+        <div class="flagged-question" id="flagged-{{ loop.index0 }}">
+            <div class="question-meta">
+                <span>Base Course: <strong>{{ q.base_course }}</strong></span>
+                <span>Difficulty: {{ q.difficulty if q.difficulty is not none else 'unrated' }}</span>
+                <span>Chapter: {{ q.chapter_title or q.chapter }}</span>
+                <span>Question: <code>{{ q.name }}</code></span>
+            </div>
+
+            <div class="oneq full-width runestone-sphinx{% if q.question_type == 'webwork' %} ptx-content{% endif %}">
+                {{ q.htmlsrc | safe }}
+            </div>
+
+            <div class="question-actions">
+                <button type="button" class="btn btn-danger"
+                    onclick="deleteQuestion('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
+                    Delete
+                </button>
+                <button type="button" class="btn btn-primary"
+                    onclick="clearFlag('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
+                    Clear Flag
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p id="no-questions">No questions are currently flagged for review.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="/staticAssets/js/admin/manage_exercises.js"></script>
+{% endblock %}
