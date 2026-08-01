@@ -176,9 +176,54 @@
     border-bottom: none;
 }
 
+.my-courses-page .course-switch-form {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    min-width: 0;
+}
+
 .my-courses-page .course-name {
     flex: 1;
     font-size: 1em;
+}
+
+/* The course name is a submit button for the switch form, so it has to be
+   stripped back down to look like the plain link it replaces. */
+.my-courses-page .course-name-link {
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    font: inherit;
+    color: #2a6496;
+    cursor: pointer;
+}
+
+.my-courses-page .course-name-link:hover,
+.my-courses-page .course-name-link:focus {
+    text-decoration: underline;
+}
+
+.my-courses-page .course-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.my-courses-page .course-filter .form-control {
+    flex: 1;
+}
+
+.my-courses-page .course-filter .btn-rs-secondary {
+    white-space: nowrap;
+}
+
+.my-courses-page .filter-status {
+    margin-bottom: 8px;
 }
 
 .badge-active {

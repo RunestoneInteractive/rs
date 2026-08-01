@@ -2,76 +2,89 @@
 
 {% block title %}My Courses — Runestone Academy{% endblock %}
 
+{% macro course_row(course) %}
+<div class="course-row" data-course-name="{{ course.course_name|lower }}">
+    <form method="post" action="/admin/auth/my_courses/switch" class="course-switch-form">
+        <input type="hidden" name="course_name" value="{{ course.course_name }}">
+        {% if course.is_active %}
+        <span class="course-name">
+            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
+            {{ course.course_name }}
+            <span class="badge-active">active</span>
+            {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
+        </span>
+        <button class="btn-switch" type="submit" disabled title="Already active">
+            Switch
+        </button>
+        {% else %}
+        <button class="course-name course-name-link" type="submit"
+                title="Switch to {{ course.course_name }}">
+            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
+            {{ course.course_name }}
+            {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
+        </button>
+        <button class="btn-switch" type="submit">Switch</button>
+        {% endif %}
+    </form>
+    <form method="post" action="/admin/auth/my_courses/drop" style="margin:0"
+          onsubmit="return confirm('Drop {{ course.course_name }}? You can re-enroll later.')">
+        <input type="hidden" name="course_name" value="{{ course.course_name }}">
+        <button class="btn-drop" type="submit" {% if course.is_active %}disabled title="Cannot drop active course"{% endif %}>
+            Drop
+        </button>
+    </form>
+</div>
+{% endmacro %}
+
 {% block content %}
 <div class="auth-card auth-card--full my-courses-page">
     <h1>My Courses</h1>
-    <p class="text-muted">Your currently active course is highlighted. Click <strong>Switch</strong> to make a different course active, or <strong>Drop</strong> to un-enroll.</p>
+    <p class="text-muted">Your currently active course is highlighted. Click a <strong>course name</strong> (or <strong>Switch</strong>) to make it your active course, or <strong>Drop</strong> to un-enroll.</p>
 
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
 
-    <div class="section-title">Instructor-Created Courses</div>
-    {% if class_courses %}
-    {% for course in class_courses %}
-    <div class="course-row">
-        <span class="course-name">
-            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
-            {{ course.course_name }}
-            {% if course.is_active %}<span class="badge-active">active</span>{% endif %}
-            {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
-        </span>
-        <form method="post" action="/admin/auth/my_courses/switch" style="margin:0">
-            <input type="hidden" name="course_name" value="{{ course.course_name }}">
-            <button class="btn-switch" type="submit" {% if course.is_active %}disabled title="Already active"{% endif %}>
-                Switch
-            </button>
-        </form>
-        <form method="post" action="/admin/auth/my_courses/drop" style="margin:0"
-              onsubmit="return confirm('Drop {{ course.course_name }}? You can re-enroll later.')">
-            <input type="hidden" name="course_name" value="{{ course.course_name }}">
-            <button class="btn-drop" type="submit" {% if course.is_active %}disabled title="Cannot drop active course"{% endif %}>
-                Drop
-            </button>
-        </form>
+    {% if (class_courses|length + open_books|length) > 10 %}
+    <div class="course-filter">
+        <input type="text" class="form-control" id="courseFilter" autocomplete="off"
+               placeholder="Filter courses by name…" aria-label="Filter courses by name">
+        <button type="button" class="btn-rs-secondary" id="courseFilterClear">Show All</button>
     </div>
-    {% endfor %}
-    {% else %}
-    <p class="empty-notice">You are not enrolled in any instructor-created courses.</p>
+    <p class="filter-status text-muted small" id="filterStatus" hidden></p>
     {% endif %}
 
-    <div class="section-title">Open Books (Self-Study)</div>
-    {% if open_books %}
-    {% for course in open_books %}
-    <div class="course-row">
-        <span class="course-name">
-            {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
-            {{ course.course_name }}
-            {% if course.is_active %}<span class="badge-active">active</span>{% endif %}
-            {% if course.is_instructor %}<span class="badge-instructor">instructor</span>{% endif %}
-        </span>
-        <form method="post" action="/admin/auth/my_courses/switch" style="margin:0">
-            <input type="hidden" name="course_name" value="{{ course.course_name }}">
-            <button class="btn-switch" type="submit" {% if course.is_active %}disabled title="Already active"{% endif %}>
-                Switch
-            </button>
-        </form>
-        <form method="post" action="/admin/auth/my_courses/drop" style="margin:0"
-              onsubmit="return confirm('Drop {{ course.course_name }}? You can re-enroll later.')">
-            <input type="hidden" name="course_name" value="{{ course.course_name }}">
-            <button class="btn-drop" type="submit" {% if course.is_active %}disabled title="Cannot drop active course"{% endif %}>
-                Drop
-            </button>
-        </form>
+    <div class="course-section">
+        <div class="section-title">Instructor-Created Courses</div>
+        {% if class_courses %}
+        {% for course in class_courses %}
+        {{ course_row(course) }}
+        {% endfor %}
+        {% else %}
+        <p class="empty-notice">You are not enrolled in any instructor-created courses.</p>
+        {% endif %}
     </div>
-    {% endfor %}
-    {% else %}
-    <p class="empty-notice">You have no open books enrolled.</p>
-    {% endif %}
+
+    <div class="course-section">
+        <div class="section-title">Open Books (Self-Study)</div>
+        {% if open_books %}
+        {% for course in open_books %}
+        {{ course_row(course) }}
+        {% endfor %}
+        {% else %}
+        <p class="empty-notice">You have no open books enrolled.</p>
+        {% endif %}
+    </div>
+
+    <p class="empty-notice" id="noMatches" hidden>No courses match your filter.</p>
 
     <div class="actions-row">
         <a class="btn-rs-secondary" href="/admin/auth/courses">Enroll in Another Course</a>
         <a class="btn-rs-secondary" href="/ns/course/index">Go to Active Course</a>
     </div>
 </div>
+{% endblock %}
+
+{% block js %}
+<script src="/staticAssets/js/auth/my_courses.js"></script>
 {% endblock %}
