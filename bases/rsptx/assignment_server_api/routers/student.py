@@ -38,6 +38,7 @@ from pydantic import BaseModel
 from rsptx.logging import rslogger
 from rsptx.db.crud import (
     create_useinfo_entry,
+    course_attr_is_true,
     fetch_assignments,
     fetch_all_assignment_stats,
     fetch_all_grades_for_assignment,
@@ -173,8 +174,8 @@ async def get_assignments(
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
-    use_pretext_student_pages = (
-        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    use_pretext_student_pages = course_attr_is_true(
+        course_attrs, "use_pretext_student_pages", default=True
     )
     if use_pretext_student_pages:
         book_path = safe_join(
@@ -942,8 +943,8 @@ async def doAssignment(
     if timestamp > deadline:
         overdue = True
 
-    use_pretext_student_pages = (
-        str(course_attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    use_pretext_student_pages = course_attr_is_true(
+        course_attrs, "use_pretext_student_pages", default=True
     )
     if use_pretext_student_pages:
         book_path = safe_join(
