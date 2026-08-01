@@ -88,19 +88,90 @@ def resolve_dirs(book_path: Path, book: Library) -> tuple[Path, Path]:
     return repodir, workdir
 
 
+def git_reason(res: subprocess.CompletedProcess) -> str:
+    """Last line of a failed git command's output, for the status message."""
+    lines = [x for x in (res.stderr + res.stdout).strip().splitlines() if x]
+    return lines[-1] if lines else "unknown error"
+
+
+def upstream_ref(repodir: Path) -> str | None:
+    """
+    Pick the branch of the ``upstream`` remote to merge: the branch we are on
+    if upstream has one by that name, otherwise upstream's master/main.
+    """
+    res = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=repodir,
+    )
+    branch = res.stdout.strip() if res.returncode == 0 else ""
+    candidates = [b for b in (branch, "master", "main") if b and b != "HEAD"]
+    for cand in dict.fromkeys(candidates):
+        res = subprocess.run(
+            ["git", "rev-parse", "--verify", "--quiet", f"upstream/{cand}"],
+            capture_output=True,
+            cwd=repodir,
+        )
+        if res.returncode == 0:
+            return f"upstream/{cand}"
+    return None
+
+
+def merge_upstream(repodir: Path) -> dict | None:
+    """
+    If the book repo has an ``upstream`` remote (a fork of someone else's
+    book), fetch it and merge its master into the freshly pulled origin
+    checkout.  Returns None when there is no upstream remote.
+    """
+    res = subprocess.run(["git", "remote"], capture_output=True, text=True, cwd=repodir)
+    if res.returncode != 0 or "upstream" not in res.stdout.split():
+        return None
+
+    res = subprocess.run(
+        ["git", "fetch", "upstream"], capture_output=True, text=True, cwd=repodir
+    )
+    if res.returncode != 0:
+        return {
+            "completed": False,
+            "status": f"upstream fetch failed: {git_reason(res)}",
+        }
+
+    ref = upstream_ref(repodir)
+    if ref is None:
+        return {"completed": False, "status": "no upstream branch to merge"}
+
+    res = subprocess.run(
+        ["git", "merge", ref], capture_output=True, text=True, cwd=repodir
+    )
+    if res.returncode != 0:
+        subprocess.run(["git", "merge", "--abort"], capture_output=True, cwd=repodir)
+        return {
+            "completed": False,
+            "status": f"merge of {ref} failed: {git_reason(res)}",
+        }
+    return {"completed": True, "status": f"merged {ref}"}
+
+
 def git_pull(repodir: Path) -> dict:
     """
-    Pull the latest book source from github.  On failure (merge conflict,
-    network, not a repo...) abort any half-done merge so the working tree is
-    clean, and report -- the build proceeds with the current checkout.
+    Pull the latest book source from github, then merge in the ``upstream``
+    remote if the repo has one.  On failure (merge conflict, network, not a
+    repo...) abort any half-done merge so the working tree is clean, and
+    report -- the build proceeds with the current checkout.
     """
     res = subprocess.run(["git", "pull"], capture_output=True, text=True, cwd=repodir)
-    if res.returncode == 0:
+    if res.returncode != 0:
+        subprocess.run(["git", "merge", "--abort"], capture_output=True, cwd=repodir)
+        return {"completed": False, "status": f"git pull failed: {git_reason(res)}"}
+
+    up_res = merge_upstream(repodir)
+    if up_res is None:
         return {"completed": True, "status": "up to date"}
-    subprocess.run(["git", "merge", "--abort"], capture_output=True, cwd=repodir)
-    lines = [x for x in (res.stderr + res.stdout).strip().splitlines() if x]
-    reason = lines[-1] if lines else "unknown error"
-    return {"completed": False, "status": f"git pull failed: {reason}"}
+    return {
+        "completed": up_res["completed"],
+        "status": f"up to date; {up_res['status']}",
+    }
 
 
 def run_hook(command: str, workdir: Path, label: str) -> dict:
