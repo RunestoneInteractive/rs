@@ -19,6 +19,17 @@ async def fetch_all_course_attributes(course_id: int) -> dict:
         return {row.attr: row.value for row in res.scalars().fetchall()}
 
 
+def course_attr_is_true(course_attrs: dict, attr: str, default: bool = False) -> bool:
+    """Return ``True`` when a course attribute is set to the string ``true``.
+
+    :param course_attrs: Dictionary of course attributes.
+    :param attr: Attribute name to inspect.
+    :param default: Default value when the attribute is missing.
+    :return: ``True`` when the attribute value evaluates to the string ``true``.
+    """
+    return str(course_attrs.get(attr, str(default))).lower() == "true"
+
+
 async def fetch_one_course_attribute():
     """
     Fetch a single course attribute (not implemented)

@@ -22,6 +22,7 @@ from rsptx.templates import get_jinja_templates, get_shared_templates
 from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
+    course_attr_is_true,
     fetch_course,
     fetch_all_course_attributes,
     fetch_courses_for_user,
@@ -134,8 +135,8 @@ async def index(request: Request, user=Depends(auth_manager)):
     for a in assignments:
         visibility_map[a.id] = is_assignment_visible_to_students(a)
 
-    use_pretext_student_pages = (
-        str(attrs.get("use_pretext_student_pages", "false")).lower() == "true"
+    use_pretext_student_pages = course_attr_is_true(
+        attrs, "use_pretext_student_pages", default=True
     )
     if use_pretext_student_pages:
         book_path = safe_join(
