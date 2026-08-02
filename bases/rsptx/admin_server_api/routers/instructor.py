@@ -27,6 +27,7 @@ from rsptx.db.crud import (
     create_assignment,
     create_course_instructor,
     create_course,
+    course_attr_is_true,
     create_course_attribute,
     create_instructor_course_entry,
     create_invoice_request,
@@ -434,7 +435,7 @@ async def get_course_settings(
         "groupsize": course_attrs.get("groupsize", "3"),
         "enable_async_llm_modes": course_attrs.get("enable_async_llm_modes", "false"),
         "use_pretext_student_pages": str(
-            course_attrs.get("use_pretext_student_pages", "false")
+            course_attr_is_true(course_attrs, "use_pretext_student_pages", default=True)
         ).lower(),
     }
 

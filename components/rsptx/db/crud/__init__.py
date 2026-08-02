@@ -83,6 +83,7 @@ from .course import (
 from .course_attrs import (
     copy_course_attributes,
     create_course_attribute,
+    course_attr_is_true,
     fetch_all_course_attributes,
     fetch_one_course_attribute,
     get_course_origin,
@@ -423,6 +424,7 @@ __all__ += [
 __all__ += [
     "copy_course_attributes",
     "create_course_attribute",
+    "course_attr_is_true",
     "fetch_all_course_attributes",
     "fetch_one_course_attribute",
     "get_course_origin",
