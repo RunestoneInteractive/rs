@@ -23,7 +23,8 @@ Now you are ready to install the required dependencies and build the servers:
    Future instructions will make it clear which commands need to be run inside the virtual environment by always including ``uv run ...`` at the start of the command. This is what you will need to type if you are **NOT** in the activated virtual environment. If you activate the virtual environment, you will be able to skip typing ``uv run``. For example, to check the environmental variables, you would type ``uv run rsmanage env`` if the virtual environment is not active; if the virtual environment is active, you would just type ``rsmanage env``.
 
 
-7.  Run the ``build`` script from the ``rs`` folder by doing ``uv run build full`` (or just ``build full`` if you are still in the virtual environment). The first step of this script will verify that you have all of your environment variables defined. It will then build the python wheels for all the runestone components and then build the docker servers. This will take a while.
+
+7.  Run the ``build`` script from the ``rs`` folder by doing ``uv run build full`` (or if still in the virtual environment, just ``build full``). The first step of this script will verify that you have all of your environment variables defined. It will then build the python wheels for all the runestone components and then build the docker servers. This will take a while (on the order of 30-90 minutes).  More details about the build server is given below.
 
 
 Starting the Servers
