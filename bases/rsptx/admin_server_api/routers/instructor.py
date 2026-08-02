@@ -1354,7 +1354,7 @@ async def get_create_course_page(request: Request, user=Depends(auth_manager)):
     course_list = await fetch_library_books()
     # Convert LibraryValidator objects to dicts for template compatibility
     course_list = [c.dict() for c in course_list if c.for_classes]
-    sections = sorted({c["shelf_section"] for c in course_list})
+    sections = sorted({c["shelf_section"] or "Misc" for c in course_list})
     context = {
         "request": request,
         "course_list": course_list,
@@ -1503,7 +1503,7 @@ async def post_create_course_page(
         course_list = await fetch_library_books()
         # Convert LibraryValidator objects to dicts for template compatibility
         course_list = [c.dict() for c in course_list if c.for_classes]
-        sections = sorted({c["shelf_section"] for c in course_list})
+        sections = sorted({c["shelf_section"] or "Misc" for c in course_list})
 
         context = {
             "request": request,
