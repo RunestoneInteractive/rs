@@ -492,6 +492,11 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     multiple=True,
     help="Skip the given basecourse (may be repeated), even if --book names it",
 )
+@click.option(
+    "--ptx-only",
+    is_flag=True,
+    help="Build only books whose build system is PTX (skip legacy Runestone books)",
+)
 @click.option("--clean", is_flag=True, help="Remove the remote book before syncing")
 @click.option("--no-deploy", is_flag=True, help="Build only, do not rsync to servers")
 @click.option(
@@ -519,7 +524,16 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     help="Build up to this many books at once (1 = sequential)",
 )
 def build_books(
-    book, exclude, clean, no_deploy, deploy_only, dry_run, gen, skip_chown, parallel
+    book,
+    exclude,
+    ptx_only,
+    clean,
+    no_deploy,
+    deploy_only,
+    dry_run,
+    gen,
+    skip_chown,
+    parallel,
 ):
     """
     Build every book in the library where for_classes or is_visible is true,
@@ -589,6 +603,18 @@ def build_books(
             )
         if not specs:
             click.echo("All matching books were excluded")
+            exit(1)
+
+    if ptx_only:
+        non_ptx = [s.basecourse for s in specs if s.build_system != "PTX"]
+        specs = [s for s in specs if s.build_system == "PTX"]
+        if non_ptx:
+            console.print(
+                f"[yellow]--ptx-only skipping non-PTX book(s): "
+                f"{', '.join(non_ptx)}[/yellow]"
+            )
+        if not specs:
+            click.echo("No PTX books in the build set")
             exit(1)
 
     ctx = BuildCtx(
