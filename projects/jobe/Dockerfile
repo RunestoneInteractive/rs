@@ -81,6 +81,12 @@ RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas 
     echo '<!DOCTYPE html><html lang="en"><title>Jobe</title><h1>Jobe</h1></html>' > /var/www/html/index.html && \
     git clone https://github.com/RunestoneInteractive/jobe.git /var/www/html/jobe && \
     apache2ctl start && \
+    for i in $(seq 1 30); do \
+        ps aux | grep -E '/usr/sbin/(apache2|httpd)' | grep -q '^www-data' && break; \
+        sleep 1; \
+    done; \
+    ps aux | grep -E '/usr/sbin/(apache2|httpd)' | grep -q '^www-data' || \
+        { echo "ERROR: apache2 did not start; jobe's install cannot detect the web-server user"; apache2ctl -t; exit 1; } && \
     cd /var/www/html/jobe && \
     /usr/bin/python3 /var/www/html/jobe/install && \
     chown -R ${APACHE_RUN_USER}:${APACHE_RUN_GROUP} /var/www/html && \
