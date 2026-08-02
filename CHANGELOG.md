@@ -1,5 +1,91 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-07-25 → 2026-08-02)
+
+Coverage: changes landed after the previous changelog update on **2026-07-25**, through **2026-08-02**.
+
+### Highlights
+
+- **Due dates stored in UTC (#1324):** assignment due dates are now stored in UTC; due dates render on the reader's own clock and instructors get a warning when their timezone does not match the course; the migration is blocked on live courses that have no timezone set. Documented `course_datetime_tag`, its required per-page include, and the `RS_info` cookie encoding coupling in `set_tz_offset` (c75e2b6c, 503e0a14, 6d274fcb, 08b957ed, eb3ce2b8).
+- **Grading / gradebook:** added a select-all button to the assignment question grader; LTI 1.3 grades are pushed when a manual grade is assigned; gradebook grades are clickable to reveal per-question scores; the new grader shows splice/doenet/iframe answers (#1250); fixed regrade rolling a student's total up to 0; fixed the blank line in the gradebook CSV and dropped jQuery from the exporter (#1115); hparsons blocks are graded by content rather than index (#1194) (dc9a0c00, 6d220b39, 694327ce, 178518b4, 8f92afde, 7ee93f0a, c98fc937).
+- **Instructor / course management:** course names on My Courses are clickable and the list has a course filter; text fields are validated on registration and course creation (#1305, #1306, #608, #609); CSV fields are trimmed on student enrollment (#343); assignment visibility dates are adjusted when a course is copied (#1165); new books get a default `shelf_section` and course creation no longer errors on books with `shelf_section = None`; Chapter Activity now shows enrolled students with no activity (#1133); added a `course_attr_is_true` helper (fd2f752b, 149683d3, a68e9c82, 6ac0fd29, f179fc93, 7ddba1e0, ab69df4a, caf1a7f6).
+- **web2py migration (continued):** ported the editorial page (`manage_exercises`) to the admin server; removed the book server's unused `/ns/auth` login endpoints (58dd4c1f, e5a09514).
+- **Interactives:** clickable-area questions are now keyboard and screen-reader accessible; activecode asks for `input()` inline instead of through `window.prompt` and writes output synchronously (#475), with button coloring for the new input widget; fixed the activecode statement showing twice in toggle questions (#1328); improved the matching component's look and feel, drag-from-right anchoring, keyboard tab flow, and dashed selected line; Peer Instruction UI improvements plus showing correctness after the second async vote; added test courses for studyclues; updated node dependencies (f7f0c40e, cb63ef29, b073574b, a34b0571, 8ef7f981, 0c11b8c0, ae2d7917, f3ac23d4, 9b3ae184, 259150a4, 6998bd9d, 587257ea, c4829010).
+- **Reading progress / book server:** every activity on a page is counted when browsing logged out (#990); fixed the page progress bar on index pages and its activity counts (#613, #614); the reading score is sent on the required activity rather than one early; student pages use the PTX-generated base template by default (8896df3b, 19711e28, 505c8474, 7516bf10).
+- **Auth / routing / config:** the auth cookie is scoped to `LOAD_BALANCER_HOST` so subdomains share it (#606); the author server URL is configurable (#886); fixed bare admin routing in the Caddyfile (90dae201, 944ef719, ca8abd8c).
+- **Book build tooling:** `build_books` gained a `--ptx-only` switch, handles repos with upstream remotes, creates the destination folder when missing, and has logging fixes; the source repository shows in book metadata with repo info moved below the editable fields; the manifest processor strips `document-id` even when the closing tag is on the next line; fixed the message when running `--core`; updated PreTeXt (037cd022, eef2f2df, 35b651cc, d33b0a5c, d1aca4fc, 2109791c, d660dca2, 9b1d2855, 349cc832, 93162f41).
+- **Assignment builder:** the LaTeX macro preamble no longer leaks into the preview (#1248, #842); fixed 36 failing assignment builder tests and put the suite in CI (8207f309, ee4df46b).
+- **Dev experience / CI / docs:** the dev server no longer polls the filesystem (#371); tightened the Node version requirement for the JS packages; pinned ruff to 0.15.x; skipped pycairo in the CRUD test workflow; the jobe image waits for apache to fully start; fixed five install-guide problems reported by new contributors (e05702ad, 054ed896, b86a7590, fd9d073c, 53d29b3d, 3ed291d6).
+- **Releases:** app versions **8.10.7** and **8.10.8** shipped; bundled runestone JS bumped to **8.2.0** and **8.2.1**.
+
+### Commit notes (for reference)
+
+- c75e2b6c Store assignment due dates in UTC
+- 503e0a14 Show due dates on the reader's clock, warn instructors on a timezone mismatch
+- 6d274fcb Block the duedate migration on live courses with no timezone
+- 08b957ed Document course_datetime_tag and its required per-page include
+- eb3ce2b8 Document RS_info cookie encoding coupling in set_tz_offset
+- dc9a0c00 Add select all button to assignment question grader
+- 6d220b39 Update lti1p3 grades when manual grade is assigned
+- 694327ce Make gradebook grades clickable to show per-question scores
+- 178518b4 issue-1250 show splice/doenet/iframe answers in the new grader
+- 8f92afde Fix regrade rolling a student's total up to 0
+- 7ee93f0a issue-1115 fix blank line in gradebook CSV, drop jQuery from the exporter
+- c98fc937 Fix #1194: grade hparsons blocks by content, not by index
+- fd2f752b Make course names clickable and add a course filter on My Courses
+- 149683d3 Fix #1305, #1306, #608, #609: validate text fields on registration and course creation
+- a68e9c82 Fix #343: trim whitespace from CSV fields on student enrollment
+- 6ac0fd29 Adjust assignment visibility dates on copy (#1165)
+- f179fc93 New books get default shelf_section if not provided
+- 7ddba1e0 Fix: course creation - prevent comparison error for books with None shelf_section
+- caf1a7f6 Add course_attr_is_true helper
+- ab69df4a issue-1133 show enrolled students with no activity in Chapter Activity
+- 58dd4c1f Port the editorial page (manage_exercises) to the admin server
+- e5a09514 Remove the book server's unused /ns/auth login endpoints
+- f7f0c40e Make clickable area questions keyboard and screen reader accessible
+- cb63ef29 Ask for input() inline instead of through window.prompt (#475)
+- b073574b Fix #475: write activecode output synchronously
+- a34b0571 Button coloring for new input widget
+- 8ef7f981 Fix #1328: activecode statement shown twice in toggle questions
+- 0c11b8c0 Improve matching component look and feel
+- ae2d7917 Address PR feedback: drag-from-right anchoring and keyboard tab flow
+- f3ac23d4 Make selected line dashed
+- 9b3ae184 improvements to PI UI
+- 259150a4 Show correctness after the second async vote
+- 6998bd9d Add test courses for studyclues
+- 587257ea update node deps
+- c4829010 update node dependencies
+- 8896df3b issue-990 count every activity on a page when browsing logged out
+- 19711e28 Fix page progress bar on index pages and its activity counts (#613, #614)
+- 505c8474 Send the reading score on the required activity, not one early
+- 7516bf10 Student pages use ptx generated base template by default
+- 90dae201 Scope the auth cookie to LOAD_BALANCER_HOST so subdomains share it (#606)
+- 944ef719 Make the author server URL configurable (#886)
+- ca8abd8c Fix for bare admin routing
+- 037cd022 Add --ptx-only switch to build_books
+- eef2f2df Handle repos with upstream remotes
+- 35b651cc Fix: Create destination folder if it does not exist.
+- d33b0a5c Fix logging for build_books
+- d1aca4fc Fix logging in process manifest
+- 2109791c fix: show source repository in book metadata
+- d660dca2 Move repo info below the editable fields
+- 9b1d2855 strip document-id in case closing tag is on next line
+- 349cc832 fix message when running --core
+- 93162f41 update ptx
+- 8207f309 Fix #1248, #842: latex macro preamble leaks into assignment builder preview
+- ee4df46b Fix 36 failing assignment builder tests and put the suite in CI
+- e05702ad Fix #371: stop the dev server polling the filesystem
+- 054ed896 Tighten the Node version requirement for the JS packages
+- b86a7590 pin ruff version to 0.15.x
+- fd9d073c Skip pycairo in the CRUD test workflow
+- 53d29b3d Make sure apache is fully started
+- 3ed291d6 Docs: fix five install-guide problems reported by new contributors
+- 32125f37 Update logger message
+- 354bab4d update version to 8.10.7
+- c789049e update version to 8.10.8
+- 5bfe4c48 update runestone to version 8.2.0
+- d93caee4 update runestone to version 8.2.1
+
 ## Updates since last changelog entry (2026-07-07 → 2026-07-24)
 
 Coverage: changes landed after the previous changelog update on **2026-07-07**, through **2026-07-24**.
