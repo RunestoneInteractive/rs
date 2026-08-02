@@ -102,9 +102,29 @@ export default class ClickableArea extends RunestoneBase {
         this.newDiv.innerHTML = newContent;
         this.newDiv.classList.add("exercise-content");
         this.containerDiv.appendChild(this.newDiv);
+        this.createInstructions();
         this.createButtons();
         this.createFeedbackDiv();
+        this.createLiveRegion();
         this.origElem.replaceWith(this.containerDiv);
+    }
+    createInstructions() {
+        // The set of clickables is a group of checkboxes; name it with the
+        // question and describe how to work it from the keyboard.
+        if (this.question && !this.question.id) {
+            this.question.id = `${this.divid}_question`;
+        }
+        this.instructions = document.createElement("div");
+        this.instructions.id = `${this.divid}_instructions`;
+        this.instructions.className = "clickable-sr-only";
+        this.instructions.textContent =
+            "Select all that apply. Move between the choices with the Tab key and press Enter or the space bar to select or unselect a choice.";
+        this.containerDiv.appendChild(this.instructions);
+        this.newDiv.setAttribute("role", "group");
+        if (this.question && this.question.id) {
+            this.newDiv.setAttribute("aria-labelledby", this.question.id);
+        }
+        this.newDiv.setAttribute("aria-describedby", this.instructions.id);
     }
     createButtons() {
         this.submitButton = document.createElement("button"); // Check me button
@@ -121,8 +141,23 @@ export default class ClickableArea extends RunestoneBase {
     }
     createFeedbackDiv() {
         this.feedBackDiv = document.createElement("div");
+        // Announce the grading result when it is filled in.
+        this.feedBackDiv.setAttribute("aria-live", "polite");
         this.containerDiv.appendChild(document.createElement("br"));
         this.containerDiv.appendChild(this.feedBackDiv);
+    }
+    createLiveRegion() {
+        // Off screen region used to announce the running selection count.
+        this.liveRegion = document.createElement("div");
+        this.liveRegion.className = "clickable-sr-only";
+        this.liveRegion.setAttribute("aria-live", "polite");
+        this.liveRegion.setAttribute("aria-atomic", "true");
+        this.containerDiv.appendChild(this.liveRegion);
+    }
+    announce(message) {
+        if (this.liveRegion) {
+            this.liveRegion.textContent = message;
+        }
     }
     /*===================================
     === Checking/restoring from storage ===
@@ -384,18 +419,49 @@ export default class ClickableArea extends RunestoneBase {
                 }
             }
         }
-        let self = this;
-        clickable.onclick = function () {
-            self.isAnswered = true;
-            if (this.classList.contains("clickable-clicked")) {
-                this.classList.remove("clickable-clicked");
-                this.classList.remove("clickable-incorrect");
-            } else {
-                this.classList.add("clickable-clicked");
+        // Expose each clickable as a checkbox so that it can be reached with the
+        // Tab key and so that a screen reader announces its selected state.
+        clickable.setAttribute("role", "checkbox");
+        clickable.setAttribute("tabindex", "0");
+        clickable.setAttribute(
+            "aria-checked",
+            clickable.classList.contains("clickable-clicked")
+                ? "true"
+                : "false",
+        );
+        clickable.onclick = () => this.toggleClickable(clickable);
+        clickable.addEventListener("keydown", (ev) => {
+            // Enter and the space bar are the standard checkbox activation keys.
+            if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") {
+                ev.preventDefault(); // keep the space bar from scrolling the page
+                this.toggleClickable(clickable);
             }
-        };
+        });
         this.clickableArray.push(clickable);
         this.clickableCounter++;
+    }
+    toggleClickable(clickable) {
+        if (this.interactionDisabled) {
+            return;
+        }
+        this.isAnswered = true;
+        const nowSelected = !clickable.classList.contains("clickable-clicked");
+        clickable.classList.toggle("clickable-clicked", nowSelected);
+        clickable.setAttribute("aria-checked", nowSelected ? "true" : "false");
+        if (!nowSelected) {
+            // Clear any grading marks left over from a previous Check Me
+            clickable.classList.remove("clickable-incorrect");
+            clickable.removeAttribute("aria-invalid");
+        }
+        this.announceSelectionCount();
+    }
+    announceSelectionCount() {
+        const selected = this.clickableArray.filter((el) =>
+            el.classList.contains("clickable-clicked"),
+        ).length;
+        this.announce(
+            `${selected} of ${this.clickableArray.length} choices selected.`,
+        );
     }
     /*======================================
     == Evaluation and displaying feedback ==
@@ -420,6 +486,7 @@ export default class ClickableArea extends RunestoneBase {
                 this.incorrectNum++;
             } else {
                 this.incorrectArray[i].classList.remove("clickable-incorrect");
+                this.incorrectArray[i].removeAttribute("aria-invalid");
             }
         }
         this.percent =
@@ -455,10 +522,14 @@ export default class ClickableArea extends RunestoneBase {
                     )
                 ) {
                     this.incorrectArray[i].classList.add("clickable-incorrect");
+                    // so a screen reader flags the choice when the reader
+                    // moves back over it
+                    this.incorrectArray[i].setAttribute("aria-invalid", "true");
                 } else {
                     this.incorrectArray[i].classList.remove(
                         "clickable-incorrect",
                     );
+                    this.incorrectArray[i].removeAttribute("aria-invalid");
                 }
             }
             this.feedBackDiv.innerHTML =
@@ -477,11 +548,15 @@ export default class ClickableArea extends RunestoneBase {
     }
 
     disableInteraction() {
+        // The keydown handlers stay attached; they check this flag instead.
+        this.interactionDisabled = true;
         for (var i = 0; i < this.clickableArray.length; i++) {
             this.clickableArray[i].style.cursor = "initial";
             this.clickableArray[i].onclick = function () {
                 return;
             };
+            this.clickableArray[i].setAttribute("aria-disabled", "true");
+            this.clickableArray[i].setAttribute("tabindex", "-1");
         }
     }
 }

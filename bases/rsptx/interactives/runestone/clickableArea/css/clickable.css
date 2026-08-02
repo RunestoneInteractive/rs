@@ -2,13 +2,31 @@
     cursor: pointer;
 }
 
+/* Keyboard users need to see which choice they are on. */
+.clickable:focus-visible {
+    outline: 3px solid var(--clickableFocusColor);
+    outline-offset: 2px;
+}
+
+/* Visible to screen readers only: instructions and the live status region. */
+.clickable-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .clickable:has(code) {
     padding: 3px;
     display: inline-block;
 }
 
 .clickable-clicked:has(code) {
-    box-shadow: 0px 0px 2px 2px rgba(0,100,0,0.75);
+    box-shadow: 0px 0px 2px 2px rgba(0, 100, 0, 0.75);
 }
 
 .clickable-clicked {
@@ -24,11 +42,12 @@ table {
     border-collapse: collapse;
 }
 
-th.clickable, td.clickable {
+th.clickable,
+td.clickable {
     border: 1px solid black;
 }
 
-td.clickable-clicked{
+td.clickable-clicked {
     background-color: #dad6c1;
     box-shadow: initial;
 }
@@ -42,7 +61,7 @@ td img {
     box-shadow: initial;
 }
 
-th.clickable-clicked{
+th.clickable-clicked {
     background-color: #dad6c1;
     box-shadow: initial;
 }
@@ -55,7 +74,7 @@ th.clickable-clicked{
 }
 
 img.clickable-incorrect {
-    box-shadow: 0px 0px 2px 2px rgba(100,0,0,0.75);
+    box-shadow: 0px 0px 2px 2px rgba(100, 0, 0, 0.75);
 }
 
 .clickable-incorrect:has(code) {
@@ -65,11 +84,13 @@ img.clickable-incorrect {
 :root {
     --clickableBgColor: yellow;
     --clickableIncorrectBgColor: #ffcccc;
+    --clickableFocusColor: #0b5fff;
 }
 
 :root.dark-mode {
     --clickableBgColor: rgb(60, 86, 36);
     --clickableIncorrectBgColor: #562c2c;
+    --clickableFocusColor: #7ab8ff;
 
     .clickable-clicked:has(code):not(.clickable-incorrect) {
         box-shadow: 0px 0px 2px 2px rgba(251, 255, 21, 0.75);
