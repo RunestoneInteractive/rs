@@ -1,10 +1,14 @@
-"""Due date arithmetic when copying an assignment between terms.
+"""Date arithmetic when copying an assignment between terms.
 
 ``_copy_one_assignment`` re-dates an assignment by its offset from the start of
-term. ``duedate`` is stored as naive UTC while ``term_start_date`` is a bare
+term. The dates are stored as naive UTC while ``term_start_date`` is a bare
 date, so the term start has to be anchored in the course timezone before the
 two can be subtracted. Without that, the copy drifts by the course's UTC offset
 and can land on the wrong day.
+
+``duedate`` and the scheduled visibility dates (``visible_on`` / ``hidden_on``)
+all move by the same offset, so a schedule set up in one term lands on the same
+relative days in the next.
 """
 
 import datetime
@@ -43,12 +47,14 @@ def _course(id, term_start_date, timezone):
     )
 
 
-def _assignment(duedate):
+def _assignment(duedate, visible_on=None, hidden_on=None):
     return SimpleNamespace(
         id=7,
         name="Homework 1",
         description="",
         duedate=duedate,
+        visible_on=visible_on,
+        hidden_on=hidden_on,
         points=10,
         threshold_pct=None,
         is_timed=False,
@@ -66,7 +72,7 @@ def _assignment(duedate):
 
 
 async def _copy(source_course, target_course, assignment):
-    """Run the copy with its collaborators mocked; return the new duedate."""
+    """Run the copy with its collaborators mocked; return the new assignment."""
     created = AsyncMock(return_value=SimpleNamespace(id=99))
     with (
         patch.object(instructor, "fetch_course", AsyncMock(return_value=source_course)),
@@ -85,7 +91,7 @@ async def _copy(source_course, target_course, assignment):
     # The function swallows exceptions into a "failed: ..." string, so assert
     # success rather than silently testing an error path.
     assert result == "success", result
-    return created.call_args.args[0].duedate
+    return created.call_args.args[0]
 
 
 # _term_start_utc
@@ -123,9 +129,9 @@ async def test_copy_preserves_local_wall_clock_across_a_dst_boundary():
     target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
     stored = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
 
-    new_duedate = await _copy(source, target, _assignment(stored))
+    new_assignment = await _copy(source, target, _assignment(stored))
 
-    local = _stored_to_local(new_duedate, CHICAGO)
+    local = _stored_to_local(new_assignment.duedate, CHICAGO)
     assert local.strftime("%Y-%m-%d %H:%M") == "2026-09-01 23:59"
 
 
@@ -134,10 +140,10 @@ async def test_copy_preserves_the_offset_from_the_start_of_term():
     target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
     stored = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
 
-    new_duedate = await _copy(source, target, _assignment(stored))
+    new_assignment = await _copy(source, target, _assignment(stored))
 
     # 8 days and change after the start of term, in both terms.
-    assert new_duedate - _term_start_utc(
+    assert new_assignment.duedate - _term_start_utc(
         target.term_start_date, target.timezone
     ) == stored - _term_start_utc(source.term_start_date, source.timezone)
 
@@ -147,9 +153,9 @@ async def test_copy_with_no_course_timezone_behaves_as_utc():
     target = _course(2, datetime.date(2026, 8, 24), None)
     stored = datetime.datetime(2026, 1, 20, 23, 59)
 
-    new_duedate = await _copy(source, target, _assignment(stored))
+    new_assignment = await _copy(source, target, _assignment(stored))
 
-    assert new_duedate == datetime.datetime(2026, 9, 1, 23, 59)
+    assert new_assignment.duedate == datetime.datetime(2026, 9, 1, 23, 59)
 
 
 async def test_copy_keeps_the_duedate_when_a_term_start_is_missing():
@@ -157,4 +163,82 @@ async def test_copy_keeps_the_duedate_when_a_term_start_is_missing():
     target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
     stored = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
 
-    assert await _copy(source, target, _assignment(stored)) == stored
+    assert (await _copy(source, target, _assignment(stored))).duedate == stored
+
+
+# Scheduled visibility dates
+# --------------------------
+
+
+async def test_copy_shifts_the_visibility_dates_with_the_duedate():
+    source = _course(1, datetime.date(2026, 1, 12), "America/Chicago")
+    target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
+    # An exam visible for the two hours before it is due.
+    due = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
+    visible_on = _local_to_stored(2026, 1, 20, 21, 59, CHICAGO)
+    hidden_on = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
+
+    new_assignment = await _copy(
+        source, target, _assignment(due, visible_on, hidden_on)
+    )
+
+    assert (
+        _stored_to_local(new_assignment.visible_on, CHICAGO).strftime("%Y-%m-%d %H:%M")
+        == "2026-09-01 21:59"
+    )
+    assert (
+        _stored_to_local(new_assignment.hidden_on, CHICAGO).strftime("%Y-%m-%d %H:%M")
+        == "2026-09-01 23:59"
+    )
+
+
+async def test_copy_leaves_unset_visibility_dates_unset():
+    source = _course(1, datetime.date(2026, 1, 12), "America/Chicago")
+    target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
+    stored = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
+
+    new_assignment = await _copy(source, target, _assignment(stored))
+
+    assert new_assignment.visible_on is None
+    assert new_assignment.hidden_on is None
+
+
+async def test_copy_shifts_visible_on_without_a_hidden_on():
+    # "Becomes visible at" mode -- only one of the two dates is set.
+    source = _course(1, datetime.date(2026, 1, 12), "America/Chicago")
+    target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
+    due = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
+    visible_on = _local_to_stored(2026, 1, 15, 0, 0, CHICAGO)
+
+    new_assignment = await _copy(source, target, _assignment(due, visible_on))
+
+    assert (
+        _stored_to_local(new_assignment.visible_on, CHICAGO).strftime("%Y-%m-%d %H:%M")
+        == "2026-08-27 00:00"
+    )
+    assert new_assignment.hidden_on is None
+
+
+async def test_copy_keeps_the_visibility_dates_when_a_term_start_is_missing():
+    source = _course(1, None, "America/Chicago")
+    target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
+    due = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
+    visible_on = _local_to_stored(2026, 1, 15, 0, 0, CHICAGO)
+    hidden_on = _local_to_stored(2026, 1, 21, 0, 0, CHICAGO)
+
+    new_assignment = await _copy(
+        source, target, _assignment(due, visible_on, hidden_on)
+    )
+
+    assert new_assignment.visible_on == visible_on
+    assert new_assignment.hidden_on == hidden_on
+
+
+# The copy is created hidden regardless of the source assignment, so the
+# shifted dates govern when it appears rather than making it live immediately.
+async def test_copied_assignment_starts_not_visible():
+    source = _course(1, datetime.date(2026, 1, 12), "America/Chicago")
+    target = _course(2, datetime.date(2026, 8, 24), "America/Chicago")
+    stored = _local_to_stored(2026, 1, 20, 23, 59, CHICAGO)
+
+    assert (await _copy(source, target, _assignment(stored))).visible is False

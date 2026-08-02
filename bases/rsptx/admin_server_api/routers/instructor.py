@@ -1196,12 +1196,35 @@ def _term_start_utc(term_start_date, timezone: Optional[str]) -> datetime.dateti
     )
 
 
+def _shift_between_terms(
+    when: Optional[datetime.datetime], source_course, target_course
+) -> Optional[datetime.datetime]:
+    """Re-date ``when`` to the target term, keeping its offset from term start.
+
+    Both term starts are anchored in their own course timezone so the offset is
+    preserved as local wall clock time, even when the two terms fall on
+    opposite sides of a DST change. A missing term start on either course
+    leaves the date alone -- there is nothing to measure the offset against.
+    """
+    if when is None:
+        return None
+    if not (source_course.term_start_date and target_course.term_start_date):
+        return when
+    delta = when - _term_start_utc(
+        source_course.term_start_date, source_course.timezone
+    )
+    return (
+        _term_start_utc(target_course.term_start_date, target_course.timezone) + delta
+    )
+
+
 async def _copy_one_assignment(
     source_course_name: str, old_assignment_id: int, target_course
 ) -> str:
     """
     Copy a single assignment from source course to target course.
-    Adjusts the due date based on the difference in course start dates.
+    Adjusts the due date and the visibility dates based on the difference in
+    course start dates.
 
     :param source_course_name: Name of the source course
     :param old_assignment_id: ID of the assignment to copy
@@ -1213,21 +1236,18 @@ async def _copy_one_assignment(
         source_course = await fetch_course(source_course_name)
         old_assignment = await fetch_one_assignment(old_assignment_id)
 
-        # Calculate due date adjustment based on course start dates. Both term
-        # starts are anchored in their own course timezone so the offset from
-        # the start of term is preserved as local wall clock time, even when
-        # the two terms fall on opposite sides of a DST change.
-        if source_course.term_start_date and target_course.term_start_date:
-            due_delta = old_assignment.duedate - _term_start_utc(
-                source_course.term_start_date, source_course.timezone
-            )
-            due_date = (
-                _term_start_utc(target_course.term_start_date, target_course.timezone)
-                + due_delta
-            )
-        else:
-            # If start dates are not available, use the original due date
-            due_date = old_assignment.duedate
+        # Every date on the assignment moves by the same term-start offset, so
+        # a schedule set up in one term lands on the same relative days in the
+        # next one.
+        due_date = _shift_between_terms(
+            old_assignment.duedate, source_course, target_course
+        )
+        visible_on = _shift_between_terms(
+            old_assignment.visible_on, source_course, target_course
+        )
+        hidden_on = _shift_between_terms(
+            old_assignment.hidden_on, source_course, target_course
+        )
 
         # Fix potential backward incompatibility with assignment kinds
         if old_assignment.kind == "Regular":
@@ -1255,6 +1275,8 @@ async def _copy_one_assignment(
             nopause=old_assignment.nopause,
             released=old_assignment.released,
             visible=False,
+            visible_on=visible_on,
+            hidden_on=hidden_on,
             allow_self_autograde=old_assignment.allow_self_autograde,
             current_index=0,
             enforce_due=old_assignment.enforce_due,
