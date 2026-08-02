@@ -65,7 +65,9 @@ async def create_library_book(bookid: str, vals: Dict[str, Any]) -> None:
     :param vals: Dict[str, Any], the dictionary containing the properties of the book
     :return: None
     """
-    new_book = Library(**vals, basecourse=bookid)
+    book_vals = {"shelf_section": "Misc", **vals}
+    new_book = Library(**book_vals, basecourse=bookid)
+
     async with async_session.begin() as session:
         session.add(new_book)
 
