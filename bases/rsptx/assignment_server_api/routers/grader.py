@@ -32,6 +32,7 @@ from rsptx.db.models import (
 )
 from rsptx.endpoint_validators import instructor_role_required
 from rsptx.logging import rslogger
+from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from rsptx.response_helpers.core import make_json_response
 from rsptx.grading_helpers.answer_tables import CODE_TABLE_TYPES, answer_table_for
 from rsptx.grading_helpers.regrade import (
@@ -862,6 +863,7 @@ async def set_manual_assignment_total(
         grade = await set_manual_total(
             student.id, assignment.id, course.course_name, payload.score, True
         )
+        await attempt_lti1p3_score_update(student.id, assignment.id, payload.score)
         rslogger.info(
             f"Manual total set by {user.username} assignment={assignment.id} "
             f"sid={payload.sid} score={payload.score}"
