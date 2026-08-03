@@ -49,6 +49,7 @@ from rsptx.db.crud import (
     fetch_all_course_attributes,
     fetch_assignments,
     fetch_course,
+    fetch_courses_by_start_date,
     fetch_courses_for_user,
     fetch_course_instructors,
     fetch_group,
@@ -1008,6 +1009,187 @@ async def datashop(config, basecourse, sample_size, course_list, preserve_user_i
     print("combining to datashop")
     a.create_datashop_data()
     a.write_datashop()
+
+
+#
+#    fixtotals
+#
+
+
+def _parse_date(ctx, param, value):
+    """Click callback: accept an ISO ``YYYY-MM-DD`` date or None."""
+    if value is None:
+        return None
+    try:
+        return datetime.date.fromisoformat(value)
+    except ValueError:
+        raise click.BadParameter(f"{value!r} is not an ISO date (YYYY-MM-DD)")
+
+
+@cli.command()
+@click.option("--course", default=None, help="Fix a single course by name")
+@click.option(
+    "--since",
+    default=None,
+    callback=_parse_date,
+    help="Only courses whose term start date is on or after this ISO date",
+)
+@click.option(
+    "--until",
+    default=None,
+    callback=_parse_date,
+    help="Only courses whose term start date is on or before this ISO date",
+)
+@click.option("--assignment", default=None, help="Limit to one assignment by name")
+@click.option(
+    "--create-missing",
+    is_flag=True,
+    help="Also create grades rows for students who have none (pushes a 0 to the LMS)",
+)
+@click.option(
+    "--dry-run", is_flag=True, help="Report what would change without writing"
+)
+@click.option("--yes", is_flag=True, help="Do not ask for confirmation")
+@pass_config
+async def fixtotals(
+    config, course, since, until, assignment, create_missing, dry_run, yes
+):
+    """Repair stale assignment totals in the grades table.
+
+    Manually graded questions used to be written to question_grades without
+    rolling up into grades.score, so any assignment graded by hand before that
+    fix can show a stale total in the gradebook and in the LMS. This recomputes
+    each student's total from their per-question grades.
+
+    Totals an instructor pinned with "Set total" (manual_total) are left alone,
+    assignment thresholds are applied, and corrected scores are pushed to any
+    LTI 1.3 tool -- the same rules the grader itself follows.
+
+    Only students who already have a grades row are repaired. A student with no
+    row never had a total to go stale, and creating one at 0 would push a fresh
+    zero into the LMS for someone who simply has not submitted; pass
+    --create-missing if you do want those rows materialised.
+
+    Scope it with --course, or with --since / --until on the course term start
+    date so that years of archived courses are not swept up:
+
+    \b
+        rsmanage fixtotals --since 2026-01-01 --dry-run
+        rsmanage fixtotals --since 2026-01-01
+        rsmanage fixtotals --course my_course_2026
+    """
+    from rsptx.grading_helpers.regrade import recompute_totals_detail
+
+    if course:
+        # Naming a course is bound enough on its own, so the date window does not
+        # also apply. Say so rather than appearing to honour a filter we ignore.
+        if since is not None or until is not None:
+            click.echo("--course names the course directly; ignoring --since/--until.")
+            since = until = None
+        one = await fetch_course(course)
+        if not one:
+            click.echo(f"Sorry, the course {course} does not exist")
+            sys.exit(-1)
+        courses = [one]
+    else:
+        if since is None and until is None:
+            click.echo(
+                "Refusing to sweep every course. Pass --course, or bound the run "
+                "with --since / --until on the course term start date."
+            )
+            sys.exit(-1)
+        courses = await fetch_courses_by_start_date(since=since, until=until)
+
+    if not courses:
+        click.echo("No courses matched.")
+        return
+
+    window = " ".join(
+        filter(
+            None, [f"since {since}" if since else "", f"until {until}" if until else ""]
+        )
+    )
+    click.echo(
+        f"{len(courses)} course(s) selected{(' (' + window + ')') if window else ''}."
+    )
+    if not dry_run and not yes:
+        if not click.confirm("Rewrite stale totals for these courses?", default=False):
+            click.echo("Aborted.")
+            return
+
+    courses_touched = 0
+    assignments_scanned = 0
+    students_scanned = 0
+    total_changed = 0
+    total_manual = 0
+    total_no_row = 0
+    skipped_no_assignments = 0
+    skipped_no_students = 0
+
+    for c in courses:
+        assignments = await fetch_assignments(c.course_name, fetch_all=True)
+        if assignment:
+            assignments = [a for a in assignments if a.name == assignment]
+        if not assignments:
+            skipped_no_assignments += 1
+            continue
+
+        # Instructors sit on the roster too; their own totals are not student
+        # grades, so leave them out the way the grader routes do.
+        instructor_ids = {
+            u.username for u in await fetch_course_instructors(c.course_name)
+        }
+        sids = [
+            u.username
+            for u in await fetch_users_for_course(c.course_name)
+            if u.username not in instructor_ids
+        ]
+        if not sids:
+            skipped_no_students += 1
+            continue
+
+        course_changed = 0
+        for a in assignments:
+            assignments_scanned += 1
+            changes = await recompute_totals_detail(
+                c, a, sids, dry_run=dry_run, only_existing=not create_missing
+            )
+            students_scanned += len(changes)
+            total_manual += sum(1 for ch in changes if ch.skipped_manual)
+            total_no_row += sum(1 for ch in changes if ch.skipped_no_grade_row)
+            moved = [ch for ch in changes if ch.changed]
+            course_changed += len(moved)
+            for ch in moved:
+                old = "none" if ch.old_score is None else ch.old_score
+                click.echo(
+                    f"  {c.course_name} / {a.name} / {ch.sid}: {old} -> {ch.new_score}"
+                )
+
+        if course_changed:
+            courses_touched += 1
+            total_changed += course_changed
+
+    verb = "would be corrected" if dry_run else "corrected"
+    click.echo("")
+    click.echo(
+        f"{total_changed} total(s) {verb} across {courses_touched} course(s); "
+        f"scanned {assignments_scanned} assignment(s), {students_scanned} student "
+        f"total(s), left {total_manual} pinned manual total(s) alone."
+    )
+    if total_no_row:
+        click.echo(
+            f"Left {total_no_row} student(s) with no grades row untouched; "
+            f"pass --create-missing to materialise those at their computed total."
+        )
+    # Say what was passed over, so an empty-looking run is never mistaken for
+    # "everything was already correct".
+    if skipped_no_assignments or skipped_no_students:
+        click.echo(
+            f"Skipped {skipped_no_assignments} course(s) with no matching "
+            f"assignments and {skipped_no_students} with no enrolled students."
+        )
+    if dry_run:
+        click.echo("Dry run -- nothing was written. Re-run without --dry-run to apply.")
 
 
 @cli.command()

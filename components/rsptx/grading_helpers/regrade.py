@@ -293,9 +293,29 @@ def apply_threshold_score(
     return total
 
 
+class TotalChange(BaseModel):
+    """What a total roll-up did (or, under ``dry_run``, would have done)."""
+
+    sid: str
+    old_score: Optional[float] = None
+    new_score: Optional[float] = None
+    skipped_manual: bool = False
+    skipped_no_grade_row: bool = False
+
+    @property
+    def changed(self) -> bool:
+        if self.skipped_manual or self.skipped_no_grade_row:
+            return False
+        return self.old_score != self.new_score
+
+
 async def _recompute_total_for_user(
-    user: AuthUserValidator, assignment: AssignmentValidator, course_name: str
-) -> None:
+    user: AuthUserValidator,
+    assignment: AssignmentValidator,
+    course_name: str,
+    dry_run: bool = False,
+    only_existing: bool = False,
+) -> TotalChange:
     """Roll the student's ``question_grades`` up into their ``grades`` row.
 
     ``course_name`` is the course the assignment belongs to, and must be passed
@@ -305,10 +325,25 @@ async def _recompute_total_for_user(
     it includes students who have since moved on to another course. Scoring off
     the active course made ``fetch_assignment_scores`` match no ``question_grades``
     rows at all and silently rolled the total up to 0.
+
+    With ``dry_run`` the would-be total is computed and reported but nothing is
+    written and no LTI score is pushed.
+
+    With ``only_existing`` a student who has no ``grades`` row yet is left alone
+    instead of having one created at 0. Normal grading wants the row created;
+    a bulk repair sweep usually does not, since materialising a zero for a
+    student who never submitted also pushes that zero to the LMS.
     """
     grade = await fetch_grade(user.id, assignment.id)
     if grade and grade.manual_total:
-        return
+        return TotalChange(
+            sid=user.username,
+            old_score=grade.score,
+            new_score=grade.score,
+            skipped_manual=True,
+        )
+    if grade is None and only_existing:
+        return TotalChange(sid=user.username, skipped_no_grade_row=True)
 
     res = await fetch_assignment_scores(assignment.id, course_name, user.username)
     total = 0
@@ -316,6 +351,13 @@ async def _recompute_total_for_user(
         total += row.score or 0
 
     total = apply_threshold_score(total, assignment.points, assignment.threshold_pct)
+    change = TotalChange(
+        sid=user.username,
+        old_score=grade.score if grade else None,
+        new_score=total,
+    )
+    if dry_run:
+        return change
 
     if grade:
         grade.score = total
@@ -329,6 +371,47 @@ async def _recompute_total_for_user(
         )
     await upsert_grade(new_grade)
     await attempt_lti1p3_score_update(user.id, assignment.id, total)
+    return change
+
+
+async def recompute_totals_detail(
+    course: CoursesValidator,
+    assignment: AssignmentValidator,
+    sids: Optional[List[str]] = None,
+    dry_run: bool = False,
+    only_existing: bool = False,
+) -> List[TotalChange]:
+    """Recompute assignment totals for the given students and report what moved.
+
+    When ``sids`` is empty/None every student in the course is recomputed. Under
+    ``dry_run`` nothing is written -- the returned changes describe what a real
+    run would do. With ``only_existing`` students who have no ``grades`` row are
+    reported as skipped rather than having one created. Students whose roll-up
+    raises are logged and omitted.
+    """
+    users = await fetch_users_for_course(course.course_name)
+    user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
+
+    if sids:
+        targets = [user_map[s] for s in sids if s in user_map]
+    else:
+        targets = list(user_map.values())
+
+    changes: List[TotalChange] = []
+    for user in targets:
+        try:
+            changes.append(
+                await _recompute_total_for_user(
+                    user,
+                    assignment,
+                    course.course_name,
+                    dry_run=dry_run,
+                    only_existing=only_existing,
+                )
+            )
+        except Exception as e:  # pragma: no cover - defensive
+            rslogger.error(f"recompute totals failed sid={user.username}: {e}")
+    return changes
 
 
 async def recompute_totals_for(
@@ -343,22 +426,7 @@ async def recompute_totals_for(
     This is used by the manual multi-grade flow, where individual grades are
     written through ``POST /grade`` (which does not itself recompute totals).
     """
-    users = await fetch_users_for_course(course.course_name)
-    user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
-
-    if sids:
-        targets = [user_map[s] for s in sids if s in user_map]
-    else:
-        targets = list(user_map.values())
-
-    processed = 0
-    for user in targets:
-        try:
-            await _recompute_total_for_user(user, assignment, course.course_name)
-            processed += 1
-        except Exception as e:  # pragma: no cover - defensive
-            rslogger.error(f"recompute totals failed sid={user.username}: {e}")
-    return processed
+    return len(await recompute_totals_detail(course, assignment, sids))
 
 
 async def regrade_batch(

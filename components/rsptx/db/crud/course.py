@@ -73,6 +73,42 @@ async def fetch_course_by_id(course_id: int) -> CoursesValidator:
         return CoursesValidator.from_orm(course)
 
 
+async def fetch_courses_by_start_date(
+    since: Optional[datetime.date] = None,
+    until: Optional[datetime.date] = None,
+) -> List[CoursesValidator]:
+    """
+    Fetches courses whose term_start_date falls in the given range.
+
+    Used to scope bulk maintenance work (see ``rsmanage fixtotals``) to the terms
+    that actually need it instead of every course ever created. Both bounds are
+    inclusive, and omitting one leaves that end unbounded.
+
+    Base courses are *not* filtered out here. They are normally book containers
+    with no enrolled students, but that is a convention rather than a guarantee,
+    and a maintenance sweep that silently skipped one would under-repair without
+    saying so. Callers that genuinely want only derived sections should filter on
+    ``course_name != base_course`` themselves.
+
+    :param since: date, only courses starting on or after this date (inclusive)
+    :type since: Optional[datetime.date]
+    :param until: date, only courses starting on or before this date (inclusive)
+    :type until: Optional[datetime.date]
+    :return: A list of CoursesValidator instances, oldest term first.
+    :rtype: List[CoursesValidator]
+    """
+    query = select(Courses)
+    if since is not None:
+        query = query.where(Courses.term_start_date >= since)
+    if until is not None:
+        query = query.where(Courses.term_start_date <= until)
+    query = query.order_by(Courses.term_start_date, Courses.course_name)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [CoursesValidator.from_orm(c) for c in res.scalars()]
+
+
 async def fetch_base_course(base_course: str) -> CoursesValidator:
     """
     Fetches a base course by its name.

@@ -209,3 +209,157 @@ def test_effective_deadline_does_not_apply_a_timezone_shift():
     result = regrade._effective_deadline(_dated_assignment(duedate), None)
     assert result.tzinfo is None
     assert result == duedate
+
+
+# ---------------------------------------------------------------------------
+# recompute_totals_detail -- reports what moved, and writes nothing on a dry run
+#
+# The dry-run path backs `rsmanage fixtotals --dry-run`, so it must produce the
+# same numbers a real run would while leaving the grades table untouched.
+# ---------------------------------------------------------------------------
+
+
+def _patch_rollup(grade, question_scores):
+    """Patch what _recompute_total_for_user reads and writes.
+
+    ``grade`` is the existing grades row (or None), ``question_scores`` the
+    per-question scores that should roll up into the total.
+    """
+    return (
+        patch.object(
+            regrade,
+            "fetch_users_for_course",
+            AsyncMock(return_value=_users("student1")),
+        ),
+        patch.object(regrade, "fetch_grade", AsyncMock(return_value=grade)),
+        patch.object(
+            regrade,
+            "fetch_assignment_scores",
+            AsyncMock(return_value=[SimpleNamespace(score=s) for s in question_scores]),
+        ),
+        patch.object(regrade, "upsert_grade", AsyncMock()),
+        patch.object(regrade, "attempt_lti1p3_score_update", AsyncMock()),
+    )
+
+
+async def test_dry_run_reports_the_change_without_writing():
+    stale = SimpleNamespace(score=0, manual_total=False)
+    fu, fg, fs, up, lti = _patch_rollup(stale, [4, 3])
+    with fu, fg, fs, up as upsert, lti as push:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"], dry_run=True
+        )
+
+    assert len(changes) == 1
+    assert changes[0].sid == "student1"
+    assert changes[0].old_score == 0
+    assert changes[0].new_score == 7
+    assert changes[0].changed
+    # Nothing persisted, and no score pushed to the LMS.
+    upsert.assert_not_awaited()
+    push.assert_not_awaited()
+
+
+async def test_real_run_writes_and_pushes_the_new_total():
+    stale = SimpleNamespace(score=0, manual_total=False)
+    fu, fg, fs, up, lti = _patch_rollup(stale, [4, 3])
+    with fu, fg, fs, up as upsert, lti as push:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"]
+        )
+
+    assert changes[0].new_score == 7
+    upsert.assert_awaited_once()
+    push.assert_awaited_once()
+
+
+async def test_dry_run_leaves_a_pinned_manual_total_alone():
+    pinned = SimpleNamespace(score=42, manual_total=True)
+    fu, fg, fs, up, lti = _patch_rollup(pinned, [4, 3])
+    with fu, fg, fs, up as upsert, lti as push:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"], dry_run=True
+        )
+
+    assert changes[0].skipped_manual
+    assert not changes[0].changed
+    assert changes[0].new_score == 42
+    upsert.assert_not_awaited()
+    push.assert_not_awaited()
+
+
+async def test_already_correct_total_is_not_reported_as_changed():
+    current = SimpleNamespace(score=7, manual_total=False)
+    fu, fg, fs, up, lti = _patch_rollup(current, [4, 3])
+    with fu, fg, fs, up, lti:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"], dry_run=True
+        )
+
+    assert not changes[0].changed
+
+
+async def test_missing_grade_row_counts_as_a_change():
+    fu, fg, fs, up, lti = _patch_rollup(None, [4, 3])
+    with fu, fg, fs, up, lti:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"], dry_run=True
+        )
+
+    assert changes[0].old_score is None
+    assert changes[0].new_score == 7
+    assert changes[0].changed
+
+
+async def test_recompute_totals_for_still_returns_the_processed_count():
+    """The int-returning wrapper the grader routes call is unchanged."""
+    fu, fg, fs, up, lti = _patch_rollup(
+        SimpleNamespace(score=0, manual_total=False), [5]
+    )
+    with fu, fg, fs, up, lti:
+        processed = await regrade.recompute_totals_for(
+            _course(), _assignment(), ["student1"]
+        )
+
+    assert processed == 1
+
+
+async def test_only_existing_skips_students_with_no_grade_row():
+    """A bulk repair should not materialise a 0 for a student who never had a
+    total -- that would push a fresh zero to the LMS for a non-submitter."""
+    fu, fg, fs, up, lti = _patch_rollup(None, [])
+    with fu, fg, fs, up as upsert, lti as push:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"], only_existing=True
+        )
+
+    assert changes[0].skipped_no_grade_row
+    assert not changes[0].changed
+    upsert.assert_not_awaited()
+    push.assert_not_awaited()
+
+
+async def test_only_existing_still_repairs_a_stale_row():
+    stale = SimpleNamespace(score=0, manual_total=False)
+    fu, fg, fs, up, lti = _patch_rollup(stale, [4, 3])
+    with fu, fg, fs, up as upsert, lti:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"], only_existing=True
+        )
+
+    assert changes[0].changed
+    assert changes[0].new_score == 7
+    upsert.assert_awaited_once()
+
+
+async def test_missing_row_is_created_by_default():
+    """Normal grading (and --create-missing) still creates the row."""
+    fu, fg, fs, up, lti = _patch_rollup(None, [5])
+    with fu, fg, fs, up as upsert, lti:
+        changes = await regrade.recompute_totals_detail(
+            _course(), _assignment(), ["student1"]
+        )
+
+    assert not changes[0].skipped_no_grade_row
+    assert changes[0].new_score == 5
+    upsert.assert_awaited_once()
