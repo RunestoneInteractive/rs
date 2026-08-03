@@ -1123,6 +1123,11 @@ async def fixtotals(
     total_changed = 0
     total_manual = 0
     total_no_row = 0
+    # Every other counter here is a (student, assignment) tally, which is the
+    # right unit for "totals corrected". For the missing-row report the useful
+    # question is also *how many people* that touches, so track them separately
+    # -- keyed by course, since usernames are only unique within one.
+    no_row_students = set()
     skipped_no_assignments = 0
     skipped_no_students = 0
 
@@ -1157,6 +1162,9 @@ async def fixtotals(
             students_scanned += len(changes)
             total_manual += sum(1 for ch in changes if ch.skipped_manual)
             total_no_row += sum(1 for ch in changes if ch.skipped_no_grade_row)
+            no_row_students.update(
+                (c.course_name, ch.sid) for ch in changes if ch.skipped_no_grade_row
+            )
             moved = [ch for ch in changes if ch.changed]
             course_changed += len(moved)
             for ch in moved:
@@ -1178,8 +1186,9 @@ async def fixtotals(
     )
     if total_no_row:
         click.echo(
-            f"Left {total_no_row} student(s) with no grades row untouched; "
-            f"pass --create-missing to materialise those at their computed total."
+            f"Left {total_no_row} missing grades row(s) untouched, across "
+            f"{len(no_row_students)} student(s); pass --create-missing to "
+            f"materialise those at their computed total."
         )
     # Say what was passed over, so an empty-looking run is never mistaken for
     # "everything was already correct".
