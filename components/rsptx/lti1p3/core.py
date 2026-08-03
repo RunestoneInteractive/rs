@@ -219,12 +219,48 @@ async def _send_lti1p3_score_updates(
                 rslogger.error(f"LTI1p3 - update_lineitem failed: {e}")
 
             for lti_user, score in updates:
+                # A student with no LTI mapping in this course (never launched
+                # through the LMS, or enrolled directly) has no user id to send
+                # to. Skip them rather than dereferencing None -- this used to
+                # raise out to the handler below and abandon every remaining
+                # user in the batch.
+                if lti_user is None:
+                    rslogger.warning(
+                        f"LTI1p3 - skipping score update on assignment "
+                        f"{rs_assignment.id}: no LTI user mapping for this student"
+                    )
+                    continue
+
                 rslogger.debug(
                     f"LTI1p3 - Sending LTI grade update for RS user id {lti_user.rs_user_id} on assignment {rs_assignment.id}, score {score}"
                 )
 
                 if not use_pts:
+                    # An assignment worth 0 points has no percentage to express;
+                    # sending a raw score against a max of 100 would be wrong, so
+                    # report it and move on.
+                    if not rs_assignment.points:
+                        rslogger.warning(
+                            f"LTI1p3 - skipping score update for RS user id "
+                            f"{lti_user.rs_user_id}: assignment {rs_assignment.id} "
+                            f"is worth 0 points, cannot compute a percentage"
+                        )
+                        continue
                     score = score / rs_assignment.points * 100
+
+                # The total is the raw sum of question_grades, which exceeds the
+                # assignment's points whenever its questions add up to more than
+                # assignment.points. The LMS rejects scoreGiven > scoreMaximum
+                # with a 422, so clamp and say so -- the underlying mismatch is
+                # an authoring problem to fix on the assignment, not here.
+                if max_score is not None and score > max_score:
+                    rslogger.warning(
+                        f"LTI1p3 - clamping score {score} to {max_score} for RS "
+                        f"user id {lti_user.rs_user_id} on assignment "
+                        f"{rs_assignment.id}; the computed total exceeds the "
+                        f"assignment's points"
+                    )
+                    score = max_score
 
                 # Send the grade
                 g = (
