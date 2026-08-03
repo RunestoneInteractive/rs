@@ -107,7 +107,6 @@ from rsptx.lti1p3.pylti1p3.contrib.fastapi import (
 from rsptx.lti1p3.pylti1p3.exception import LtiException, LtiServiceException
 from rsptx.lti1p3.pylti1p3.deep_link import DeepLinkResource
 
-
 # Routing
 # =======
 router = APIRouter(
@@ -145,6 +144,27 @@ def get_session_service():
     Again, to develop without redis you could sub in a SimpleCache
     """
     return FastAPISessionService(RedisCache())
+
+
+def parse_lti_datetime_as_utc(
+    datetime_string: Optional[str],
+) -> Optional[datetime.datetime]:
+    """
+    Parse an LTI ISO datetime and return a naive UTC datetime for storage.
+    Unresolved LTI substitution values indicate that the LMS has no value set.
+    """
+    if not datetime_string or datetime_string.startswith("$ResourceLink.available."):
+        return None
+
+    normalized_datetime_string = (
+        datetime_string.replace("Z", "+00:00")
+        if datetime_string.endswith("Z")
+        else datetime_string
+    )
+    lti_datetime = datetime.datetime.fromisoformat(normalized_datetime_string)
+    if lti_datetime.tzinfo is None:
+        return lti_datetime
+    return lti_datetime.astimezone(datetime.timezone.utc).replace(tzinfo=None)
 
 
 async def login_or_create_user(
@@ -353,8 +373,6 @@ async def launch(request: Request):
             key, value = p.split("=")
             query_params[key] = value
 
-    rslogger.debug(f"LTI1p3 - launch params: {query_params}")
-
     # Start by identifying the kind of launch this is. Will need different info from different kinds of launches
     # Type 1: Book links - links to specific pages in the book
     # They will have a query param "book_page"
@@ -471,8 +489,9 @@ async def launch(request: Request):
 
         # make sure RS assignment is up to date (e.g. end date)
         course_attributes = await fetch_all_course_attributes(course.id)
+        custom_params = message_launch.get_custom_params()
         await update_rsassignment_from_lti(
-            rs_assign, assign_lineitem, course_attributes, course
+            rs_assign, assign_lineitem, course_attributes, course, custom_params
         )
 
         # start redirect to assignment
@@ -523,10 +542,16 @@ async def update_rsassignment_from_lti(
     line_item: LineItem,
     course_attributes: dict,
     course: Courses,
+    custom_params: Optional[dict] = None,
 ) -> AssignmentValidator:
     """
     Update a runestone assignment from LTI data.
     """
+    if course_attributes.get("ignore_lti_dates") == "true":
+        return assign
+
+    updated = False
+
     try:
         lms_due_string = line_item.get_end_date_time()
         rslogger.info(
@@ -551,16 +576,37 @@ async def update_rsassignment_from_lti(
             lms_due = lms_due.replace(tzinfo=tz)
         lms_due = lms_due.astimezone(datetime.timezone.utc).replace(tzinfo=None)
         rslogger.info(f"LTI1p3 - Storing {lms_due} UTC for assignment {assign.name}")
-        if (
-            lms_due is not None
-            and lms_due != assign.duedate
-            and course_attributes.get("ignore_lti_dates") != "true"
-        ):
+        if lms_due is not None and lms_due != assign.duedate:
             assign.duedate = lms_due
-            await update_assignment(assign)
+            updated = True
     except Exception:
         # just ignore bad dates, could be missing, bad format, etc
         pass
+
+    custom_params = custom_params or {}
+    availability_datetime_params = (
+        ("visible_on", "resource_link_available_startdatetime"),
+        ("hidden_on", "resource_link_available_enddatetime"),
+    )
+    for assignment_field, custom_param in availability_datetime_params:
+        if custom_param not in custom_params:
+            continue
+
+        try:
+            availability_datetime = parse_lti_datetime_as_utc(
+                custom_params.get(custom_param)
+            )
+        except Exception:
+            # just ignore bad dates, could be missing, bad format, etc
+            continue
+
+        if availability_datetime != getattr(assign, assignment_field):
+            setattr(assign, assignment_field, availability_datetime)
+            updated = True
+
+    if updated:
+        await update_assignment(assign)
+
     return assign
 
 
@@ -682,6 +728,9 @@ async def register_with_platform(platform_config: dict, token: str = None) -> di
             "custom_parameters": {
                 "context_id_history": "$Context.id.history",
                 "resource_link_history": "$ResourceLink.id.history",
+                "resource_link_submission_enddatetime": "$ResourceLink.submission.endDateTime",
+                "resource_link_available_startdatetime": "$ResourceLink.available.startDateTime",
+                "resource_link_available_enddatetime": "$ResourceLink.available.endDateTime",
             },
             "claims": [
                 "sub",
