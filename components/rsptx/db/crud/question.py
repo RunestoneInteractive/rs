@@ -393,16 +393,23 @@ async def fetch_assignment_questions(
     :param assignment_name: str, the name of the assignment
     :param question_name: str, the name (div_id) of the question
     :return: AssignmentQuestionValidator, AssignmentQuestionValidator, ChapterValidator, SubChapterValidator
+
+    Chapter and SubChapter are outer joined on purpose. A question whose
+    chapter/subchapter labels do not resolve in the toc tables -- an exercise
+    copied from another book, or one filed under a chapter the book no longer
+    has -- is still part of the assignment, and inner joins would silently drop
+    it from every view built on this query. Callers must treat row.Chapter and
+    row.SubChapter as optional.
     """
     query = (
         select(Question, AssignmentQuestion, Chapter, SubChapter)
         .join(Question, AssignmentQuestion.question_id == Question.id)
-        .join(
+        .outerjoin(
             Chapter,
             (Question.chapter == Chapter.chapter_label)
             & (Question.base_course == Chapter.course_id),
         )
-        .join(
+        .outerjoin(
             SubChapter,
             (Question.subchapter == SubChapter.sub_chapter_label)
             & (SubChapter.chapter_id == Chapter.id),
@@ -872,6 +879,56 @@ async def validate_question_name_unique(name: str, base_course: str) -> bool:
         return existing_question is None
 
 
+async def _resolve_chapter_subchapter(
+    session, base_course: str, chapter: str, subchapter: str
+) -> Tuple[str, str]:
+    """
+    Return a (chapter, subchapter) pair that is valid for ``base_course``.
+
+    Labels that already resolve in the chapters/sub_chapters tables are kept
+    unchanged, which is the normal case when a question is copied within its own
+    book. Labels that do not resolve -- always the case across books, since the
+    copy is re-homed to a different base_course -- fall back to the first
+    section of the target book. Writing the source book's labels would produce a
+    question no toc-joining view can find.
+
+    :param session: the active async session
+    :param base_course: str, the base course the question will belong to
+    :param chapter: str, the candidate chapter label
+    :param subchapter: str, the candidate subchapter label
+    :return: Tuple[str, str], a (chapter, subchapter) pair valid for base_course
+    """
+    toc_query = select(Chapter.chapter_label, SubChapter.sub_chapter_label).join(
+        SubChapter, SubChapter.chapter_id == Chapter.id
+    )
+
+    existing = await session.execute(
+        toc_query.where(
+            (Chapter.course_id == base_course)
+            & (Chapter.chapter_label == chapter)
+            & (SubChapter.sub_chapter_label == subchapter)
+        )
+    )
+    if existing.first() is not None:
+        return chapter, subchapter
+
+    fallback = await session.execute(
+        toc_query.where(Chapter.course_id == base_course)
+        .order_by(Chapter.chapter_num, SubChapter.sub_chapter_num)
+        .limit(1)
+    )
+    row = fallback.first()
+    if row is None:
+        # No toc at all for this base course -- nothing better to offer.
+        return chapter, subchapter
+
+    rslogger.info(
+        f"Re-homing copied question from {chapter}/{subchapter} to "
+        f"{row[0]}/{row[1]} for base course {base_course}"
+    )
+    return row[0], row[1]
+
+
 async def copy_question(
     original_question_id: int,
     new_name: str,
@@ -912,12 +969,22 @@ async def copy_question(
             else original_question.base_course
         )
 
+        # The copy is re-homed to question_base_course, so its chapter and
+        # subchapter must be re-homed with it. Carrying the source book's labels
+        # across would hide the copy from every view that joins the toc tables.
+        question_chapter, question_subchapter = await _resolve_chapter_subchapter(
+            session,
+            question_base_course,
+            original_question.chapter,
+            original_question.subchapter,
+        )
+
         # Create new question with copied data
         new_question = Question(
             base_course=question_base_course,
             name=new_name,
-            chapter=original_question.chapter,
-            subchapter=original_question.subchapter,
+            chapter=question_chapter,
+            subchapter=question_subchapter,
             author=new_owner,
             question=original_question.question,
             timestamp=canonical_utcnow(),

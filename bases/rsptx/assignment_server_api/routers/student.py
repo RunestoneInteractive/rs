@@ -813,13 +813,22 @@ async def doAssignment(
                 q.Question.base_course
             )
 
+        # fetch_assignment_questions outer joins the toc tables, so a question
+        # whose chapter/subchapter labels do not resolve there still shows up
+        # here with Chapter/SubChapter set to None. Fall back to the raw labels
+        # rather than losing the question.
+        chapter_num = q.Chapter.chapter_num if q.Chapter else 0
+        sub_chapter_num = q.SubChapter.sub_chapter_num if q.SubChapter else 0
+
         # Temporarily prevent chapter numbers from being duplicated while we unwind
         # number being added to chapter name in DB. Assume any leaning numbers are
         # not part of the chapter name and should be stripped off.
-        chapter_name = q.Chapter.chapter_name
-        chapter_name = re.sub(r"^\d+\s*", "", chapter_name)
-        chapter_chapter_name = q.SubChapter.sub_chapter_name
-        chapter_chapter_name = re.sub(r"^[\d\.]+\s*", "", chapter_chapter_name)
+        chapter_name = q.Chapter.chapter_name if q.Chapter else chap_label
+        chapter_name = re.sub(r"^\d+\s*", "", chapter_name or "")
+        chapter_chapter_name = (
+            q.SubChapter.sub_chapter_name if q.SubChapter else subchap_label
+        )
+        chapter_chapter_name = re.sub(r"^[\d\.]+\s*", "", chapter_chapter_name or "")
 
         info = dict(
             htmlsrc=htmlsrc,
@@ -833,10 +842,10 @@ async def doAssignment(
             activities_required=q.AssignmentQuestion.activities_required,
             chapter_name=chapter_name,
             chapter_label=chap_label,
-            chapter_num=q.Chapter.chapter_num,
+            chapter_num=chapter_num,
             chapter_chapter_name=chapter_chapter_name,
             sub_chapter_label=subchap_label,
-            chapter_chapter_num=q.SubChapter.sub_chapter_num,
+            chapter_chapter_num=sub_chapter_num,
             base_url=construct_course_url(course),
             # for rendering with ptx template, we need these for the menu
             is_logged_in="true",
@@ -876,7 +885,7 @@ async def doAssignment(
                     subchapters=[],
                     chapter_label=chap_label,
                     chapter_name=chapter_name,
-                    chapter_num=q.Chapter.chapter_num,
+                    chapter_num=chapter_num,
                 )
 
             # add subchapter info

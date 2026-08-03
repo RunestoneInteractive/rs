@@ -1,6 +1,7 @@
 """
 Tests for assignment CRUD operations.
 """
+
 import datetime
 import pytest
 
@@ -13,8 +14,13 @@ from rsptx.db.crud import (
     update_assignment,
     create_assignment_question,
     create_question,
+    fetch_assignment_questions,
 )
-from rsptx.db.models import AssignmentValidator, AssignmentQuestionValidator, QuestionValidator
+from rsptx.db.models import (
+    AssignmentValidator,
+    AssignmentQuestionValidator,
+    QuestionValidator,
+)
 from rsptx.response_helpers.core import canonical_utcnow
 
 COURSE_NAME = "test_course_1"
@@ -96,7 +102,9 @@ async def test_update_assignment(test_assignment):
     assert fetched.description == "Updated description"
 
 
-async def test_create_assignment_question(test_assignment, test_question_for_assignment):
+async def test_create_assignment_question(
+    test_assignment, test_question_for_assignment
+):
     """Adding a question to an assignment persists."""
     aq = await create_assignment_question(
         AssignmentQuestionValidator(
@@ -114,6 +122,50 @@ async def test_create_assignment_question(test_assignment, test_question_for_ass
     assert aq.id is not None
     assert aq.assignment_id == test_assignment.id
     assert aq.question_id == test_question_for_assignment.id
+
+
+async def test_fetch_assignment_questions_keeps_questions_outside_the_toc(
+    test_assignment,
+):
+    """A question whose chapter is not in the toc is still part of the assignment.
+
+    Inner joining chapters/sub_chapters used to drop these silently, hiding
+    exercises copied from another book from the builder, grader and students.
+    """
+    orphan = await create_question(
+        QuestionValidator(
+            base_course=COURSE_NAME,
+            name="crud_assign_orphan_question",
+            chapter="not-a-chapter-in-this-book",
+            subchapter="not-a-section-in-this-book",
+            author="testuser1",
+            question="Orphaned chapter question?",
+            timestamp=canonical_utcnow(),
+            question_type="mchoice",
+            is_private=False,
+            from_source=False,
+            review_flag=False,
+        )
+    )
+    await create_assignment_question(
+        AssignmentQuestionValidator(
+            assignment_id=test_assignment.id,
+            question_id=orphan.id,
+            points=5,
+            activities_required=0,
+            reading_assignment=False,
+            sorting_priority=1,
+            which_to_grade="best_answer",
+            autograde="pct_correct",
+        )
+    )
+
+    rows = list(await fetch_assignment_questions(test_assignment.id))
+
+    row = next((r for r in rows if r.Question.id == orphan.id), None)
+    assert row is not None, "question with an unresolvable chapter was dropped"
+    assert row.Chapter is None
+    assert row.SubChapter is None
 
 
 async def test_fetch_visible_assignments(test_assignment):

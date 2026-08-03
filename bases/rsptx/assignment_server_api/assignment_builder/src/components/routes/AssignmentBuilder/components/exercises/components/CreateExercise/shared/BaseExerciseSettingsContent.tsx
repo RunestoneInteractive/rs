@@ -59,15 +59,30 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
     }));
   }, []);
 
-  useEffect(() => {
-    if (chapters && chapters.length > 0) {
-      const currentChapterExists = chapters.some((option) => option.value === settings.chapter);
+  // An exercise can arrive here carrying a chapter/subchapter that does not
+  // belong to this book -- a copy made before copy_question re-homed them, or
+  // one filed under a chapter the book has since dropped. Clear it and make the
+  // instructor choose rather than silently refiling the exercise somewhere
+  // arbitrary; a label this book does not have hides the exercise everywhere.
+  const [rejectedChapter, setRejectedChapter] = useState<string | null>(null);
+  const [rejectedSubchapter, setRejectedSubchapter] = useState<string | null>(null);
 
-      if (!settings.chapter || !currentChapterExists) {
-        updateSetting("chapter", chapters[0].value);
-      }
+  useEffect(() => {
+    if (!chapters || chapters.length === 0 || rejectedChapter) {
+      // Once rejected, leave the field empty until the instructor picks; the
+      // default-to-first branch below would otherwise undo the rejection.
+      return;
     }
-  }, [chapters, settings.chapter, updateSetting]);
+
+    const currentChapterExists = chapters.some((option) => option.value === settings.chapter);
+
+    if (!settings.chapter) {
+      updateSetting("chapter", chapters[0].value);
+    } else if (!currentChapterExists) {
+      setRejectedChapter(settings.chapter);
+      updateSetting("chapter", "");
+    }
+  }, [chapters, settings.chapter, rejectedChapter, updateSetting]);
 
   const { data: sectionsOptions = [], isLoading: loadingSections } = useGetSectionsForChapterQuery(
     settings.chapter || "",
@@ -77,16 +92,21 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   );
 
   useEffect(() => {
-    if (sectionsOptions.length > 0) {
-      const currentSubchapterExists = sectionsOptions.some(
-        (option) => option.value === settings.subchapter
-      );
-
-      if (!settings.subchapter || !currentSubchapterExists) {
-        updateSetting("subchapter", sectionsOptions[0].value);
-      }
+    if (sectionsOptions.length === 0 || rejectedSubchapter) {
+      return;
     }
-  }, [sectionsOptions, settings.subchapter, updateSetting]);
+
+    const currentSubchapterExists = sectionsOptions.some(
+      (option) => option.value === settings.subchapter
+    );
+
+    if (!settings.subchapter) {
+      updateSetting("subchapter", sectionsOptions[0].value);
+    } else if (!currentSubchapterExists) {
+      setRejectedSubchapter(settings.subchapter);
+      updateSetting("subchapter", "");
+    }
+  }, [sectionsOptions, settings.subchapter, rejectedSubchapter, updateSetting]);
 
   useEffect(() => {
     onSettingsChange(settings);
@@ -99,6 +119,12 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   const nameValidationError = validateIdName(settings.name);
   const chapterError = !settings.chapter;
   const subchapterError = !loadingSections && !settings.subchapter;
+  const chapterErrorMessage = rejectedChapter
+    ? `“${rejectedChapter}” is not a chapter in this book. Choose one.`
+    : "Chapter is required";
+  const subchapterErrorMessage = rejectedSubchapter
+    ? `“${rejectedSubchapter}” is not a section of this chapter. Choose one.`
+    : "Section is required";
   const pointsError = settings.points <= 0;
 
   const difficultyData = Object.entries(difficultyOptions).map(([key, label]) => ({
@@ -128,8 +154,16 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             value={settings.chapter}
             data={chapters ?? []}
             allowDeselect={false}
-            error={chapterError ? "Chapter is required" : undefined}
-            onChange={(value) => updateSetting("chapter", value ?? "")}
+            error={chapterError ? chapterErrorMessage : undefined}
+            onChange={(value) => {
+              setRejectedChapter(null);
+              setRejectedSubchapter(null);
+              updateSetting("chapter", value ?? "");
+              // Sections belong to a chapter, so the current one cannot carry
+              // over. Clearing it lets the effect above pick this chapter's
+              // first section.
+              updateSetting("subchapter", "");
+            }}
           />
         </div>
 
@@ -143,8 +177,11 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             allowDeselect={false}
             disabled={loadingSections || sectionsOptions.length === 0}
             placeholder={loadingSections ? "Loading sections…" : "Select a section"}
-            error={subchapterError ? "Section is required" : undefined}
-            onChange={(value) => updateSetting("subchapter", value ?? "")}
+            error={subchapterError ? subchapterErrorMessage : undefined}
+            onChange={(value) => {
+              setRejectedSubchapter(null);
+              updateSetting("subchapter", value ?? "");
+            }}
           />
         </div>
       </div>
