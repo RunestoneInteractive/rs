@@ -389,9 +389,12 @@ export class PageProgressBar {
         } else {
             this.activities = countActivitiesInPage();
         }
-        // The server builds its dict from the question table, so it has no
-        // entry for the page, while countActivitiesInPage() adds one. Normalise
-        // it so logged in and logged out readers get the same counts.
+        // Both dicts are expected to carry a `page` entry for the page itself:
+        // countActivitiesInPage() adds one, and the server sends the page's own
+        // question row under that key. Older servers keyed that row by its
+        // question name instead, which made the page look like an extra
+        // activity; nothing we can do about that here, but keep the fallback so
+        // a server that sends no page entry at all still lines up.
         if (!("page" in this.activities)) {
             this.activities.page = 0;
         }

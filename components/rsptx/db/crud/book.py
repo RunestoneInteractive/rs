@@ -119,6 +119,17 @@ async def fetch_page_activity_counts(
     finds all of the components for a particular page (chaper/subchapter)
     and then finds out which of those elements the student has interacted
     with.  It returns a dictionary of {divid: 0/1}
+
+    Every subchapter also owns a question row of its own, with
+    ``question_type == "page"`` and a name of ``chapter title/subchapter title``
+    (see ``_add_page_question`` in build_tools and ``addPageToDB`` in
+    componentdb).  That row is not an activity the reader can do, but it does
+    belong in this dict: the progress bar counts the page itself as one item,
+    attempted as soon as the page is opened, which is what lets a page with no
+    activities on it still be completed.  It is returned under the key ``page``,
+    which is the key the client uses for that pseudo-activity -- otherwise
+    PageProgressBar adds a ``page`` entry of its own on top of it and every page
+    reports one more activity than it has.
     """
 
     where_clause_common = (
@@ -137,7 +148,10 @@ async def fetch_page_activity_counts(
     async with async_session() as session:
         page_divids = await session.execute(query)
     rslogger.debug(f"PDVD {page_divids}")
-    div_counts = {q.name: 0 for q in page_divids.scalars()}
+    div_counts = {
+        ("page" if q.question_type == "page" else q.name): 0
+        for q in page_divids.scalars()
+    }
     query = (
         select(distinct(Useinfo.div_id))
         .join(Courses, Courses.course_name == Useinfo.course_id)
