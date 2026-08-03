@@ -1005,6 +1005,8 @@ function shouldShowStudyCluesWidget() {
         "csawesome2_studyclues_test",
         "httlacs_studyclues_test",
         "py4e_studyclues_test",
+        "F26-SI201-MW",
+        "F26-SI201-TTh",
     ];
     const host = window.location.hostname;
 
