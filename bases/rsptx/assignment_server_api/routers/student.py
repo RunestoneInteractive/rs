@@ -603,6 +603,46 @@ async def update_submit(
     return make_json_response(detail=dict(success=True))
 
 
+async def _sync_assignment_total(user, assignment_id: int, computed_score) -> None:
+    """Keep the student's ``grades`` row in step with their per-question scores.
+
+    A total the instructor pinned with ``/manual_total`` is deliberately not
+    derived from the question grades, so leave it alone -- otherwise a student
+    simply opening the assignment would silently overwrite the instructor's
+    number. This mirrors the same guard in ``recompute_totals_for``.
+    """
+    current_grade = await fetch_grade(user.id, assignment_id)
+
+    if current_grade and current_grade.manual_total:
+        rslogger.debug(
+            f"Leaving manual total for {user.id} assignment {assignment_id} at "
+            f"{current_grade.score}"
+        )
+        return
+
+    if current_grade:
+        if current_grade.score != computed_score:
+            rslogger.debug(
+                f"Updating total score for {user.id} assignment {assignment_id} "
+                f"to {computed_score}"
+            )
+            current_grade.score = computed_score
+            await upsert_grade(current_grade)
+        return
+
+    new_grade = GradeValidator(
+        auth_user=user.id,
+        assignment=assignment_id,
+        is_submit="",
+        manual_total=False,
+        score=computed_score,
+    )
+    await upsert_grade(new_grade)
+    rslogger.debug(
+        f"Creating total score for {user.id} assignment {assignment_id} to {computed_score}"
+    )
+
+
 @router.get("/doAssignment")
 async def doAssignment(
     request: Request,
@@ -869,25 +909,7 @@ async def doAssignment(
                 questions_score += info["score"]
                 qset.add(q.Question.name)
     # Just to be sure we are current, we will update the total score for the assignment
-    current_grade = await fetch_grade(user.id, assignment_id)
-    if current_grade and current_grade.score != (readings_score + questions_score):
-        rslogger.debug(
-            f"Updating total score for {user.id} assignment {assignment_id} to {current_grade.score}"
-        )
-        current_grade.score = readings_score + questions_score
-        await upsert_grade(current_grade)
-    elif not current_grade:
-        new_grade = GradeValidator(
-            auth_user=user.id,
-            assignment=assignment_id,
-            is_submit="",
-            manual_total=False,
-            score=readings_score + questions_score,
-        )
-        await upsert_grade(new_grade)
-        rslogger.debug(
-            f"Creating total score for {user.id} assignment {assignment_id} to {new_grade.score}"
-        )
+    await _sync_assignment_total(user, assignment_id, readings_score + questions_score)
 
     # put readings into a session variable, to enable next/prev button
     readings_names = []

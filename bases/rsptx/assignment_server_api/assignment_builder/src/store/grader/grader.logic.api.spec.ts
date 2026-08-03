@@ -149,6 +149,52 @@ describe("graderApi endpoint definitions", () => {
   });
 });
 
+describe("saveGrade request body", () => {
+  function buildFullStore() {
+    return configureStore({
+      reducer: { [graderApi.reducerPath]: graderApi.reducer },
+      middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(graderApi.middleware)
+    });
+  }
+
+  it("sends assignment_id so the server can roll up the assignment total", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let sent: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (baseQuery as any).mockImplementation((args: any) => {
+      sent = args;
+      return { data: { detail: { sid: "s1", div_id: "q1", score: 5, comment: "" } } };
+    });
+
+    const store = buildFullStore();
+    await store
+      .dispatch(
+        graderApi.endpoints.saveGrade.initiate({
+          sid: "s1",
+          div_id: "q1",
+          score: 5,
+          comment: "nice work",
+          questionId: 10,
+          assignmentId: 42
+        })
+      )
+      .unwrap();
+
+    expect(sent.url).toBe("/assignment/instructor/grader/grade");
+    expect(sent.method).toBe("POST");
+    expect(sent.body).toEqual({
+      sid: "s1",
+      div_id: "q1",
+      score: 5,
+      comment: "nice work",
+      assignment_id: 42
+    });
+    // questionId is a client-side concern only and must not leak into the body
+    expect(sent.body).not.toHaveProperty("questionId");
+    expect(sent.body).not.toHaveProperty("assignmentId");
+  });
+});
+
 describe("getGraderQuestions transformResponse", () => {
   const mockAssignment = { id: 1, name: "Assignment 1" };
   const mockQuestions = [

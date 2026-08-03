@@ -265,11 +265,14 @@ export const graderApi = createApi({
       transformResponse: (r: DetailResponse<GraderHistoryResponse>) => r.detail
     }),
     saveGrade: build.mutation<GraderSavePayload, GraderSavePayload>({
+      // assignmentId is forwarded as assignment_id so the server can roll the new
+      // question grade up into the student's assignment total. Dropping it left
+      // grades.score stale after every manual grade.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      query: ({ questionId: _questionId, assignmentId: _assignmentId, ...body }) => ({
+      query: ({ questionId: _questionId, assignmentId, ...rest }) => ({
         method: "POST",
         url: "/assignment/instructor/grader/grade",
-        body
+        body: { ...rest, assignment_id: assignmentId }
       }),
 
       onQueryStarted: async (
@@ -303,10 +306,17 @@ export const graderApi = createApi({
         try {
           await queryFulfilled;
 
+          // The save now rolls the assignment total up as well, so the gradebook
+          // is stale too -- not just the per-question stats.
           if (assignmentId) {
             dispatch(
-              graderApi.util.invalidateTags([{ type: "GraderQuestions", id: assignmentId }])
+              graderApi.util.invalidateTags([
+                { type: "GraderQuestions", id: assignmentId },
+                "Gradebook"
+              ])
             );
+          } else {
+            dispatch(graderApi.util.invalidateTags(["Gradebook"]));
           }
         } catch {
           patches.forEach((p) => p.undo());

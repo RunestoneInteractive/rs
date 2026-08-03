@@ -26,7 +26,10 @@ from rsptx.db.crud import (
     update_assignment_threshold,
 )
 from rsptx.db.models import (
+    Assignment,
+    AssignmentQuestion,
     Code,
+    Question,
     QuestionGrade,
     Useinfo,
 )
@@ -103,6 +106,10 @@ class GradeUpdatePayload(BaseModel):
     div_id: str
     score: float
     comment: Optional[str] = ""
+    # Which assignment's total to roll up after saving. Optional so that older
+    # clients (and the direct-POST e2e tests) keep working; when it is missing we
+    # fall back to looking the assignment(s) up from ``div_id``.
+    assignment_id: Optional[int] = None
 
 
 @router.get("/assignments/{assignment_id}/questions")
@@ -556,6 +563,43 @@ async def get_student_answer_history(
     )
 
 
+async def _assignments_to_recompute(course, payload: GradeUpdatePayload):
+    """Resolve which assignment(s) the just-saved question grade rolls up into.
+
+    Prefers the ``assignment_id`` the client sent. Without one, fall back to every
+    assignment in this course that contains ``div_id`` -- a question can be used in
+    more than one assignment, and recomputing a total is idempotent, so touching
+    each of them is safer than guessing a single winner.
+    """
+    if payload.assignment_id is not None:
+        assignment = await fetch_one_assignment(payload.assignment_id)
+        if assignment and assignment.course == course.id:
+            return [assignment]
+        return []
+
+    async with async_session() as session:
+        res = await session.execute(
+            select(AssignmentQuestion.assignment_id)
+            .join(Question, AssignmentQuestion.question_id == Question.id)
+            .join(Assignment, AssignmentQuestion.assignment_id == Assignment.id)
+            .where(
+                and_(
+                    Question.name == payload.div_id,
+                    Assignment.course == course.id,
+                )
+            )
+            .distinct()
+        )
+        assignment_ids = [row for row in res.scalars()]
+
+    assignments = []
+    for aid in assignment_ids:
+        assignment = await fetch_one_assignment(aid)
+        if assignment:
+            assignments.append(assignment)
+    return assignments
+
+
 @router.post("/grade")
 @instructor_role_required()
 async def upsert_grade(
@@ -563,6 +607,12 @@ async def upsert_grade(
 ):
     """Create or update a QuestionGrade row for a student on a given question.
     The comment is stored alongside the score.
+
+    After the per-question grade is written the student's assignment total is
+    rolled up. Skipping that roll-up left ``grades.score`` stale after every
+    manual grade or hand-edit of an autograded score, so the gradebook, the
+    student's own progress page and the LTI score pushed to the LMS all kept
+    showing the pre-grading total.
     """
     course = await fetch_course(user.course_name)
     existing = await fetch_question_grade(
@@ -597,8 +647,24 @@ async def upsert_grade(
             row.comment = payload.comment or ""
             await session.commit()
 
+    # Roll the new question grade up into the assignment total (and push the new
+    # total to any LTI 1.3 tool). recompute_totals_for honors a pinned
+    # manual_total and applies the assignment threshold.
+    recomputed = []
+    for assignment in await _assignments_to_recompute(course, payload):
+        try:
+            await recompute_totals_for(course, assignment, [payload.sid])
+            recomputed.append(assignment.id)
+        except Exception as e:  # pragma: no cover - defensive
+            # A failed roll-up must not lose the grade the instructor just typed.
+            rslogger.error(
+                f"Failed to recompute total sid={payload.sid} "
+                f"assignment={assignment.id}: {e}"
+            )
+
     rslogger.info(
-        f"Grader saved grade sid={payload.sid} div={payload.div_id} score={payload.score}"
+        f"Grader saved grade sid={payload.sid} div={payload.div_id} "
+        f"score={payload.score} recomputed={recomputed}"
     )
     return make_json_response(
         status=status.HTTP_200_OK,
@@ -607,6 +673,7 @@ async def upsert_grade(
             "comment": payload.comment or "",
             "sid": payload.sid,
             "div_id": payload.div_id,
+            "recomputed_assignments": recomputed,
         },
     )
 

@@ -108,3 +108,90 @@ async def test_instructor_can_view_student(auth_instructor_client):
     resp = await auth_instructor_client.get("/student/studentreport?id=testuser1")
     assert resp.status_code == 200
     assert "Student Report" in resp.text
+
+
+# ---------------------------------------------------------------------------
+# _sync_assignment_total -- opening an assignment must not clobber a pinned total
+# ---------------------------------------------------------------------------
+
+
+async def _scratch_assignment(name):
+    """Create a bare assignment in testuser1's course and return its id."""
+    import datetime
+
+    from rsptx.db.crud import create_assignment, fetch_course, fetch_user
+    from rsptx.db.models import AssignmentValidator
+
+    user = await fetch_user("testuser1")
+    course = await fetch_course(user.course_name)
+    assignment = await create_assignment(
+        AssignmentValidator(
+            course=course.id,
+            name=name,
+            points=10,
+            released=False,
+            description="sync_assignment_total test",
+            duedate=datetime.datetime(2099, 1, 1),
+            visible=True,
+            from_source=False,
+            is_peer=False,
+            current_index=0,
+            peer_async_visible=False,
+        )
+    )
+    return assignment.id
+
+
+@asyncio_session
+async def test_sync_assignment_total_creates_missing_grade(auth_assignment_client):
+    """With no grades row yet, the computed total is written out."""
+    from rsptx.assignment_server_api.routers.student import _sync_assignment_total
+    from rsptx.db.crud import fetch_grade, fetch_user
+
+    user = await fetch_user("testuser1")
+    assignment_id = await _scratch_assignment("sync_total_create_test")
+
+    await _sync_assignment_total(user, assignment_id, 5)
+
+    grade = await fetch_grade(user.id, assignment_id)
+    assert grade is not None
+    assert grade.score == 5
+    assert not grade.manual_total
+
+
+@asyncio_session
+async def test_sync_assignment_total_updates_stale_grade(auth_assignment_client):
+    """An existing non-manual total is moved to the newly computed value."""
+    from rsptx.assignment_server_api.routers.student import _sync_assignment_total
+    from rsptx.db.crud import fetch_grade, fetch_user
+
+    user = await fetch_user("testuser1")
+    assignment_id = await _scratch_assignment("sync_total_update_test")
+
+    await _sync_assignment_total(user, assignment_id, 3)
+    await _sync_assignment_total(user, assignment_id, 8)
+
+    grade = await fetch_grade(user.id, assignment_id)
+    assert grade.score == 8
+
+
+@asyncio_session
+async def test_sync_assignment_total_preserves_manual_total(auth_assignment_client):
+    """Regression: a total pinned by the instructor must survive the student
+    simply opening the assignment. This used to overwrite it silently."""
+    from rsptx.assignment_server_api.routers.student import _sync_assignment_total
+    from rsptx.db.crud import fetch_grade, fetch_user, set_manual_total
+
+    user = await fetch_user("testuser1")
+    assignment_id = await _scratch_assignment("sync_total_manual_test")
+
+    await set_manual_total(user.id, assignment_id, user.course_name, 42)
+    grade = await fetch_grade(user.id, assignment_id)
+    assert grade.manual_total
+    assert grade.score == 42
+
+    await _sync_assignment_total(user, assignment_id, 1)
+
+    grade = await fetch_grade(user.id, assignment_id)
+    assert grade.manual_total
+    assert grade.score == 42

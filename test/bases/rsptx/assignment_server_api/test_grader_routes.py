@@ -278,6 +278,169 @@ async def test_manual_total_requires_score_when_manual(auth_instructor_client):
     assert resp.status_code == 422
 
 
+# ---------------------------------------------------------------------------
+# POST /grade -- manual grading must roll the assignment total up
+# ---------------------------------------------------------------------------
+
+
+async def _assignment_with_question(client, name, div_id, points=10):
+    """Create an assignment in the instructor's course with one linked question."""
+    from rsptx.db.crud import create_assignment_question, create_question, fetch_course
+    from rsptx.db.models import AssignmentQuestionValidator, QuestionValidator
+    from rsptx.response_helpers.core import canonical_utcnow
+
+    course = await fetch_course("test_course_1")
+    assignment_id = await _create_assignment(client, name)
+    question = await create_question(
+        QuestionValidator(
+            base_course=course.base_course,
+            name=div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            author="test_instructor",
+            question="grade rollup test question?",
+            timestamp=canonical_utcnow(),
+            question_type="mchoice",
+            is_private=False,
+            from_source=False,
+            review_flag=False,
+        )
+    )
+    await create_assignment_question(
+        AssignmentQuestionValidator(
+            assignment_id=assignment_id,
+            question_id=question.id,
+            points=points,
+            activities_required=0,
+            reading_assignment=False,
+            sorting_priority=0,
+            which_to_grade="best_answer",
+            autograde="pct_correct",
+        )
+    )
+    return assignment_id, question
+
+
+async def test_save_grade_updates_assignment_total(auth_instructor_client):
+    """Regression: saving a single manual grade must roll up into ``grades``.
+
+    POST /grade used to write only the question_grades row, leaving grades.score
+    stale, so the gradebook and the LMS kept showing the pre-grading total.
+    """
+    from rsptx.db.crud import fetch_grade
+
+    student = await _enroll_student("testuser1", "test_course_1")
+    assignment_id, _q = await _assignment_with_question(
+        auth_instructor_client, "grade_rollup_test", "grade_rollup_q1"
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/grade",
+        json={
+            "sid": "testuser1",
+            "div_id": "grade_rollup_q1",
+            "score": 6,
+            "comment": "partial credit",
+            "assignment_id": assignment_id,
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["detail"]["recomputed_assignments"] == [assignment_id]
+
+    grade = await fetch_grade(student.id, assignment_id)
+    assert grade is not None
+    assert grade.score == 6
+
+
+async def test_save_grade_rolls_up_without_assignment_id(auth_instructor_client):
+    """Older clients omit assignment_id; the assignment is resolved from div_id."""
+    from rsptx.db.crud import fetch_grade
+
+    student = await _enroll_student("testuser1", "test_course_1")
+    assignment_id, _q = await _assignment_with_question(
+        auth_instructor_client, "grade_rollup_fallback_test", "grade_rollup_q2"
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/grade",
+        json={"sid": "testuser1", "div_id": "grade_rollup_q2", "score": 4},
+    )
+    assert resp.status_code == 200
+    assert assignment_id in resp.json()["detail"]["recomputed_assignments"]
+
+    grade = await fetch_grade(student.id, assignment_id)
+    assert grade is not None
+    assert grade.score == 4
+
+
+async def test_save_grade_edit_updates_total(auth_instructor_client):
+    """Editing an existing (e.g. autograded) score moves the total with it."""
+    from rsptx.db.crud import fetch_grade
+
+    student = await _enroll_student("testuser1", "test_course_1")
+    assignment_id, _q = await _assignment_with_question(
+        auth_instructor_client, "grade_edit_rollup_test", "grade_rollup_q3"
+    )
+
+    for score in (8, 3):
+        resp = await auth_instructor_client.post(
+            "/instructor/grader/grade",
+            json={
+                "sid": "testuser1",
+                "div_id": "grade_rollup_q3",
+                "score": score,
+                "assignment_id": assignment_id,
+            },
+        )
+        assert resp.status_code == 200
+        grade = await fetch_grade(student.id, assignment_id)
+        assert grade.score == score
+
+
+async def test_save_grade_respects_pinned_manual_total(auth_instructor_client):
+    """A total pinned with /manual_total is not clobbered by the roll-up."""
+    from rsptx.db.crud import fetch_grade
+
+    student = await _enroll_student("testuser1", "test_course_1")
+    assignment_id, _q = await _assignment_with_question(
+        auth_instructor_client, "grade_rollup_manual_test", "grade_rollup_q4"
+    )
+
+    await auth_instructor_client.post(
+        "/instructor/grader/manual_total",
+        json={
+            "assignment_id": assignment_id,
+            "sid": "testuser1",
+            "score": 7,
+            "manual": True,
+        },
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/grade",
+        json={
+            "sid": "testuser1",
+            "div_id": "grade_rollup_q4",
+            "score": 2,
+            "assignment_id": assignment_id,
+        },
+    )
+    assert resp.status_code == 200
+
+    grade = await fetch_grade(student.id, assignment_id)
+    assert grade.manual_total
+    assert grade.score == 7
+
+
+async def test_save_grade_rejects_non_instructor(auth_student_client):
+    """A non-instructor (student) is rejected by @instructor_role_required()."""
+    resp = await auth_student_client.post(
+        "/instructor/grader/grade",
+        json={"sid": "testuser1", "div_id": "q1", "score": 10},
+    )
+    assert resp.status_code in (401, 403)
+
+
 async def test_threshold_set_and_clear_persists(auth_instructor_client):
     """Setting a threshold persists threshold_pct on the assignment; clearing it
     (null) resets the field. Read back through crud."""
