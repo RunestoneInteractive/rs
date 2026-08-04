@@ -150,6 +150,7 @@ class Settings(BaseSettings):
     # should set ``AUTHOR_SERVER_URL=/author`` so the links stay on their host.
     # No trailing slash; callers append the path they want.
     author_server_url: str = "https://author.runestone.academy/author"
+    landing_page_url: str = "https://landing.runestone.academy"
 
     # Public-facing host used to build absolute URLs (e.g. course links in
     # emails). Populated from the matching environment variables by
