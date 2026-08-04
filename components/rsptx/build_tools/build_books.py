@@ -7,6 +7,11 @@
 # to each of the app servers (server1..serverN) and the last_build /
 # last_deploy timestamps in the library table are updated.
 #
+# While the run is in progress the terminal shows a grid with one colored block
+# per book (waiting / building / built / failed); the output of the build
+# commands themselves is collected in ~/build_books.log (see --log-file).  The
+# summary table is still printed when the run finishes.
+#
 # PreTeXt books are built in-process using ``_build_ptx_book``.  Runestone
 # (legacy RST) books are built by shelling out to the ``runestone`` binary in
 # a separate virtualenv (``~/.virtualenvs/buildr/bin`` by default, override
@@ -15,19 +20,26 @@
 
 import contextlib
 import getpass
-import io
 import os
+import queue
 import re
 import subprocess
+import sys
+import tempfile
 import traceback
 from collections import namedtuple
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from datetime import datetime
+from multiprocessing import Manager
 from pathlib import Path
 
 import click
 import pretext
-from rich.console import Console
+from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 from sqlalchemy import create_engine, select, update, or_, func
 from sqlalchemy.orm.session import sessionmaker
 
@@ -37,6 +49,25 @@ from rsptx.db.models import Library, Courses
 from rsptx.response_helpers.core import canonical_utcnow
 
 console = Console()
+
+# The build output of every book goes here instead of to the terminal, which
+# is given over to the progress grid.
+DEFAULT_LOG = Path.home() / "build_books.log"
+
+# One block per book; the colors of the grid.  A book is red if anything went
+# wrong with it -- including a failed git pull, which the summary table counts
+# as a warning (the book still builds from its current checkout) but which is
+# worth spotting in the grid.
+STATE_STYLES = {
+    "waiting": "grey37",
+    "running": "blue",
+    "ok": "green",
+    "fail": "red",
+}
+DONE_STATES = ("ok", "fail")
+
+# CSI/OSC escape sequences, stripped out of captured output before logging it.
+ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|.)")
 
 
 class Config:
@@ -465,20 +496,235 @@ def process_one_book(spec: BookSpec, ctx: BuildCtx, session_maker=None) -> tuple
             own_engine.dispose()
 
 
-def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
+@contextlib.contextmanager
+def capture_fds():
     """
-    Worker-process entry point: run one book build with all of its output
-    captured, so the parent can print each book's log as a clean block instead
-    of interleaving lines from concurrent builds.  Returns (result, output).
+    Redirect this process's stdout and stderr *file descriptors* into a
+    temporary file and yield it.
+
+    Redirecting ``sys.stdout``/``sys.stderr`` is not enough: a logging
+    StreamHandler (rsptx.logging installs one, and the PreTeXt and manifest
+    code logs through it) holds a reference to the original stream object from
+    the moment it was created, so its output would go straight to the terminal
+    and scribble over the progress grid.  Swapping the descriptors catches
+    those, plus anything written by C extensions and child processes.
     """
-    buf = io.StringIO()
-    try:
-        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
-            result = process_one_book(spec, ctx)
-    except Exception as e:
-        buf.write(traceback.format_exc())
-        result = (spec.basecourse, None, False, False, f"worker crashed: {e}")
-    return result, buf.getvalue()
+    with tempfile.TemporaryFile("w+", errors="replace") as tmp:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        saved_out, saved_err = os.dup(1), os.dup(2)
+        try:
+            os.dup2(tmp.fileno(), 1)
+            os.dup2(tmp.fileno(), 2)
+            yield tmp
+        finally:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os.dup2(saved_out, 1)
+            os.dup2(saved_err, 2)
+            os.close(saved_out)
+            os.close(saved_err)
+
+
+def run_captured(spec: BookSpec, ctx: BuildCtx, session_maker=None) -> tuple:
+    """
+    Run one book build with all of its output captured, so the caller can write
+    each book's log to the log file as a clean block instead of interleaving
+    lines from concurrent builds onto the terminal.  Returns (result, output).
+    """
+    with capture_fds() as tmp:
+        try:
+            result = process_one_book(spec, ctx, session_maker=session_maker)
+        except Exception as e:
+            traceback.print_exc()
+            result = (spec.basecourse, None, False, False, f"build crashed: {e}")
+        sys.stdout.flush()
+        sys.stderr.flush()
+        # stdout/stderr share this file's offset while redirected, so rewind
+        # before reading back what they wrote.
+        tmp.seek(0)
+        return result, tmp.read()
+
+
+def _build_worker(spec: BookSpec, ctx: BuildCtx, status_q=None) -> tuple:
+    """
+    Worker-process entry point.  Announce on ``status_q`` that this book has
+    started -- a submitted future may sit in the pool's queue for a long time,
+    so the parent cannot tell from the future alone when a build actually
+    begins -- then build it with its output captured.
+    """
+    if status_q is not None:
+        with contextlib.suppress(Exception):
+            status_q.put(spec.basecourse)
+    return run_captured(spec, ctx)
+
+
+def result_state(result: tuple, no_deploy: bool) -> str:
+    """Grid color for a finished book: green only if nothing went wrong at all."""
+    _, pulled, built, deployed, _ = result
+    if pulled is False or not (built and (deployed or no_deploy)):
+        return "fail"
+    return "ok"
+
+
+class BuildProgress:
+    """
+    A live grid with one block per book: grey while it waits for a build slot,
+    blue while it is building, then green if it pulled, built and deployed, or
+    red if any of those failed.
+
+    The grid needs the terminal to itself, so book output goes to the log file.
+    When stdout is not a terminal (cron, a pipe) there is nothing to animate:
+    fall back to one plain line per state change so the run is still traceable.
+    """
+
+    def __init__(self, courses, workers: int, log_path: Path, out_console: Console):
+        self.courses = list(courses)
+        self.states = {c: "waiting" for c in self.courses}
+        self.workers = workers
+        self.log_path = log_path
+        self.console = out_console
+        self.live = None
+
+    def __enter__(self):
+        if self.console.is_terminal:
+            self.live = Live(self.render(), console=self.console, refresh_per_second=4)
+            self.live.start()
+        else:
+            self.console.print(
+                f"Building {len(self.courses)} books, {self.workers} at a time; "
+                f"output in {self.log_path}"
+            )
+        return self
+
+    def __exit__(self, *exc):
+        if self.live is not None:
+            self.live.update(self.render())
+            self.live.stop()
+            self.live = None
+        return False
+
+    def set_state(self, course: str, state: str) -> None:
+        self.states[course] = state
+        if self.live is not None:
+            self.live.update(self.render())
+        else:
+            verb = "building" if state == "running" else state
+            self.console.print(f"[{STATE_STYLES[state]}]{verb}[/] {course}")
+
+    def start(self, course: str) -> None:
+        if self.states.get(course) == "waiting":
+            self.set_state(course, "running")
+
+    def render(self):
+        # Each block is two cells wide plus a separating space.
+        per_row = max(1, (self.console.width - 4) // 3)
+        grid = Text()
+        for i, course in enumerate(self.courses):
+            if i and i % per_row == 0:
+                grid.append("\n")
+            grid.append("██ ", style=STATE_STYLES[self.states[course]])
+        counts = {s: 0 for s in STATE_STYLES}
+        for state in self.states.values():
+            counts[state] += 1
+        done = sum(counts[s] for s in DONE_STATES)
+        legend = Text.from_markup(
+            "  ".join(
+                f"[{STATE_STYLES[s]}]██[/] {label}"
+                for s, label in [
+                    ("waiting", "waiting"),
+                    ("running", "building"),
+                    ("ok", f"built ({counts['ok']})"),
+                    ("fail", f"failed ({counts['fail']})"),
+                ]
+            )
+        )
+        active = [c for c in self.courses if self.states[c] == "running"]
+        # One line, however many books are in flight -- a growing panel would
+        # make the grid jump around.
+        now = Text.from_markup(
+            f"[blue]building:[/] {', '.join(active)}" if active else "[dim]idle[/]",
+            overflow="ellipsis",
+        )
+        now.no_wrap = True
+        # ~-relative so the subtitle is not truncated in a narrow terminal.
+        shown = self.log_path
+        with contextlib.suppress(ValueError):
+            shown = Path("~") / self.log_path.relative_to(Path.home())
+        return Panel(
+            Group(grid, "", legend, now),
+            title=f"{done}/{len(self.courses)} books, {self.workers} at a time",
+            subtitle=f"log: {shown}",
+        )
+
+
+def log_block(logf, result: tuple, output: str) -> None:
+    """Append one book's captured output and outcome to the log file."""
+    course, pulled, built, deployed, status = result
+    stamped = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logf.write(f"\n{'=' * 72}\n{course}  ({stamped})\n{'=' * 72}\n")
+    if output:
+        # rich and the build tools colorize when they think they are on a
+        # terminal; the log is read with less and an editor, so drop it.
+        output = ANSI_RE.sub("", output)
+        logf.write(output if output.endswith("\n") else output + "\n")
+    logf.write(f"--> pulled={pulled} built={built} deployed={deployed}: {status}\n")
+    logf.flush()
+
+
+def run_builds(specs, ctx, session_maker, workers, progress, logf) -> list:
+    """
+    Build every book, updating the progress grid as each one starts and
+    finishes and writing its output to the log file.  Returns the list of
+    result tuples, in completion order.
+    """
+    results = []
+
+    def finish(result, output):
+        log_block(logf, result, output)
+        progress.set_state(result[0], result_state(result, ctx.no_deploy))
+        results.append(result)
+
+    if workers == 1:
+        # Sequential: build in this process.  Output is still captured so the
+        # progress grid keeps the terminal to itself.
+        for spec in specs:
+            progress.start(spec.basecourse)
+            finish(*run_captured(spec, ctx, session_maker=session_maker))
+        return results
+
+    # Parallel: each book builds in its own process (PreTeXt builds rely on the
+    # process cwd and a global logger, so they cannot share one).
+    with Manager() as manager:
+        status_q = manager.Queue()
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(_build_worker, spec, ctx, status_q): spec for spec in specs
+            }
+            pending = set(futures)
+            while pending:
+                done, pending = wait(pending, timeout=0.25, return_when=FIRST_COMPLETED)
+                # Started-building announcements; drain before recording the
+                # finishers so a book that started and finished in the same
+                # quarter second still ends up in its final state.
+                while True:
+                    try:
+                        progress.start(status_q.get_nowait())
+                    except queue.Empty:
+                        break
+                for fut in done:
+                    try:
+                        finish(*fut.result())
+                    except Exception as e:
+                        # The worker itself traps build errors, so getting here
+                        # means the process died (OOM killer, segfault...).
+                        # Record it and keep building the other books.
+                        course = futures[fut].basecourse
+                        finish(
+                            (course, None, False, False, f"build process died: {e}"),
+                            traceback.format_exc(),
+                        )
+    return results
 
 
 @click.command()
@@ -523,6 +769,13 @@ def _build_worker(spec: BookSpec, ctx: BuildCtx) -> tuple:
     show_default=True,
     help="Build up to this many books at once (1 = sequential)",
 )
+@click.option(
+    "--log-file",
+    type=click.Path(dir_okay=False),
+    default=str(DEFAULT_LOG),
+    show_default=True,
+    help="Where to collect the output of the build commands",
+)
 def build_books(
     book,
     exclude,
@@ -534,6 +787,7 @@ def build_books(
     gen,
     skip_chown,
     parallel,
+    log_file,
 ):
     """
     Build every book in the library where for_classes or is_visible is true,
@@ -650,30 +904,31 @@ def build_books(
     if reclaim:
         reclaim_book_ownership(book_path)
 
-    results = []
     workers = max(1, min(parallel, len(specs)))
-    if workers == 1:
-        # Sequential: build in this process so output streams live.
-        for spec in specs:
-            console.rule(f"[bold]{spec.basecourse}")
-            results.append(process_one_book(spec, ctx, session_maker=Session))
-    else:
-        # Parallel: each book builds in its own process (PreTeXt builds rely on
-        # the process cwd and a global logger, so they cannot share one).  Each
-        # worker captures its output; we print it as a block when it finishes.
-        console.print(f"[bold]Building {len(specs)} books, {workers} at a time[/bold]")
-        with ProcessPoolExecutor(max_workers=workers) as pool:
-            futures = {pool.submit(_build_worker, spec, ctx): spec for spec in specs}
-            for fut in as_completed(futures):
-                result, output = fut.result()
-                console.rule(f"[bold]{result[0]}")
-                if output:
-                    # Already-rendered plain text -- print verbatim so status
-                    # strings aren't reinterpreted as rich markup.
-                    print(output, end="")
-                results.append(result)
+    log_path = Path(log_file).expanduser()
+    console.print(f"[bold]Build output:[/bold] {log_path}")
 
-    # Parallel builds finish out of order; report them in the build order.
+    # The progress grid owns the terminal while books build.  Give it its own
+    # copy of the stdout descriptor: a sequential (-j 1) build runs in this
+    # process, where ``capture_fds`` points fd 1 at the log, and the grid still
+    # has to reach the terminal.
+    grid_file = os.fdopen(os.dup(1), "w")
+    grid_console = Console(file=grid_file)
+
+    try:
+        with open(log_path, "w") as logf:
+            started = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            logf.write(f"build_books started {started}\n{versions}\n")
+            logf.write(f"{len(specs)} book(s), {workers} at a time\n")
+            logf.flush()
+            with BuildProgress(
+                [s.basecourse for s in specs], workers, log_path, grid_console
+            ) as progress:
+                results = run_builds(specs, ctx, Session, workers, progress, logf)
+    finally:
+        grid_file.close()
+
+    # Builds finish out of order; report them in the build order.
     order = {spec.basecourse: i for i, spec in enumerate(specs)}
     results.sort(key=lambda r: order.get(r[0], len(order)))
 
@@ -702,7 +957,18 @@ def build_books(
             "[green]yes[/green]" if deployed else "[red]no[/red]",
             status,
         )
+    with open(log_path, "a") as logf:
+        finished = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        logf.write(f"\n{'=' * 72}\nSummary ({finished})\n{'=' * 72}\n")
+        for course, pulled, built, deployed, status in results:
+            logf.write(
+                f"{course}: pulled={pulled} built={built} "
+                f"deployed={deployed} -- {status}\n"
+            )
+        logf.write(f"{failures} of {len(results)} book(s) failed\n")
+
     console.print(table)
+    console.print(f"[bold]Build output:[/bold] {log_path}")
     if pull_failures:
         console.print(
             f"[yellow]Warning: {pull_failures} book(s) could not be pulled "
