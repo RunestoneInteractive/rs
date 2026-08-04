@@ -16,4 +16,4 @@ This should be the domain name where your LMS is hosted.
 
 **What LMS do you use?**
 
-Please note that if your IT department is going to require paperwork, legal agreements, HECVATs, VPATs etc then LTI 1.3 support is a **paid** feature of Runestone.
+Please note that if your IT department is going to require paperwork, legal agreements, HECVATs, VPATs etc then LTI 1.3 support is a **paid** feature of Runestone.  See: [Runestone Legal](https://runestone.academy/admin/legal)
