@@ -966,6 +966,10 @@ async def get_assignment_questions(
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
         aq["subchapter"] = q["subchapter"]
+        aq["chapter_num"] = row.Chapter.chapter_num
+        aq["sub_chapter_num"] = row.SubChapter.sub_chapter_num
+        aq["chapter_name"] = row.Chapter.chapter_name
+        aq["sub_chapter_name"] = row.SubChapter.sub_chapter_name
         aq["chapter"] = q["chapter"]
         aq["base_course"] = q["base_course"]
         aq["htmlsrc"] = q["htmlsrc"]

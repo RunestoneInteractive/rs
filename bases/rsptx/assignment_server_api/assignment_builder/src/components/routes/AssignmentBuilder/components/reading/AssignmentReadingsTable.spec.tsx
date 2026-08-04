@@ -31,8 +31,12 @@ const READINGS: Exercise[] = [
     id: 1,
     name: "Welcome",
     title: "Welcome",
-    chapter: "Intro",
+    chapter: "intro",
+    chapter_name: "Intro",
+    chapter_num: 1,
     subchapter: "intro-welcome",
+    sub_chapter_name: "Welcome",
+    sub_chapter_num: 1,
     numQuestions: 10,
     activities_required: 6,
     points: 5,
@@ -42,8 +46,12 @@ const READINGS: Exercise[] = [
     id: 2,
     name: "Variables",
     title: "Variables",
-    chapter: "Basics",
+    chapter: "basics",
+    chapter_name: "Basics",
+    chapter_num: 2,
     subchapter: "basics-variables",
+    sub_chapter_name: "Variables",
+    sub_chapter_num: 3,
     numQuestions: 0,
     activities_required: 0,
     points: 3,
@@ -66,16 +74,21 @@ const baseProps = {
 describe("AssignmentReadingsTable", () => {
   it("renders one row per reading with chapter and section", () => {
     renderWithMantine(<AssignmentReadingsTable {...baseProps} />);
-    expect(screen.getByText("Intro")).toBeInTheDocument();
-    expect(screen.getByText("Welcome")).toBeInTheDocument();
-    expect(screen.getByText("Basics")).toBeInTheDocument();
-    expect(screen.getByText("Variables")).toBeInTheDocument();
+    expect(screen.getByText("1 Intro")).toBeInTheDocument();
+    expect(screen.getByText("intro")).toBeInTheDocument();
+    expect(screen.getByText("1.1 Welcome")).toBeInTheDocument();
+    expect(screen.getByText("intro-welcome")).toBeInTheDocument();
+    expect(screen.getByText("2 Basics")).toBeInTheDocument();
+    expect(screen.getByText("basics")).toBeInTheDocument();
+    expect(screen.getByText("2.3 Variables")).toBeInTheDocument();
+    expect(screen.getByText("basics-variables")).toBeInTheDocument();
   });
 
   it("filters readings by chapter or section text", () => {
     renderWithMantine(<AssignmentReadingsTable {...baseProps} globalFilter="basics" />);
-    expect(screen.queryByText("Welcome")).not.toBeInTheDocument();
-    expect(screen.getByText("Variables")).toBeInTheDocument();
+    expect(screen.queryByText("1.1 Welcome")).not.toBeInTheDocument();
+    expect(screen.getByText("2.3 Variables")).toBeInTheDocument();
+    expect(screen.getByText("basics-variables")).toBeInTheDocument();
   });
 
   it("defaults the activity count to at least one and required to 80 percent", () => {
