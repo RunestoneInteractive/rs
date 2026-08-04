@@ -1,27 +1,65 @@
-.tab-pane {
+/* Layout for the tab strip and the panes.  These rules used to come from
+   Bootstrap 3, which ptxrs-bootstrap.less imported.  Bootstrap is gone, so the
+   component owns them now -- without them the <ul> renders as a bulleted list
+   and every pane is visible at once (PreTeXt books never loaded Bootstrap at
+   all, so they lost the tabs entirely). */
+.runestone-tabs > .nav-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+    border-bottom: 1px solid var(--componentBorderColor);
+}
+
+.runestone-tabs > .nav-tabs > li {
+    display: block;
+    position: relative;
+    margin-bottom: -1px;
+}
+
+.runestone-tabs > .nav-tabs > li > a {
+    display: block;
+    position: relative;
+    padding: 10px 15px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.runestone-tabs > .nav-tabs > li > a:is(:hover, :focus) {
+    text-decoration: none;
+}
+
+.runestone-tabs > .tab-content > .tab-pane {
+    display: none;
     padding: 20px 15px 10px 15px;
 }
 
-.nav.nav-tabs {
+.runestone-tabs > .tab-content > .tab-pane.active {
+    display: block;
+}
+
+/* Runestone's own look on top of that layout. */
+.runestone-tabs > .nav.nav-tabs {
     padding-top: 6px;
     background-color: var(--componentBgColor);
     border-color: var(--componentBorderColor);
 }
 
-.nav.nav-tabs > li {
+.runestone-tabs > .nav.nav-tabs > li {
     margin-right: 1px;
     margin-left: 6px;
 }
 
-.nav.nav-tabs > li > a {
+.runestone-tabs > .nav.nav-tabs > li > a {
     border: 1px solid var(--componentBorderColor);
     border-radius: 4px 4px 0 0;
     color: var(--bodyFont, #555);
 }
 
-.nav.nav-tabs > li.active > a,
-.nav.nav-tabs > li > a:is(:hover, :focus),
-.nav.nav-tabs > li.active > a:is(:hover, :focus) {
+.runestone-tabs > .nav.nav-tabs > li.active > a,
+.runestone-tabs > .nav.nav-tabs > li > a:is(:hover, :focus),
+.runestone-tabs > .nav.nav-tabs > li.active > a:is(:hover, :focus) {
     background-color: #156ba4;
     color: white;
 }

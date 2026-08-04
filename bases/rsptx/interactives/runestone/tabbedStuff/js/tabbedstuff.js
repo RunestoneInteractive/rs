@@ -67,6 +67,9 @@ export class TabbedStuff extends RunestoneBase {
                 ...origClass.split(" ").filter(Boolean),
             );
         }
+        // Hook for this component's stylesheet -- the tab layout used to be
+        // Bootstrap's, so it has to be scoped to something we control now.
+        this.containerDiv.classList.add("runestone-tabs");
         this.containerDiv.setAttribute("role", "tabpanel");
         this.tabsUL = document.createElement("ul");
         this.tabsUL.id = this.divid + "_tab";
@@ -85,10 +88,7 @@ export class TabbedStuff extends RunestoneBase {
             // First create tabname and tabfriendly name that has no spaces to be used for the id
             var tabListElement = document.createElement("li");
             tabListElement.setAttribute("role", "presentation");
-            tabListElement.setAttribute(
-                "aria-controls",
-                this.divid + "-" + i,
-            );
+            tabListElement.setAttribute("aria-controls", this.divid + "-" + i);
             var tabElement = document.createElement("a");
             tabElement.setAttribute("href", "#" + this.divid + "-" + i);
             tabElement.setAttribute("role", "tab");

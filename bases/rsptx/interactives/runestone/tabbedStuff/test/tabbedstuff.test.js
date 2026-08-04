@@ -43,6 +43,9 @@ describe("construction", () => {
         const container = document.getElementById("test_tabs_1");
         expect(container).toBe(ts.containerDiv);
         expect(container.getAttribute("role")).toBe("tabpanel");
+        // tabbedstuff.css scopes the tab layout to this class -- without it
+        // the panes are all visible at once.
+        expect(container.classList.contains("runestone-tabs")).toBe(true);
         const ul = container.querySelector("ul#test_tabs_1_tab");
         expect(ul.classList.contains("nav-tabs")).toBe(true);
         expect(ul.getAttribute("role")).toBe("tablist");
