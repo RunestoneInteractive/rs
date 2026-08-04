@@ -2966,7 +2966,7 @@ text = [
 
 [[package]]
 name = "pretext"
-version = "2.45.0"
+version = "2.46.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "citeproc-py" },
@@ -2988,9 +2988,9 @@ dependencies = [
     { name = "requests" },
     { name = "single-version" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/80/38/e106447de2b4614e1570972bc988c54281634482df852f0322cb756ba23d/pretext-2.45.0.tar.gz", hash = "sha256:678841ce41e6427f49a63477e079a63ede71322335a4a268abddfadbd2a97d83", size = 17985459, upload-time = "2026-07-26T15:24:38.788Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7f/02/3f248d64d6fae6c979835f47e2f77eccd06c247dca1241925c0e7daa16bf/pretext-2.46.0.tar.gz", hash = "sha256:1e53a25557a97605d91eccb9b60868e40888a2859d9ebe4f14d2945cd48f14c8", size = 18130440, upload-time = "2026-08-03T19:29:55.16Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/4b/4c2cf3fd65bb740b1a8e2d2a5073713444286e7f960222a6ec8d8ddcaff3/pretext-2.45.0-py3-none-any.whl", hash = "sha256:138f1d227af3b3bf5f0d28dc5a943ca27d140a40f3e648ebe03e2e6d2044c0f0", size = 17269372, upload-time = "2026-07-26T15:24:36.068Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/80/b59cd96cd2c81cf3351510833482769f18cacecd5020fa73df27bad0f34e/pretext-2.46.0-py3-none-any.whl", hash = "sha256:685bb580e3ff28af6b29ac99b91e700400ce9ec99a1e00994b6ad417569fe5da", size = 17395201, upload-time = "2026-08-03T19:29:52.461Z" },
 ]
 
 [package.optional-dependencies]
@@ -3957,7 +3957,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "8.10.7"
+version = "8.10.9"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
