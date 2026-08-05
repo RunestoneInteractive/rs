@@ -330,9 +330,11 @@ services:
     volumes:
       - ${BOOK_PATH}:/usr/books
     depends_on:
+      # The proxy no longer forwards anything to runestone (web2py), so it is
+      # not required to be up; admin now serves the catch-all front door and is.
       runestone:
         condition: service_started
-        required: true
+        required: false
       book:
         condition: service_started
         required: true
@@ -341,7 +343,7 @@ services:
         required: true
       admin:
         condition: service_started
-        required: false
+        required: true
       author:
         condition: service_started
         required: false
@@ -383,9 +385,11 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
+      # The proxy no longer forwards anything to runestone (web2py), so it is
+      # not required to be up; admin now serves the catch-all front door and is.
       runestone:
         condition: service_started
-        required: true
+        required: false
       book:
         condition: service_started
         required: true
@@ -394,7 +398,7 @@ services:
         required: true
       admin:
         condition: service_started
-        required: false
+        required: true
       author:
         condition: service_started
         required: false

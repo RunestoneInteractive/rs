@@ -40,10 +40,6 @@
 	# which is what lets us reproduce nginx's location precedence exactly.
 	route {
 		# ----- internal rewrites (no client redirect), same as nginx -----
-		# rewrite ^/ads.txt /runestone/static/ads.txt;
-		@ads path /ads.txt
-		rewrite @ads /runestone/static/ads.txt
-
 		# Serve the security contact file (RFC 9116) from staticAssets.
 		# rewrite ^/.well-known/security.txt$ /staticAssets/.well-known/security.txt
 		@securitytxt path /.well-known/security.txt
@@ -166,10 +162,54 @@
 			}
 		}
 
-		# ----- everything else -> web2py (runestone) -----
-		# location / { proxy_pass http://runestone:8112; }
+		# ----- site-root files -> admin server, path preserved -----
+		# favicon.ico and robots.txt are requested from the root by browsers and
+		# crawlers; ads.txt is required to be there by spec. These used to be
+		# rewritten into web2py's static folder, which does not exist in a
+		# deployment running without the legacy runestone container. The
+		# catch-all below would rewrite them to /root, so they need their own
+		# handle to reach the matching endpoints in admin's routers/root.py.
+		@root_files path /favicon.ico /robots.txt /ads.txt
+		handle @root_files {
+			reverse_proxy admin:8115 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ----- health checks -> admin server, path preserved -----
+		# Also reachable as /admin/health, but the load balancer should poll the
+		# root path: it stays put even if the /admin prefix is ever re-routed,
+		# and a check that quietly starts hitting a different handler is worse
+		# than no check. The catch-all below would rewrite these to /root.
+		@health path /health /health/*
+		handle @health {
+			# A poll every few seconds from every load balancer would otherwise
+			# drown the real traffic in the access log.
+			log_skip
+			reverse_proxy admin:8115 {
+				header_up X-Forwarded-Proto https
+			}
+		}
+
+		# ----- everything else -> admin server's front door -----
+		# Replaces web2py's default/index: /root sends a logged-in visitor to
+		# their current course and everyone else to settings.landing_page_url.
+		# The rewrite (rather than a redir) keeps the requested URL in the
+		# address bar until the admin server decides where to send the user.
+		#
+		# NOTE: nothing is proxied to runestone:8112 any more. The legacy
+		# web2py URLs -- /runestone/* and the /default/* alias its routes.py
+		# accepted -- land here and get redirected somewhere useful instead of
+		# 502ing when that container is not running. /runestone/lti is the one
+		# exception and is handled above. See web2py_migration_todo.md for the
+		# pages this strands (dashboard/* analytics, assignments/practice*);
+		# a bookmark to one of those now lands on the course page, not an error.
 		handle {
-			reverse_proxy runestone:8112
+			rewrite * /root
+			reverse_proxy admin:8115 {
+				header_up X-Forwarded-Proto https
+				header_up X-Original-URI {http.request.orig_uri}
+			}
 		}
 	}
 }

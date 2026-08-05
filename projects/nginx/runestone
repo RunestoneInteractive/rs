@@ -43,7 +43,6 @@ include /etc/nginx/default.d/\*.conf;
     # `server_name <http://nginx.org/en/docs/http/ngx_http_core_module.html#server_name>`_: Set name(s) of a virtual server.
     server_name RunestoneMobile.local;
 
-    rewrite ^/ads.txt /runestone/static/ads.txt;
     # Serve the security contact file (RFC 9116) from the shared staticAssets.
     rewrite ^/\.well-known/security\.txt$ /staticAssets/.well-known/security.txt last;
     # Global Privacy Control signal (https://globalprivacycontrol.github.io/gpc-spec/).
@@ -172,17 +171,55 @@ include /etc/nginx/default.d/\*.conf;
        proxy_pass http://admin:8115;
     }
 
-    # This should probably be /runestone and then we need to add a different default
+    # favicon.ico and robots.txt are requested from the root by browsers and
+    # crawlers; ads.txt is required to be there by spec. These used to be
+    # rewritten into web2py's static folder, which does not exist in a
+    # deployment running without the legacy runestone container. The catch-all
+    # below would rewrite them to /root, so they need their own location to
+    # reach the matching endpoints in admin's routers/root.py.
+    location ~ ^/(favicon\.ico|robots\.txt|ads\.txt)$ {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+      proxy_pass http://admin:8115;
+    }
+
+    # Health checks. Also reachable as /admin/health, but the load balancer
+    # should poll the root path: it stays put even if the /admin prefix is ever
+    # re-routed, and a check that quietly starts hitting a different handler is
+    # worse than no check. The catch-all below would rewrite these to /root.
+    location /health {
+      # A poll every few seconds from every load balancer would otherwise
+      # drown the real traffic in the access log.
+      access_log off;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+      proxy_pass http://admin:8115;
+    }
+
+    # Everything else goes to the admin server's front door, which replaces
+    # web2py's default/index: /root sends a logged-in visitor to their current
+    # course and everyone else to settings.landing_page_url.
+    #
+    # NOTE: nothing is proxied to runestone:8112 any more. The legacy web2py
+    # URLs -- /runestone/* and the /default/* alias its routes.py accepted --
+    # land here and get redirected somewhere useful instead of 502ing when that
+    # container is not running. /runestone/lti is the one exception, handled by
+    # its own location above. See web2py_migration_todo.md for the pages this
+    # strands (dashboard/* analytics, assignments/practice*).
     location / {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Proto https;
       proxy_set_header Host $http_host;
-      # we don't want nginx trying to do something clever with
-      # redirects, we set the Host: header above already.
+      proxy_set_header X-Original-URI $request_uri;
       proxy_redirect off;
-      # See `../../gunicorn/web2py.conf.py` for the corresponding socket bind.
-      #proxy_pass http://unix:/run/web2py.sock:/;
-      proxy_pass http://runestone:8112;
+      # Rewrite (not a prefix swap) so /anything/at/all lands on /root rather
+      # than /rootanything/at/all.
+      rewrite ^ /root break;
+      proxy_pass http://admin:8115;
     }
 
 }
