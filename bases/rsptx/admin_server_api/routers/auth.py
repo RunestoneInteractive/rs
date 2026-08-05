@@ -83,12 +83,53 @@ def _validate_username(username: str) -> str | None:
     return None
 
 
+def _safe_next(next: str, default: str = "/ns/course/index") -> str:
+    """Return ``next`` only if it is a path on this site, else ``default``.
+
+    ``next`` is attacker-controllable -- it arrives in a query string and ends
+    up as a redirect target after a successful login. Anything that is not a
+    site-relative path is discarded, which rules out absolute URLs
+    (``https://evil.example``), scheme-relative ones (``//evil.example``, which
+    a browser treats as absolute), and backslash variants that some browsers
+    normalise to slashes.
+    """
+    if not next or not next.startswith("/"):
+        return default
+    if next.startswith("//") or next.startswith("/\\"):
+        return default
+    return next
+
+
 async def _current_user(request: Request):
     """Return the authenticated user or None (never raises)."""
     try:
         return await auth_manager(request)
     except (NotAuthenticatedException, Exception):
         return None
+
+
+async def _browse_url(course_name: str, pagepath: str) -> str | None:
+    """Return a read-only ``?mode=browsing`` URL for a page, or None.
+
+    Browsing mode is anonymous -- the book server drops the user when it sees
+    ``mode=browsing`` -- so a course with ``login_required`` set would bounce
+    the reader straight back to the sign-in page. For those, point at the
+    **base** course instead: a custom course's pages are served from its base
+    course's build, so this is the same content without making
+    ``login_required`` bypassable with a query string.
+
+    For an open course we can link the course itself, which preserves any
+    instructor customization.
+    """
+    if not course_name or not pagepath:
+        return None
+    course_row = await fetch_course(course_name)
+    if not course_row:
+        return None
+    book = course_row.base_course if course_row.login_required else course_name
+    if not book:
+        return None
+    return f"/ns/books/published/{book}/{pagepath}?mode=browsing"
 
 
 async def _navbar_context(user: AuthUserValidator) -> dict:
@@ -124,7 +165,53 @@ async def login_page(request: Request, next: str = "/ns/course/index"):
 
     return templates.TemplateResponse(
         "admin/auth/login.html",
-        {"request": request, "next": next, "error": None},
+        {"request": request, "next": _safe_next(next), "error": None},
+    )
+
+
+# ---------------------------------------------------------------------------
+# "This course requires you to sign in"
+# ---------------------------------------------------------------------------
+
+
+@router.get("/login-required", response_class=HTMLResponse)
+async def login_required_page(
+    request: Request, course: str = "", next: str = "/ns/course/index"
+):
+    """Explain why an anonymous visitor cannot read a course, and offer a way in.
+
+    Replaces web2py's ``default/accessIssue``. The book server sends people here
+    when a course has ``login_required`` set and no one is signed in
+    (``book_server_api/routers/books.py``).
+
+    The old page was written for a failure mode that no longer exists: with two
+    auth systems you could hold a valid web2py session but no Runestone JWT, so
+    it told you to log *out* and back in. There is one session now, so this is
+    simply "please sign in", plus the troubleshooting notes that still apply.
+    """
+    next = _safe_next(next)
+
+    # Already signed in? Then they followed a stale link, or signed in from
+    # another tab. Send them where they were trying to go.
+    user = await _current_user(request)
+    if _user_exists(user):
+        return RedirectResponse(next, status_code=status.HTTP_302_FOUND)
+
+    # Offer a read-only way in. `next` is /ns/books/published/<course>/<page...>;
+    # pull the page path back out so _browse_url can pick the right book.
+    browse_url = None
+    prefix = f"/ns/books/published/{course}/"
+    if course and next.startswith(prefix):
+        browse_url = await _browse_url(course, next[len(prefix) :])
+
+    return templates.TemplateResponse(
+        "admin/auth/login_required.html",
+        {
+            "request": request,
+            "course": course,
+            "next": next,
+            "browse_url": browse_url,
+        },
     )
 
 
@@ -156,7 +243,7 @@ async def login_post(
             "/admin/auth/courses", status_code=status.HTTP_302_FOUND
         )
     else:
-        response = RedirectResponse(next, status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(_safe_next(next), status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
     rslogger.info(f"LOGIN SUCCESS: {username}")
     return response
@@ -506,19 +593,53 @@ async def _build_my_courses_context(user: AuthUserValidator):
 
 
 @router.get("/my_courses", response_class=HTMLResponse)
-async def my_courses_page(request: Request):
+async def my_courses_page(
+    request: Request,
+    bad_course: str = "",
+    bad_page: str = "",
+    page_course: str = "",
+    requested_course: str = "",
+    current_course: str = "",
+    requested_path: str = "",
+):
+    """List the user's courses.
+
+    The book server bounces people here when it cannot serve the page they
+    asked for, passing the reason in the query string
+    (``book_server_api/routers/books.py``):
+
+    * ``bad_course``      -- no such course
+    * ``bad_page``/``page_course`` -- the course exists but has no such page
+    * ``requested_course``/``current_course``/``requested_path`` -- the course
+      they asked for is not their active one
+
+    Without those the page gives no hint why the reader was redirected, which
+    is what the old web2py ``courses.html`` explained. It also offered a
+    browsing-mode link for the requested course; both are restored here.
+    """
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(
             f"{_LOGIN}?next={_MY_COURSES}", status_code=status.HTTP_302_FOUND
         )
     ctx = await _build_my_courses_context(user)
+
+    browse_url = None
+    if requested_course and requested_path:
+        browse_url = await _browse_url(requested_course, requested_path)
+
     return templates.TemplateResponse(
         "admin/auth/my_courses.html",
         {
             "request": request,
             "user": user,
             "error": None,
+            "bad_course": bad_course,
+            "bad_page": bad_page,
+            "page_course": page_course,
+            "requested_course": requested_course,
+            "current_course": current_course,
+            "browse_url": browse_url,
             **ctx,
         },
     )

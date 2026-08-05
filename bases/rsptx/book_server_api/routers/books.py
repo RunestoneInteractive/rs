@@ -29,6 +29,7 @@ import os.path
 import random
 import socket
 from typing import Optional
+from urllib.parse import quote
 
 # Third-party imports
 # -------------------
@@ -249,10 +250,19 @@ async def serve_page(
             url=f"/admin/auth/my_courses?bad_course={course_name}", status_code=307
         )
     else:
-        # The course requires a login but the user is not logged in
+        # The course requires a login but the user is not logged in.
+        # Send the course and the page they wanted so the sign-in page can name
+        # the course, return them here afterwards, and offer the base course in
+        # browsing mode as a read-only alternative.
         if course_row.login_required and not user:
             rslogger.debug(f"User not logged in: {course_name} redirect to login")
-            return RedirectResponse(url="/runestone/default/accessIssue")
+            requested = quote(f"/ns/books/published/{course_name}/{pagepath}")
+            return RedirectResponse(
+                url=(
+                    f"/admin/auth/login-required"
+                    f"?course={quote(course_name)}&next={requested}"
+                )
+            )
 
         # The user is logged in, but their "current course" is not this one.
         # Send them to the courses page so they can properly switch courses.
@@ -431,8 +441,14 @@ async def serve_page(
     try:
         return templates.TemplateResponse(pagepath, context, headers=headers)
     except TemplateNotFound:
+        # The course is fine; this page is not part of it. Distinct from
+        # `bad_course`, which means the course itself does not exist.
         return RedirectResponse(
-            url=f"/admin/auth/my_courses?bad_course={pagepath}", status_code=307
+            url=(
+                f"/admin/auth/my_courses"
+                f"?bad_page={quote(pagepath)}&page_course={quote(course_name)}"
+            ),
+            status_code=307,
         )
 
 

@@ -41,6 +41,47 @@
     <h1>My Courses</h1>
     <p class="text-muted">Your currently active course is highlighted. Click a <strong>course name</strong> (or <strong>Switch</strong>) to make it your active course, or <strong>Drop</strong> to un-enroll.</p>
 
+    {# Explain a redirect from the book server, which passes the reason in the
+       query string. Without this the reader just lands here with no idea why. #}
+    {% if bad_course %}
+    <div class="alert alert-warning">
+        <p><strong>We couldn't find that page.</strong>
+            There is no course named <code>{{ bad_course }}</code>, or the page
+            you asked for isn't part of it. The link may be out of date, or the
+            course name may be misspelled.</p>
+        <p style="margin-bottom:0">Pick one of your courses below, or
+            <a href="/ns/books/index">browse the library</a> to enroll in
+            something new.</p>
+    </div>
+    {% elif bad_page %}
+    <div class="alert alert-warning">
+        <p><strong>That page isn't part of
+            {% if page_course %}<code>{{ page_course }}</code>{% else %}this course{% endif %}.</strong>
+            The book doesn't have a page at <code>{{ bad_page }}</code>. The link
+            may be out of date, or the page may have been renamed or removed
+            when the book was updated.</p>
+        <p style="margin-bottom:0">Try
+            <a href="/ns/course/index">your course home page</a> to find the
+            current table of contents.</p>
+    </div>
+    {% elif requested_course %}
+    <div class="alert alert-warning">
+        <p><strong>You asked for <code>{{ requested_course }}</code>, but your
+            active course is <code>{{ current_course }}</code>.</strong>
+            Runestone shows one course at a time so your work is saved to the
+            right place.</p>
+        <p{% if not browse_url %} style="margin-bottom:0"{% endif %}>
+            If you're enrolled in <code>{{ requested_course }}</code>, switch to
+            it below and follow your link again. If you're not enrolled yet, you
+            can <a href="/ns/books/index">find it in the library</a>.</p>
+        {% if browse_url %}
+        <p style="margin-bottom:0">Just want to read it? You can
+            <a href="{{ browse_url }}">open it without switching courses</a>.
+            Your answers and progress won't be saved.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
