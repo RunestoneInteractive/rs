@@ -161,6 +161,7 @@ async def test_rollup_uses_the_graded_course():
     assert fetch_scores.await_args.args == (assignment.id, "testcourse", "student1")
     assert upsert.await_args.args[0].score == 7.0
     assert lti.await_args.args[2] == 7.0
+    assert lti.await_args.kwargs == {"instructor_triggered": False}
 
 
 # _effective_deadline
@@ -322,6 +323,18 @@ async def test_recompute_totals_for_still_returns_the_processed_count():
         )
 
     assert processed == 1
+
+
+async def test_recompute_totals_for_forwards_instructor_triggered_flag():
+    fu, fg, fs, up, lti = _patch_rollup(
+        SimpleNamespace(score=0, manual_total=False), [5]
+    )
+    with fu, fg, fs, up, lti as lti_mock:
+        await regrade.recompute_totals_for(
+            _course(), _assignment(), ["student1"], instructor_triggered=True
+        )
+
+    assert lti_mock.await_args.kwargs == {"instructor_triggered": True}
 
 
 async def test_only_existing_skips_students_with_no_grade_row():
