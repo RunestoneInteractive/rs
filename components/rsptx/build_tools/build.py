@@ -11,7 +11,6 @@ from pathlib import Path
 import os
 import subprocess
 import sys
-from shutil import copyfile
 import yaml
 import toml
 import pdb  # noqa
@@ -334,15 +333,6 @@ def env(config):
             style="bold",
         )
         finish = False
-
-    if not os.path.isfile(
-        "bases/rsptx/web2py_server/applications/runestone/models/1.py"
-    ):
-        console.print("Copying 1.py.prototype to 1.py")
-        copyfile(
-            "bases/rsptx/web2py_server/applications/runestone/models/1.py.prototype",
-            "bases/rsptx/web2py_server/applications/runestone/models/1.py",
-        )
 
     if finish:
         console.print(

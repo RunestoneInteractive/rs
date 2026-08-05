@@ -116,13 +116,38 @@ include /etc/nginx/default.d/\*.conf;
        proxy_pass http://host.docker.internal:8101/;
     }
 
-    # route lti1p3 requests
+    # route admin requests (dstart admin -> port 8104)
+    location /admin/ {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       proxy_set_header X-Original-URI $request_uri;
+       proxy_redirect off;
+       proxy_pass http://host.docker.internal:8104/;
+    }
+
+    # route lti1p3 requests. These live on the admin server; this used to point
+    # at 8120, which nothing has ever started.
     location /lti1p3/ {
        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
        proxy_set_header X-Forwarded-Proto $scheme;
        proxy_set_header Host $http_host;
        proxy_redirect off;
-       proxy_pass http://host.docker.internal:8120/;
+       proxy_pass http://host.docker.internal:8104/lti1p3/;
+    }
+
+    # LTI 1.1 launches POST to /runestone/lti; the handler is on the admin
+    # server at /lti1p1. X-Original-URI preserves the URL the LMS signed so the
+    # OAuth signature still verifies after the rewrite. Mirrors the production
+    # proxies.
+    location /runestone/lti {
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header Host $http_host;
+       proxy_set_header X-Original-URI $request_uri;
+       proxy_redirect off;
+       rewrite ^/runestone/lti(/.*)?$ /lti1p1 break;
+       proxy_pass http://host.docker.internal:8104;
     }
 
     # route author requests
@@ -143,6 +168,10 @@ include /etc/nginx/default.d/\*.conf;
 
     }
 
+    # Everything else goes to the admin server's front door, matching the
+    # production proxies: /root sends a logged-in visitor to their current
+    # course and everyone else to settings.landing_page_url. This used to point
+    # at web2py on 8103.
     location / {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
@@ -150,9 +179,10 @@ include /etc/nginx/default.d/\*.conf;
       # we don't want nginx trying to do something clever with
       # redirects, we set the Host: header above already.
       proxy_redirect off;
-      # See `../../gunicorn/web2py.conf.py` for the corresponding socket bind.
-      #proxy_pass http://unix:/run/web2py.sock:/;
-      proxy_pass http://host.docker.internal:8103;
+      # Rewrite (not a prefix swap) so /anything/at/all lands on /root rather
+      # than /rootanything/at/all.
+      rewrite ^ /root break;
+      proxy_pass http://host.docker.internal:8104;
     }
 
 }

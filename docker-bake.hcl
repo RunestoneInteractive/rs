@@ -6,7 +6,7 @@
 # individual targets can be built with:
 # docker buildx bake --file docker-bake.hcl rs-jobe
 # docker buildx bake --file docker-bake.hcl rs-book
-# docker buildx bake --file docker-bake.hcl rs-runestone
+# docker buildx bake --file docker-bake.hcl rs-book
 # docker buildx bake --file docker-bake.hcl rs-assignment
 # docker buildx bake --file docker-bake.hcl rs-nginx
 # docker buildx bake --file docker-bake.hcl rs-nginx-dstart-dev
@@ -26,7 +26,6 @@ group "default" {
     targets = [
     "rs-jobe",
     "rs-book",
-    "rs-runestone",
     "rs-assignment",
     "rs-nginx",
     "rs-nginx-dstart-dev",
@@ -48,13 +47,6 @@ target "rs-book" {
     context    = "./projects/book_server"
     platforms  = ["linux/amd64", "linux/arm64"]
     tags       = ["ghcr.io/runestoneinteractive/rs-book:latest", "ghcr.io/runestoneinteractive/rs-book:${VERSION}"]
-    push       = true
-}
-
-target "rs-runestone" {
-    context    = "./projects/w2p_login_assign_grade"
-    platforms  = ["linux/amd64", "linux/arm64"]
-    tags       = ["ghcr.io/runestoneinteractive/rs-runestone:latest", "ghcr.io/runestoneinteractive/rs-runestone:${VERSION}"]
     push       = true
 }
 

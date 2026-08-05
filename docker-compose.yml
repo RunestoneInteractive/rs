@@ -191,69 +191,6 @@ services:
         condition: service_started
         required: false
 
-  runestone:
-    build:
-      context: ./projects/w2p_login_assign_grade
-    image: ghcr.io/runestoneinteractive/rs-runestone
-    hostname: runestone_${HOSTNAME:-dev}
-    extra_hosts:
-      - host.docker.internal:host-gateway
-    ports:
-      - 8112:8112
-    #command: gunicorn --bind 0.0.0.0:8112 rsptx.web2py_server.wsgihandler:application
-    # see projects/w2p_login_assign_grade/entrypoint.sh and the Dockerfile
-
-    restart: always
-    logging:
-      <<: *json-file-logging
-      options:
-        tag: runestone.runestone
-    volumes:
-      - ${BOOK_PATH}:/usr/books
-
-    environment:
-      - BOOK_PATH=/usr/books
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - WEB2PY_CONFIG=${SERVER_CONFIG}
-      - RUNESTONE_HOST=${RUNESTONE_HOST}
-      - RUNESTONE_PATH=/usr/src/app
-      - REDIS_URI=redis://${REDIS_HOST}:6379/0
-      # Note: host.docker.internal refers back to the host so we can just use a local instance
-      # of postgresql
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}?ssl=disable
-      - DBURL=${DC_DBURL:-$DBURL}?ssl=disable
-      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
-      - JWT_SECRET=${JWT_SECRET}
-      - FERNET_SECRET=${FERNET_SECRET}
-      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
-      - ACADEMY_MODE=True
-      - USE_MASTER_AUTHOR=${USE_MASTER_AUTHOR:-False}
-      - EMAIL_SENDER=${EMAIL_SENDER}
-      - EMAIL_SERVER=${EMAIL_SERVER}
-      - EMAIL_LOGIN=${EMAIL_LOGIN}      
-      - SPACES_KEY=${SPACES_KEY}
-      - SPACES_SECRET=${SPACES_SECRET}
-      - GUNICORN_CMD_ARGS=${GUNICORN_CMD_ARGS}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
-      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
-      - SERVER_PROTOCOL=${SERVER_PROTOCOL:-http://}
-      - ALLOW_INSECURE_LOGIN=${ALLOW_INSECURE_LOGIN:-True}
-    depends_on:
-      <<: *needs-preflight
-      redis:
-        condition: service_started
-        required: true
-      jobe:
-        condition: service_started
-        required: true
-      pgbouncer:
-        condition: service_started
-        required: false
-      db:
-        condition: service_started
-        required: false
-
   assignment:
     build:
       context: ./projects/assignment_server
@@ -330,11 +267,7 @@ services:
     volumes:
       - ${BOOK_PATH}:/usr/books
     depends_on:
-      # The proxy no longer forwards anything to runestone (web2py), so it is
-      # not required to be up; admin now serves the catch-all front door and is.
-      runestone:
-        condition: service_started
-        required: false
+      # admin serves the catch-all front door, so it is required.
       book:
         condition: service_started
         required: true
@@ -385,11 +318,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      # The proxy no longer forwards anything to runestone (web2py), so it is
-      # not required to be up; admin now serves the catch-all front door and is.
-      runestone:
-        condition: service_started
-        required: false
+      # admin serves the catch-all front door, so it is required.
       book:
         condition: service_started
         required: true
