@@ -74,21 +74,15 @@ def break_and_indent(text, max_line_length, indent=4):
 
 def split_java_code_into_blocks(java_code):
     """
-    Rule-based criteria to split Java code into Parsons blocks.
-    Aim to not make empty {} into individual blocks.
+    Rule-based criteria to split Java code into Parsons blocks: one statement per block.
+    Aim to not make empty {} into individual blocks -- an opening brace stays attached to
+    the header line above it (e.g. class/method declarations), and a closing brace stays
+    attached to the last statement inside the block it closes.
     """
     lines = java_code.split("\n")
     blocks = []
     i = 0
     n = len(lines)
-
-    def get_indent(line):
-        m = re.match(r"^(\s*)", line)
-        return len(m.group(1)) if m else 0
-
-    def is_real_code(line):
-        s = line.strip()
-        return s and s not in ["{", "}"]
 
     def is_open_brace(line):
         return line.strip() == "{"
@@ -104,7 +98,6 @@ def split_java_code_into_blocks(java_code):
             break
 
         block_lines = []
-        base_indent = get_indent(lines[i])
 
         # Add first line to block
         block_lines.append(lines[i])
@@ -115,12 +108,7 @@ def split_java_code_into_blocks(java_code):
             block_lines.append(lines[i])
             i += 1
 
-        # Add all real code lines with same indentation
-        while i < n and get_indent(lines[i]) == base_indent and is_real_code(lines[i]):
-            block_lines.append(lines[i])
-            i += 1
-
-        # If next line is `}`, add it to the last real code block
+        # If next line is `}`, add it to this block
         if i < n and is_close_brace(lines[i]):
             block_lines.append(lines[i])
             i += 1
@@ -432,10 +420,10 @@ def aggregate_code_to_Parsons_block_with_distractor(blocks):
             elif (distractor_indent == "") & (
                 this_indent != current_indent_in_block_stack
             ):
-                # use the first line number of the block as the line sequence number
-                all_Parsons_blocks[block_stack[0][0]] = "".join(
-                    str(block[1]) for block in block_stack
-                )
+                # each accumulated same-indent line becomes its own Parsons block,
+                # keyed by its own position so ordering is preserved
+                for stacked_index, stacked_content in block_stack:
+                    all_Parsons_blocks[stacked_index] = stacked_content
                 block_stack = [(index, block[3])]
                 current_indent_in_block_stack = this_indent
             # distractor_indent != "" means that detected that this is an end of a distractor block stack  or a start of a distractor block stack -- how to distinguish?
@@ -467,10 +455,9 @@ def aggregate_code_to_Parsons_block_with_distractor(blocks):
 
             if index == len(blocks) - 1:
                 if distractor_indent == "":
-                    # use the first line number of the block as the line sequence number
-                    all_Parsons_blocks[block_stack[0][0]] = "".join(
-                        str(block[1]) for block in block_stack
-                    )
+                    # each accumulated same-indent line becomes its own Parsons block
+                    for stacked_index, stacked_content in block_stack:
+                        all_Parsons_blocks[stacked_index] = stacked_content
                 elif distractor_indent != "":
                     count_fixed = sum(
                         1 for block in block_stack if "#matched-fixed" in block[1]

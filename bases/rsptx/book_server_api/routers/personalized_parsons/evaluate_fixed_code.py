@@ -67,43 +67,15 @@ PUSH_PROXY = "/ns/rsproxy/jobePushFile/"
 CHECK_PROXY = "/ns/rsproxy/jobeCheckFile/"
 
 
-def inject_pass_fail_prints(test_code):
-    """
-    Inserts System.out.println("PASS") before System.exit(0)
-    and System.out.println("FAIL") + message before System.exit(1),
-    inside the BackendTest main method.
-
-    Assumes test_code contains:
-        public class BackendTest { public static void main(...) { ... } }
-    """
-
-    # Insert PASS before System.exit(0) if not already present
-    if 'System.out.println("PASS")' not in test_code:
-        test_code = re.sub(
-            r"(TestHelper\.runAllTests\(\);\s*)(System\.exit\(0\);)",
-            r'\1System.out.println("PASS");\n            \2',
-            test_code,
-        )
-
-    # Insert FAIL prints before System.exit(1) inside catch(Exception e)
-    if 'System.out.println("FAIL")' not in test_code:
-        test_code = re.sub(
-            r"(catch\s*\(\s*Exception\s+e\s*\)\s*\{\s*)(System\.exit\(1\);)",
-            r'\1System.out.println("FAIL");\n            System.out.println(e.getMessage());\n            \2',
-            test_code,
-        )
-
-    return test_code
-
-
 # modified from rsproxy.py and livecode.js logic
 def load_and_run_java_tests(java_code, test_code):
     """
     Compile and run Java code with test cases.
     Inputs:
         java_code (str): The Java code to be tested.
-        test_code (str): The Java test cases. The test code should contain a public class with a main method to run the tests.
-                         The test code is automatically reformatted based on the unittest_code provided by instructors in the RST file.
+        test_code (str): The Java test cases -- a JUnit test class (extends CodeTestHelper,
+                         methods annotated with @Test, no main()), matching the standard
+                         Runestone suffix_code convention used for regular activecode runs.
     Output: bool: True if all tests pass, False otherwise.
     """
 
@@ -114,8 +86,6 @@ def load_and_run_java_tests(java_code, test_code):
         else:
             raise ValueError("Could not find a public class declaration.")
 
-    test_code = inject_pass_fail_prints(test_code)
-    print("modified_test_code\n", test_code)
     student_class = extract_class_name(java_code)
     test_class = extract_class_name(test_code)
 
@@ -172,10 +142,16 @@ def load_and_run_java_tests(java_code, test_code):
                     "body": put.text[:500],
                 }
 
-        # JOBE runs this, and it calls test class main()
-        runner_code = f"""public class TestRunner {{
+        # Mirrors livecode.js: run the JUnit test class via JUnitCore rather than
+        # calling a main() the test class doesn't have.
+        runner_code = f"""import org.junit.runner.JUnitCore;
+        import org.junit.runner.Result;
+
+        public class TestRunner {{
             public static void main(String[] args) {{
-                {test_class}.main(args);
+                CodeTestHelper.resetFinalResults();
+                Result result = JUnitCore.runClasses({test_class}.class);
+                System.out.println(result.wasSuccessful() ? "PASS" : "FAIL");
             }}
         }}"""
 
@@ -183,7 +159,11 @@ def load_and_run_java_tests(java_code, test_code):
             "language_id": "java",
             "sourcecode": runner_code,
             "sourcefilename": "",
-            "parameters": {},
+            # RunestoneTests/CodeTestHelper only reference the student class by name
+            # (reflectively, at runtime), so javac never sees a static reference to it
+            # and won't compile it unless told to explicitly -- mirrors livecode.js,
+            # which pushes the student filename onto compileargs for the same reason.
+            "parameters": {"compileargs": [student_filename]},
             "file_list": [
                 [student_id, student_filename],
                 [test_id, test_filename],
