@@ -503,12 +503,20 @@ async def courses_post(
 
 
 @router.get("/donate", response_class=HTMLResponse)
-async def donate_page(request: Request):
+async def donate_page(request: Request, next: str = ""):
+    """Invite the reader to support Runestone.
+
+    ``next`` is where they were actually headed. An LTI launch by a brand-new
+    enrollment lands here on its way to an assignment, so the page has to be a
+    stop along the route, not a dead end -- web2py did this with
+    ``session.lti_url_next``. Empty means they arrived on their own and there is
+    nowhere in particular to continue to.
+    """
     # The donate page is open to everyone -- logged-in students we prompt after
     # registration as well as anonymous visitors who want to support Runestone.
     # Only build the (user-specific) navbar context when someone is signed in.
     user = await _current_user(request)
-    context = {"request": request, "user": None}
+    context = {"request": request, "user": None, "next": _safe_next(next, "")}
     if _user_exists(user):
         context["user"] = user
         context.update(await _navbar_context(user))

@@ -16,12 +16,13 @@ import html
 import json
 import time
 import uuid
+from urllib.parse import quote, urlsplit
 from typing import Optional
 
 # Third-party imports
 # -------------------
 import oauth2
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
@@ -42,7 +43,6 @@ from rsptx.db.crud import (
     fetch_user,
     update_user,
     upsert_lti1p1_grade_link,
-    upsert_practice_grade_link,
     user_in_course,
 )
 from rsptx.db.models import AuthUserValidator
@@ -101,6 +101,21 @@ def _render_error(request: Request, errors: list) -> HTMLResponse:
     context = {"request": request, "lti_errors": errors}
     return templates.TemplateResponse(
         "admin/lti1p1/launch_error.html", context, status_code=400
+    )
+
+
+def _render_retired(request: Request, feature: str, detail: str) -> HTMLResponse:
+    """Explain that a launched feature no longer exists.
+
+    An LMS keeps whatever link an instructor configured years ago, so retired
+    features keep being launched. 200 rather than an error status: nothing went
+    wrong, the destination simply does not exist any more, and an error page in
+    an LMS iframe just generates support mail.
+    """
+    templates = get_shared_templates()
+    return templates.TemplateResponse(
+        "admin/lti1p1/retired.html",
+        {"request": request, "feature": feature, "detail": detail},
     )
 
 
@@ -199,11 +214,27 @@ async def index(request: Request):
     if user is None:
         return _render_error(request, ["Unable to create user record"])
 
-    # In academy mode, a brand-new enrollment is sent to the donation/payment
-    # flow (still served by web2py) rather than straight into the course.
     domain = get_domain()
-    if is_new_enrollment and settings.academy_mode:
-        redirect_to = f"https://{domain}/runestone/default/index"
+
+    async def _send_to(redirect_to: str) -> Response:
+        """Log the user in and send them to ``redirect_to``.
+
+        In academy mode a brand-new enrollment is asked to support Runestone
+        first. The ask goes *in front of* where they were headed rather than
+        replacing it -- web2py did the same thing by stashing
+        ``session.lti_url_next`` and honouring it after the donation page, so a
+        student launching an assignment for the first time still lands on that
+        assignment.
+        """
+        if is_new_enrollment and settings.academy_mode:
+            # Hand on the *path*, not the absolute URL we just built: the donate
+            # page only accepts a site-relative `next` (an absolute URL there
+            # would be an open redirect), so passing the full URL would silently
+            # discard the destination and strand the student on their course
+            # page instead of the assignment they launched.
+            parts = urlsplit(redirect_to)
+            dest = parts.path + (f"?{parts.query}" if parts.query else "")
+            redirect_to = f"https://{domain}/admin/auth/donate?next={quote(dest)}"
         return await _finalize_login(user, redirect_to)
 
     # Content-item selection (deep linking).
@@ -222,18 +253,27 @@ async def index(request: Request):
             is_instructor=instructor,
         )
         if error:
-            return _render_error(
-                request,
-                [f"{error} {assignment_id}; please contact your instructor."],
+            # The link points at an assignment that is gone, or that belongs to
+            # another course. The student cannot act on either, and an error
+            # page inside an LMS iframe is a dead end -- log them in and drop
+            # them on their course page, where the current assignment list is.
+            # _launch_assignment has already logged the specifics.
+            rslogger.info(
+                f"LTI1.1 - {error} ({assignment_id}) for {user.username}; "
+                "sending them to the course page"
             )
-        return await _finalize_login(user, redirect_to)
+            return await _send_to(f"https://{domain}/ns/course/index")
+        return await _send_to(redirect_to)
 
-    # Practice launch.
+    # Practice launch. The practice tool has been retired; LMS courses still
+    # have these links configured, so explain rather than error.
     if practice:
-        redirect_to = await _launch_practice(
-            outcome_url, result_source_did, user, course_id, domain
+        return _render_retired(
+            request,
+            "Practice",
+            "The Runestone practice tool has been retired and is no longer "
+            "available. Your other course work is unaffected.",
         )
-        return await _finalize_login(user, redirect_to)
 
     # Optional custom redirect within the book.
     redirect_url = params.get("redirect", None)
@@ -243,11 +283,10 @@ async def index(request: Request):
         if redirect_url.startswith("/") or redirect_url.startswith("http"):
             return _render_error(request, ["Invalid redirect URL"])
         redirect_to = f"https://{domain}/{redirect_url}"
-        return await _finalize_login(user, redirect_to)
+        return await _send_to(redirect_to)
 
     # Otherwise, send them to their course.
-    redirect_to = f"https://{domain}/ns/course/index"
-    return await _finalize_login(user, redirect_to)
+    return await _send_to(f"https://{domain}/ns/course/index")
 
 
 async def _login_or_create_user(
@@ -301,14 +340,17 @@ async def _login_or_create_user(
         else:
             await delete_course_instructor(course_id, user.id)
 
-        # Ensure enrollment.
+        # Ensure enrollment. This used to be deferred to web2py's donation flow
+        # in academy mode, which meant the student was never written to
+        # user_courses here -- so user_in_course stayed False, is_new_enrollment
+        # stayed True on every launch, and they were sent back to the donation
+        # flow forever, never reaching their assignment. Enroll unconditionally;
+        # academy mode now only decides whether we *ask for a donation on the
+        # way*, which the caller handles.
         in_course = await user_in_course(user.id, course_id)
         if not in_course:
             is_new_enrollment = True
-            # In academy mode we defer enrollment to the donation flow; otherwise
-            # enroll now.
-            if not settings.academy_mode:
-                await create_user_course_entry(user.id, course_id)
+            await create_user_course_entry(user.id, course_id)
 
     return user, is_new_enrollment
 
@@ -345,7 +387,14 @@ async def _launch_assignment(
     except (TypeError, ValueError):
         return None, "Invalid assignment id"
 
-    assignment = await fetch_one_assignment(assignment_id)
+    try:
+        assignment = await fetch_one_assignment(assignment_id)
+    except HTTPException:
+        # fetch_one_assignment raises 404 rather than returning None. Letting
+        # that propagate here would render a raw JSON error inside the LMS
+        # iframe; an LTI link to a deleted assignment is an ordinary, expected
+        # condition, so turn it back into the error tuple the caller handles.
+        assignment = None
     if not assignment:
         return None, "Invalid assignment id"
     if assignment.course != user.course_id:
@@ -388,20 +437,6 @@ async def _launch_assignment(
         f"https://{domain}/assignment/student/doAssignment"
         f"?assignment_id={assignment_id}"
     ), None
-
-
-async def _launch_practice(
-    outcome_url, result_source_did, user, course_id, domain
-) -> str:
-    """Record practice grade passback info and return the practice redirect URL."""
-    course = await fetch_course_by_id(course_id)
-    await upsert_practice_grade_link(
-        user.id, course.course_name, result_source_did, outcome_url
-    )
-    return (
-        f"https://{domain}/runestone/assignments/settz_then_practice"
-        f"?course_name={course.course_name}"
-    )
 
 
 async def _provide_assignment_list(

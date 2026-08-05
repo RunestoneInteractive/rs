@@ -3,7 +3,10 @@
 {% block title %}Support Runestone Academy{% endblock %}
 
 {% block content %}
-<div class="auth-card auth-card--wide donate-card">
+{# `next` is set when the reader is passing through on the way somewhere else --
+   e.g. an LTI launch by a new enrollment heading for an assignment. Both exits
+   from this page (declining, and completing a payment) must continue there. #}
+<div class="auth-card auth-card--wide donate-card" data-next="{{ next }}">
     <h1>Support Runestone Academy</h1>
 
     <p class="donate-intro">
@@ -43,7 +46,7 @@
                 Anything more than $1 is appreciated.
             </div>
             <div class="donate-actions">
-                <a class="btn-rs-secondary" href="{{ '/ns/course/index' if user else 'https://runestone.academy' }}" role="button">Sorry, not Today</a>
+                <a class="btn-rs-secondary" href="{{ next or ('/ns/course/index' if user else 'https://runestone.academy') }}" role="button">Sorry, not Today</a>
             </div>
         </div>
     </div>

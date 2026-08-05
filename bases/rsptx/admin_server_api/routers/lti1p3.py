@@ -22,6 +22,12 @@ import json
 import uuid
 import os
 import tldextract
+
+# Restored when #1342 and #1346 were merged together: #1346 dropped this import
+# because removing the web2py session cookie made it unused, while #1342 added
+# the LTI datetime helpers below that need it. Each PR is correct against main
+# on its own; only the combination breaks.
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 # Third-party imports
