@@ -1157,7 +1157,12 @@ async def fixtotals(
         for a in assignments:
             assignments_scanned += 1
             changes = await recompute_totals_detail(
-                c, a, sids, dry_run=dry_run, only_existing=not create_missing
+                c,
+                a,
+                sids,
+                dry_run=dry_run,
+                only_existing=not create_missing,
+                instructorTriggered=True,
             )
             students_scanned += len(changes)
             total_manual += sum(1 for ch in changes if ch.skipped_manual)
