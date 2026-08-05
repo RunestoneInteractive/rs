@@ -182,6 +182,21 @@ class Settings(BaseSettings):
         scheme = "https" if self.certbot_email or self.caddy_site_address else "http"
         return f"{scheme}://{self.runestone_host}"
 
+    @property
+    def server_protocol(self) -> str:
+        """Return the scheme (protocol) for this deployment.
+
+        Similar to above but only stores the scheme.
+
+        :return: The scheme, e.g. ``https://``.
+        :rtype: str
+        """
+        if self.load_balancer_host:
+            return "https://"
+        if self.caddy_site_address:
+            return "https://"
+        return "https://" if self.certbot_email else "http://"
+
     # Configure ads. TODO: Link to the place in the Runestone Components where this is used.
     adsenseid: str = ""
     num_banners: int = 0

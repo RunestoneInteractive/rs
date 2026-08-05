@@ -27,9 +27,9 @@ describe("getVisibilityMode", () => {
     expect(getVisibilityMode(undefined, null, null)).toBe("hidden");
   });
 
-  it("prioritizes scheduled_hidden over plain visible when both visible and hidden_on set", () => {
+  it("prefers scheduled_period when both visible_on and hidden_on are set, even if visible", () => {
     expect(getVisibilityMode(true, "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z")).toBe(
-      "scheduled_hidden"
+      "scheduled_period"
     );
   });
 });

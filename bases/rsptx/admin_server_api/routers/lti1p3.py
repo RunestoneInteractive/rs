@@ -142,6 +142,44 @@ def get_session_service():
     return FastAPISessionService(RedisCache())
 
 
+def parse_lti_datetime_as_utc(
+    datetime_string: Optional[str],
+) -> Optional[datetime.datetime]:
+    """
+    Parse an LTI ISO datetime and return a naive UTC datetime for storage.
+    Unresolved LTI substitution values indicate that the LMS has a null (but knows about the variable).
+    An unresolved parameter string indicates that the LMS does not recognize the variable. That will become an exception.
+    """
+    if not datetime_string or datetime_string == "":
+        return None
+
+    normalized_datetime_string = (
+        datetime_string.replace("Z", "+00:00")
+        if datetime_string.endswith("Z")
+        else datetime_string
+    )
+    lti_datetime = datetime.datetime.fromisoformat(normalized_datetime_string)
+    if lti_datetime.tzinfo is None:
+        return lti_datetime
+    return lti_datetime.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+
+def format_lti_datetime_as_utc(
+    datetime_value: Optional[datetime.datetime],
+) -> Optional[str]:
+    """
+    Format a naive UTC datetime for LTI as an explicit UTC ISO datetime.
+    """
+    if datetime_value is None:
+        return None
+
+    if datetime_value.tzinfo is None:
+        datetime_value = datetime_value.replace(tzinfo=datetime.timezone.utc)
+    else:
+        datetime_value = datetime_value.astimezone(datetime.timezone.utc)
+    return datetime_value.isoformat().replace("+00:00", "Z")
+
+
 async def login_or_create_user(
     launch: FastAPIMessageLaunch, lti_course: Lti1p3Course, course: CoursesValidator
 ) -> Lti1p3User:
@@ -295,8 +333,6 @@ async def launch(request: Request):
             key, value = p.split("=")
             query_params[key] = value
 
-    rslogger.debug(f"LTI1p3 - launch params: {query_params}")
-
     # Start by identifying the kind of launch this is. Will need different info from different kinds of launches
     # Type 1: Book links - links to specific pages in the book
     # They will have a query param "book_page"
@@ -410,9 +446,18 @@ async def launch(request: Request):
         await update_lti_assignment_record(assign_lineitem, lti_course, rs_assign)
 
         # make sure RS assignment is up to date (e.g. end date)
+        lti_config = await fetch_lti1p3_config_by_lti_data(
+            message_launch.get_iss(), message_launch.get_client_id()
+        )
         course_attributes = await fetch_all_course_attributes(course.id)
+        custom_params = message_launch.get_custom_params()
         await update_rsassignment_from_lti(
-            rs_assign, assign_lineitem, course_attributes, course
+            rs_assign,
+            assign_lineitem,
+            course_attributes,
+            course,
+            custom_params,
+            lti_config.product_family_code,
         )
 
         # start redirect to assignment
@@ -461,10 +506,17 @@ async def update_rsassignment_from_lti(
     line_item: LineItem,
     course_attributes: dict,
     course: Courses,
+    custom_params: Optional[dict] = None,
+    product_family_code: Optional[str] = None,
 ) -> AssignmentValidator:
     """
     Update a runestone assignment from LTI data.
     """
+    if course_attributes.get("ignore_lti_dates") == "true":
+        return assign
+
+    updated = False
+
     try:
         lms_due_string = line_item.get_end_date_time()
         rslogger.info(
@@ -489,16 +541,60 @@ async def update_rsassignment_from_lti(
             lms_due = lms_due.replace(tzinfo=tz)
         lms_due = lms_due.astimezone(datetime.timezone.utc).replace(tzinfo=None)
         rslogger.info(f"LTI1p3 - Storing {lms_due} UTC for assignment {assign.name}")
-        if (
-            lms_due is not None
-            and lms_due != assign.duedate
-            and course_attributes.get("ignore_lti_dates") != "true"
-        ):
+        if lms_due is not None and lms_due != assign.duedate:
             assign.duedate = lms_due
-            await update_assignment(assign)
+            updated = True
     except Exception:
         # just ignore bad dates, could be missing, bad format, etc
         pass
+
+    custom_params = custom_params or {}
+    availability_datetime_params = (
+        ("visible_on", "resource_link_available_startdatetime"),
+        ("hidden_on", "resource_link_available_enddatetime"),
+    )
+    for assignment_field, custom_param in availability_datetime_params:
+        raw_value = custom_params.get(custom_param)
+        if raw_value is None:
+            continue
+
+        # If the LMS does not recognize the variable, it will be returned verbatim.
+        # Otherwise, it should be a valid ISO datetime string or empty string.
+        # Empty indicates a meaningful null value.
+        try:
+            availability_datetime = parse_lti_datetime_as_utc(raw_value)
+        except Exception:
+            # Bad datetime or the verbatim param string.
+            # For most LMS's that means we should ignore. But Canvas does know
+            # about these variables and returns an unresolved variable
+            # when there is a null value.
+            if (
+                product_family_code == "canvas"
+                and isinstance(raw_value, str)
+                and raw_value.startswith("$ResourceLink.available.")
+            ):
+                availability_datetime = None
+            else:
+                # just ignore bad dates, could be missing, bad format, etc
+                continue
+
+        if availability_datetime != getattr(assign, assignment_field):
+            setattr(assign, assignment_field, availability_datetime)
+            updated = True
+
+    # check for a custom parameter that indicates the assignment is published in Canvas
+    canvas_assignment_published = custom_params.get("canvas_assignment_published")
+    if (
+        canvas_assignment_published is not None
+        and str(canvas_assignment_published).lower() == "true"
+    ):
+        if not assign.visible:
+            assign.visible = True
+            updated = True
+
+    if updated:
+        await update_assignment(assign)
+
     return assign
 
 
@@ -620,6 +716,10 @@ async def register_with_platform(platform_config: dict, token: str = None) -> di
             "custom_parameters": {
                 "context_id_history": "$Context.id.history",
                 "resource_link_history": "$ResourceLink.id.history",
+                "resource_link_submission_enddatetime": "$ResourceLink.submission.endDateTime",
+                "resource_link_available_startdatetime": "$ResourceLink.available.startDateTime",
+                "resource_link_available_enddatetime": "$ResourceLink.available.endDateTime",
+                "canvas_assignment_published": "$Canvas.assignment.published",
             },
             "claims": [
                 "sub",
@@ -1070,6 +1170,12 @@ async def assign_select(launch_id: str, request: Request, course=None):
                 dlr.set_url(launch_url)
                 dlr.set_title(assign.name)
                 dlr.set_target("window")
+                available_start_datetime = format_lti_datetime_as_utc(assign.visible_on)
+                if available_start_datetime:
+                    dlr.set_available_start_date_time(available_start_datetime)
+                available_end_datetime = format_lti_datetime_as_utc(assign.hidden_on)
+                if available_end_datetime:
+                    dlr.set_available_end_date_time(available_end_datetime)
 
                 line_item = LineItem()
                 update_line_item_from_assignment(

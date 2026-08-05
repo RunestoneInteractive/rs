@@ -38,7 +38,6 @@ from .session import SessionService
 from .service_connector import ServiceConnector, REQUESTS_USER_AGENT
 from .tool_config import ToolConfAbstract
 
-
 TResourceLinkClaim = te.TypedDict(
     "TResourceLinkClaim",
     {
@@ -176,6 +175,9 @@ TJwtData = te.TypedDict(
     },
     total=False,
 )
+
+
+CUSTOM_CLAIM = "https://purl.imsglobal.org/spec/lti/claim/custom"
 
 REQ = t.TypeVar("REQ", bound=Request)
 TCONF = t.TypeVar("TCONF", bound=ToolConfAbstract)
@@ -461,6 +463,62 @@ class MessageLaunch(t.Generic[REQ, TCONF, SES, COOK]):
             )
             is not None
         )
+
+    def has_custom_params(self) -> bool:
+        """
+        Returns whether or not the current launch contains LTI custom parameters.
+
+        :return: bool
+        """
+        custom_params = self._get_jwt_body().get(CUSTOM_CLAIM, None)
+        return isinstance(custom_params, dict) and len(custom_params) > 0
+
+    def get_custom_params(self) -> t.Mapping[str, str]:
+        """
+        Fetch custom parameters from the launch payload.
+
+        :return: Mapping[str, str]
+        """
+        custom_params = self._get_jwt_body().get(CUSTOM_CLAIM, {})
+        if custom_params is None:
+            return {}
+        if not isinstance(custom_params, dict):
+            raise LtiException("custom claim must be an object")
+        return t.cast(t.Mapping[str, str], custom_params)
+
+    def has_custom_param(self, key: str) -> bool:
+        """
+        Returns whether a named custom parameter exists in the launch payload.
+
+        :param key: Custom parameter key.
+        :return: bool
+        """
+        return key in self.get_custom_params()
+
+    def get_custom_param(
+        self, key: str, default_value: t.Optional[str] = None
+    ) -> t.Optional[str]:
+        """
+        Fetch a single custom parameter from the launch payload.
+
+        :param key: Custom parameter key.
+        :param default_value: Value to return when key is missing.
+        :return: str | None
+        """
+        return self.get_custom_params().get(key, default_value)
+
+    def require_custom_param(self, key: str) -> str:
+        """
+        Fetch a required custom parameter and fail if it is missing.
+
+        :param key: Custom parameter key.
+        :return: str
+        :raises LtiException: If key is missing from custom params.
+        """
+        value = self.get_custom_param(key)
+        if value is None:
+            raise LtiException(f"Missing custom launch param '{key}'")
+        return value
 
     def get_dls(self) -> TDeepLinkData:
         """

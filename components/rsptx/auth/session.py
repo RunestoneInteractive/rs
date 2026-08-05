@@ -64,7 +64,7 @@ class RSLoginManager(LoginManager):
         return settings.load_balancer_host or None
 
     def set_cookie(self, response, token):
-        production = settings.server_config == "production"
+        production = settings.server_protocol.startswith("https://")
         domain = self.cookie_domain
         if domain:
             # Anyone who logged in before the cookie was scoped still has a
