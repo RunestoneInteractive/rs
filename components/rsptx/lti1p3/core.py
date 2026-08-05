@@ -20,31 +20,6 @@ from rsptx.lti1p3.pylti1p3.lineitem import LineItem
 from rsptx.lti1p3.pylti1p3.service_connector import ServiceConnector
 from rsptx.lti1p3.pylti1p3.assignments_grades import AssignmentsGradesService
 
-# ================================
-# Notes re LTI 1.3 Implementation
-# ================================
-#
-# Pathways for grades to get sent to LTI 1.3 platforms:
-# 1. User does activity in book
-#    - grade_submission or score_reading_page call compute_total_score
-#    - compute_total_score calls attempt_lti1p3_score_update
-#    - scores are not pushed if assignment is not released
-# 2. Instructor releases grades in grading interface
-#    - api call made to /runestone/admin/releasegrades
-#    - releasegrades calls attempt_lti1p3_score_updates if the grades are now released
-# 3. Instructor presses send lti grades in grading interface
-#    - api call made to /runestone/admin/push_lti_grades
-#    - push_lti_grades calls attempt_lti1p3_score_updates
-# 4. One of the following:
-#    - Relase Grade to LTI button pressed in LTI_ONLY mode
-#    - Assignment launched
-#    - peer.py send_lti_scores is called
-#    - Student hits calculate self grade button on assignment
-#    They call _try_to_send_lti_grade
-#    - _try_to_send_lti_grade calls attempt_lti1p3_score_update if is 1.3
-
-# ================================
-
 
 def get_assignment_score_resource_id(course, assignment):
     """
