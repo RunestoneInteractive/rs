@@ -55,7 +55,7 @@ from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
 
-from .lti1p3 import add_w2py_session_cookie, get_domain, get_web2py_session_cookie
+from .lti1p3 import get_domain
 
 # Routing
 # =======
@@ -315,18 +315,13 @@ async def _login_or_create_user(
 
 async def _finalize_login(user: AuthUserValidator, redirect_to: str) -> Response:
     """
-    Set the Runestone JWT cookie (and the web2py session cookie for pages still
-    served by web2py) on a redirect response.
+    Set the Runestone JWT cookie on a redirect response.
     """
     response = RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)
     access_token = auth_manager.create_access_token(
         data={"sub": user.username}, expires=datetime.timedelta(hours=12)
     )
     auth_manager.set_cookie(response, access_token)
-    reg_id = user.registration_id or user.username
-    web2py_session_cookie = await get_web2py_session_cookie(reg_id)
-    if web2py_session_cookie:
-        add_w2py_session_cookie(response, web2py_session_cookie)
     rslogger.debug(f"LTI1.1 - sending user to {redirect_to}")
     return response
 
