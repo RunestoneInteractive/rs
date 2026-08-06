@@ -159,17 +159,16 @@ default-groups = ["dev", "docs"]
 profile = "black"
 
 [tool.ruff]
-exclude = ["bases/rsptx/web2py_server", "bases/rsptx/interactives", "bases/rsptx/dash_server_api", "__pycache__", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
+exclude = ["bases/rsptx/interactives", "bases/rsptx/dash_server_api", "__pycache__", ".claude", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
 
 [tool.ruff.lint]
 ignore = ["E501"]
 exclude = [
-    "bases/rsptx/web2py_server",
+    ".claude",
     ".venv",
     "build",
     "dist",
     "docs/_build",
-    "components/rsptx/web2py_server/static/lib",
     "bases/rsptx/interactives/runestone",
     "bases/rsptx/dash_server_api",
     "bases/rsptx/library_server_api",
@@ -188,7 +187,7 @@ addopts = "--import-mode=importlib"
 pythonpath = ["components", "bases", "."]
 testpaths = ["test"]
 norecursedirs = [
-    "bases/rsptx/web2py_server",
+    ".claude",
     "bases/rsptx/interactives",
     "bases/rsptx/dash_server_api",
     ".venv",
@@ -205,8 +204,7 @@ line-length = 88
 # Ignore directories using regex
 exclude = '''
 (
-        (^|/)(\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist|\.venv|projects|migrations)/
-    | (^|/)(bases/)?rsptx/web2py_server/
+        (^|/)(\.claude|\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist|\.venv|projects|migrations)/
     | (^|/)(bases/)?rsptx/interactives/
     | (^|/)(bases/)?rsptx/dash_server_api/
     | (^|/)node_modules/
@@ -216,8 +214,7 @@ exclude = '''
 # Also exclude these paths when files/directories are passed explicitly.
 force-exclude = '''
 (
-        (^|/)(\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist|\.venv|projects|migrations)/
-    | (^|/)(bases/)?rsptx/web2py_server/
+        (^|/)(\.claude|\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist|\.venv|projects|migrations)/
     | (^|/)(bases/)?rsptx/interactives/
     | (^|/)(bases/)?rsptx/dash_server_api/
     | (^|/)node_modules/

@@ -20,23 +20,12 @@ ignore=
 exclude =
   _build/
   alembic/
+  .claude/
   .tox/
   .venv/
 
-
-# for web2py legacy code
-
-builtins=settings,
-  request,
-  response,
-  db,
-  auth,
-  redirect,
-  XML,
-  URL,
-  T,
-  HTTP,
-  cache,
-  gluon,
-  verifyInstructorStatus
-  
+# There used to be a `builtins=` list here (settings, request, response, db,
+# auth, redirect, XML, URL, T, HTTP, cache, gluon, verifyInstructorStatus).
+# Those were web2py's magic globals, injected into controllers without an
+# import. web2py is gone, and dropping the list changes nothing: flake8 reports
+# the same 41 findings across bases/ and components/ with and without it.
