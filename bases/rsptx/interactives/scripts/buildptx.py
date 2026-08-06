@@ -7,7 +7,7 @@ import subprocess
 import pathlib
 import fnmatch
 
-from rsptx.build_tools.core import _build_ptx_book
+from rsptx.build_tools.core import _build_ptx_book, get_dburl
 from rsptx.build_tools.notifications import notify
 
 import click
@@ -15,15 +15,8 @@ import click
 
 class Config:
     def __init__(self):
-        conf = os.environ.get("SERVER_CONFIG", "production")
-        if conf == "production":
-            self.dburl = os.environ.get("DBURL")
-        elif conf == "development":
-            self.dburl = os.environ.get("DEV_DBURL")
-        elif conf == "test":
-            self.dburl = os.environ.get("TEST_DBURL")
-        else:
-            print("Incorrect SERVER_CONFIG")
+        # Resolved from SERVER_CONFIG; see rsptx.build_tools.core.get_dburl.
+        self.dburl = get_dburl()
 
 
 @click.command()

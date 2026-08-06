@@ -7,7 +7,6 @@
 # in use (for_classes or is_visible).  Handy to keep open in another terminal
 # while a long build_books run is in progress.
 
-import os
 from datetime import datetime
 
 import click
@@ -15,20 +14,17 @@ from sqlalchemy import create_engine, select, or_
 from textual.app import App, ComposeResult
 from textual.widgets import DataTable, Header, Footer, Static
 
+from rsptx.build_tools.core import get_dburl as _settings_dburl
 from rsptx.db.models import Library
 
 
 def get_dburl():
-    conf = os.environ.get("SERVER_CONFIG", "production")
-    if conf == "production":
-        dburl = os.environ.get("DBURL")
-    elif conf == "development":
-        dburl = os.environ.get("DEV_DBURL")
-    elif conf == "test":
-        dburl = os.environ.get("TEST_DBURL")
-    else:
-        dburl = None
-    return dburl.replace("+asyncpg", "") if dburl else None
+    """Sync URL for create_engine, resolved from SERVER_CONFIG.
+
+    Strips any ``+asyncpg`` driver suffix: the env var is sometimes set to the
+    async form, and SQLAlchemy's sync engine cannot use it.
+    """
+    return _settings_dburl().replace("+asyncpg", "")
 
 
 def fmt(ts):

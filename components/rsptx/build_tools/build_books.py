@@ -43,7 +43,7 @@ from rich.text import Text
 from sqlalchemy import create_engine, select, update, or_, func
 from sqlalchemy.orm.session import sessionmaker
 
-from rsptx.build_tools.core import _build_ptx_book
+from rsptx.build_tools.core import _build_ptx_book, get_dburl
 from rsptx.build_tools.notifications import notify
 from rsptx.db.models import Library, Courses
 from rsptx.response_helpers.core import canonical_utcnow
@@ -72,16 +72,10 @@ ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|
 
 class Config:
     def __init__(self):
-        conf = os.environ.get("SERVER_CONFIG", "production")
-        if conf == "production":
-            self.dburl = os.environ.get("DBURL")
-        elif conf == "development":
-            self.dburl = os.environ.get("DEV_DBURL")
-        elif conf == "test":
-            self.dburl = os.environ.get("TEST_DBURL")
-        else:
-            click.echo("Incorrect SERVER_CONFIG")
-            self.dburl = None
+        # Resolved from SERVER_CONFIG by rsptx.configuration.settings, the same
+        # way rsptx.db.sync_session picks the engine URL. An unknown value
+        # raises rather than silently leaving dburl None.
+        self.dburl = get_dburl()
 
 
 def runestone_binary():
