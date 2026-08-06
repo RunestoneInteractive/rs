@@ -447,7 +447,6 @@ services:
       - RUNESTONE_PATH=/usr/src/app
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
-      - WEB2PY_CONFIG=${SERVER_CONFIG}
       - JWT_SECRET=${JWT_SECRET}
       - SSH_AUTH_SOCK=/ssh-agent
       - NUM_SERVERS=${NUM_SERVERS:-1}

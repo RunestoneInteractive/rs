@@ -92,7 +92,7 @@ system. You can run nginx in "non daemon mode" using
 ``nginx -g 'daemon off;'``
 
 * Set ``RUNESTONE_PATH`` -- to be the root of the rs repo - this is used for some utilities to read the ``.env`` file.
-* set ``WEB2PY_CONFIG`` development
+* set ``SERVER_CONFIG`` development
 * set ``DEV_DBURL`` postgresql://bmiller:@localhost/runestone_dev
 * set ``BOOK_PATH`` /path/to/books
 * set ``WEB2PY_PRIVATE_KEY`` for logging in

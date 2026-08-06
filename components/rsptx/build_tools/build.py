@@ -255,7 +255,6 @@ def env(config):
         "RUNESTONE_HOST",
         "SERVER_CONFIG",
         "BOOK_PATH",
-        "WEB2PY_CONFIG",
         "JWT_SECRET",
         "WEB2PY_PRIVATE_KEY",
         "COMPOSE_PROFILES",

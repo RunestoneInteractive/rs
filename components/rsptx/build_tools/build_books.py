@@ -72,7 +72,7 @@ ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|
 
 class Config:
     def __init__(self):
-        conf = os.environ.get("WEB2PY_CONFIG", "production")
+        conf = os.environ.get("SERVER_CONFIG", "production")
         if conf == "production":
             self.dburl = os.environ.get("DBURL")
         elif conf == "development":
@@ -80,7 +80,7 @@ class Config:
         elif conf == "test":
             self.dburl = os.environ.get("TEST_DBURL")
         else:
-            click.echo("Incorrect WEB2PY_CONFIG")
+            click.echo("Incorrect SERVER_CONFIG")
             self.dburl = None
 
 
@@ -808,7 +808,7 @@ def build_books(
 
     config = Config()
     if not config.dburl:
-        click.echo("No database URL configured, check WEB2PY_CONFIG and DBURL")
+        click.echo("No database URL configured, check SERVER_CONFIG and DBURL")
         exit(1)
 
     versions = tool_versions()

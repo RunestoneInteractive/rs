@@ -1390,7 +1390,6 @@ def echoEnviron(config):
     click.echo(f"RUNESTONE_PATH is {settings.runestone_path}")
     click.echo(f"BOOK_PATH is {settings.book_path}")
     click.echo(f"SERVER_CONFIG is {settings.server_config}")
-    click.echo(f"WEB2PY_CONFIG is {config.conf}")
     click.echo(f"The database URL is configured as {config.dburl}")
     click.echo(f"DBNAME is {config.dbname}")
 

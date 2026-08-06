@@ -83,7 +83,7 @@ class Config:
         elif conf == "test":
             self.dburl = os.environ.get("TEST_DBURL")
         else:
-            print("Incorrect WEB2PY_CONFIG")
+            print("Incorrect SERVER_CONFIG")
         print(f"DBURL is {self.dburl}")
 
 

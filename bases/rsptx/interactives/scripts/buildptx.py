@@ -15,7 +15,7 @@ import click
 
 class Config:
     def __init__(self):
-        conf = os.environ.get("WEB2PY_CONFIG", "production")
+        conf = os.environ.get("SERVER_CONFIG", "production")
         if conf == "production":
             self.dburl = os.environ.get("DBURL")
         elif conf == "development":
@@ -23,7 +23,7 @@ class Config:
         elif conf == "test":
             self.dburl = os.environ.get("TEST_DBURL")
         else:
-            print("Incorrect WEB2PY_CONFIG")
+            print("Incorrect SERVER_CONFIG")
 
 
 @click.command()

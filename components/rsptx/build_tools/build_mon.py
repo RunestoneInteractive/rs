@@ -19,7 +19,7 @@ from rsptx.db.models import Library
 
 
 def get_dburl():
-    conf = os.environ.get("WEB2PY_CONFIG", "production")
+    conf = os.environ.get("SERVER_CONFIG", "production")
     if conf == "production":
         dburl = os.environ.get("DBURL")
     elif conf == "development":
@@ -134,7 +134,7 @@ class BuildMonitor(App):
 def main():
     dburl = get_dburl()
     if not dburl:
-        click.echo("No database URL configured, check WEB2PY_CONFIG and DBURL")
+        click.echo("No database URL configured, check SERVER_CONFIG and DBURL")
         exit(1)
     BuildMonitor(dburl).run()
 
