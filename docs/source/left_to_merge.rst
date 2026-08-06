@@ -16,7 +16,7 @@ This assumes that you have already followed the instructions for installing post
 4.  From the ``bases/rsptx/interactives`` folder run ``npm install``.  This will install all of the javascript dependencies for the interactives.  Next run ``npm run build`` this will build the Runestone Interactive javascript files.  You will need to do this every time you make a change to the javascript files.  If you are NOT going to build a book, then you can skip this step.
 5.  Run the ``build --core full`` command from the ``rs`` folder. The first step of this script will verify that you have all of your environment variables defined.
 6.  Make sure you are not already running a webserver on your computer.  You can check this by running ``lsof -i :80``.  If you see a line that says ``nginx`` then you are already running a webserver.  You can stop it by running ``sudo nginx -s stop``.  Alternatively you can edit the ``docker-compose.yml`` file and change the port that nginx is listening on to something other than 80.
-7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the except the author and worker. Those are only needed in a production environment where you want to give authors the ability to build and deploy their own books. If you want to start up **everything** you run ``COMPOSE_PROFILES=basic,author docker compose up ` You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``runestone``, ``book``, ``author``, ``dash``, ``assignment``, ``worker``, and ``nginx``.  You can also run ``docker-compose up -d`` to run the servers in the background.
+7.  Run ``docker-compose up`` from the ``rs`` folder.  This will start up all of the except the author and worker. Those are only needed in a production environment where you want to give authors the ability to build and deploy their own books. If you want to start up **everything** you run ``COMPOSE_PROFILES=basic,author docker compose up ` You can also run ``docker-compose up <server name>`` to start up just one server.  The server names are ``book``, ``admin``, ``assignment``, ``author``, ``worker``, and ``caddy`` (or ``nginx``).  You can also run ``docker-compose up -d`` to run the servers in the background.
 8.  Now you should be able to connect to ``http://localhost/`` from your computer and see the homepage.
 
 
@@ -25,9 +25,12 @@ Authentication
 
 At the time of this writing (April 2023) authentication is a bit over complicated.  That is part of what this monorepo project is trying to straighten out.
 
-web2py has its own system for doing authentication that uses session tokens and encrypted session information stored as a python pickle in the database.
-
-There are better ways including Javascript Web Token (JWTs) that modern frameworks use and share.   Right now we use both.  When you log in on the web2py server not only do you get a session cookie, but you also get a JWT.  All of the other services rely on that JWT.  We do like the role based authentication that we get from web2py so we want to keep that idea around, but eliminate the ``session`` and ``auth`` objects that web2py creates.
+This section described the period when web2py and the FastAPI servers both
+issued their own credentials -- a web2py session cookie *and* a JWT.  That is
+over: web2py was removed in August 2026 and there is now a single
+``access_token`` JWT cookie, issued by the admin server and read by every
+service.  Role-based access is preserved through the ``course_instructor``
+table rather than web2py's ``auth`` object.
 
 We are using the FastAPI_Login extension for much of what we do.  But JWTs are easy enough to check that it works with other non-FastAPI servers.
 
@@ -84,7 +87,7 @@ The ``build`` command will build one or all of the Python wheels and Docker imag
 When developing and you need multiple servers running
 
 
-Install nginx and configure projects/nginx/runestone.dev for your
+Install nginx and configure projects/nginx/runestone for your
 system. You can run nginx in "non daemon mode" using
 ``nginx -g 'daemon off;'``
 
@@ -99,8 +102,7 @@ system. You can run nginx in "non daemon mode" using
    source .venv/bin/activate
 
    uvicorn rsptx.book_server_api.main:app --reload --host 0.0.0.0 --port 8111
-   cd ~/rs/bases/rsptx/web2py_server
-   python web2py.py --no-gui --password whatever --ip 0.0.0.0 --port 8112
+   uvicorn rsptx.admin_server_api.core:app --reload --host 0.0.0.0 --port 8115
 
 If startup fails you may be missing a dependency... uv seems to miss
 greenlet sometimes. But a quick check is to run python and then
@@ -111,8 +113,8 @@ greenlet sometimes. But a quick check is to run python and then
 
 You will see a more detailed error message about what is missing.
 
-At a minimum you will need to start web2py long enough for you to login
-once.
+At a minimum you will need the admin server running long enough to log in
+once, since that is what issues the auth cookie the other servers read.
 
 logging
 ~~~~~~~
@@ -184,14 +186,15 @@ When doing development it is often much more convenient to just run the server o
    cd projects/assignment_server
    uv run uvicorn rsptx.assignment_server_api.core:app --host
 
-All of the servers use an authentication token stored in a cookie.  You may need to start up the web2py server to get a cookie.  You can do this by running the following from the root of the monorepo:
+All of the servers use an authentication token stored in a cookie.  The admin
+server issues it, so you need that running before the others will accept you:
 
 .. code-block:: bash
 
-   uv run gunicorn --bind 0.0.0.0:8080 --workers 1 rsptx.web2py_server.wsgihandler:application
+   uv run uvicorn rsptx.admin_server_api.core:app --host 0.0.0.0 --port 8115
 
-
-
-This will start up the web2py server and create an admin user with the password you specify.  You can then login to the web2py server and create a cookie.  You can then use that cookie to access the other servers.  You can also use the web2py server to create a course and add users to the course.  This will allow you to test the other servers with a real course.
+Log in at ``/admin/auth/login`` and the ``access_token`` cookie is set for the
+whole site.  Use ``rsmanage`` to create a course and enroll users so you have
+something real to test against.
 
 

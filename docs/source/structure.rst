@@ -46,8 +46,7 @@ The top level folders are:
         │     ├── 📁author_server_api
         │     ├── 📁book_server_api
         │     ├── 📁dash_server_api
-        │     ├── 📁rsmanage
-        │     └── 📁web2py_server
+        │     └── 📁rsmanage
         ├── 📁components
         │  └── 📁rsptx
         │     ├── 📁auth
@@ -92,13 +91,9 @@ The top level folders are:
         │  ├── 📁jobe
         │  ├── 📁nginx
         │  │  ├──  Dockerfile
-        │  ├── 📁rsmanage
-        │  │  ├── 📁dist
-        │  │  ├──  uv.lock
-        │  │  └──  pyproject.toml
-        │  └── 📁w2p_login_assign_grade
+        │  └── 📁rsmanage
         │     ├── 📁dist
-        │     ├──  Dockerfile
+        │     ├──  uv.lock
         │     └──  pyproject.toml
         ├──  pyproject.toml
         ├──  README.rst
