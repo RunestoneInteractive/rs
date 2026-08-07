@@ -724,7 +724,13 @@ def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name
     if not cnum_text:
         cnum = chap_counter
     else:
-        cnum = int(cnum_text)
+        try:
+            cnum = int(cnum_text)
+        except ValueError:
+            rslogger.warning(
+                f"Chapter number '{cnum_text}' is not an integer. Using counter {chap_counter} instead."
+            )
+            cnum = chap_counter
 
     rslogger.debug(
         f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
@@ -791,7 +797,13 @@ def _process_single_subchapter(
         # strip off the chapter number and just keep the subchapter number
         if "." in scnum_text:
             scnum_text = scnum_text.split(".")[1]
-        scnum = int(scnum_text.strip())
+        try:
+            scnum = int(scnum_text.strip())
+        except ValueError:
+            rslogger.warning(
+                f"Subchapter number '{scnum_text}' is not an integer. Using counter {subchap_counter} instead."
+            )
+            scnum = subchap_counter
     else:
         scnum = subchap_counter
 
