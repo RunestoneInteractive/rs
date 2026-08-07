@@ -205,6 +205,32 @@ export interface GradebookResponse {
   averages: Record<string, number | null>;
 }
 
+/** One question's worth of a single student's assignment breakdown. */
+export interface StudentAssignmentQuestionScore {
+  id: number;
+  name: string;
+  qnumber?: string | null;
+  question_type?: string;
+  chapter?: string | null;
+  subchapter?: string | null;
+  points: number | null;
+  reading_assignment?: boolean;
+  score: number | null;
+  comment?: string | null;
+}
+
+export interface StudentAssignmentScoresResponse {
+  assignment_id: number;
+  assignment_name: string;
+  assignment_points: number | null;
+  username: string;
+  student_name: string;
+  total_score: number | null;
+  /** A hand-entered total is expected to differ from the sum of the questions. */
+  manual_total: boolean;
+  questions: StudentAssignmentQuestionScore[];
+}
+
 export interface SetManualTotalRequest {
   assignment_id: number;
   sid: string;
@@ -221,6 +247,10 @@ export interface SetManualTotalResponse {
 
 export const GRADEBOOK_CSV_URL = "/assignment/instructor/grader/gradebook.csv";
 
+/** Cache id for one student's breakdown of one assignment. */
+export const studentScoresTag = (assignmentId: number, sid: string): string =>
+  `${assignmentId}:${sid}`;
+
 export const gradebookCsvFilename = (courseName: string, date: Date = new Date()): string => {
   const safe = (courseName || "course").replace(/[^a-zA-Z0-9_-]+/g, "-");
   const stamp = date.toISOString().slice(0, 10);
@@ -231,7 +261,7 @@ export const graderApi = createApi({
   reducerPath: "graderApi",
   baseQuery,
   keepUnusedDataFor: 30,
-  tagTypes: ["GraderQuestions", "GraderAnswers", "Accommodations", "Gradebook"],
+  tagTypes: ["GraderQuestions", "GraderAnswers", "Accommodations", "Gradebook", "StudentScores"],
   endpoints: (build) => ({
     getGraderQuestions: build.query<GraderQuestionsResponse, number>({
       query: (assignmentId) => ({
@@ -312,6 +342,7 @@ export const graderApi = createApi({
             dispatch(
               graderApi.util.invalidateTags([
                 { type: "GraderQuestions", id: assignmentId },
+                { type: "StudentScores", id: studentScoresTag(assignmentId, sid) },
                 "Gradebook"
               ])
             );
@@ -340,7 +371,13 @@ export const graderApi = createApi({
       transformResponse: (r: DetailResponse<RegradeReport>) => r.detail,
       invalidatesTags: (_res, _err, req) => [
         { type: "GraderQuestions", id: req.assignment_id },
-        ...req.question_ids.map((id) => ({ type: "GraderAnswers" as const, id }))
+        ...req.question_ids.map((id) => ({ type: "GraderAnswers" as const, id })),
+        ...req.sids.map((sid) => ({
+          type: "StudentScores" as const,
+          id: studentScoresTag(req.assignment_id, sid)
+        })),
+        // A regrade that rolls totals up moves the numbers the gradebook shows.
+        "Gradebook" as const
       ]
     }),
     getAccommodations: build.query<{ accommodations: Accommodation[] }, void>({
@@ -443,6 +480,23 @@ export const graderApi = createApi({
       providesTags: ["Gradebook"],
       transformResponse: (r: DetailResponse<GradebookResponse>) => r.detail
     }),
+    getStudentAssignmentScores: build.query<
+      StudentAssignmentScoresResponse,
+      { assignmentId: number; sid: string }
+    >({
+      // username is a query parameter rather than a path segment because
+      // usernames are frequently email addresses.
+      query: ({ assignmentId, sid }) => ({
+        method: "GET",
+        url: `/assignment/instructor/assignments/${assignmentId}/student_scores?username=${encodeURIComponent(
+          sid
+        )}`
+      }),
+      providesTags: (_res, _err, { assignmentId, sid }) => [
+        { type: "StudentScores", id: studentScoresTag(assignmentId, sid) }
+      ],
+      transformResponse: (r: DetailResponse<StudentAssignmentScoresResponse>) => r.detail
+    }),
     setManualTotal: build.mutation<SetManualTotalResponse, SetManualTotalRequest>({
       query: (body) => ({
         method: "POST",
@@ -452,6 +506,7 @@ export const graderApi = createApi({
       transformResponse: (r: DetailResponse<SetManualTotalResponse>) => r.detail,
       invalidatesTags: (_res, _err, req) => [
         { type: "GraderQuestions", id: req.assignment_id },
+        { type: "StudentScores", id: studentScoresTag(req.assignment_id, req.sid) },
         "Gradebook"
       ]
     })
@@ -473,5 +528,6 @@ export const {
   useSetAssignmentReleasedMutation,
   useSetAssignmentThresholdMutation,
   useGetGradebookQuery,
+  useGetStudentAssignmentScoresQuery,
   useSetManualTotalMutation
 } = graderApi;

@@ -1,13 +1,22 @@
-import type { GradebookAssignment, GradebookCell } from "@store/grader/grader.logic.api";
+import type {
+  GradebookAssignment,
+  GradebookCell,
+  GradebookStudent,
+  StudentAssignmentQuestionScore
+} from "@store/grader/grader.logic.api";
 
 import {
   assignmentAverage,
   buildCellLookup,
   cellKey,
+  filterAssignments,
+  filterStudents,
   formatScore,
   getCell,
   getCellScore,
   isCellManual,
+  isTotalStale,
+  questionScoreSum,
   studentTotal
 } from "./gradebookSelectors";
 
@@ -123,5 +132,80 @@ describe("formatScore", () => {
 
   it("rounds fractional scores to two decimals", () => {
     expect(formatScore(7.333)).toBe("7.33");
+  });
+});
+
+describe("filterStudents", () => {
+  const students: GradebookStudent[] = [
+    { sid: "ada@example.com", name: "Ada Lovelace" },
+    { sid: "turing", name: "Alan Turing" },
+    { sid: "nameless", name: "nameless" }
+  ];
+
+  it("returns everyone for an empty query", () => {
+    expect(filterStudents(students, "   ")).toHaveLength(3);
+  });
+
+  it("matches the display name case-insensitively", () => {
+    expect(filterStudents(students, "LOVELACE").map((s) => s.sid)).toEqual(["ada@example.com"]);
+  });
+
+  it("matches on the sid so a student with no name is still findable", () => {
+    expect(filterStudents(students, "ada@").map((s) => s.sid)).toEqual(["ada@example.com"]);
+  });
+
+  it("returns nothing when nothing matches", () => {
+    expect(filterStudents(students, "grace")).toEqual([]);
+  });
+});
+
+describe("filterAssignments", () => {
+  it("treats an empty selection as all assignments", () => {
+    expect(filterAssignments(assignments, [])).toHaveLength(2);
+  });
+
+  it("keeps only the selected columns, in gradebook order", () => {
+    expect(filterAssignments(assignments, [2]).map((a) => a.id)).toEqual([2]);
+    expect(filterAssignments(assignments, [2, 1]).map((a) => a.id)).toEqual([1, 2]);
+  });
+
+  it("ignores ids that are not in the gradebook", () => {
+    expect(filterAssignments(assignments, [99])).toEqual([]);
+  });
+});
+
+describe("questionScoreSum / isTotalStale", () => {
+  const graded: StudentAssignmentQuestionScore[] = [
+    { id: 1, name: "q1", points: 5, score: 5 },
+    { id: 2, name: "q2", points: 5, score: 3 },
+    { id: 3, name: "q3", points: 5, score: null }
+  ];
+
+  it("sums only the graded questions", () => {
+    expect(questionScoreSum(graded)).toBe(8);
+  });
+
+  it("is not stale when the total matches the questions", () => {
+    expect(isTotalStale(graded, 8, false)).toBe(false);
+  });
+
+  it("is stale when the total disagrees with the questions", () => {
+    expect(isTotalStale(graded, 2, false)).toBe(true);
+  });
+
+  it("tolerates floating point noise", () => {
+    expect(isTotalStale(graded, 8.001, false)).toBe(false);
+  });
+
+  it("is stale when scores exist but no total was recorded", () => {
+    expect(isTotalStale(graded, null, false)).toBe(true);
+  });
+
+  it("is never stale for a hand-entered total", () => {
+    expect(isTotalStale(graded, 2, true)).toBe(false);
+  });
+
+  it("is not stale when nothing has been graded", () => {
+    expect(isTotalStale([{ id: 1, name: "q1", points: 5, score: null }], null, false)).toBe(false);
   });
 });

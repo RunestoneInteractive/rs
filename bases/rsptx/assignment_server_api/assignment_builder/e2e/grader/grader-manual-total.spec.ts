@@ -56,7 +56,7 @@ test(
       await expect(page.getByRole("table", { name: "Gradebook" })).toBeVisible();
 
       const cellButton = page.getByRole("button", {
-        name: `Edit total for ${student.name} on ${assignmentName}`
+        name: `Show details for ${student.name} on ${assignmentName}`
       });
       await cellButton.scrollIntoViewIfNeeded();
       await cellButton.click();
@@ -64,6 +64,9 @@ test(
       await page.getByLabel("Manual total").fill("42");
       await page.getByRole("button", { name: "Set total" }).click();
       await expect(page.getByText(/Manual total set/i)).toBeVisible();
+      // The cell dialog stays open after a save; close it so the next click on
+      // the gradebook is not swallowed by the modal overlay.
+      await page.keyboard.press("Escape");
 
       const afterSet = await fetchGradebook(page.request);
       const setCell = cellFor(afterSet, sid, assignmentId);

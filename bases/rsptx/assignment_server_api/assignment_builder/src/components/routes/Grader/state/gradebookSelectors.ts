@@ -1,6 +1,8 @@
 import type {
   GradebookAssignment,
-  GradebookCell
+  GradebookCell,
+  GradebookStudent,
+  StudentAssignmentQuestionScore
 } from "@store/grader/grader.logic.api";
 
 export const cellKey = (sid: string, assignmentId: number): string => `${sid}:${assignmentId}`;
@@ -34,10 +36,7 @@ export const isCellManual = (
   assignmentId: number
 ): boolean => !!lookup.get(cellKey(sid, assignmentId))?.manual_total;
 
-export const assignmentAverage = (
-  cells: GradebookCell[],
-  assignmentId: number
-): number | null => {
+export const assignmentAverage = (cells: GradebookCell[], assignmentId: number): number | null => {
   const scores = cells
     .filter((c) => c.assignment_id === assignmentId && c.score != null)
     .map((c) => c.score as number);
@@ -66,4 +65,57 @@ export const studentTotal = (
 export const formatScore = (score: number | null | undefined): string => {
   if (score == null) return "—";
   return Number.isInteger(score) ? String(score) : String(Math.round(score * 100) / 100);
+};
+
+/**
+ * Rows the student filter leaves visible. The sid is matched as well as the
+ * display name because a student whose name is missing shows up as their
+ * username.
+ */
+export const filterStudents = (students: GradebookStudent[], query: string): GradebookStudent[] => {
+  const needle = query.trim().toLowerCase();
+
+  if (!needle) return students;
+  return students.filter(
+    (s) => s.name.toLowerCase().includes(needle) || s.sid.toLowerCase().includes(needle)
+  );
+};
+
+/**
+ * Columns the assignment filter leaves visible. An empty selection means "all
+ * assignments" rather than "none", so clearing the picker restores the full
+ * gradebook.
+ */
+export const filterAssignments = (
+  assignments: GradebookAssignment[],
+  selectedIds: number[]
+): GradebookAssignment[] => {
+  if (selectedIds.length === 0) return assignments;
+  const wanted = new Set(selectedIds);
+
+  return assignments.filter((a) => wanted.has(a.id));
+};
+
+/** Sum of the question scores that have actually been graded. */
+export const questionScoreSum = (questions: StudentAssignmentQuestionScore[]): number =>
+  questions.reduce((sum, q) => (q.score == null ? sum : sum + q.score), 0);
+
+/**
+ * True when the recorded assignment total disagrees with the question scores it
+ * is supposed to roll up. A hand-entered total is *expected* to differ, so it
+ * never counts as stale; a computed one that differs is simply out of date.
+ */
+export const isTotalStale = (
+  questions: StudentAssignmentQuestionScore[],
+  totalScore: number | null | undefined,
+  manualTotal: boolean
+): boolean => {
+  if (manualTotal) return false;
+  const scored = questions.filter((q) => q.score != null);
+
+  if (scored.length === 0) return false;
+  const sum = questionScoreSum(scored);
+
+  if (totalScore == null) return sum > 0;
+  return Math.abs(sum - totalScore) > 0.01;
 };

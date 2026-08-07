@@ -1,26 +1,36 @@
-import { renderWithMantine, screen } from "@/test/renderWithMantine";
+import userEvent from "@testing-library/user-event";
+
+import { renderWithMantine, screen, within } from "@/test/renderWithMantine";
 import type { GradebookResponse } from "@store/grader/grader.logic.api";
 
 import { GraderGradebookPage } from "./GraderGradebookPage";
 
-const { mockUseGetGradebookQuery, mockSetManualTotal } = vi.hoisted(() => ({
+const { mockUseGetGradebookQuery, mockCellDialog } = vi.hoisted(() => ({
   mockUseGetGradebookQuery: vi.fn(),
-  mockSetManualTotal: vi.fn(() => ({ unwrap: () => Promise.resolve({}) }))
+  mockCellDialog: vi.fn()
 }));
 
 vi.mock("@store/grader/grader.logic.api", async (importOriginal) => {
   const original = await importOriginal<typeof import("@store/grader/grader.logic.api")>();
+
   return {
     ...original,
-    useGetGradebookQuery: mockUseGetGradebookQuery,
-    useSetManualTotalMutation: () => [mockSetManualTotal, { isLoading: false }]
+    useGetGradebookQuery: mockUseGetGradebookQuery
   };
 });
+
+// The dialog has its own spec; here we only care about what the page hands it.
+vi.mock("../components/GradebookCellDialog", () => ({
+  GradebookCellDialog: (props: Record<string, unknown>) => {
+    mockCellDialog(props);
+    return null;
+  }
+}));
 
 const matrix: GradebookResponse = {
   assignments: [
     { id: 1, name: "Quiz 1", points: 10, duedate: null, released: true },
-    { id: 2, name: "Quiz 2", points: 5, duedate: null, released: false }
+    { id: 2, name: "Homework 2", points: 5, duedate: null, released: false }
   ],
   students: [
     { sid: "s1", name: "Ada Lovelace" },
@@ -37,6 +47,7 @@ const matrix: GradebookResponse = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUseGetGradebookQuery.mockReturnValue({ data: matrix, isLoading: false });
 });
 
 describe("GraderGradebookPage", () => {
@@ -47,22 +58,23 @@ describe("GraderGradebookPage", () => {
   });
 
   it("renders the assignment columns, students and totals", () => {
-    mockUseGetGradebookQuery.mockReturnValue({ data: matrix, isLoading: false });
     renderWithMantine(<GraderGradebookPage />);
+    // Scoped to the table: the assignment names also appear in the column filter.
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
 
-    expect(screen.getByText("Quiz 1")).toBeInTheDocument();
-    expect(screen.getByText("Quiz 2")).toBeInTheDocument();
-    expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
-    expect(screen.getByText("Alan Turing")).toBeInTheDocument();
-    expect(screen.getByText("13")).toBeInTheDocument();
-    expect(screen.getByText("Class average")).toBeInTheDocument();
+    expect(table.getByText("Quiz 1")).toBeInTheDocument();
+    expect(table.getByText("Homework 2")).toBeInTheDocument();
+    expect(table.getByText("Ada Lovelace")).toBeInTheDocument();
+    expect(table.getByText("Alan Turing")).toBeInTheDocument();
+    expect(table.getByText("13")).toBeInTheDocument();
+    expect(table.getByText("Class average")).toBeInTheDocument();
   });
 
   it("renders an Export CSV download link to the CSV endpoint", () => {
-    mockUseGetGradebookQuery.mockReturnValue({ data: matrix, isLoading: false });
     renderWithMantine(<GraderGradebookPage />);
 
     const link = screen.getByRole("link", { name: /export csv/i });
+
     expect(link).toHaveAttribute("href", "/assignment/instructor/grader/gradebook.csv");
     expect(link).toHaveAttribute("download");
   });
@@ -74,5 +86,63 @@ describe("GraderGradebookPage", () => {
     });
     renderWithMantine(<GraderGradebookPage />);
     expect(screen.getByText("Nothing to grade yet")).toBeInTheDocument();
+  });
+
+  it("filters rows by student name", async () => {
+    renderWithMantine(<GraderGradebookPage />);
+
+    await userEvent.type(screen.getByLabelText("Filter students by name"), "turing");
+
+    expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+    expect(screen.getByText("Alan Turing")).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1 of 2 students/)).toBeInTheDocument();
+  });
+
+  it("filters columns by assignment name", async () => {
+    renderWithMantine(<GraderGradebookPage />);
+
+    // MultiSelect renders a visible search field plus a hidden value input, so
+    // the aria-label matches twice; the first is the one a user types into.
+    await userEvent.click(screen.getAllByLabelText("Filter assignment columns by name")[0]);
+    await userEvent.click(await screen.findByRole("option", { name: "Homework 2" }));
+
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
+
+    expect(table.queryByText("Quiz 1")).not.toBeInTheDocument();
+    expect(table.getByText("Homework 2")).toBeInTheDocument();
+    // Only the shown column is added up, and the header says so.
+    expect(table.getByText("Total (shown)")).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 assignments/)).toBeInTheDocument();
+  });
+
+  it("tells the reader when the filters match nothing", async () => {
+    renderWithMantine(<GraderGradebookPage />);
+
+    await userEvent.type(screen.getByLabelText("Filter students by name"), "nobody");
+
+    expect(screen.getByText("Nothing matches these filters")).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Gradebook" })).not.toBeInTheDocument();
+  });
+
+  it("opens the drill-down for the clicked cell", async () => {
+    renderWithMantine(<GraderGradebookPage />);
+
+    expect(mockCellDialog).toHaveBeenLastCalledWith(
+      expect.objectContaining({ opened: false, assignment: null, student: null })
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show details for Alan Turing on Quiz 1" })
+    );
+
+    expect(mockCellDialog).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        opened: true,
+        assignment: expect.objectContaining({ id: 1 }),
+        student: expect.objectContaining({ sid: "s2" }),
+        score: 6,
+        manual: false
+      })
+    );
   });
 });

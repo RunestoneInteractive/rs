@@ -1286,3 +1286,13 @@
 .manualTotalForm {
   min-width: 220px;
 }
+.gradebookFilterInput {
+  width: 200px;
+}
+.gradebookFilterSelect {
+  min-width: 220px;
+  max-width: 360px;
+}
+.gradebookFilterSummary {
+  margin-bottom: var(--rs-space-2);
+}

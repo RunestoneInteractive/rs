@@ -79,6 +79,31 @@ test(
       await expect(page.getByText(assignmentName, { exact: false }).first()).toBeVisible();
       await expect(page.getByText("Class average")).toBeVisible();
 
+      // Filtering rows by student name, and clearing it again.
+      const studentFilter = page.getByLabel("Filter students by name");
+
+      await studentFilter.fill("zzz-no-such-student");
+      await expect(page.getByText("Nothing matches these filters")).toBeVisible();
+      await studentFilter.fill("");
+      await expect(page.getByRole("table", { name: "Gradebook" })).toBeVisible();
+
+      // Clicking a cell drills down into that student's question-by-question
+      // scores for that assignment.
+      const student = gradebook.students.find((s) => s.sid === CYCLE_STUDENTS[0]);
+
+      if (student) {
+        const cell = page.getByRole("button", {
+          name: `Show details for ${student.name} on ${assignmentName}`
+        });
+
+        await cell.scrollIntoViewIfNeeded();
+        await cell.click();
+        await expect(page.getByRole("table", { name: "Question scores" })).toBeVisible();
+        await expect(page.getByText(/Assignment total/)).toBeVisible();
+        await expect(page.getByLabel("Manual total")).toBeVisible();
+        await page.keyboard.press("Escape");
+      }
+
       const exportLink = page.getByRole("link", { name: /export csv/i });
       await expect(exportLink).toBeVisible();
 
