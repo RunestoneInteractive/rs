@@ -171,7 +171,7 @@ async def index(request: Request, user=Depends(auth_manager)):
             "student_page": True,
             "course_list": course_list,
             "is_instructor": "true" if user_is_instructor else "false",
-            "has_discussion_group": book.social_url,
+            "has_discussion_group": book.social_url if book else None,
             "lti1p1": is_lti1p1_course,
             "now": now,
             "visibility_map": visibility_map,
