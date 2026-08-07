@@ -1162,7 +1162,7 @@ async def fixtotals(
                 sids,
                 dry_run=dry_run,
                 only_existing=not create_missing,
-                instructorTriggered=True,
+                instructor_triggered=True,
             )
             students_scanned += len(changes)
             total_manual += sum(1 for ch in changes if ch.skipped_manual)
