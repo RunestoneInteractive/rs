@@ -108,11 +108,18 @@ def clean_python_testcase(raw_test_code: str) -> str:
 
 def extract_parsons_code(html_block):
     """
-    Given the full HTML/pre block for a Parsons problem extracted from DB,
-    return only the Parsons code part.
+    Given the full HTML for a Parsons question fetched from the DB, return only
+    the code inside <pre class="parsonsblocks">...</pre> -- the question prompt
+    text lives in a sibling <div class="parsons_question"> and must be excluded,
+    otherwise it gets treated as (and rendered as) one of the draggable blocks.
     """
+    pre_match = re.search(
+        r'<pre[^>]*class="parsonsblocks"[^>]*>(.*?)</pre>', html_block, flags=re.DOTALL
+    )
+    pre_content = pre_match.group(1) if pre_match else html_block
+
     # Remove all HTML tags and extract the code lines
-    text = re.sub(r"<.*?>", "", html_block, flags=re.DOTALL)
+    text = re.sub(r"<.*?>", "", pre_content, flags=re.DOTALL)
     lines = text.strip().splitlines()
     if "-----" in lines:
         idx = lines.index("-----")
@@ -123,7 +130,8 @@ def extract_parsons_code(html_block):
     clean_lines = [
         line for line in code_lines if line.strip() and line.strip() != "====="
     ]
-    return "\n".join(clean_lines)
+    result = "\n".join(clean_lines)
+    return result
 
 
 def _build_static_parsons_response(
