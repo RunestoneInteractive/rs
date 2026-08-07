@@ -61,6 +61,14 @@
 		@csawesome path_regexp csa ^/runestone/static/csawesome/(\w+)/(.*)$
 		rewrite @csawesome /ns/books/published/csawesome/{re.csa.1}/{re.csa.2}
 
+		# Books built with the older sphinx_bootstrap layout link their icon as
+		# <link rel="shortcut icon" href="/runestone/static/favicon.ico">, which
+		# pointed into web2py's static folder. That folder is gone, so the
+		# catch-all below would rewrite the request to /root and hand the
+		# browser HTML; serve the real icon from staticAssets instead.
+		@legacy_favicon path /runestone/static/favicon.ico
+		rewrite @legacy_favicon /staticAssets/favicon.ico
+
 		# ----- shared static assets -----
 		# location ~* ^/staticAssets/(.*)$ { alias /usr/share/nginx/html/staticAssets/$1; }
 		handle_path /staticAssets/* {

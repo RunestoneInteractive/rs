@@ -53,6 +53,11 @@ include /etc/nginx/default.d/\*.conf;
     }
     rewrite ^/runestone/static/JavaReview/(\w+)/(.*)$ /ns/books/published/apcsareview/$1/$2;
     rewrite ^/runestone/static/csawesome/(\w+)/(.*)$ /ns/books/published/csawesome/$1/$2;
+    # Books built with the older sphinx_bootstrap layout link their icon as
+    # /runestone/static/favicon.ico, which pointed into web2py's static folder.
+    # That folder is gone, so serve the real icon from staticAssets instead of
+    # letting the catch-all rewrite the request to /root.
+    rewrite ^/runestone/static/favicon\.ico$ /staticAssets/favicon.ico last;
 
 
     # Rewrite the path to static files.
