@@ -828,3 +828,7 @@ tr.duplicate {
     margin-left: 6px;
     text-decoration: none;
 }
+
+.out_of_print {
+    color: red;
+}

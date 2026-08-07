@@ -97,3 +97,8 @@ input {
 .library_entry {
     margin-bottom: 5pt;
 }
+
+.out_of_print {
+    color: red;
+    font-weight: bold;
+}

@@ -108,6 +108,7 @@
         </div>
         <div class="form-section">
             <div class="step-title">Step 3: Choose a Book</div>
+                <p>Note: books that are labelled <span class="out_of_print"> (Limited Support)</span> will only get critical security and bug fixes. There are newer, fully supported, alternatives for you to use in every case. Please use one of those.</p>
                 <div class="form-section">
                     <label class="filter-title">Quick Book Filter
                     <input type="text" id="bookFilter" class="form-control" placeholder="Type to filter books by title, author, or section...">
@@ -122,6 +123,7 @@
                             <label>
                                 <input type="radio" name="coursetype" value="{{ course.basecourse }}" {% if submitted is defined and submitted.coursetype == course.basecourse %}checked{% endif %} onchange="suggestedCourseName()"/>
                                 {{ course.title }}{% if course.subtitle %}: {{ course.subtitle }}{% endif %}
+                                {% if course.build_system == 'Runestone' %}<span class="out_of_print"> (Limited Support)</span>{% endif %}
                                 {% if course.authors %} by {{ course.authors }}{% endif %}
                             </label>
                         </div>
