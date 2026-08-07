@@ -238,7 +238,7 @@ async def login_or_create_user(
             user = await create_user(new_user)
             rslogger.info(f"LTI1p3 - Created {user.username} ({user.id})")
         except Exception as e:
-            HTTPException(status_code=400, detail=f"Error creating user '{e}'")
+            raise HTTPException(status_code=400, detail=f"Error creating user '{e}'")
     else:
         # have user, make sure their course_id/course_name are updated
         await update_user(

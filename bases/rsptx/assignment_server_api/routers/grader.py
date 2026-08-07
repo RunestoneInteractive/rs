@@ -44,7 +44,6 @@ from rsptx.grading_helpers.regrade import (
     recompute_totals_for,
 )
 
-
 router = APIRouter(
     prefix="/instructor/grader",
     tags=["grader"],
@@ -653,7 +652,9 @@ async def upsert_grade(
     recomputed = []
     for assignment in await _assignments_to_recompute(course, payload):
         try:
-            await recompute_totals_for(course, assignment, [payload.sid])
+            await recompute_totals_for(
+                course, assignment, [payload.sid], instructor_triggered=True
+            )
             recomputed.append(assignment.id)
         except Exception as e:  # pragma: no cover - defensive
             # A failed roll-up must not lose the grade the instructor just typed.
@@ -766,7 +767,13 @@ async def regrade_run(
         which_to_grade_override=payload.which_to_grade_override,
     )
     report = await regrade_batch(
-        course, sids, questions, assignment, options, dry_run=False
+        course,
+        sids,
+        questions,
+        assignment,
+        options,
+        dry_run=False,
+        instructor_triggered=True,
     )
     rslogger.info(
         f"Regrade run by {user.username} assignment={assignment.id} "
@@ -802,7 +809,9 @@ async def recompute_totals(
     }
     sids = [s for s in payload.sids if s not in instructor_ids]
 
-    processed = await recompute_totals_for(course, assignment, sids)
+    processed = await recompute_totals_for(
+        course, assignment, sids, instructor_triggered=True
+    )
     rslogger.info(
         f"Recompute totals by {user.username} assignment={assignment.id} "
         f"students={processed}"
@@ -930,7 +939,12 @@ async def set_manual_assignment_total(
         grade = await set_manual_total(
             student.id, assignment.id, course.course_name, payload.score, True
         )
-        await attempt_lti1p3_score_update(student.id, assignment.id, payload.score)
+        await attempt_lti1p3_score_update(
+            student.id,
+            assignment.id,
+            payload.score,
+            instructor_triggered=True,
+        )
         rslogger.info(
             f"Manual total set by {user.username} assignment={assignment.id} "
             f"sid={payload.sid} score={payload.score}"
@@ -950,7 +964,9 @@ async def set_manual_assignment_total(
     await set_manual_total(
         student.id, assignment.id, course.course_name, preserved, False
     )
-    await recompute_totals_for(course, assignment, [payload.sid])
+    await recompute_totals_for(
+        course, assignment, [payload.sid], instructor_triggered=True
+    )
     recomputed = await fetch_grade(student.id, assignment.id)
     rslogger.info(
         f"Manual total reverted by {user.username} assignment={assignment.id} "

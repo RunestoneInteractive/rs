@@ -35,7 +35,6 @@ from rsptx.grading_helpers.scoring import (
     PEER_SCORE_SENTINEL,
 )
 
-
 MANUAL_COMMENT = "autograded"
 
 
@@ -315,6 +314,7 @@ async def _recompute_total_for_user(
     course_name: str,
     dry_run: bool = False,
     only_existing: bool = False,
+    instructor_triggered: bool = False,
 ) -> TotalChange:
     """Roll the student's ``question_grades`` up into their ``grades`` row.
 
@@ -370,7 +370,9 @@ async def _recompute_total_for_user(
             manual_total=False,
         )
     await upsert_grade(new_grade)
-    await attempt_lti1p3_score_update(user.id, assignment.id, total)
+    await attempt_lti1p3_score_update(
+        user.id, assignment.id, total, instructor_triggered=instructor_triggered
+    )
     return change
 
 
@@ -380,6 +382,7 @@ async def recompute_totals_detail(
     sids: Optional[List[str]] = None,
     dry_run: bool = False,
     only_existing: bool = False,
+    instructor_triggered: bool = False,
 ) -> List[TotalChange]:
     """Recompute assignment totals for the given students and report what moved.
 
@@ -407,6 +410,7 @@ async def recompute_totals_detail(
                     course.course_name,
                     dry_run=dry_run,
                     only_existing=only_existing,
+                    instructor_triggered=instructor_triggered,
                 )
             )
         except Exception as e:  # pragma: no cover - defensive
@@ -418,6 +422,7 @@ async def recompute_totals_for(
     course: CoursesValidator,
     assignment: AssignmentValidator,
     sids: Optional[List[str]] = None,
+    instructor_triggered: bool = False,
 ) -> int:
     """Recompute assignment totals (and push LTI 1.3 scores) for the given
     students. When ``sids`` is empty/None every student in the course is
@@ -426,7 +431,11 @@ async def recompute_totals_for(
     This is used by the manual multi-grade flow, where individual grades are
     written through ``POST /grade`` (which does not itself recompute totals).
     """
-    return len(await recompute_totals_detail(course, assignment, sids))
+    return len(
+        await recompute_totals_detail(
+            course, assignment, sids, instructor_triggered=instructor_triggered
+        )
+    )
 
 
 async def regrade_batch(
@@ -436,6 +445,7 @@ async def regrade_batch(
     assignment: AssignmentValidator,
     options: RegradeOptions,
     dry_run: bool = False,
+    instructor_triggered: bool = False,
 ) -> RegradeReport:
     """Run a re-grade over the student x question matrix.
 
@@ -481,7 +491,10 @@ async def regrade_batch(
             if user is not None:
                 try:
                     await _recompute_total_for_user(
-                        user, assignment, course.course_name
+                        user,
+                        assignment,
+                        course.course_name,
+                        instructor_triggered=instructor_triggered,
                     )
                 except Exception as e:  # pragma: no cover - defensive
                     rslogger.error(f"recompute totals failed sid={sid}: {e}")
