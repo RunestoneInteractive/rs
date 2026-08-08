@@ -69,6 +69,11 @@ DONE_STATES = ("ok", "fail")
 # CSI/OSC escape sequences, stripped out of captured output before logging it.
 ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|.)")
 
+# Time limits for git commands: generous for the ones that talk to github,
+# short for the purely local ones.
+GIT_NET_TIMEOUT = 300
+GIT_LOCAL_TIMEOUT = 60
+
 
 class Config:
     def __init__(self):
@@ -119,24 +124,63 @@ def git_reason(res: subprocess.CompletedProcess) -> str:
     return lines[-1] if lines else "unknown error"
 
 
+def git_env() -> dict:
+    """
+    An environment in which git can never stop to ask a human anything: an
+    https remote with no cached credentials would otherwise prompt for a
+    username and password, and ssh would prompt for a key passphrase or to
+    confirm an unknown host key.  Nobody is watching stdin during a nightly
+    run, so a prompt means a hung build; we want a failed pull instead.
+    """
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_SSH_COMMAND"] = env.get("GIT_SSH_COMMAND", "ssh") + " -o BatchMode=yes"
+    # An askpass helper would pop up a dialog (or block) instead of failing.
+    for var in ["GIT_ASKPASS", "SSH_ASKPASS"]:
+        env.pop(var, None)
+    return env
+
+
+def run_git(
+    args: list[str], repodir: Path, timeout: int = GIT_NET_TIMEOUT
+) -> subprocess.CompletedProcess:
+    """
+    Run a git command in ``repodir`` with prompting disabled (see ``git_env``)
+    and a hard time limit, so no single book can wedge the whole run.  A
+    command that blocks anyway is killed and reported like any other failure.
+    The ``-c core.askPass=`` empties out any askpass helper configured in the
+    repo's or the user's gitconfig, which the environment alone cannot reach.
+    """
+    try:
+        return subprocess.run(
+            ["git", "-c", "core.askPass=", *args],
+            capture_output=True,
+            text=True,
+            cwd=repodir,
+            env=git_env(),
+            stdin=subprocess.DEVNULL,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        cmd = " ".join(args)
+        return subprocess.CompletedProcess(
+            args, 1, "", f"git {cmd} timed out after {timeout}s"
+        )
+
+
 def upstream_ref(repodir: Path) -> str | None:
     """
     Pick the branch of the ``upstream`` remote to merge: the branch we are on
     if upstream has one by that name, otherwise upstream's master/main.
     """
-    res = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        capture_output=True,
-        text=True,
-        cwd=repodir,
-    )
+    res = run_git(["rev-parse", "--abbrev-ref", "HEAD"], repodir, GIT_LOCAL_TIMEOUT)
     branch = res.stdout.strip() if res.returncode == 0 else ""
     candidates = [b for b in (branch, "master", "main") if b and b != "HEAD"]
     for cand in dict.fromkeys(candidates):
-        res = subprocess.run(
-            ["git", "rev-parse", "--verify", "--quiet", f"upstream/{cand}"],
-            capture_output=True,
-            cwd=repodir,
+        res = run_git(
+            ["rev-parse", "--verify", "--quiet", f"upstream/{cand}"],
+            repodir,
+            GIT_LOCAL_TIMEOUT,
         )
         if res.returncode == 0:
             return f"upstream/{cand}"
@@ -149,13 +193,11 @@ def merge_upstream(repodir: Path) -> dict | None:
     book), fetch it and merge its master into the freshly pulled origin
     checkout.  Returns None when there is no upstream remote.
     """
-    res = subprocess.run(["git", "remote"], capture_output=True, text=True, cwd=repodir)
+    res = run_git(["remote"], repodir, GIT_LOCAL_TIMEOUT)
     if res.returncode != 0 or "upstream" not in res.stdout.split():
         return None
 
-    res = subprocess.run(
-        ["git", "fetch", "upstream"], capture_output=True, text=True, cwd=repodir
-    )
+    res = run_git(["fetch", "upstream"], repodir)
     if res.returncode != 0:
         return {
             "completed": False,
@@ -166,11 +208,9 @@ def merge_upstream(repodir: Path) -> dict | None:
     if ref is None:
         return {"completed": False, "status": "no upstream branch to merge"}
 
-    res = subprocess.run(
-        ["git", "merge", ref], capture_output=True, text=True, cwd=repodir
-    )
+    res = run_git(["merge", ref], repodir, GIT_LOCAL_TIMEOUT)
     if res.returncode != 0:
-        subprocess.run(["git", "merge", "--abort"], capture_output=True, cwd=repodir)
+        run_git(["merge", "--abort"], repodir, GIT_LOCAL_TIMEOUT)
         return {
             "completed": False,
             "status": f"merge of {ref} failed: {git_reason(res)}",
@@ -185,9 +225,9 @@ def git_pull(repodir: Path) -> dict:
     repo...) abort any half-done merge so the working tree is clean, and
     report -- the build proceeds with the current checkout.
     """
-    res = subprocess.run(["git", "pull"], capture_output=True, text=True, cwd=repodir)
+    res = run_git(["pull"], repodir)
     if res.returncode != 0:
-        subprocess.run(["git", "merge", "--abort"], capture_output=True, cwd=repodir)
+        run_git(["merge", "--abort"], repodir, GIT_LOCAL_TIMEOUT)
         return {"completed": False, "status": f"git pull failed: {git_reason(res)}"}
 
     up_res = merge_upstream(repodir)
