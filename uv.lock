@@ -2943,7 +2943,7 @@ wheels = [
 
 [[package]]
 name = "prefig"
-version = "0.6.7"
+version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2954,9 +2954,9 @@ dependencies = [
     { name = "scipy" },
     { name = "shapely" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/09/85a912a4ff665de1b3c35e0d0ad4d07d715e29acfaf36a80ee3b4e9c7fb2/prefig-0.6.7.tar.gz", hash = "sha256:6a3664e284dfe9b8a40fa05d84a0a9d45637948c9bd54b29539593d47479025c", size = 139620, upload-time = "2026-07-02T13:38:34.18Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/80/2e913144944de9f1a5c01636f6c7261fe5b0614643449a2025e22aa11fdf/prefig-0.7.2.tar.gz", hash = "sha256:2f282fdfecf77383b74dee9e96dbf8aaa64695713840c52959c5f801e6fe85fc", size = 149175, upload-time = "2026-08-02T13:31:09.498Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/b3/8fdc720fe8f41fdc593ddc02e8e52075e0594e421a94aef4ad8c166a5f19/prefig-0.6.7-py3-none-any.whl", hash = "sha256:6a857179fa14bc16c938adbf4ca12ba2f94745f8a788f4b15eb0879fe0f148c3", size = 163780, upload-time = "2026-07-02T13:38:32.854Z" },
+    { url = "https://files.pythonhosted.org/packages/03/ca/992c6555fe1c4ae3ff0a04339161434ce0d595d961c050379090765a1c37/prefig-0.7.2-py3-none-any.whl", hash = "sha256:5c72a38458979bd16205418056ed833386f597ee72e068428ea2855114447494", size = 175783, upload-time = "2026-08-02T13:31:07.894Z" },
 ]
 
 [package.optional-dependencies]
@@ -2966,7 +2966,7 @@ text = [
 
 [[package]]
 name = "pretext"
-version = "2.46.0"
+version = "2.48.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "citeproc-py" },
@@ -2988,9 +2988,9 @@ dependencies = [
     { name = "requests" },
     { name = "single-version" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/02/3f248d64d6fae6c979835f47e2f77eccd06c247dca1241925c0e7daa16bf/pretext-2.46.0.tar.gz", hash = "sha256:1e53a25557a97605d91eccb9b60868e40888a2859d9ebe4f14d2945cd48f14c8", size = 18130440, upload-time = "2026-08-03T19:29:55.16Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/46/339fe184ca702ad14c2ea83fbad355c0d7051bcb3297977e94c9191a5d66/pretext-2.48.0.tar.gz", hash = "sha256:517d8de87bdbf8efd44bc3f3618c2983e8e19ffe02a9aecca2bbc269a5b251f4", size = 18247867, upload-time = "2026-08-08T14:48:39.018Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ff/80/b59cd96cd2c81cf3351510833482769f18cacecd5020fa73df27bad0f34e/pretext-2.46.0-py3-none-any.whl", hash = "sha256:685bb580e3ff28af6b29ac99b91e700400ce9ec99a1e00994b6ad417569fe5da", size = 17395201, upload-time = "2026-08-03T19:29:52.461Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/f0/f8392ff30ca90d0b7ea500b6b25da9b1cdc6421a0925b739ca71ce2abc7c/pretext-2.48.0-py3-none-any.whl", hash = "sha256:335ae7faf2b075f9fd3d8eed049f2682e6640311fcc2f971b3ed4ac67087da74", size = 17512568, upload-time = "2026-08-08T14:48:36.091Z" },
 ]
 
 [package.optional-dependencies]
@@ -3957,7 +3957,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "8.10.9"
+version = "9.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -4099,7 +4099,7 @@ requires-dist = [
     { name = "pandas", extras = ["pyarrow"], specifier = ">=2.3.0,<3" },
     { name = "paver", specifier = ">=1.3.4,<2" },
     { name = "pgcli", specifier = ">=4.0.0,<5" },
-    { name = "pretext", extras = ["prefigure"], specifier = ">=2.42" },
+    { name = "pretext", extras = ["prefigure"], specifier = ">=2.48" },
     { name = "psycopg2-binary", specifier = ">=2.9.3,<3" },
     { name = "pycryptodome", specifier = ">=3.18.0,<4" },
     { name = "pydal", specifier = ">=20230521.1" },

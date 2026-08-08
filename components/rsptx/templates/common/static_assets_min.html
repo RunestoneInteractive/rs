@@ -15,12 +15,7 @@ I don't know if any of the following are needed anymore.
     <script src='/ns/books/published/{{course.course_name}}/_static/{{js_import}}'></script>
 {% endfor %}
 
-{% if webwork_js_version  %}
-    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
-{% else %}
-    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/2.20/pretext-webwork.js"></script>
-{% endif %}
-
+<script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/dist/pretext-webwork.js"></script>
 <script src="https://webwork.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>
 
 <script>
