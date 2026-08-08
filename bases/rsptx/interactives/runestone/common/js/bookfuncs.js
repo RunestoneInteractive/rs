@@ -377,8 +377,7 @@ export class PageProgressBar {
         this.possible = 0;
         // The page itself counts as one item and is attempted as soon as it is
         // opened. That is what lets a page with no activities on it still be
-        // completed. It is deliberately kept out of the numbers shown to the
-        // reader -- see activitiesAttempted/activitiesPossible below.
+        // completed. 
         this.total = 1;
         if (actDict && "assignment_spec" in actDict) {
             this.assignment_spec = actDict.assignment_spec;
@@ -396,7 +395,7 @@ export class PageProgressBar {
         // activity; nothing we can do about that here, but keep the fallback so
         // a server that sends no page entry at all still lines up.
         if (!("page" in this.activities)) {
-            this.activities.page = 0;
+            this.activities.page = 1;
         }
         this.calculateProgress();
         // Hide the progress bar on navigation pages, which have no activities.
@@ -420,17 +419,12 @@ export class PageProgressBar {
         }
     }
 
-    // The counts shown beside the bar describe "activities on this page", and
-    // the page entry is not one of them -- reporting it made a freshly opened
-    // page read "1 of 4" when the reader could only see three activities.
-    // Progress percentage still uses total/possible so that opening the page
-    // counts toward completion.
     get activitiesAttempted() {
-        return Math.max(this.total - 1, 0);
+        return Math.max(this.total, 0);
     }
 
     get activitiesPossible() {
-        return Math.max(this.possible - 1, 0);
+        return Math.max(this.possible, 0);
     }
 
     renderProgress() {
@@ -484,7 +478,9 @@ export class PageProgressBar {
                 this.assignment_spec.activities_required =
                     this.activitiesPossible;
             }
-            if (completeActivities >= requiredActivities) {
+            console.log(`PageProgressBar: ${completeActivities} completed of ${requiredActivities} required activities on this page`)
+            if (completeActivities >= requiredActivities 
+                 ) {
                 this.sendCompletedReadingScore().then(() => {
                     console.log("Reading score sent for page");
                     // wait a tick then mark the page complete
