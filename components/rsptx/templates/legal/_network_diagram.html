@@ -1,0 +1,151 @@
+{# Defense-in-depth network diagram, shared by the Data Security & Privacy Plan
+   and the HECVAT page.  Self-contained inline SVG: no external assets, no
+   scripts, and all styling lives inside the <svg> so the partial can be
+   included from any legal page without touching that page's CSS block. #}
+<figure style="margin: 1.75rem 0;">
+    <div style="overflow-x: auto;">
+        <svg viewBox="0 0 880 730" width="880" role="img"
+             aria-labelledby="netdiag-title netdiag-desc"
+             style="width: 100%; min-width: 620px; height: auto; display: block;">
+            <title id="netdiag-title">Runestone Academy network security layers</title>
+            <desc id="netdiag-desc">Public web traffic reaches Runestone Academy only
+                through CloudFlare, which terminates TLS and filters requests. Traffic
+                then passes a DigitalOcean cloud firewall that denies all inbound
+                traffic by default, permitting port 443 only from CloudFlare address
+                ranges and port 22 only with an SSH key. Inside a DigitalOcean Virtual
+                Private Cloud, a load balancer forwards requests to application droplets
+                running the composed application; those droplets have private IP
+                addresses only. A PostgreSQL database sits in the same private network
+                and accepts connections only from the application droplets.
+                Administrative access arrives by key-based SSH, bypassing CloudFlare but
+                still crossing the cloud firewall.</desc>
+
+            <defs>
+                <marker id="nd-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#46536b"/>
+                </marker>
+                <marker id="nd-arrow-admin" viewBox="0 0 10 10" refX="9" refY="5"
+                        markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b6b80"/>
+                </marker>
+            </defs>
+
+            <style>
+                .nd text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+                .nd-eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: .09em; }
+                .nd-title { font-size: 14px; font-weight: 700; }
+                .nd-sub { font-size: 10.5px; }
+                .nd-chip-t { font-size: 11px; fill: #33414f; }
+                .nd-node-t { font-size: 12.5px; font-weight: 600; fill: #1f2d3d; }
+                .nd-node-s { font-size: 10.5px; fill: #5a6b7f; }
+                .nd-flow { font-size: 11px; fill: #46536b; }
+                .nd-note { font-size: 11px; fill: #24425f; }
+            </style>
+
+            <g class="nd">
+                <!-- ── Public internet ─────────────────────────────────────── -->
+                <rect x="24" y="16" width="832" height="80" rx="10" fill="#f5f6f8" stroke="#dfe3ea"/>
+                <text class="nd-eyebrow" x="40" y="36" fill="#6b7280">PUBLIC INTERNET</text>
+                <rect x="48" y="44" width="372" height="40" rx="8" fill="#ffffff" stroke="#cfd8e3"/>
+                <text class="nd-node-t" x="234" y="69" text-anchor="middle">Students &amp; instructors &#183; web browsers</text>
+                <rect x="560" y="44" width="272" height="40" rx="8" fill="#ffffff" stroke="#cfd8e3"/>
+                <text class="nd-node-t" x="696" y="69" text-anchor="middle">Administrator workstation</text>
+
+                <!-- browser → CloudFlare -->
+                <line x1="234" y1="96" x2="234" y2="122" stroke="#46536b" stroke-width="1.6" marker-end="url(#nd-arrow)"/>
+                <text class="nd-flow" x="244" y="114">HTTPS 443</text>
+
+                <!-- ── Layer 1: CloudFlare edge ────────────────────────────── -->
+                <rect x="24" y="128" width="516" height="100" rx="10" fill="#fdf6ec" stroke="#c8873c" stroke-width="1.5"/>
+                <text class="nd-eyebrow" x="40" y="147" fill="#9a6a2a">LAYER 1 &#183; EDGE</text>
+                <text class="nd-title" x="40" y="166" fill="#7c4a12">CloudFlare &#8212; the only public entry point</text>
+                <rect x="40" y="176" width="118" height="26" rx="13" fill="#ffffff" stroke="#e2c69c"/>
+                <text class="nd-chip-t" x="99" y="193" text-anchor="middle">TLS termination</text>
+                <rect x="166" y="176" width="174" height="26" rx="13" fill="#ffffff" stroke="#e2c69c"/>
+                <text class="nd-chip-t" x="253" y="193" text-anchor="middle">Web application firewall</text>
+                <rect x="348" y="176" width="154" height="26" rx="13" fill="#ffffff" stroke="#e2c69c"/>
+                <text class="nd-chip-t" x="425" y="193" text-anchor="middle">Bot &amp; DDoS mitigation</text>
+                <text class="nd-sub" x="40" y="219" fill="#8a6a3a">Origin server addresses are never published.</text>
+
+                <!-- admin → firewall (bypasses CloudFlare, not the firewall) -->
+                <line x1="696" y1="96" x2="696" y2="256" stroke="#5b6b80" stroke-width="1.6"
+                      stroke-dasharray="6 4" marker-end="url(#nd-arrow-admin)"/>
+                <text class="nd-flow" x="686" y="150" text-anchor="end">SSH &#183; port 22</text>
+                <text class="nd-flow" x="686" y="166" text-anchor="end">public-key auth only</text>
+                <text class="nd-flow" x="686" y="182" text-anchor="end">passwords disabled</text>
+
+                <!-- CloudFlare → firewall -->
+                <line x1="282" y1="228" x2="282" y2="256" stroke="#46536b" stroke-width="1.6" marker-end="url(#nd-arrow)"/>
+
+                <!-- ── Layer 2: DigitalOcean cloud firewall ────────────────── -->
+                <rect x="24" y="262" width="832" height="88" rx="10" fill="#fdf1f1" stroke="#b04a4a" stroke-width="1.5"/>
+                <text class="nd-eyebrow" x="40" y="281" fill="#9c4444">LAYER 2 &#183; NETWORK</text>
+                <text class="nd-title" x="40" y="300" fill="#8f2d2d">DigitalOcean Cloud Firewall &#8212; default deny inbound</text>
+                <rect x="40" y="312" width="249" height="26" rx="13" fill="#ffffff" stroke="#e6bcbc"/>
+                <text class="nd-chip-t" x="164" y="329" text-anchor="middle">Inbound 443 &#8212; CloudFlare ranges only</text>
+                <rect x="297" y="312" width="224" height="26" rx="13" fill="#ffffff" stroke="#e6bcbc"/>
+                <text class="nd-chip-t" x="409" y="329" text-anchor="middle">Inbound 22 &#8212; SSH public key only</text>
+                <rect x="529" y="312" width="230" height="26" rx="13" fill="#ffffff" stroke="#e6bcbc"/>
+                <text class="nd-chip-t" x="644" y="329" text-anchor="middle">All other inbound traffic dropped</text>
+
+                <!-- firewall → VPC -->
+                <line x1="282" y1="350" x2="282" y2="378" stroke="#46536b" stroke-width="1.6" marker-end="url(#nd-arrow)"/>
+                <line x1="696" y1="350" x2="696" y2="378" stroke="#5b6b80" stroke-width="1.6"
+                      stroke-dasharray="6 4" marker-end="url(#nd-arrow-admin)"/>
+
+                <!-- ── Layer 3: private network ────────────────────────────── -->
+                <rect x="24" y="384" width="832" height="330" rx="12" fill="#f5f9ff"
+                      stroke="#1565c0" stroke-width="1.5" stroke-dasharray="6 4"/>
+                <text class="nd-eyebrow" x="40" y="404" fill="#2f6ba8">LAYER 3 &#183; PRIVATE NETWORK</text>
+                <text class="nd-title" x="40" y="423" fill="#10406e">DigitalOcean Virtual Private Cloud</text>
+                <text class="nd-sub" x="40" y="440" fill="#3a5a7a">Private addressing only &#8212; no droplet has a public IP address.</text>
+
+                <!-- load balancer -->
+                <rect x="48" y="456" width="452" height="42" rx="8" fill="#ffffff" stroke="#b9c6d6"/>
+                <text class="nd-node-t" x="274" y="482" text-anchor="middle">Load balancer</text>
+                <line x1="274" y1="498" x2="274" y2="512" stroke="#46536b" stroke-width="1.6" marker-end="url(#nd-arrow)"/>
+
+                <!-- application droplets -->
+                <rect x="48" y="516" width="452" height="88" rx="8" fill="#ffffff" stroke="#b9c6d6"/>
+                <text class="nd-node-t" x="274" y="538" text-anchor="middle">Application droplets &#183; Docker Compose</text>
+                <rect x="127" y="550" width="48" height="24" rx="12" fill="#eef4fb" stroke="#cfdcea"/>
+                <text class="nd-chip-t" x="151" y="566" text-anchor="middle">caddy</text>
+                <rect x="181" y="550" width="48" height="24" rx="12" fill="#eef4fb" stroke="#cfdcea"/>
+                <text class="nd-chip-t" x="205" y="566" text-anchor="middle">admin</text>
+                <rect x="235" y="550" width="42" height="24" rx="12" fill="#eef4fb" stroke="#cfdcea"/>
+                <text class="nd-chip-t" x="256" y="566" text-anchor="middle">book</text>
+                <rect x="283" y="550" width="78" height="24" rx="12" fill="#eef4fb" stroke="#cfdcea"/>
+                <text class="nd-chip-t" x="322" y="566" text-anchor="middle">assignment</text>
+                <rect x="367" y="550" width="54" height="24" rx="12" fill="#eef4fb" stroke="#cfdcea"/>
+                <text class="nd-chip-t" x="394" y="566" text-anchor="middle">author</text>
+                <text class="nd-node-s" x="274" y="592" text-anchor="middle">Each droplet carries a private IP address only.</text>
+                <line x1="274" y1="604" x2="274" y2="618" stroke="#46536b" stroke-width="1.6" marker-end="url(#nd-arrow)"/>
+
+                <!-- database -->
+                <rect x="48" y="622" width="452" height="56" rx="8" fill="#ffffff" stroke="#b9c6d6"/>
+                <text class="nd-node-t" x="274" y="644" text-anchor="middle">PostgreSQL database</text>
+                <text class="nd-node-s" x="274" y="662" text-anchor="middle">No public route &#183; reachable only from the application droplets.</text>
+
+                <!-- admin SSH into the droplets -->
+                <path d="M 696 378 L 696 545 L 508 545" fill="none" stroke="#5b6b80" stroke-width="1.6"
+                      stroke-dasharray="6 4" marker-end="url(#nd-arrow-admin)"/>
+                <text class="nd-flow" x="706" y="432">Administrative access</text>
+                <text class="nd-flow" x="706" y="448">by key-based SSH</text>
+
+                <!-- callout -->
+                <rect x="520" y="580" width="320" height="100" rx="8" fill="#eef4fb" stroke="#b9cde2"/>
+                <text class="nd-note" x="536" y="604">&#8226; Nothing in the VPC is routable from the internet.</text>
+                <text class="nd-note" x="536" y="626">&#8226; Data is encrypted in transit and at rest.</text>
+                <text class="nd-note" x="536" y="648">&#8226; Backups stay inside the USA data zone.</text>
+                <text class="nd-note" x="536" y="670">&#8226; Logins and database activity are logged.</text>
+            </g>
+        </svg>
+    </div>
+    <figcaption style="margin-top: 10px; color: #5a6b7f; font-size: 0.88rem; line-height: 1.5;">
+        Defense in depth at Runestone Academy. Solid lines carry public web traffic;
+        dashed lines are administrative access over SSH, which skips CloudFlare but
+        still has to clear the cloud firewall and authenticates by key rather than
+        password.
+    </figcaption>
+</figure>

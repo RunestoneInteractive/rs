@@ -1,0 +1,247 @@
+{% extends "legal/_legal_base.html" %}
+
+{% block legal_css %}
+<style>
+    .hecvat-download {
+        display: inline-block;
+        margin: 4px 0 8px;
+        padding: 10px 18px;
+        background: #1565c0;
+        color: #fff !important;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .hecvat-download:hover { background: #0d47a1; text-decoration: none; }
+    .hecvat-facts { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.95rem; }
+    .hecvat-facts th, .hecvat-facts td {
+        border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top;
+    }
+    .hecvat-facts th { background: #f4f4f4; width: 34%; }
+    .hecvat-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.92rem; }
+    .hecvat-table th, .hecvat-table td {
+        border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top;
+    }
+    .hecvat-table thead th { background: #f4f4f4; }
+    .hecvat-table tr.hecvat-section th {
+        background: #eef4fb; color: #10406e; font-size: 0.95rem;
+    }
+    .hecvat-id { white-space: nowrap; font-family: monospace; font-size: 0.88rem; color: #555; }
+    .hecvat-ans { font-weight: 600; white-space: nowrap; }
+    .hecvat-ans.yes { color: #1b7a2f; }
+    .hecvat-ans.no { color: #a06a00; }
+    .hecvat-ans.na { color: #777; }
+    .hecvat-scroll { overflow-x: auto; }
+    .hecvat-note {
+        margin: 1.25rem 0;
+        padding: 14px 18px;
+        border-left: 4px solid #1565c0;
+        background: #f7f9fc;
+        font-size: 0.98rem;
+    }
+    .hecvat-note p:last-child { margin-bottom: 0; }
+</style>
+{% endblock %}
+
+{% block legal_content %}
+<h2>What the HECVAT Is</h2>
+<p>
+    The <a href="https://www.educause.edu/higher-education-community-vendor-assessment-toolkit">Higher
+    Education Community Vendor Assessment Toolkit (HECVAT)</a> is a standardized
+    questionnaire, maintained by EDUCAUSE and the HEISC Shared Assessments Working
+    Group, that colleges and universities use to evaluate the security and privacy
+    practices of cloud vendors. Completing one lets an institution reuse a single
+    review instead of sending us a bespoke security questionnaire.
+</p>
+<p>
+    We have completed the <strong>HECVAT&nbsp;&mdash;&nbsp;Lite (version 2.11)</strong>,
+    the short form intended for lower-risk services and smaller vendors. It is
+    available below as an Excel workbook, and the full set of answers is reproduced
+    on this page so you can read them without downloading anything.
+</p>
+{% if hecvat_url %}
+<p><a class="hecvat-download" href="{{ hecvat_url }}">&#8681; Download our HECVAT-Lite (XLSX)</a></p>
+{% endif %}
+
+<h2>General Information</h2>
+<table class="hecvat-facts">
+    <tbody>
+        <tr><th>Vendor</th><td>Runestone Academy LTD &mdash; a 501(c)(3) non-profit</td></tr>
+        <tr><th>Product</th><td>Runestone Academy</td></tr>
+        <tr><th>Description</th><td>Runestone Academy provides interactive textbooks as a service.</td></tr>
+        <tr><th>Assessment</th><td>HECVAT &mdash; Lite, version 2.11</td></tr>
+        <tr><th>Privacy notice</th><td><a href="/admin/legal/privacy">Runestone Academy Privacy Policy</a></td></tr>
+        <tr><th>Vendor data zone</th><td>USA</td></tr>
+        <tr><th>Hosting</th><td>DigitalOcean (SOC 2 Type 2 report available); CloudFlare in front</td></tr>
+        <tr><th>Contact</th><td>Bradley Miller, President &mdash;
+            <a href="mailto:brad@runestone.academy">brad@runestone.academy</a></td></tr>
+    </tbody>
+</table>
+
+<h2>How to Read Our Answers</h2>
+<p>
+    Runestone Academy is a small, open source, non-profit project with one full-time
+    employee and a community of volunteer contributors. We have been providing free
+    textbooks as a service since 2012. Several HECVAT questions assume a vendor with a
+    dedicated information security office, a formal audit budget, and a multi-person
+    operations team; where that is not true of us we answer <em>No</em> rather than
+    stretching the truth.
+</p>
+<div class="hecvat-note">
+    <p>
+        From our answer to DOCU-01: &ldquo;Runestone Academy is a small non-profit open
+        source project. There is exactly one person with access to the very minimal
+        amount of PII we store for a student&hellip; As a long time professor I take FERPA
+        and student privacy very seriously, but I have to be pragmatic. If we grow beyond
+        this we will of course adopt the appropriate protocols and standards.&rdquo;
+    </p>
+</div>
+<p>
+    It also helps to know what data is actually at stake. We store a username, email
+    address, and first and last name; the email address is used only for password resets
+    and the name is used only by the instructor of a course. We also store the answers
+    students submit and the code they write. We store <strong>no financial information</strong>
+    and no confidential grade information beyond course work submitted in the platform.
+</p>
+
+<h3>Where we are strong</h3>
+<ul>
+    <li>Data is encrypted in transit and at rest, including at the database layer.</li>
+    <li>Institution data stays in the USA data zone; backups do not leave it.</li>
+    <li>Role-based access control for both end users and administrators, plus audit
+        logging of logins, logouts, actions, and source IP addresses.</li>
+    <li>All servers sit on private IPs inside a virtual private cloud behind multiple
+        firewalls; traffic is accepted only through CloudFlare, which also provides
+        bot and persistent-threat mitigation.</li>
+    <li>Dependencies and container images are scanned continuously with Snyk and
+        GitHub Dependabot, and fixes ship before releases.</li>
+    <li>A documented, followed change management process, including handling of
+        emergency changes.</li>
+</ul>
+<p>
+    The diagram below shows how those controls stack up, and covers the answers to
+    HLFI-01, HLDC-01 through HLDC-03, HLDA-02 through HLDA-04, and HLAP-03.
+</p>
+{% include "legal/_network_diagram.html" %}
+
+<h3>Where we have gaps</h3>
+<ul>
+    <li>No SSAE 18, CSA STAR, CAIQ, or FISMA attestation, and no formal conformance
+        claim against NIST CSF or ISO 27001.</li>
+    <li>No documented Business Continuity Plan or Disaster Recovery Plan.</li>
+    <li>No formal, written incident response plan.</li>
+    <li>No dedicated information security staff or office &mdash; and no third-party
+        security assessment within the last year.</li>
+    <li>Multi-tenant environment: institution data is logically scoped by course, not
+        physically separated per customer.</li>
+</ul>
+<p>
+    Our <a href="/admin/legal/security">Data Security &amp; Privacy Plan</a> describes the
+    safeguards we do have in place, and our
+    <a href="/admin/legal/accessibility">Accessibility &amp; VPAT</a> page covers
+    accessibility conformance.
+</p>
+
+<h2>Full HECVAT-Lite Responses</h2>
+<p>
+    The table below reproduces every question and answer from the workbook. Free-text
+    company-background questions (COMP-01, COMP-02, COMP-07) are summarized above rather
+    than repeated here; the downloadable workbook contains them verbatim.
+</p>
+<div class="hecvat-scroll">
+<table class="hecvat-table">
+    <thead>
+        <tr><th>ID</th><th>Question</th><th>Answer</th><th>Additional information</th></tr>
+    </thead>
+    <tbody>
+        <tr class="hecvat-section"><th colspan="4">Documentation</th></tr>
+        <tr><td class="hecvat-id">DOCU-01</td><td>Have you undergone a SSAE 18 audit?</td><td class="hecvat-ans no">No</td><td>Runestone Academy is a small non-profit open source project. There is exactly one person with access to the very minimal amount of PII we store for a student. The risk of someone wanting to steal a students CS1 homework seems quite small. As a very small shop there is really no need for a plethora of written policies, or to invest the time and money in understanding the alphabet soup of security assessments and standards. As a long time professor I take FERPA and student privacy very seriously, but I have to be pragmatic. If we grow beyond this we will of course adopt the appropriate protocols and standards.</td></tr>
+        <tr><td class="hecvat-id">DOCU-02</td><td>Have you completed the Cloud Security Alliance (CSA) self assessment or CAIQ?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">DOCU-03</td><td>Have you received the Cloud Security Alliance STAR certification?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">DOCU-04</td><td>Do you conform with a specific industry standard security framework? (e.g. NIST Cybersecurity Framework, ISO 27001, etc.)</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">DOCU-05</td><td>Are you compliant with FISMA standards?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">DOCU-06</td><td>Does your organization have a data privacy policy?</td><td class="hecvat-ans yes">Yes</td><td>See our <a href="/admin/legal/privacy">Privacy Policy</a>.</td></tr>
+        <tr class="hecvat-section"><th colspan="4">Company Overview</th></tr>
+        <tr><td class="hecvat-id">COMP-03</td><td>Do you have existing higher education customers?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">COMP-04</td><td>Have you had a significant breach in the last 5 years?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">COMP-05</td><td>Do you have a dedicated Information Security staff or office?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">COMP-06</td><td>Do you have a dedicated Software and System Development team(s)? (e.g. Customer Support, Implementation, Product Management, etc.)</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Application/Service Security</th></tr>
+        <tr><td class="hecvat-id">HLAP-01</td><td>Do you support role-based access control (RBAC) for end-users?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAP-02</td><td>Do you support role-based access control (RBAC) for system administrators?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAP-03</td><td>Can employees access customer data remotely?</td><td class="hecvat-ans yes">Yes</td><td>I am the only employee, and access is limited to a single machine via ssh.</td></tr>
+        <tr><td class="hecvat-id">HLAP-04</td><td>Can you provide overall system and/or application architecture diagrams including a full description of the data communications architecture for all components of the system?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAP-05</td><td>Does the system provide data input validation and error messages?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAP-06</td><td>Do you employ a single-tenant environment?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Authentication, Authorization, and Accounting</th></tr>
+        <tr><td class="hecvat-id">HLAA-01</td><td>Can you enforce password/passphrase aging requirements?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAA-02</td><td>Does your web-based interface support authentication, including standards-based single-sign-on? (e.g. InCommon)</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAA-03</td><td>Does your application support integration with other authentication and authorization systems? List which ones (such as Active Directory, Kerberos and what version) in Additional Info?</td><td class="hecvat-ans no">No</td><td>We do have support for login via the LTI 1.1 and 1.3 standards.</td></tr>
+        <tr><td class="hecvat-id">HLAA-04</td><td>Does the system (servers/infrastructure) support external authentication services (e.g. Active Directory, LDAP) in place of local authentication?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLAA-05</td><td>Are audit logs available that include AT LEAST all of the following; login, logout, actions performed, and source IP address?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Business Continuity Plan</th></tr>
+        <tr><td class="hecvat-id">HLBC-01</td><td>Do you have a documented Business Continuity Plan (BCP)?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLBC-02</td><td>Is there a documented communication plan in your BCP for impacted clients?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLBC-03</td><td>Are all components of the BCP reviewed at least annually and updated as needed to reflect change?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLBC-04</td><td>Does your organization conduct an annual test of relocating to an alternate site for business recovery purposes?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Change Management</th></tr>
+        <tr><td class="hecvat-id">HLCH-01</td><td>Do you have a documented and currently followed change management process (CMP)?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLCH-02</td><td>Will the institution be notified of major changes to your environment that could impact the institution's security posture?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLCH-03</td><td>Do you have policy and procedure, currently implemented, guiding how security risks are mitigated until patches can be applied?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLCH-04</td><td>Do procedures exist to provide that emergency changes are documented and authorized (including after the fact approval)?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Data</th></tr>
+        <tr><td class="hecvat-id">HLDA-01</td><td>Do you physically and logically separate institution's data from that of other customers?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDA-02</td><td>Is sensitive data encrypted in transport? (e.g. system-to-client)</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDA-03</td><td>Is sensitive data encrypted in storage (e.g. disk encryption, at-rest)?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDA-04</td><td>Do backups containing institution data ever leave the institution's Data Zone, either physically or via network routing?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDA-05</td><td>Do you have a media handling process, that is documented and currently implemented, including end-of-life, repurposing, and data sanitization procedures?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDA-06</td><td>Is any institution data visible in system administration modules/tools?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Database</th></tr>
+        <tr><td class="hecvat-id">HLDB-01</td><td>Does the database support encryption of specified data elements in storage?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDB-02</td><td>Do you currently use encryption in your database(s)?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Datacenter</th></tr>
+        <tr><td class="hecvat-id">HLDC-01</td><td>Will any institution data leave the institution's Data Zone?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDC-02</td><td>Does your company own the physical data center where the institution's data will reside?</td><td class="hecvat-ans no">No</td><td>We use DigitalOcean as our hosting provider.</td></tr>
+        <tr><td class="hecvat-id">HLDC-03</td><td>Does the hosting provider have a SOC 2 Type 2 report available?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDC-04</td><td>Does the physical barrier fully enclose the physical space preventing unauthorized physical contact with any of your devices?</td><td class="hecvat-ans na">&mdash;</td><td>Not answered: we do not operate the facility. Physical security of the data center is the responsibility of our hosting provider, DigitalOcean.</td></tr>
+        <tr class="hecvat-section"><th colspan="4">Disaster Recovery Plan</th></tr>
+        <tr><td class="hecvat-id">HLDR-01</td><td>Do you have a Disaster Recovery Plan (DRP)?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDR-02</td><td>Are any disaster recovery locations outside the institution's Data Zone?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLDR-03</td><td>Are all components of the DRP reviewed at least annually and updated as needed to reflect change?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Firewalls, IDS, IPS, and Networking</th></tr>
+        <tr><td class="hecvat-id">HLFI-01</td><td>Are you utilizing a web application firewall (WAF) and/or a stateful packet inspection (SPI) firewall?</td><td class="hecvat-ans yes">Yes</td><td>DigitalOcean provides a WAF, all of our servers are located behind multiple firewalls and use private IP addresses inside a virtual private cloud on DO. We only accept incoming requests through CloudFlare, the firewall only allows the IP addresses from CloudFlare to pass.</td></tr>
+        <tr><td class="hecvat-id">HLFI-02</td><td>Do you have a documented policy for firewall change requests?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLFI-03</td><td>Are you employing any next-generation persistent threat (NGPT) monitoring?</td><td class="hecvat-ans yes">Yes</td><td>We use CloudFlare&rsquo;s bot fighting rules and AI.</td></tr>
+        <tr><td class="hecvat-id">HLFI-04</td><td>Do you monitor for intrusions on a 24x7x365 basis?</td><td class="hecvat-ans yes">Yes</td><td>We monitor logins using the lastlog as well as the database log.</td></tr>
+        <tr class="hecvat-section"><th colspan="4">Physical Security</th></tr>
+        <tr><td class="hecvat-id">HLPH-01</td><td>Does your organization have physical security controls and policies in place?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLPH-02</td><td>Are employees allowed to take home customer data in any form?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Policies, Procedures, and Processes</th></tr>
+        <tr><td class="hecvat-id">HLPP-01</td><td>Can you share the organization chart, mission statement, and policies for your information security unit?</td><td class="hecvat-ans no">No</td><td>It is just me. Not much need for an org chart or separate mission statement.</td></tr>
+        <tr><td class="hecvat-id">HLPP-02</td><td>Are information security principles designed into the product lifecycle?</td><td class="hecvat-ans yes">Yes</td><td></td></tr>
+        <tr><td class="hecvat-id">HLPP-03</td><td>Do you have a formal incident response plan?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLPP-04</td><td>Do you have a documented information security policy?</td><td class="hecvat-ans yes">Yes</td><td>See our <a href="/admin/legal/security">Data Security &amp; Privacy Plan</a>.</td></tr>
+        <tr class="hecvat-section"><th colspan="4">Systems Management &amp; Configuration</th></tr>
+        <tr><td class="hecvat-id">HLSY-01</td><td>Are systems that support this service managed via a separate management network?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLSY-02</td><td>Do you have a systems management and configuration strategy that encompasses servers, appliances, and mobile devices (company and employee owned)?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr class="hecvat-section"><th colspan="4">Vulnerability Scanning</th></tr>
+        <tr><td class="hecvat-id">HLVU-01</td><td>Have your systems and applications had a third party security assessment completed in the last year?</td><td class="hecvat-ans no">No</td><td></td></tr>
+        <tr><td class="hecvat-id">HLVU-02</td><td>Are your systems and applications scanned for vulnerabilities [that are remediated] prior to new releases?</td><td class="hecvat-ans yes">Yes</td><td>We use Docker, Snyk, and GitHub Dependabot.</td></tr>
+    </tbody>
+</table>
+</div>
+
+<h2>Questions or a Different Form</h2>
+<p>
+    If your institution needs the full HECVAT rather than the Lite version, a signed
+    copy, or clarification on any answer above, get in touch and we will do our best to
+    accommodate the review.
+</p>
+
+<div class="legal-contact">
+    <p style="margin:0;">
+        <strong>Compliance contact:</strong>
+        <a href="mailto:info@runestone.academy">info@runestone.academy</a>
+    </p>
+</div>
+{% endblock %}

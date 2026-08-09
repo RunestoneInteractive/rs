@@ -66,12 +66,15 @@ LEGAL_DOCS = {
         # Downloadable VPAT/ACR, served from the shared staticAssets.
         "extra": {"vpat_url": "/staticAssets/docs/runestone-vpat.pdf"},
     },
-    "HECVAT": {
+    "hecvat": {
         "title": "Higher Education Community Vendor Assessment Toolkit (HECVAT)",
-        "updated": None,
-        "template": "#",
-        "blurb": "Runestone does not provide a HECVAT as it is intended for much larger organizations.",
+        "updated": "August 8, 2026",
+        "template": "legal/hecvat.html",
+        "blurb": "Our completed HECVAT-Lite (v2.11) for higher-ed procurement and "
+        "security review — full responses on the page, plus the workbook to download.",
         "hub": True,
+        # Downloadable HECVAT-Lite workbook, served from the shared staticAssets.
+        "extra": {"hecvat_url": "/staticAssets/docs/HECVATLitePublished.xlsx"},
     },
     "ads": {
         "title": "About Advertising",
@@ -152,6 +155,11 @@ async def security(request: Request):
 @router.get("/accessibility", response_class=HTMLResponse)
 async def accessibility(request: Request):
     return _render(request, "accessibility")
+
+
+@router.get("/hecvat", response_class=HTMLResponse)
+async def hecvat(request: Request):
+    return _render(request, "hecvat")
 
 
 @router.get("/ads", response_class=HTMLResponse)

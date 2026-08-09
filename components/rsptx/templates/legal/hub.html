@@ -53,7 +53,6 @@
 
     <div class="legal-hub-grid">
         {% for card in cards %}
-        {% if card.template != "#" %}
         <a class="legal-card" href="/admin/legal/{{ card.key }}">
             <h2>{{ card.title }}</h2>
             <p>{{ card.blurb }}</p>
@@ -61,16 +60,6 @@
             <span class="legal-card-updated">Last updated: {{ card.updated }}</span>
             {% endif %}
         </a>
-        {% else %}
-        <a class="legal-card" href="#">
-            <h2>{{ card.title }}</h2>
-            <p>{{ card.blurb }}</p>
-            {% if card.updated %}
-            <span class="legal-card-updated">Last updated: {{ card.updated }}</span>
-            {% endif %}
-        </a>
-
-        {% endif %}
         {% endfor %}
     </div>
 
