@@ -67,7 +67,11 @@
 		# catch-all below would rewrite the request to /root and hand the
 		# browser HTML; serve the real icon from staticAssets instead.
 		@legacy_favicon path /runestone/static/favicon.ico
+		@legacy_logo1 path /runestone/static/images/RAIcon_cropped.png
+		@legacy_logo2 path /runestone/static/images/logo_small.png
 		rewrite @legacy_favicon /staticAssets/favicon.ico
+		rewrite @legacy_logo1 /staticAssets/RAIcon_cropped.png
+		rewrite @legacy_favicon /staticAssets/logo_small.png
 
 		# ----- shared static assets -----
 		# location ~* ^/staticAssets/(.*)$ { alias /usr/share/nginx/html/staticAssets/$1; }
