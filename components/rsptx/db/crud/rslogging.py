@@ -1,6 +1,6 @@
 import logging
 import datetime
-from typing import List
+from typing import Iterable, List, Optional
 from sqlalchemy import select, and_, func, text
 
 from ..models import (
@@ -277,6 +277,41 @@ async def fetch_last_answer_table_entry(
         res = await session.execute(query)
         rslogger.debug(f"res = {res}")
         return rcd.validator.from_orm(res.scalars().first())  # type: ignore
+
+
+async def fetch_interaction_useinfo(
+    div_id: str,
+    course_name: str,
+    events: Iterable[str],
+    sid: Optional[str] = None,
+) -> List[Useinfo]:
+    """Fetch the ``useinfo`` rows that record students interacting with a
+    question that has no answer table -- a video or a poll.
+
+    For these questions the useinfo row *is* the submission, so this is the
+    equivalent of reading an answer table: the grader and the re-grader both go
+    through here rather than querying ``useinfo`` themselves.  Callers still
+    have to filter the rows through ``is_interaction_event`` to drop the acts
+    that are not real student activity (a video logs ``ready`` as soon as its
+    player is built).
+
+    :param div_id: the question's ``name``/``div_id``.
+    :param course_name: the course to restrict to (``useinfo.course_id``).
+    :param events: the useinfo ``event`` values that count for this question.
+    :param sid: restrict to a single student; omit for the whole course.
+    :return: matching rows, oldest first.
+    """
+    clauses = [
+        Useinfo.div_id == div_id,
+        Useinfo.course_id == course_name,
+        Useinfo.event.in_(list(events)),
+    ]
+    if sid is not None:
+        clauses.append(Useinfo.sid == sid)
+    query = select(Useinfo).where(and_(*clauses)).order_by(Useinfo.timestamp.asc())
+    async with async_session() as session:
+        res = await session.execute(query)
+        return list(res.scalars())
 
 
 async def fetch_last_poll_response(sid: str, course_name: str, poll_id: str) -> str:

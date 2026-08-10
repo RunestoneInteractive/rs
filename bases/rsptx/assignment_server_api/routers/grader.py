@@ -15,11 +15,13 @@ from rsptx.db.crud import (
     fetch_course_instructors,
     fetch_gradebook,
     fetch_grade,
+    fetch_interaction_useinfo,
     fetch_one_assignment,
     fetch_question_grade,
     fetch_user,
     fetch_users_for_course,
     create_question_grade_entry,
+    is_interaction_event,
     set_manual_total,
     update_question_grade_entry,
     update_assignment_released,
@@ -37,7 +39,12 @@ from rsptx.endpoint_validators import instructor_role_required
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from rsptx.response_helpers.core import make_json_response
-from rsptx.grading_helpers.answer_tables import CODE_TABLE_TYPES, answer_table_for
+from rsptx.grading_helpers.answer_tables import (
+    CODE_TABLE_TYPES,
+    answer_table_for,
+    describe_interaction,
+    interaction_events_for,
+)
 from rsptx.grading_helpers.regrade import (
     RegradeOptions,
     regrade_batch,
@@ -139,6 +146,10 @@ async def list_assignment_questions(
         q = row.Question
         aq = row.AssignmentQuestion
         tbl = _answer_table_for(q.question_type)
+        # Videos and polls have no answer table; their submissions are useinfo
+        # rows, so "answered" has to be counted from there or every one of them
+        # reports 0 answered no matter how much the class interacted.
+        interaction_events = interaction_events_for(q.question_type)
 
         answered_count = 0
         correct_count = 0
@@ -171,6 +182,15 @@ async def list_assignment_questions(
                         select(func.distinct(tbl.sid)).where(and_(*base_clauses))
                     )
                     answered_sids.update(s for (s,) in res.all() if s)
+
+                if interaction_events:
+                    for u in await fetch_interaction_useinfo(
+                        q.name, course.course_name, interaction_events
+                    ):
+                        if not u.sid or u.sid in instructor_ids:
+                            continue
+                        if is_interaction_event(u.event, u.act):
+                            answered_sids.add(u.sid)
 
                 if q.question_type in CODE_TABLE_TYPES:
                     code_clauses = [
@@ -362,6 +382,20 @@ async def list_question_answers(
                     latest_by_sid[a.sid] = a
                     answer_source[a.sid] = "answer_table"
 
+    interaction_events = interaction_events_for(question.question_type)
+    if interaction_events:
+        # No answer table: the student's "answer" is the interaction itself, so
+        # show the most recent one rather than an empty list of students.
+        for u in await fetch_interaction_useinfo(
+            question.name, course.course_name, interaction_events
+        ):
+            if u.sid not in student_map or not is_interaction_event(u.event, u.act):
+                continue
+            attempt_counts[u.sid] = attempt_counts.get(u.sid, 0) + 1
+            # Rows arrive oldest first, so keep overwriting to end on the latest.
+            latest_by_sid[u.sid] = u
+            answer_source[u.sid] = "useinfo"
+
     if question.question_type in CODE_TABLE_TYPES:
         async with async_session() as session:
             q = (
@@ -389,6 +423,10 @@ async def list_question_answers(
 
         if answer_source.get(sid) == "code_table":
             answer_text = row.code or ""
+            correct_val = None
+            percent_val = None
+        elif answer_source.get(sid) == "useinfo":
+            answer_text = describe_interaction(row.event, row.act)
             correct_val = None
             percent_val = None
         else:
@@ -501,6 +539,26 @@ async def get_student_answer_history(
                         ),
                     )
                 )
+
+    interaction_events = interaction_events_for(question.question_type)
+    if interaction_events:
+        # The submissions are the useinfo rows themselves, so build the timeline
+        # from them rather than leaving the history empty.
+        for u in await fetch_interaction_useinfo(
+            question.name, course.course_name, interaction_events, sid=sid
+        ):
+            if not is_interaction_event(u.event, u.act):
+                continue
+            history.append(
+                GraderAnswerHistoryItem(
+                    id=u.id,
+                    answer=describe_interaction(u.event, u.act),
+                    correct=None,
+                    percent=None,
+                    timestamp=u.timestamp.isoformat() if u.timestamp else None,
+                    source="useinfo",
+                )
+            )
 
     if question.question_type in CODE_TABLE_TYPES:
         async with async_session() as session:

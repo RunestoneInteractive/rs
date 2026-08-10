@@ -521,3 +521,375 @@ async def test_threshold_unknown_assignment_returns_404(auth_instructor_client):
         json={"assignment_id": 999999, "threshold_pct": 0.8},
     )
     assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# interaction-only questions (video, poll) in the grader
+#
+# These have no answer table, so the re-grader used to skip them with
+# "no_table" and the grading page showed 0 answered / no students.  Their
+# submissions are useinfo rows, which is also what makes a re-grade able to
+# recover scores for students who watched before the scoring bug was fixed.
+# ---------------------------------------------------------------------------
+
+COURSE_NAME = "test_course_1"
+
+
+async def _add_interaction_question(
+    assignment_id, div_id, question_type="youtube", points=5, autograde="interact"
+):
+    """Seed a video/poll question and attach it to an assignment. Returns the
+    question id."""
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import AssignmentQuestion, Question
+
+    async with async_session.begin() as session:
+        question = Question(
+            base_course=COURSE_NAME,
+            name=div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type=question_type,
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        session.add(question)
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment_id,
+                question_id=question.id,
+                points=points,
+                autograde=autograde,
+                which_to_grade="best_answer",
+                reading_assignment=False,
+                sorting_priority=1,
+            )
+        )
+        return question.id
+
+
+async def _log_useinfo(sid, div_id, event, act, when=None):
+    """Write a useinfo row directly, standing in for interactions students
+    logged before the scoring bug was fixed."""
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import Useinfo
+
+    async with async_session.begin() as session:
+        session.add(
+            Useinfo(
+                timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
+                sid=sid,
+                event=event,
+                act=act,
+                div_id=div_id,
+                course_id=COURSE_NAME,
+            )
+        )
+
+
+async def _grade_for(sid, div_id):
+    from rsptx.db.crud import fetch_question_grade
+
+    return await fetch_question_grade(sid, COURSE_NAME, div_id)
+
+
+async def test_regrade_scores_video_from_useinfo(auth_instructor_client):
+    """The re-grader recovers a score for a video from the useinfo rows.
+
+    Regression test for videos being skipped with "no_table": QTYPE_TO_TABLE has
+    no entry for youtube, so regrade_one used to bail out before scoring."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "regrade_video")
+    div_id = "regrade_video_q"
+    question_id = await _add_interaction_question(assignment_id, div_id, points=5)
+    await _log_useinfo("testuser1", div_id, "video", "play:42.5")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.status_code == 200
+    report = resp.json()["detail"]
+    assert report["total"] == 1
+    assert not any(i.get("skipped") == "no_table" for i in report["items"])
+
+    grade = await _grade_for("testuser1", div_id)
+    assert grade is not None
+    assert grade.score == 5
+
+
+async def test_regrade_preview_does_not_write_video_grade(auth_instructor_client):
+    """The dry run reports the score it would give without persisting it."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_video_preview"
+    )
+    div_id = "regrade_video_preview_q"
+    question_id = await _add_interaction_question(assignment_id, div_id, points=4)
+    await _log_useinfo("testuser1", div_id, "video", "complete")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade/preview",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.status_code == 200
+    items = resp.json()["detail"]["items"]
+    assert items[0]["new_score"] == 4
+    assert await _grade_for("testuser1", div_id) is None
+
+
+async def test_regrade_ignores_ready_only_video(auth_instructor_client):
+    """A student whose only useinfo row is "ready" never touched the video --
+    the player logs that as soon as it is built -- so a re-grade must not turn
+    those pre-existing rows into credit."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_video_ready"
+    )
+    div_id = "regrade_video_ready_q"
+    question_id = await _add_interaction_question(assignment_id, div_id)
+    await _log_useinfo("testuser1", div_id, "video", "ready")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.status_code == 200
+    items = resp.json()["detail"]["items"]
+    assert items[0]["skipped"] == "no_submission"
+    assert await _grade_for("testuser1", div_id) is None
+
+
+async def test_regrade_video_enforces_deadline(auth_instructor_client):
+    """Interactions after the due date are excluded when the deadline is
+    enforced, the same as answers in an answer table."""
+    import datetime
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_video_late"
+    )
+    # Move the due date into the past so the interaction below counts as late.
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import Assignment
+    from sqlalchemy import update
+
+    async with async_session.begin() as session:
+        await session.execute(
+            update(Assignment)
+            .where(Assignment.id == assignment_id)
+            .values(duedate=datetime.datetime(2024, 1, 1))
+        )
+
+    div_id = "regrade_video_late_q"
+    question_id = await _add_interaction_question(assignment_id, div_id)
+    await _log_useinfo(
+        "testuser1", div_id, "video", "play:5", when=datetime.datetime(2024, 6, 1)
+    )
+
+    late_resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+            "enforce_deadline": True,
+        },
+    )
+    assert late_resp.json()["detail"]["items"][0]["skipped"] == "no_submission"
+    assert await _grade_for("testuser1", div_id) is None
+
+    # Without deadline enforcement the same interaction scores.
+    ok_resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+            "enforce_deadline": False,
+        },
+    )
+    assert ok_resp.status_code == 200
+    grade = await _grade_for("testuser1", div_id)
+    assert grade is not None
+    assert grade.score == 5
+
+
+async def test_regrade_video_preserves_manual_grade(auth_instructor_client):
+    """A hand-entered grade on a video is protected unless the instructor asks
+    to overwrite manual grades."""
+    from sqlalchemy import update as sa_update
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.crud import create_question_grade_entry
+    from rsptx.db.models import QuestionGrade
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_video_manual"
+    )
+    div_id = "regrade_video_manual_q"
+    question_id = await _add_interaction_question(assignment_id, div_id, points=5)
+    await _log_useinfo("testuser1", div_id, "video", "play:1")
+
+    # A hand-entered grade is one whose comment is not "autograded".
+    created = await create_question_grade_entry("testuser1", COURSE_NAME, div_id, 2)
+    async with async_session.begin() as session:
+        await session.execute(
+            sa_update(QuestionGrade)
+            .where(QuestionGrade.id == created.id)
+            .values(comment="graded by hand")
+        )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.json()["detail"]["items"][0]["skipped"] == "manual"
+    grade = await _grade_for("testuser1", div_id)
+    assert grade.score == 2
+
+    # ...unless the instructor explicitly overwrites manual grades.
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+            "overwrite_manual": True,
+        },
+    )
+    assert resp.status_code == 200
+    grade = await _grade_for("testuser1", div_id)
+    assert grade.score == 5
+
+
+async def test_regrade_scores_poll_from_useinfo(auth_instructor_client):
+    """Polls take the same path as videos."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "regrade_poll")
+    div_id = "regrade_poll_q"
+    question_id = await _add_interaction_question(
+        assignment_id, div_id, question_type="poll", points=3
+    )
+    await _log_useinfo("testuser1", div_id, "poll", "2")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.status_code == 200
+    grade = await _grade_for("testuser1", div_id)
+    assert grade is not None
+    assert grade.score == 3
+
+
+async def test_question_stats_count_video_interactions(auth_instructor_client):
+    """The grading page counts a video as answered when the student interacted,
+    instead of reporting 0 answered for the whole class."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_video")
+    div_id = "stats_video_q"
+    question_id = await _add_interaction_question(assignment_id, div_id)
+    await _log_useinfo("testuser1", div_id, "video", "play:7")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    stats = {q["id"]: q for q in resp.json()["detail"]["questions"]}
+    assert stats[question_id]["answered_count"] == 1
+
+
+async def test_question_stats_ignore_ready_only_video(auth_instructor_client):
+    """A player that was merely built does not count as the student answering."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "stats_video_ready"
+    )
+    div_id = "stats_video_ready_q"
+    question_id = await _add_interaction_question(assignment_id, div_id)
+    await _log_useinfo("testuser1", div_id, "video", "ready")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    stats = {q["id"]: q for q in resp.json()["detail"]["questions"]}
+    assert stats[question_id]["answered_count"] == 0
+
+
+async def test_answers_list_shows_video_interaction(auth_instructor_client):
+    """The per-question answer list shows the student and what they did, rather
+    than being empty because there is no answer table."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "answers_video")
+    div_id = "answers_video_q"
+    question_id = await _add_interaction_question(assignment_id, div_id)
+    await _log_useinfo("testuser1", div_id, "video", "play:5")
+    await _log_useinfo("testuser1", div_id, "video", "pause:125.5")
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question_id},
+    )
+    assert resp.status_code == 200
+    answers = resp.json()["detail"]["answers"]
+    mine = [a for a in answers if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    # The latest interaction is shown, and both count as attempts.
+    assert mine[0]["answer"] == "Paused at 2:05"
+    assert mine[0]["attempts"] == 2
+
+
+async def test_answer_history_shows_video_timeline(auth_instructor_client):
+    """The per-student history is built from useinfo for interaction-only
+    questions."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "history_video")
+    div_id = "history_video_q"
+    question_id = await _add_interaction_question(assignment_id, div_id)
+    await _log_useinfo("testuser1", div_id, "video", "play:0")
+    await _log_useinfo("testuser1", div_id, "video", "complete")
+    await _log_useinfo("testuser1", div_id, "video", "ready")
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/history",
+        params={
+            "assignment_id": assignment_id,
+            "question_id": question_id,
+            "sid": "testuser1",
+        },
+    )
+    assert resp.status_code == 200
+    history = resp.json()["detail"]["history"]
+    descriptions = [h["answer"] for h in history]
+    assert "Played at 0:00" in descriptions
+    assert "Watched to the end" in descriptions
+    assert all(h["source"] == "useinfo" for h in history)
+    # "ready" is not a student interaction and stays out of the timeline.
+    assert len(history) == 2

@@ -28,6 +28,7 @@ from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
     QTYPE_TO_TABLE,
     UNITTEST_TABLE,
     answer_table_for as _answer_table_for,
+    interaction_events_for,
 )
 from rsptx.grading_helpers.scoring import (
     score_answer_values,
@@ -144,6 +145,64 @@ async def _score_row(
     return score
 
 
+async def _regrade_interaction_question(
+    item: RegradeDiffItem,
+    events: set,
+    sid: str,
+    div_id: str,
+    scoring_div_id: str,
+    course: CoursesValidator,
+    aq,
+    assignment: AssignmentValidator,
+    options: RegradeOptions,
+    dry_run: bool,
+) -> RegradeDiffItem:
+    """Re-grade a question that records interaction rather than an answer.
+
+    Videos and polls have no answer table, so the submissions are the
+    ``useinfo`` rows themselves.  ``which_to_grade`` is meaningless here --
+    every interaction is worth the same -- so the only question is whether the
+    student interacted at all before the deadline.
+    """
+    from rsptx.db.crud import fetch_interaction_useinfo, is_interaction_event
+
+    rows = await fetch_interaction_useinfo(
+        scoring_div_id, course.course_name, events, sid=sid
+    )
+    # Drop the acts that are not real student activity.  A video logs "ready" as
+    # soon as its player is built, and rows logged before this was understood
+    # are still in useinfo -- a re-grade must not turn them into credit.
+    rows = [r for r in rows if is_interaction_event(r.event, r.act)]
+
+    if options.enforce_deadline:
+        accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
+        deadline = _effective_deadline(assignment, accommodation)
+        if deadline is not None:
+            rows = [
+                r for r in rows if r.timestamp is not None and r.timestamp <= deadline
+            ]
+
+    if not rows:
+        item.skipped = "no_submission"
+        return item
+
+    new_score = score_answer_values(
+        how_to_score=aq.autograde,
+        max_score=aq.points or 0,
+        correct=None,
+        percent=None,
+    )
+    if new_score == PEER_SCORE_SENTINEL or new_score is None:
+        # Peer policies are not offered for these types; treat as unscorable
+        # rather than writing a sentinel string into the grade.
+        new_score = 0
+    item.new_score = float(new_score)
+
+    if not dry_run:
+        await _upsert_autograde(sid, course.course_name, div_id, new_score)
+    return item
+
+
 async def regrade_one(
     course: CoursesValidator,
     sid: str,
@@ -187,6 +246,24 @@ async def regrade_one(
                 real_q = await fetch_question(resolved)
                 if real_q:
                     scoring_type = real_q.question_type
+
+        # Videos and polls keep their submissions in useinfo, not an answer
+        # table, so they have to be handled before the no_table bail-out below --
+        # otherwise every one of them is silently skipped.
+        events = interaction_events_for(scoring_type)
+        if events:
+            return await _regrade_interaction_question(
+                item,
+                events,
+                sid,
+                div_id,
+                scoring_div_id,
+                course,
+                aq,
+                assignment,
+                options,
+                dry_run,
+            )
 
         tbl, table_name = _answer_table_for(scoring_type)
         if tbl is None:

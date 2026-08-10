@@ -127,3 +127,85 @@ def test_reading_questions_still_default_to_interaction():
 
 def test_unknown_question_type_defaults_to_pct_correct():
     assert default_autograde_for(None, is_reading=False) == "pct_correct"
+
+
+# ---------------------------------------------------------------------------
+# question_type -> useinfo events (the grader / re-grader side)
+# ---------------------------------------------------------------------------
+
+
+def test_interaction_events_for_video_types():
+    from rsptx.grading_helpers.answer_tables import interaction_events_for
+
+    assert interaction_events_for("video") == {"video"}
+    assert interaction_events_for("youtube") == {"video"}
+    assert interaction_events_for("poll") == {"poll"}
+
+
+def test_interaction_events_for_ordinary_types_is_none():
+    from rsptx.grading_helpers.answer_tables import interaction_events_for
+
+    assert interaction_events_for("mchoice") is None
+    assert interaction_events_for("activecode") is None
+
+
+def test_interaction_types_have_no_answer_table():
+    """The two storage maps must stay disjoint: a type is either in an answer
+    table or in useinfo, never both."""
+    from rsptx.grading_helpers.answer_tables import (
+        QTYPE_TO_INTERACTION_EVENTS,
+        QTYPE_TO_TABLE,
+    )
+
+    assert not set(QTYPE_TO_INTERACTION_EVENTS) & set(QTYPE_TO_TABLE)
+
+
+def test_every_interaction_only_type_maps_to_events():
+    """Otherwise the re-grader silently skips it with "no_table" -- the
+    original bug."""
+    from rsptx.grading_helpers.answer_tables import QTYPE_TO_INTERACTION_EVENTS
+
+    assert set(QTYPE_TO_INTERACTION_EVENTS) == INTERACTION_ONLY_QUESTION_TYPES
+
+
+def test_mapped_events_are_all_recognised_by_the_logger():
+    """The question_type side and the logging side have to agree, or the
+    re-grader will query for an event that /bookevent never scores."""
+    from rsptx.grading_helpers.answer_tables import QTYPE_TO_INTERACTION_EVENTS
+
+    mapped = set()
+    for events in QTYPE_TO_INTERACTION_EVENTS.values():
+        mapped |= events
+    assert mapped == INTERACTION_ONLY_EVENTS
+
+
+# ---------------------------------------------------------------------------
+# describe_interaction
+# ---------------------------------------------------------------------------
+
+
+def test_describe_video_play_and_pause_include_the_position():
+    from rsptx.grading_helpers.answer_tables import describe_interaction
+
+    assert describe_interaction("video", "play:42.5") == "Played at 0:42"
+    assert describe_interaction("video", "pause:125.5") == "Paused at 2:05"
+    assert describe_interaction("video", "play:0") == "Played at 0:00"
+
+
+def test_describe_video_complete():
+    from rsptx.grading_helpers.answer_tables import describe_interaction
+
+    assert describe_interaction("video", "complete") == "Watched to the end"
+
+
+def test_describe_poll_response():
+    from rsptx.grading_helpers.answer_tables import describe_interaction
+
+    assert describe_interaction("poll", "3") == "Responded 3"
+
+
+def test_describe_handles_unparseable_position():
+    from rsptx.grading_helpers.answer_tables import describe_interaction
+
+    assert describe_interaction("video", "play:soon") == "Played at soon"
+    assert describe_interaction("video", "") == "Interacted"
