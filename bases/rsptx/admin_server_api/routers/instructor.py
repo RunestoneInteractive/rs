@@ -16,15 +16,14 @@ from pydantic import BaseModel
 import csv
 import re
 from io import StringIO
-from typing import Optional
-from zoneinfo import ZoneInfo
 
 # Local application imports
 # -------------------------
 
 from rsptx.db.crud import (
-    create_assignment_question,
+    term_start_utc,
     create_assignment,
+    create_assignment_question,
     create_course_instructor,
     create_course,
     course_attr_is_true,
@@ -39,16 +38,13 @@ from rsptx.db.crud import (
     delete_lti_course,
     delete_user_course_entry,
     fetch_all_course_attributes,
-    fetch_lti1p1_config,
     fetch_assignment_questions,
-    fetch_assignments,
+    fetch_lti1p1_config,
     fetch_available_students_for_instructor_add,
     fetch_base_course,
-    fetch_course_by_id,
     fetch_course,
     fetch_courses_for_user,
     fetch_group,
-    fetch_instructor_courses,
     fetch_library_book,
     fetch_library_books,
     fetch_membership,
@@ -56,7 +52,11 @@ from rsptx.db.crud import (
     fetch_question,
     fetch_timed_assessments,
     fetch_users_for_course,
+    import_assignment,
+    import_course_assignments,
     reset_student_assessment,
+    search_assignments,
+    search_shareable_courses,
     update_course_settings,
     update_question,
     update_user,
@@ -65,18 +65,20 @@ from rsptx.auth.session import auth_manager
 from rsptx.auth.email import send_welcome_email
 from rsptx.templates import get_shared_templates
 from rsptx.validation.fields import clean_text, validate_text_field
+from rsptx.validation.schemas import AssignmentsSearchRequest
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
 from rsptx.logging import rslogger
 from rsptx.db.crud.user import create_user, fetch_user
 from rsptx.db.models import (
-    AuthUserValidator,
-    AssignmentValidator,
     AssignmentQuestionValidator,
+    AssignmentValidator,
+    AuthUserValidator,
     CoursesValidator,
 )
 from rsptx.response_helpers.core import canonical_utcnow, make_json_response
 import datetime
+from typing import Optional
 
 # Routing
 # =======
@@ -170,6 +172,13 @@ async def get_manage_students(
     return templates.TemplateResponse("admin/instructor/manage_students.html", context)
 
 
+# A course with more assignments than this gets its list truncated rather than
+# paginated: picking one out of a list this long is not what the page is for,
+# and "copy all" does not care how many there are. Capped at the search
+# request's own ``limit`` ceiling, which rejects anything larger.
+MAX_SOURCE_ASSIGNMENTS = 100
+
+
 @router.get("/copy_assignments")
 @instructor_role_required()
 @with_course()
@@ -181,34 +190,69 @@ async def get_copy_assignments(
 ):
     """
     Display the copy assignments interface.
+
+    The source course is chosen through ``/shareable_courses`` rather than a
+    dropdown rendered here: the page can now copy from any course that shares
+    something, which is far too many to put in a ``<select>``. What is still
+    rendered server-side is the book's own course, so the official assignments
+    for this book are the first thing on screen instead of a search away.
     """
     templates = get_shared_templates()
 
-    # Get instructor's available courses for copying from
-    instructor_course_relationships = await fetch_instructor_courses(user.id)
-    instructor_course_list = []
-
     base_course = await fetch_base_course(course.base_course)
-    instructor_course_list.append(base_course)
-    # For each course where the user is an instructor, get the full course information
-    for course_relation in instructor_course_relationships:
-        temp_course = await fetch_course_by_id(course_relation.course)
-        # Make sure the course exists and has the same base course
-        if temp_course and temp_course.base_course == base_course.course_name:
-            instructor_course_list.append(temp_course)
 
-    instructor_course_list.sort(key=lambda x: x.course_name)
     context = {
         "course": course,
         "user": user,
         "request": request,
         "is_instructor": True,
         "student_page": False,
-        "instructor_course_list": instructor_course_list,
+        "base_course": base_course,
         "settings": settings,
     }
 
     return templates.TemplateResponse("admin/instructor/copy_assignments.html", context)
+
+
+@router.get("/shareable_courses")
+@instructor_role_required()
+@with_course()
+async def get_shareable_courses(
+    request: Request,
+    search: str = "",
+    only_my_courses: bool = False,
+    use_base_course: bool = False,
+    page: int = 0,
+    limit: int = 20,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Courses holding assignments this instructor may copy.
+
+    Backs the source-course picker on the Copy Assignments page. Shares one
+    implementation with the assignment server's endpoint of the same name, so
+    the two surfaces cannot drift on what counts as shareable.
+    """
+    try:
+        result = await search_shareable_courses(
+            user_id=user.id,
+            search=search,
+            base_course=course.base_course if use_base_course else None,
+            prefer_base_course=course.base_course,
+            only_my_courses=only_my_courses,
+            exclude_course_id=course.id,
+            page=page,
+            limit=min(max(limit, 1), 100),
+        )
+    except Exception as e:
+        rslogger.error(f"Error listing shareable courses: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"message": "Could not load courses"},
+        )
+
+    return JSONResponse(content=result)
 
 
 @router.get("/source_assignments")
@@ -223,9 +267,14 @@ async def get_source_assignments(
     """
     List the assignments for a course the instructor may copy from.
 
-    Used by the Copy Assignments page to populate the assignment dropdown once the
-    instructor picks a source course. Verifies the instructor is associated with the
-    source course (base courses are allowed) before returning its assignments.
+    Used by the Copy Assignments page once a source course is picked. Runs the
+    same visibility rules as the assignment browser rather than its own, so a
+    course cannot expose more through this page than through that one: an
+    assignment shows up when its owner shared it, when it belongs to a book, or
+    when the caller already instructs the course.
+
+    Each row says whether it is already in the caller's course, so bulk copying
+    can report what it will pass over before the instructor commits to it.
     """
     source_course = await fetch_course(course_name)
     if not source_course:
@@ -234,23 +283,47 @@ async def get_source_assignments(
             content={"message": "Source course not found"},
         )
 
-    # Allow copying from a base course; otherwise require instructor access.
-    copy_base_course = source_course.course_name == source_course.base_course
-    if not copy_base_course:
-        instructor_courses = await fetch_instructor_courses(user.id)
-        has_access = any(ic.course == source_course.id for ic in instructor_courses)
-        if not has_access:
-            return JSONResponse(
-                status_code=403,
-                content={"message": "Not authorized to view this course"},
-            )
+    if source_course.id == course.id:
+        return JSONResponse(
+            status_code=400,
+            content={"message": "That is the course you are copying into"},
+        )
 
-    assignments = await fetch_assignments(course_name, fetch_all=True)
-    res = sorted(
-        ({"id": a.id, "name": a.name} for a in assignments),
-        key=lambda a: a["name"],
+    criteria = AssignmentsSearchRequest(
+        page=0,
+        limit=MAX_SOURCE_ASSIGNMENTS,
+        sorting={"field": "name", "order": 1},
+        filters={"course_name": {"value": course_name, "matchMode": "equals"}},
     )
-    return JSONResponse(content={"assignments": res})
+    result = await search_assignments(
+        criteria,
+        user_id=user.id,
+        exclude_course_id=course.id,
+        target_course_id=course.id,
+    )
+
+    # The book build regenerates these from the book's own markup, so a copy
+    # starts drifting the moment the book does. Bulk import leaves them out for
+    # the same reason; listing them here would offer something it will not take.
+    assignments = [
+        {
+            "id": a["id"],
+            "name": a["name"],
+            "question_count": a["question_count"],
+            "is_official": a["is_official"],
+            "already_imported": a["already_imported"],
+            "imported_as": a["imported_as"],
+        }
+        for a in result["assignments"]
+    ]
+
+    return JSONResponse(
+        content={
+            "assignments": assignments,
+            "is_official": source_course.course_name == source_course.base_course,
+            "truncated": result["pagination"]["total"] > len(assignments),
+        }
+    )
 
 
 # TA Management endpoints
@@ -437,6 +510,8 @@ async def get_course_settings(
         "use_pretext_student_pages": str(
             course_attr_is_true(course_attrs, "use_pretext_student_pages", default=True)
         ).lower(),
+        "sharing_description": course_attrs.get("sharing_description", ""),
+        "share_assignments": course_attrs.get("share_assignments", "false"),
     }
 
     return templates.TemplateResponse("admin/instructor/course_settings.html", context)
@@ -1086,8 +1161,10 @@ async def enroll_students(
 
 # Assignment Copy Models
 class CopyAssignmentRequest(BaseModel):
-    course: str
-    oldassignment: str  # assignment id or "-1" for all assignments
+    source_course_id: int
+    # None copies everything importable from the source course, which is what
+    # this page is mostly used for.
+    assignment_id: Optional[int] = None
 
 
 @router.post("/copy_assignment")
@@ -1100,76 +1177,72 @@ async def copy_assignment(
     course=None,
 ):
     """
-    Copy assignment(s) from another course to the current course.
-    Can copy a single assignment or all assignments from the source course.
+    Copy one assignment, or a whole course's worth, into the caller's course.
+
+    Delegates to the same ``import_assignment`` the assignment browser uses
+    rather than copying rows here. That is what lets this page copy from any
+    course that shares something instead of only the instructor's own, and it
+    picks up name de-duplication, cross-book reading handling and the record of
+    where each copy came from -- none of which the old local copy had.
     """
     try:
-        # Check if the source course is a base course
-        rslogger.debug(f"Copying assignments from course: {copy_data.course}")
-        source_course = await fetch_course(copy_data.course)
-        if not source_course:
+        if copy_data.assignment_id is not None:
+            result = await import_assignment(
+                source_assignment_id=copy_data.assignment_id,
+                target_course=course,
+                importing_user=user,
+            )
             return JSONResponse(
-                status_code=404,
-                content={"success": False, "message": "Source course not found"},
+                content={
+                    "success": True,
+                    "message": f'Copied as "{result.name}". It is hidden until you '
+                    f"make it visible.",
+                    "imported": [result.name],
+                    "skipped_existing": [],
+                    "skipped_readings": result.skipped_readings,
+                    "failed": [],
+                }
             )
 
-        copy_base_course = source_course.course_name == source_course.base_course
+        bulk = await import_course_assignments(
+            source_course_id=copy_data.source_course_id,
+            target_course=course,
+            importing_user=user,
+        )
 
-        # Verify instructor has access to source course (unless it's a base course)
-        if not copy_base_course:
-            instructor_courses = await fetch_instructor_courses(user.id)
-            has_access = any(ic.course == source_course.id for ic in instructor_courses)
-            if not has_access:
-                return JSONResponse(
-                    status_code=403,
-                    content={
-                        "success": False,
-                        "message": "Not authorized to copy from this course",
-                    },
-                )
-
-        res = None
-        if copy_data.oldassignment == "-1":
-            # Copy all assignments
-            assignments = await fetch_assignments(copy_data.course, fetch_all=True)
-            source_assignments = [a for a in assignments if not a.from_source]
-
-            if not source_assignments:
-                return JSONResponse(
-                    status_code=404,
-                    content={"success": False, "message": "No assignments to copy"},
-                )
-
-            for assignment in source_assignments:
-                res = await _copy_one_assignment(
-                    copy_data.course, assignment.id, course
-                )
-                if res != "success":
-                    break
-        else:
-            # Copy single assignment
-            res = await _copy_one_assignment(
-                copy_data.course, int(copy_data.oldassignment), course
-            )
-
-        if res is None:
+        if not bulk.imported and not bulk.skipped_existing and not bulk.failed:
             return JSONResponse(
                 status_code=404,
                 content={"success": False, "message": "No assignments to copy"},
             )
-        elif res == "success":
-            return JSONResponse(
-                content={
-                    "success": True,
-                    "message": "Assignment(s) copied successfully",
-                },
-            )
-        else:
-            return JSONResponse(
-                status_code=500,
-                content={"success": False, "message": f"Copy failed: {res}"},
-            )
 
+        parts = [f"Copied {len(bulk.imported)}"]
+        if bulk.skipped_existing:
+            parts.append(f"{len(bulk.skipped_existing)} already in your course")
+        if bulk.failed:
+            parts.append(f"{len(bulk.failed)} could not be copied")
+        if bulk.skipped_readings:
+            parts.append(f"{bulk.skipped_readings} readings left behind")
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": ", ".join(parts)
+                + ". Copies are hidden until you make them visible.",
+                "imported": bulk.imported,
+                "skipped_existing": bulk.skipped_existing,
+                "skipped_readings": bulk.skipped_readings,
+                "failed": bulk.failed,
+            }
+        )
+
+    except HTTPException as e:
+        # import_assignment answers 404 for anything the caller may not see, so
+        # a private foreign assignment does not confirm it exists.
+        return JSONResponse(
+            status_code=e.status_code,
+            content={"success": False, "message": str(e.detail)},
+        )
     except Exception as e:
         rslogger.error(f"Error copying assignment: {e}")
         return JSONResponse(
@@ -1178,22 +1251,10 @@ async def copy_assignment(
         )
 
 
-def _term_start_utc(term_start_date, timezone: Optional[str]) -> datetime.datetime:
-    """Midnight local time on the first day of term, expressed as naive UTC.
-
-    ``term_start_date`` is a bare date, so on its own it has no timezone. Due
-    dates are stored as naive UTC, so the term start has to be anchored in the
-    course timezone before the two can be subtracted -- otherwise the offset
-    from the start of term is wrong by the course's UTC offset. A course with
-    no timezone is treated as UTC, matching the ``duedate`` migration.
-    """
-    midnight = datetime.datetime.combine(term_start_date, datetime.time())
-    tz = ZoneInfo(timezone) if timezone else datetime.timezone.utc
-    return (
-        midnight.replace(tzinfo=tz)
-        .astimezone(datetime.timezone.utc)
-        .replace(tzinfo=None)
-    )
+# The due-date arithmetic now lives beside the assignment CRUD so this page and
+# the cross-course import share one implementation. Kept under the original
+# private name because this module and its tests already refer to it that way.
+_term_start_utc = term_start_utc
 
 
 def _shift_between_terms(

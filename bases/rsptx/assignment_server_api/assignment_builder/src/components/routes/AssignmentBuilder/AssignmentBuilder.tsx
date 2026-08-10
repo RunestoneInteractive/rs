@@ -16,7 +16,7 @@ import {
 } from "@store/dataset/dataset.logic.api";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import sortBy from "lodash/sortBy";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
@@ -25,6 +25,7 @@ import { Assignment, CreateAssignmentPayload } from "@/types/assignment";
 import { saveEnforceDue, saveVisibility } from "./assignmentMutationHandlers";
 import { ErrorState } from "./components/ErrorState/ErrorState";
 import { AssignmentEdit } from "./components/edit/AssignmentEdit";
+import { ImportAssignmentModal } from "./components/importAssignment/ImportAssignmentModal";
 import { AssignmentList } from "./components/list/AssignmentList";
 import { AssignmentWizard } from "./components/wizard/AssignmentWizard";
 import { defaultAssignment } from "./defaultAssignment";
@@ -37,6 +38,7 @@ import styles from "./AssignmentBuilder.module.css";
 
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();
+  const [importModalVisible, setImportModalVisible] = useState(false);
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
   const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
@@ -193,10 +195,15 @@ export const AssignmentBuilder = () => {
           onEdit={handleEdit}
           onDuplicate={handleDuplicate}
           onEnforceDueChange={handleEnforceDueChange}
+          onImport={() => setImportModalVisible(true)}
           onVisibilityChange={handleVisibilityChange}
           onRemove={onRemove}
         />
       )}
+      <ImportAssignmentModal
+        visible={importModalVisible}
+        onHide={() => setImportModalVisible(false)}
+      />
       {mode === "create" && (
         <AssignmentWizard
           control={control}

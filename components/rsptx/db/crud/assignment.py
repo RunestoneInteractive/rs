@@ -1,5 +1,6 @@
 import datetime
-from typing import Optional, List
+from typing import NamedTuple, Optional, List
+from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
 from rsptx.validation import schemas
@@ -12,7 +13,7 @@ from rsptx.data_types.autograde import AutogradeOptions
 from rsptx.response_helpers.core import canonical_utcnow
 
 import logging
-from sqlalchemy import select, update, delete, and_, or_, func
+from sqlalchemy import select, update, delete, and_, or_, func, asc, desc, case
 from sqlalchemy.exc import IntegrityError
 from .question import fetch_question_count_per_subchapter
 
@@ -23,6 +24,7 @@ from ..models import (
     AssignmentQuestion,
     AssignmentQuestionValidator,
     AuthUser,
+    CourseAttribute,
     CourseInstructor,
     Courses,
     DeadlineException,
@@ -1477,3 +1479,1078 @@ async def duplicate_assignment(
         )
 
         return AssignmentValidator.from_orm(new_assignment), new_name
+
+
+def term_start_utc(
+    term_start_date: datetime.date, timezone: Optional[str]
+) -> datetime.datetime:
+    """Midnight local time on the first day of term, expressed as naive UTC.
+
+    ``term_start_date`` is a bare date, so on its own it has no timezone. Due
+    dates are stored as naive UTC, so the term start has to be anchored in the
+    course timezone before the two can be subtracted -- otherwise the offset
+    from the start of term is wrong by the course's UTC offset. A course with
+    no timezone is treated as UTC, matching the ``duedate`` migration.
+    """
+    midnight = datetime.datetime.combine(term_start_date, datetime.time())
+    tz = ZoneInfo(timezone) if timezone else datetime.timezone.utc
+    return (
+        midnight.replace(tzinfo=tz)
+        .astimezone(datetime.timezone.utc)
+        .replace(tzinfo=None)
+    )
+
+
+def shift_duedate_between_courses(
+    duedate: datetime.datetime, source_course, target_course
+) -> datetime.datetime:
+    """Re-date ``duedate`` so it keeps its offset from the start of term.
+
+    Both term starts are anchored in their own course timezone, so the offset
+    is preserved as local wall clock time even when the two terms fall on
+    opposite sides of a DST change. If either course is missing a term start
+    there is nothing to shift against, so the original date is kept.
+    """
+    if not (source_course.term_start_date and target_course.term_start_date):
+        return duedate
+
+    due_delta = duedate - term_start_utc(
+        source_course.term_start_date, source_course.timezone
+    )
+    return (
+        term_start_utc(target_course.term_start_date, target_course.timezone)
+        + due_delta
+    )
+
+
+def _normalize_assignment_kind(kind: str, is_timed: bool, is_peer: bool):
+    """Reconcile the ``is_timed``/``is_peer`` flags with ``kind``.
+
+    Older assignments predate ``kind`` and can carry flag combinations it
+    disallows. Copying one forward is a good moment to make the two agree,
+    rather than propagating the inconsistency into a new course.
+    """
+    if kind == "Regular":
+        return False, False
+    if kind == "Timed":
+        return True, False
+    if kind == "Peer":
+        return False, True
+    return is_timed, is_peer
+
+
+def unique_assignment_name(base_name: str, existing_names) -> str:
+    """Pick a name for a copied assignment that is free within the course.
+
+    The ``(name, course)`` index on ``assignments`` is unique, so a copy landing
+    in a course that already has that name has to be renamed. Matches the
+    ``X (Copy)`` / ``X (Copy 2)`` scheme ``duplicate_assignment`` uses.
+    """
+    if base_name not in existing_names:
+        return base_name
+
+    stem = base_name.split(" (Copy")[0] if " (Copy" in base_name else base_name
+    candidate = f"{stem} (Copy)"
+    counter = 1
+    while candidate in existing_names:
+        counter += 1
+        candidate = f"{stem} (Copy {counter})"
+    return candidate
+
+
+def _is_book_bound(assignment_question, question) -> bool:
+    """True when a row only makes sense inside the book it came from.
+
+    A reading is an instruction to read a subchapter, and it is graded by
+    counting activity in that subchapter of the course's own book -- neither of
+    which survives the trip to a different book. Exercises carry their own
+    content and travel freely. ``question_type == "page"`` is checked alongside
+    the flag because a page question is a reading whether or not the flag on
+    the row happens to say so.
+    """
+    return (
+        bool(assignment_question.reading_assignment) or question.question_type == "page"
+    )
+
+
+class ImportedAssignment(NamedTuple):
+    """What :func:`import_assignment` produced.
+
+    ``skipped_readings`` is how many rows were left behind by the cross-book
+    rule above, so the caller can say so rather than letting the instructor
+    discover the gap themselves.
+    """
+
+    assignment: AssignmentValidator
+    name: str
+    skipped_readings: int
+
+
+def _searchable_column(field: str, joined_columns: dict):
+    """Resolve a client-supplied field name to a column, or None.
+
+    Checked against the table's columns rather than ``hasattr``: a declarative
+    class also answers to ``metadata``, ``registry`` and the ``questions``
+    relationship, none of which can be filtered or sorted on.
+    """
+    if field in joined_columns:
+        return joined_columns[field]
+    if field in Assignment.__table__.columns:
+        return getattr(Assignment, field)
+    return None
+
+
+# How much of a course's sharing blurb to carry in a page of search results.
+SHARING_DESCRIPTION_PREVIEW_CHARS = 1000
+
+
+# An assignment the book itself ships: it lives on the base course row, which is
+# the course whose ``base_course`` points at its own name.
+#
+# Two things follow from that. It needs no sharing flag -- a book has always been
+# copyable by anyone, which is what ``_fetch_source_for_import`` already allows,
+# and requiring an opt-in would hide every official assignment until some author
+# went looking for a toggle that has no UI. And ``from_source`` rows are excluded:
+# those are generated from the book's own markup on every build, so a copy starts
+# drifting from the book the moment the book changes.
+_IS_OFFICIAL = (Courses.course_name == Courses.base_course) & (
+    Assignment.from_source == False  # noqa: E712
+)
+
+
+def _is_official(assignment, course) -> bool:
+    """The Python-side reading of :data:`_IS_OFFICIAL`, for a fetched row."""
+    return course.course_name == course.base_course and not assignment.from_source
+
+
+# The course attribute an instructor sets on the Course Settings page to offer
+# their assignments to other courses.
+COURSE_SHARING_ATTR = "share_assignments"
+
+
+# Sharing is a decision about a course, not about each assignment in it. It used
+# to live on ``Assignment.is_private``, one switch per row in the assignment
+# list, which put a column in front of every instructor to answer a question
+# most of them never think about -- and which did nothing at all on a base
+# course, whose assignments are public regardless.
+#
+# ``is_private`` still exists and is still set on an imported copy, so importing
+# something never signs the importer up for sharing it onward. It just no longer
+# decides who can see what.
+_COURSE_SHARES_ASSIGNMENTS = (
+    select(CourseAttribute.id)
+    .where(
+        (CourseAttribute.course_id == Courses.id)
+        & (CourseAttribute.attr == COURSE_SHARING_ATTR)
+        & (func.lower(CourseAttribute.value) == "true")
+    )
+    .exists()
+)
+
+
+async def course_shares_assignments(course_id: int) -> bool:
+    """Has this course opted in to offering its assignments to other courses?
+
+    The row-at-a-time counterpart to :data:`_COURSE_SHARES_ASSIGNMENTS`, for the
+    authorization check on a single assignment.
+    """
+    async with async_session() as session:
+        value = (
+            await session.execute(
+                select(CourseAttribute.value).where(
+                    (CourseAttribute.course_id == course_id)
+                    & (CourseAttribute.attr == COURSE_SHARING_ATTR)
+                )
+            )
+        ).scalar()
+    return (value or "").lower() == "true"
+
+
+def _visibility(my_course_ids: List[int]):
+    """Which assignments this instructor may see in the import browser.
+
+    Three ways in, and they are the same three the import endpoint enforces:
+    the owning course offers its assignments, the assignment belongs to a book,
+    or the caller already instructs the course it lives in.
+    """
+    visibility = or_(_COURSE_SHARES_ASSIGNMENTS, _IS_OFFICIAL)
+    if my_course_ids:
+        visibility = or_(visibility, Courses.id.in_(my_course_ids))
+    return visibility
+
+
+async def _existing_imports(
+    session, source_assignment_ids: List[int], target_course_id: Optional[int]
+) -> dict:
+    """Map source assignment id -> name of the copy already in ``target_course``.
+
+    Answers "have I imported this before" for a page of search results in one
+    query. Keyed off ``imported_from_assignment_id`` rather than the name or the
+    linked question set, both of which stop matching the moment the instructor
+    edits their copy -- which is the normal thing to do after importing.
+    """
+    if not source_assignment_ids or target_course_id is None:
+        return {}
+
+    rows = await session.execute(
+        select(Assignment.imported_from_assignment_id, Assignment.name)
+        .where(
+            (Assignment.course == target_course_id)
+            & (Assignment.imported_from_assignment_id.in_(source_assignment_ids))
+        )
+        .order_by(Assignment.id)
+    )
+
+    # Oldest copy wins when a source was imported more than once: it is the one
+    # the instructor has had longest and the one they are likeliest to know by
+    # name. Later copies are still covered -- the flag is per source, not per
+    # copy -- so nothing goes unmarked.
+    existing = {}
+    for source_id, name in rows.all():
+        existing.setdefault(source_id, name)
+    return existing
+
+
+async def search_assignments(
+    criteria: schemas.AssignmentsSearchRequest,
+    user_id: int,
+    exclude_course_id: Optional[int] = None,
+    target_course_id: Optional[int] = None,
+    prefer_base_course: Optional[str] = None,
+) -> dict:
+    """Find assignments an instructor is allowed to see, for the import browser.
+
+    An assignment is visible when its owning course offers its assignments, when
+    it belongs to a book, or when the requester already instructs the course that
+    owns it. That last case mirrors ``search_exercises``: your own material never
+    disappears from your own search results.
+
+    :param criteria: search parameters (filters, sorting, pagination)
+    :param user_id: id of the requesting instructor
+    :param exclude_course_id: course to leave out, normally the requester's own
+    :param target_course_id: course the results would be imported into; each row
+        is marked with whether it is already there. Normally the same course as
+        ``exclude_course_id``, but kept separate so neither implies the other.
+    :param prefer_base_course: sort this book's own assignments first, normally
+        the caller's book
+    :return: dict with ``assignments`` and ``pagination`` keys
+    """
+    from .course import fetch_instructor_courses
+
+    my_course_ids = [ci.course for ci in await fetch_instructor_courses(user_id)]
+
+    visibility = _visibility(my_course_ids)
+
+    query = (
+        select(Assignment, Courses, Library)
+        .join(Courses, Assignment.course == Courses.id)
+        .outerjoin(Library, Courses.base_course == Library.basecourse)
+        .where(visibility)
+    )
+
+    # Never browsable, wherever they live. The book build regenerates a
+    # ``from_source`` assignment from the book's own markup every time it runs,
+    # so a copy is a snapshot that starts drifting immediately. Importing one
+    # directly by id still works -- this governs what gets advertised, not what
+    # an instructor who knows the id may do.
+    query = query.where(Assignment.from_source == False)  # noqa: E712
+
+    if exclude_course_id is not None:
+        query = query.where(Courses.id != exclude_course_id)
+
+    # Restrict to a single book when the caller asked for "my book only".
+    if criteria.base_course:
+        query = query.where(Courses.base_course == criteria.base_course)
+
+    # "Only from my courses": material the caller has taught with, as opposed to
+    # everything on the platform. An empty ``my_course_ids`` renders as a false
+    # predicate, which is the honest answer -- there is nothing of theirs to show.
+    if criteria.only_my_courses:
+        query = query.where(Courses.id.in_(my_course_ids))
+
+    # Columns a filter may name, beyond the plain Assignment columns. "Course"
+    # and "book" are the same join here -- a book is just a course whose
+    # base_course points at itself.
+    joined_columns = {
+        "course_name": Courses.course_name,
+        "institution": Courses.institution,
+        "base_course": Courses.base_course,
+        "book_title": Library.title,
+    }
+
+    for field, filter_data in (criteria.filters or {}).items():
+        # ``filters`` is loosely typed, so a caller can hand us a bare value
+        # where the nested {"value": ..., "matchMode": ...} shape is expected.
+        if not isinstance(filter_data, dict):
+            continue
+        filter_value = filter_data.get("value")
+        filter_mode = filter_data.get("matchMode", "contains")
+        if filter_value is None or filter_value == "":
+            continue
+
+        if field == "global":
+            # Every whitespace-separated term must appear somewhere, so extra
+            # words narrow the result set instead of widening it.
+            search_columns = [
+                Assignment.name,
+                Assignment.description,
+                Courses.course_name,
+                Library.title,
+            ]
+            terms = str(filter_value).strip().split()
+            for term in terms:
+                query = query.where(
+                    or_(*[col.ilike(f"%{term}%") for col in search_columns])
+                )
+            continue
+
+        column = _searchable_column(field, joined_columns)
+        if column is None:
+            continue
+
+        # Only "in" takes a list; interpolating one into a LIKE pattern would
+        # match on its repr and quietly return nothing.
+        if isinstance(filter_value, list) and filter_mode != "in":
+            continue
+
+        if filter_mode == "contains":
+            query = query.where(column.ilike(f"%{filter_value}%"))
+        elif filter_mode == "equals":
+            query = query.where(column == filter_value)
+        elif filter_mode == "startsWith":
+            query = query.where(column.ilike(f"{filter_value}%"))
+        elif filter_mode == "endsWith":
+            query = query.where(column.ilike(f"%{filter_value}"))
+        elif filter_mode == "notContains":
+            query = query.where(~column.ilike(f"%{filter_value}%"))
+        elif filter_mode == "notEquals":
+            query = query.where(column != filter_value)
+        elif filter_mode == "in" and isinstance(filter_value, list) and filter_value:
+            query = query.where(column.in_(filter_value))
+
+    # The caller's *own* book leads, and their chosen column orders within each
+    # group. Only their own book: elevating every book's official assignments
+    # would put nineteen other books' material ahead of what an instructor
+    # actually shares, which is the opposite of not losing things.
+    if prefer_base_course:
+        query = query.order_by(
+            case(
+                (_IS_OFFICIAL & (Courses.base_course == prefer_base_course), 0), else_=1
+            )
+        )
+
+    if criteria.sorting and criteria.sorting.get("field"):
+        field = criteria.sorting["field"]
+        order = criteria.sorting.get("order", 1)
+        column = _searchable_column(field, joined_columns)
+        if column is not None:
+            query = query.order_by(asc(column) if order == 1 else desc(column))
+
+    # Order by id last so paging is stable when the sort column ties.
+    query = query.order_by(Assignment.id)
+
+    count_query = select(func.count()).select_from(query.subquery())
+    page_query = query.offset(criteria.page * criteria.limit).limit(criteria.limit)
+
+    async with async_session() as session:
+        total_count = (await session.execute(count_query)).scalar() or 0
+        rows = (await session.execute(page_query)).all()
+
+        assignment_ids = [row.Assignment.id for row in rows]
+        course_ids = {row.Courses.id for row in rows}
+
+        # One extra query each for question counts and sharing blurbs, rather
+        # than joins that would complicate the count query above.
+        question_counts = {}
+        if assignment_ids:
+            count_rows = await session.execute(
+                select(
+                    AssignmentQuestion.assignment_id,
+                    func.count(AssignmentQuestion.id),
+                )
+                .where(AssignmentQuestion.assignment_id.in_(assignment_ids))
+                .group_by(AssignmentQuestion.assignment_id)
+            )
+            question_counts = {aid: count for aid, count in count_rows.all()}
+
+        sharing_descriptions = {}
+        if course_ids:
+            attr_rows = await session.execute(
+                select(CourseAttribute.course_id, CourseAttribute.value).where(
+                    (CourseAttribute.course_id.in_(course_ids))
+                    & (CourseAttribute.attr == "sharing_description")
+                )
+            )
+            # Truncated because a page of results carries one of these per
+            # course and the value is instructor-entered free text; the form's
+            # maxlength is only advisory.
+            sharing_descriptions = {
+                cid: (value or "")[:SHARING_DESCRIPTION_PREVIEW_CHARS]
+                for cid, value in attr_rows.all()
+            }
+
+        existing_imports = await _existing_imports(
+            session, assignment_ids, target_course_id
+        )
+
+        assignments = []
+        for row in rows:
+            assignment, course, library = row.Assignment, row.Courses, row.Library
+            assignments.append(
+                {
+                    "id": assignment.id,
+                    "name": assignment.name,
+                    "description": assignment.description,
+                    "duedate": assignment.duedate,
+                    "points": assignment.points,
+                    "kind": assignment.kind,
+                    "is_private": assignment.is_private,
+                    "question_count": question_counts.get(assignment.id, 0),
+                    "course_id": course.id,
+                    "course_name": course.course_name,
+                    "institution": course.institution,
+                    "base_course": course.base_course,
+                    "book_title": library.title if library else course.base_course,
+                    "sharing_description": sharing_descriptions.get(course.id, ""),
+                    "is_mine": course.id in my_course_ids,
+                    "is_official": _is_official(assignment, course),
+                    # Left in the results rather than filtered out: a row that
+                    # silently vanishes after an import looks like a bug, and
+                    # seeing it marked is what tells the instructor why they
+                    # cannot find it.
+                    "already_imported": assignment.id in existing_imports,
+                    "imported_as": existing_imports.get(assignment.id),
+                }
+            )
+
+        return {
+            "assignments": assignments,
+            "pagination": {
+                "total": total_count,
+                "page": criteria.page,
+                "limit": criteria.limit,
+                "pages": (total_count + criteria.limit - 1) // criteria.limit,
+            },
+        }
+
+
+async def _fetch_source_for_import(source_assignment_id: int, user_id: int):
+    """Load an assignment and its course, enforcing the sharing rules.
+
+    Import and preview both need the same answer to "may this person look at
+    this assignment", so they share this. Raises rather than returning a flag so
+    a caller cannot forget to check.
+    """
+    from .course import fetch_instructor_courses
+
+    async with async_session() as session:
+        row = (
+            await session.execute(
+                select(Assignment, Courses)
+                .join(Courses, Assignment.course == Courses.id)
+                .where(Assignment.id == source_assignment_id)
+            )
+        ).first()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Assignment {source_assignment_id} not found",
+        )
+
+    assignment, source_course = row.Assignment, row.Courses
+
+    # The same three ways in that ``_visibility`` allows, asked of one row: the
+    # owning course offers its assignments, it belongs to a book (which has
+    # always been copyable), or the caller already instructs that course.
+    allowed = (
+        await course_shares_assignments(source_course.id)
+        or source_course.course_name == source_course.base_course
+        or bool(await fetch_instructor_courses(user_id, source_course.id))
+    )
+    if not allowed:
+        # 404 rather than 403: a private assignment should not confirm it exists.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Assignment {source_assignment_id} not found",
+        )
+
+    return assignment, source_course
+
+
+async def fetch_assignment_for_preview(
+    source_assignment_id: int, user_id: int, target_course=None
+) -> dict:
+    """Summarize a shareable assignment without exposing question content.
+
+    Deliberately separate from ``GET /assignments/{id}``, which is scoped to the
+    caller's own course and should stay that way.
+    """
+    assignment, source_course = await _fetch_source_for_import(
+        source_assignment_id, user_id
+    )
+
+    async with async_session() as session:
+        rows = (
+            await session.execute(
+                select(AssignmentQuestion, Question)
+                .join(Question, AssignmentQuestion.question_id == Question.id)
+                .where(AssignmentQuestion.assignment_id == source_assignment_id)
+                .order_by(AssignmentQuestion.sorting_priority)
+            )
+        ).all()
+
+        library = (
+            (
+                await session.execute(
+                    select(Library).where(
+                        Library.basecourse == source_course.base_course
+                    )
+                )
+            )
+            .scalars()
+            .first()
+        )
+
+        sharing_description = (
+            await session.execute(
+                select(CourseAttribute.value).where(
+                    (CourseAttribute.course_id == source_course.id)
+                    & (CourseAttribute.attr == "sharing_description")
+                )
+            )
+        ).scalar()
+
+        existing_imports = await _existing_imports(
+            session,
+            [source_assignment_id],
+            target_course.id if target_course is not None else None,
+        )
+
+    duedate = assignment.duedate
+    if target_course is not None:
+        duedate = shift_duedate_between_courses(duedate, source_course, target_course)
+
+    cross_book = (
+        target_course is not None
+        and target_course.base_course != source_course.base_course
+    )
+    # Which rows import tells the instructor what they are getting before they
+    # commit to it, and is worked out the same way import_assignment does.
+    will_import = [
+        not (cross_book and _is_book_bound(row.AssignmentQuestion, row.Question))
+        for row in rows
+    ]
+
+    return {
+        "id": assignment.id,
+        "name": assignment.name,
+        "description": assignment.description,
+        "points": assignment.points,
+        "kind": assignment.kind,
+        "duedate": duedate,
+        "question_count": len(rows),
+        "course_name": source_course.course_name,
+        "base_course": source_course.base_course,
+        "book_title": library.title if library else source_course.base_course,
+        "institution": source_course.institution,
+        "is_official": _is_official(assignment, source_course),
+        "sharing_description": sharing_description or "",
+        # True when the source belongs to a different book than the target.
+        # Exercises still link across, but readings do not travel.
+        "is_cross_book": cross_book,
+        # A copy of this source already sits in the target course. Reported, not
+        # enforced -- re-importing to get a clean copy back is a real thing to
+        # want, so the decision belongs to the instructor looking at the warning.
+        "already_imported": source_assignment_id in existing_imports,
+        "imported_as": existing_imports.get(source_assignment_id),
+        "skipped_readings": will_import.count(False),
+        "questions": [
+            {
+                "id": row.Question.id,
+                "name": row.Question.name,
+                "question_type": row.Question.question_type,
+                "points": row.AssignmentQuestion.points,
+                "chapter": row.Question.chapter,
+                "subchapter": row.Question.subchapter,
+                "reading_assignment": row.AssignmentQuestion.reading_assignment,
+                "will_import": imported,
+            }
+            for row, imported in zip(rows, will_import)
+        ],
+    }
+
+
+async def import_assignment(
+    source_assignment_id: int,
+    target_course,
+    importing_user,
+) -> ImportedAssignment:
+    """Copy a shareable assignment from any course into ``target_course``.
+
+    Questions are linked, never copied, exactly as adding an exercise from
+    another course does. An exercise renders from its own stored HTML and is
+    identified everywhere -- in the DOM, in ``useinfo``, in grading -- by the
+    div id baked into that HTML, so a copy would have to rewrite the HTML to
+    stay coherent; a link needs nothing rewritten and leaves no duplicate
+    behind in the book when the imported assignment is deleted.
+
+    Readings are the exception when the books differ: a reading points at a
+    chapter and subchapter of its own book, which the importer's students are
+    not reading, so those rows are left behind rather than imported broken.
+
+    :param source_assignment_id: assignment being imported
+    :param target_course: course to import into, as a Courses row or validator
+    :param importing_user: the instructor performing the import
+    :return: the new assignment, its name, and how many readings were skipped
+    """
+    assignment, source_course = await _fetch_source_for_import(
+        source_assignment_id, importing_user.id
+    )
+
+    duedate = shift_duedate_between_courses(
+        assignment.duedate, source_course, target_course
+    )
+    is_timed, is_peer = _normalize_assignment_kind(
+        assignment.kind, assignment.is_timed, assignment.is_peer
+    )
+    cross_book = source_course.base_course != target_course.base_course
+
+    async with async_session.begin() as session:
+        existing_names = set(
+            (
+                await session.execute(
+                    select(Assignment.name).where(Assignment.course == target_course.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        new_name = unique_assignment_name(assignment.name, existing_names)
+
+        source_rows = (
+            await session.execute(
+                select(AssignmentQuestion, Question)
+                .join(Question, AssignmentQuestion.question_id == Question.id)
+                .where(AssignmentQuestion.assignment_id == source_assignment_id)
+                .order_by(AssignmentQuestion.sorting_priority)
+            )
+        ).all()
+
+        rows_to_import = [
+            row
+            for row in source_rows
+            if not (cross_book and _is_book_bound(row.AssignmentQuestion, row.Question))
+        ]
+        skipped_readings = len(source_rows) - len(rows_to_import)
+
+        new_assignment = Assignment(
+            course=target_course.id,
+            name=new_name,
+            duedate=duedate,
+            updated_date=canonical_utcnow(),
+            description=assignment.description,
+            # Recomputed rather than copied: skipping a reading changes the
+            # total, and fetch_one_assignment overwrites this with the sum of
+            # the question points anyway.
+            points=sum(row.AssignmentQuestion.points or 0 for row in rows_to_import),
+            threshold_pct=assignment.threshold_pct,
+            is_timed=is_timed,
+            is_peer=is_peer,
+            time_limit=assignment.time_limit,
+            from_source=False,
+            nofeedback=assignment.nofeedback,
+            nopause=assignment.nopause,
+            released=assignment.released,
+            # Hidden until the importer has looked it over, and not re-shared on
+            # their behalf -- sharing is a decision each owner makes themselves.
+            visible=False,
+            is_private=True,
+            allow_self_autograde=assignment.allow_self_autograde,
+            current_index=0,
+            enforce_due=assignment.enforce_due,
+            peer_async_visible=assignment.peer_async_visible,
+            kind=assignment.kind,
+            # The breadcrumb the import browser reads back to warn about a
+            # second import. Records the immediate source, so a copy of a copy
+            # points at the copy rather than at the original.
+            imported_from_assignment_id=source_assignment_id,
+        )
+        session.add(new_assignment)
+        await session.flush()
+
+        for row in rows_to_import:
+            source_aq = row.AssignmentQuestion
+
+            # Field by field rather than through copy_question, whose linking
+            # path looks the source row up under the *new* assignment id and so
+            # always falls back to its defaults. Here the points and grading
+            # settings the source author chose ride along with the exercise.
+            session.add(
+                AssignmentQuestion(
+                    assignment_id=new_assignment.id,
+                    question_id=source_aq.question_id,
+                    points=source_aq.points,
+                    timed=source_aq.timed,
+                    autograde=source_aq.autograde,
+                    which_to_grade=source_aq.which_to_grade,
+                    reading_assignment=source_aq.reading_assignment,
+                    sorting_priority=source_aq.sorting_priority,
+                    activities_required=source_aq.activities_required,
+                )
+            )
+
+        await session.flush()
+        result = AssignmentValidator.from_orm(new_assignment)
+
+    rslogger.info(
+        f"Imported assignment {source_assignment_id} from {source_course.course_name} "
+        f"into {target_course.course_name} as {result.id} ({new_name}) with "
+        f"{len(rows_to_import)} questions, {skipped_readings} readings skipped"
+    )
+    return ImportedAssignment(result, new_name, skipped_readings)
+
+
+class BulkImportResult(NamedTuple):
+    """What :func:`import_course_assignments` did, item by item.
+
+    Names rather than counts so a caller can show either. ``skipped_existing``
+    holds the source names that were passed over, which is the difference
+    between "that course only had two new ones" and "nothing happened".
+    """
+
+    imported: List[str]
+    skipped_existing: List[str]
+    skipped_readings: int
+    failed: List[str]
+
+
+async def import_course_assignments(
+    source_course_id: int,
+    target_course,
+    importing_user,
+    skip_existing: bool = True,
+) -> BulkImportResult:
+    """Import every importable assignment from one course into another.
+
+    The case the assignment-at-a-time browser serves badly: an instructor
+    picking up a colleague's whole semester, or starting from the book's
+    official set. Each assignment goes through :func:`import_assignment`, so
+    the sharing rules, name de-duplication, due-date shifting and cross-book
+    reading handling are the same as importing one by hand.
+
+    ``from_source`` assignments are left out. The book build regenerates those
+    from the book's own markup every time it runs, so a copy is a snapshot that
+    starts drifting immediately -- the older Copy Assignments page excluded them
+    from its "all assignments" option for the same reason.
+
+    Not one transaction. Each import commits on its own, so a failure partway
+    through leaves the ones that already worked in place and reports the rest;
+    for a bulk copy that beats rolling back thirty successful imports because
+    the thirty-first had a bad row.
+
+    :param source_course_id: course to take assignments from
+    :param target_course: course to import into, as a Courses row or validator
+    :param importing_user: the instructor performing the import
+    :param skip_existing: pass over assignments already imported into the target
+    :return: what was imported, skipped and failed
+    """
+    from .course import fetch_instructor_courses
+
+    if source_course_id == target_course.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot import a course's assignments into itself",
+        )
+
+    my_course_ids = [
+        ci.course for ci in await fetch_instructor_courses(importing_user.id)
+    ]
+
+    visibility = _visibility(my_course_ids)
+
+    async with async_session() as session:
+        source_course = (
+            (
+                await session.execute(
+                    select(Courses).where(Courses.id == source_course_id)
+                )
+            )
+            .scalars()
+            .first()
+        )
+
+        if source_course is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Course {source_course_id} not found",
+            )
+
+        rows = (
+            (
+                await session.execute(
+                    select(Assignment)
+                    .join(Courses, Assignment.course == Courses.id)
+                    .where(
+                        (Courses.id == source_course_id)
+                        & visibility
+                        & (Assignment.from_source == False)  # noqa: E712
+                    )
+                    .order_by(Assignment.name)
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        already_imported = await _existing_imports(
+            session, [row.id for row in rows], target_course.id
+        )
+
+    imported: List[str] = []
+    skipped_existing: List[str] = []
+    failed: List[str] = []
+    skipped_readings = 0
+
+    for source in rows:
+        if skip_existing and source.id in already_imported:
+            skipped_existing.append(source.name)
+            continue
+        try:
+            result = await import_assignment(
+                source_assignment_id=source.id,
+                target_course=target_course,
+                importing_user=importing_user,
+            )
+        except Exception as e:
+            # One bad assignment should not cost the instructor the other
+            # twenty-nine, so this records the failure and carries on.
+            rslogger.error(f"Bulk import skipped assignment {source.id}: {e}")
+            failed.append(source.name)
+            continue
+        imported.append(result.name)
+        skipped_readings += result.skipped_readings
+
+    rslogger.info(
+        f"Bulk imported {len(imported)} assignments from {source_course.course_name} "
+        f"into {target_course.course_name}; {len(skipped_existing)} already present, "
+        f"{len(failed)} failed, {skipped_readings} readings skipped"
+    )
+    return BulkImportResult(imported, skipped_existing, skipped_readings, failed)
+
+
+async def search_shareable_courses(
+    user_id: int,
+    search: str = "",
+    base_course: Optional[str] = None,
+    prefer_base_course: Optional[str] = None,
+    only_my_courses: bool = False,
+    exclude_course_id: Optional[int] = None,
+    page: int = 0,
+    limit: int = 20,
+) -> dict:
+    """List courses that have something an instructor could import.
+
+    Course-first browsing, for the case the assignment grid handles badly:
+    "give me what that course uses" rather than "find me one problem set". A
+    course only appears if at least one of its assignments passes the same
+    visibility rules :func:`search_assignments` applies, so nothing shows up
+    here that would turn out to be empty when opened.
+
+    :param user_id: id of the requesting instructor
+    :param search: matched against course name, institution and book title
+    :param base_course: restrict to one book
+    :param prefer_base_course: sort this book's own course to the very top,
+        normally the caller's book -- its official assignments are the answer
+        often enough to be worth not making anyone search for them
+    :param only_my_courses: restrict to courses the caller instructs
+    :param exclude_course_id: course to leave out, normally the caller's own
+    :return: dict with ``courses`` and ``pagination`` keys
+    """
+    from .course import fetch_instructor_courses
+
+    my_course_ids = [ci.course for ci in await fetch_instructor_courses(user_id)]
+
+    visibility = _visibility(my_course_ids)
+
+    query = (
+        select(
+            Courses.id,
+            Courses.course_name,
+            Courses.institution,
+            Courses.base_course,
+            Library.title,
+            func.count(Assignment.id).label("shareable_count"),
+        )
+        .join(Assignment, Assignment.course == Courses.id)
+        .outerjoin(Library, Courses.base_course == Library.basecourse)
+        # Same exclusion the assignment search and the bulk import apply, so
+        # the count here is what opening the course actually offers.
+        .where(visibility & (Assignment.from_source == False))  # noqa: E712
+        .group_by(
+            Courses.id,
+            Courses.course_name,
+            Courses.institution,
+            Courses.base_course,
+            Library.title,
+        )
+    )
+
+    if exclude_course_id is not None:
+        query = query.where(Courses.id != exclude_course_id)
+    if base_course:
+        query = query.where(Courses.base_course == base_course)
+    if only_my_courses:
+        query = query.where(Courses.id.in_(my_course_ids))
+
+    if search and search.strip():
+        # Every term must appear somewhere, so extra words narrow rather than
+        # widen -- the same rule the assignment search uses.
+        columns = [Courses.course_name, Courses.institution, Library.title]
+        for term in search.strip().split():
+            query = query.where(or_(*[col.ilike(f"%{term}%") for col in columns]))
+
+    # The caller's own book first; everything else alphabetically. Other books
+    # get no boost -- another book's official set is no more relevant to this
+    # instructor than a colleague's course, and putting every book on top buries
+    # the courses that actually share.
+    if prefer_base_course:
+        query = query.order_by(
+            case((Courses.course_name == prefer_base_course, 0), else_=1)
+        )
+    query = query.order_by(Courses.course_name)
+
+    count_query = select(func.count()).select_from(query.subquery())
+    page_query = query.offset(page * limit).limit(limit)
+
+    async with async_session() as session:
+        total_count = (await session.execute(count_query)).scalar() or 0
+        rows = (await session.execute(page_query)).all()
+
+    courses = [
+        {
+            "id": row.id,
+            "course_name": row.course_name,
+            "institution": row.institution,
+            "base_course": row.base_course,
+            "book_title": row.title or row.base_course,
+            "shareable_count": row.shareable_count,
+            "is_official": row.course_name == row.base_course,
+            "is_mine": row.id in my_course_ids,
+        }
+        for row in rows
+    ]
+
+    return {
+        "courses": courses,
+        "pagination": {
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "pages": (total_count + limit - 1) // limit,
+        },
+    }
+
+
+async def fetch_shareable_assignment_tree(
+    user_id: int,
+    target_course=None,
+    search: str = "",
+    use_base_course: bool = False,
+    only_my_courses: bool = False,
+    page: int = 0,
+    limit: int = 20,
+) -> dict:
+    """Courses with the assignments each one offers, for the import tree.
+
+    The browser shows courses and expands them, so both levels arrive together
+    rather than a request per expansion. That is affordable because the page is
+    bounded by *courses*, not assignments: one extra query fetches the children
+    of every course on the page at once.
+
+    :param user_id: id of the requesting instructor
+    :param target_course: course being imported into; rows are marked with
+        whether they are already there and its book sorts first
+    :param search: matched against course name, institution and book title
+    :param use_base_course: restrict to courses on the target course's book
+    :param only_my_courses: restrict to courses the caller instructs
+    :return: dict with ``courses`` (each carrying ``assignments``) and
+        ``pagination`` keys
+    """
+    from .course import fetch_instructor_courses
+
+    result = await search_shareable_courses(
+        user_id=user_id,
+        search=search,
+        base_course=(
+            target_course.base_course if use_base_course and target_course else None
+        ),
+        prefer_base_course=target_course.base_course if target_course else None,
+        only_my_courses=only_my_courses,
+        exclude_course_id=target_course.id if target_course else None,
+        page=page,
+        limit=limit,
+    )
+
+    course_ids = [c["id"] for c in result["courses"]]
+    if not course_ids:
+        return result
+
+    my_course_ids = [ci.course for ci in await fetch_instructor_courses(user_id)]
+
+    async with async_session() as session:
+        rows = (
+            await session.execute(
+                select(Assignment, Courses)
+                .join(Courses, Assignment.course == Courses.id)
+                .where(
+                    Courses.id.in_(course_ids)
+                    & _visibility(my_course_ids)
+                    & (Assignment.from_source == False)  # noqa: E712
+                )
+                .order_by(Assignment.name)
+            )
+        ).all()
+
+        counts = {}
+        if rows:
+            count_rows = await session.execute(
+                select(
+                    AssignmentQuestion.assignment_id, func.count(AssignmentQuestion.id)
+                )
+                .where(
+                    AssignmentQuestion.assignment_id.in_(
+                        [r.Assignment.id for r in rows]
+                    )
+                )
+                .group_by(AssignmentQuestion.assignment_id)
+            )
+            counts = {aid: count for aid, count in count_rows.all()}
+
+        existing_imports = await _existing_imports(
+            session,
+            [r.Assignment.id for r in rows],
+            target_course.id if target_course else None,
+        )
+
+    by_course = {course_id: [] for course_id in course_ids}
+    for row in rows:
+        assignment, course = row.Assignment, row.Courses
+        by_course[course.id].append(
+            {
+                "id": assignment.id,
+                "name": assignment.name,
+                "description": assignment.description,
+                "points": assignment.points,
+                "kind": assignment.kind,
+                "question_count": counts.get(assignment.id, 0),
+                "is_official": _is_official(assignment, course),
+                "already_imported": assignment.id in existing_imports,
+                "imported_as": existing_imports.get(assignment.id),
+            }
+        )
+
+    for course in result["courses"]:
+        course["assignments"] = by_course.get(course["id"], [])
+
+    return result

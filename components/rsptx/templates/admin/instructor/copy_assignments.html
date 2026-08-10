@@ -8,38 +8,53 @@
 
     <div class="page-header">
         <h1>Copy Assignments</h1>
-        <p>Copy assignments from other courses to your current course.</p>
+        <p>Copy assignments into your course from the book, from your other courses, or from any course whose instructor has shared them.</p>
     </div>
 
     <div class="row">
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Select Source Course and Assignment</h4>
+                    <h4 class="card-title">1. Choose a course to copy from</h4>
                 </div>
                 <div class="card-body">
-                    <form id="copyAssignmentForm">
-                        <div class="form-group">
-                            <label for="courseSelection">Select the course you want to copy assignments from:</label>
-                            <select id="courseSelection" class="form-control" onchange="getAssignList(this)">
-                                <option value="">Select a Course</option>
-                                {% for course in instructor_course_list %}
-                                <option value="{{ course.course_name }}">{{ course.course_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="courseSearch">Search courses:</label>
+                        <input type="text" id="courseSearch" class="form-control" autocomplete="off"
+                            placeholder="Course name, institution or book" aria-describedby="courseSearchHelp">
+                        <small id="courseSearchHelp" class="form-text text-muted">
+                            Official assignments for {{ base_course.course_name }} are listed first.
+                        </small>
+                    </div>
 
-                        <div class="form-group">
-                            <div id="assignSelection"></div>
-                        </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="useBaseCourse">
+                        <label class="form-check-label" for="useBaseCourse">Only for this book</label>
+                    </div>
 
-                        <div class="form-group">
-                            <button type="button" onclick="copyAssignments()" class="btn btn-primary" id="copyButton"
-                                disabled>
-                                <i class="fas fa-copy"></i> Copy Assignment
-                            </button>
-                        </div>
-                    </form>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="onlyMyCourses">
+                        <label class="form-check-label" for="onlyMyCourses">Only courses I teach</label>
+                    </div>
+
+                    <div id="courseResults" class="course-results" role="listbox"
+                        aria-label="Courses you can copy from"></div>
+                </div>
+            </div>
+
+            <div class="card" id="assignmentCard" hidden>
+                <div class="card-header">
+                    <h4 class="card-title">2. Choose what to copy</h4>
+                </div>
+                <div class="card-body">
+                    <div id="assignSelection" class="assignment-picker"></div>
+
+                    <div class="form-group">
+                        <button type="button" onclick="copyAssignments()" class="btn btn-primary" id="copyButton"
+                            disabled>
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -53,18 +68,18 @@
                     <div class="alert alert-info">
                         <h5><i class="fas fa-info-circle"></i> How to Copy Assignments</h5>
                         <ol>
-                            <li>Select a source course from the dropdown</li>
-                            <li>Choose which assignment to copy (or "All" for all assignments)</li>
-                            <li>Click "Copy Assignment" to copy to your current course</li>
+                            <li>Find the course you want to copy from</li>
+                            <li>Choose one assignment, or all of them</li>
+                            <li>Click "Copy"</li>
                         </ol>
                     </div>
 
                     <div class="alert alert-warning">
                         <h5><i class="fas fa-exclamation-triangle"></i> Important Notes</h5>
                         <ul>
-                            <li>Due dates will be adjusted based on your course term dates</li>
-                            <li>Assignment names must be unique in your course</li>
-                            <li>This action cannot be undone</li>
+                            <li>Copies start hidden, and are not shared onward until you say so</li>
+                            <li>Due dates shift to match your term</li>
+                            <li>Anything you have already copied is skipped, and marked below</li>
                         </ul>
                     </div>
                 </div>

@@ -305,6 +305,37 @@ class ExercisesSearchRequest(BaseModel):
     filters: Dict[str, Any] = Field(default_factory=dict)
 
 
+class AssignmentsSearchRequest(BaseModel):
+    """Request model for browsing shareable assignments from other courses"""
+
+    # When true the search is limited to the caller's own book; when false it
+    # spans every book on the platform.
+    use_base_course: bool = False
+    base_course: Optional[str] = None
+
+    # When true, only assignments from courses the caller instructs. Independent
+    # of the book filter -- an instructor may teach several courses on different
+    # books -- so the two narrow the results together.
+    only_my_courses: bool = False
+
+    # Pagination. ``limit`` is bounded on both ends: zero would make the page
+    # count divide by zero, and an unbounded value invites a huge scan.
+    page: int = Field(default=0, ge=0)
+    limit: int = Field(default=20, ge=1, le=100)
+
+    # Sorting
+    sorting: Dict[str, Any] = Field(
+        default_factory=lambda: {"field": "name", "order": 1}
+    )
+
+    # Filters keyed by column name. Each value is a dict of the shape
+    # {"value": <term>, "matchMode": "contains"}; the key "global" searches
+    # assignment name/description, course name and book title at once.
+    # Recognized keys beyond the Assignment columns: course_name, institution,
+    # base_course, book_title.
+    filters: Dict[str, Any] = Field(default_factory=dict)
+
+
 class ScoringSpecification(BaseModel):
     assigned: bool = False
     score: Optional[Union[int, float]] = None

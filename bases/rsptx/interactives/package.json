@@ -58,5 +58,12 @@
     },
     "optionalDependencies": {
         "canvas": "^3.2.3"
+    },
+    "allowScripts": {
+        "canvas@3.2.3": true,
+        "canvas@1.6.13": true,
+        "canvas-prebuilt@1.6.11": true,
+        "core-js@3.25.1": true,
+        "handsontable@7.2.2": true
     }
 }

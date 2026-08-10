@@ -639,6 +639,9 @@ class Assignment(Base, IdMixin):
     __tablename__ = "assignments"
     __table_args__ = (
         Index("assignments_name_course_idx", "name", "course", unique=True),
+        # The import browser always asks "which rows in *this* course came from
+        # one of these source assignments", so the course leads the index.
+        Index("assignments_imported_from_idx", "course", "imported_from_assignment_id"),
     )
 
     course = Column(ForeignKey("courses.id", ondelete="CASCADE"), index=True)
@@ -663,6 +666,20 @@ class Assignment(Base, IdMixin):
     enforce_due = Column(Web2PyBoolean)
     peer_async_visible = Column(Web2PyBoolean, default=False)
     kind = Column(String(128))
+    # When False this assignment is discoverable and importable by instructors
+    # in other courses. Nullable with no Python-side default, matching
+    # ``Question.is_private``: the sharing predicate tests ``== False``, which
+    # in SQL does not match NULL, so an unset value stays private. Sharing is
+    # only ever an explicit act.
+    is_private = Column(Web2PyBoolean)
+    # The assignment this one was imported from, or NULL when it was authored
+    # here. Only a breadcrumb -- the import browser reads it to say "you already
+    # have this" -- so it is nullable and ON DELETE SET NULL. Deleting a source
+    # must not reach into the importer's course, and an import chain (A imported
+    # from B, C imported from A's copy) records only the immediate source.
+    imported_from_assignment_id = Column(
+        ForeignKey("assignments.id", ondelete="SET NULL"), nullable=True
+    )
 
     questions = relationship("AssignmentQuestion", cascade="all, delete-orphan")
 

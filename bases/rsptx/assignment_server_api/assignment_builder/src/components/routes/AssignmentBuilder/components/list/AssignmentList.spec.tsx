@@ -17,6 +17,7 @@ const makeAssignment = (overrides: Partial<Assignment>): Assignment =>
     visible_on: null,
     hidden_on: null,
     enforce_due: false,
+    is_private: true,
     ...overrides
   }) as Assignment;
 
@@ -34,6 +35,7 @@ const baseProps = () => ({
   onEdit: vi.fn(),
   onDuplicate: vi.fn(),
   onEnforceDueChange: vi.fn(),
+  onImport: vi.fn(),
   onVisibilityChange: vi.fn(),
   onRemove: vi.fn()
 });
@@ -117,10 +119,15 @@ describe("AssignmentList", () => {
     renderWithMantine(<AssignmentList {...props} />);
 
     const bravoRow = screen.getByRole("button", { name: "Bravo" }).closest("tr")!;
-    const cells = bravoRow.querySelectorAll("td");
+    const cells = Array.from(bravoRow.querySelectorAll("td"));
+    // Found by content rather than index: a column added or removed anywhere to
+    // the left used to silently retarget this at a different cell.
+    const pointsCell = cells.find(
+      (cell) => cell.textContent?.trim() === String(ASSIGNMENTS[1].points)
+    )!;
 
-    fireEvent.click(cells[5]);
-    fireEvent.click(cells[7]);
+    fireEvent.click(pointsCell);
+    fireEvent.click(cells[cells.length - 1]);
 
     expect(props.onEdit).not.toHaveBeenCalled();
   });
@@ -131,6 +138,16 @@ describe("AssignmentList", () => {
     expect(
       screen.getByRole("switch", { name: "Allow late submissions for Bravo" })
     ).toBeInTheDocument();
+  });
+
+  it("invokes onImport when the import button is clicked", () => {
+    const props = baseProps();
+
+    renderWithMantine(<AssignmentList {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+
+    expect(props.onImport).toHaveBeenCalledTimes(1);
   });
 
   it("confirms deletion with the assignment name before calling onRemove", async () => {

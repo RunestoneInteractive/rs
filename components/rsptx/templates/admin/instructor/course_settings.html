@@ -93,6 +93,30 @@ Course Settings
             </div>
 
             <div class="settingsbox">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="share_assignments" {% if share_assignments=="true" %}checked{% endif %}
+                        onchange="updateCourse(this,'share_assignments')">
+                    <label for="share_assignments">Share This Course's Assignments</label>
+                </div>
+                <div class="setting-description">
+                    Let instructors in other courses find and import your assignments. This covers
+                    <strong>every</strong> assignment in the course, exams included, so leave it off if any
+                    of them should stay private. Importing never copies student work or grades, and the
+                    instructor who imports gets their own hidden copy.
+                </div>
+            </div>
+
+            <div class="settingsbox">
+                <label for="sharing_description">Note for Instructors Importing Your Assignments</label>
+                <textarea id="sharing_description" rows="4" maxlength="1000"
+                    onchange="updateCourse(this, 'sharing_description')">{{ sharing_description }}</textarea>
+                <div class="setting-description">
+                    Shown to instructors browsing your assignments. Use it to describe your problem sets
+                    &mdash; what they cover, how hard they are, anything worth knowing before importing one.
+                </div>
+            </div>
+
+            <div class="settingsbox">
                 <label for="timezone_select">Course Time Zone</label>
                 <select id="timezone_select" onchange="updateCourse(this,'timezone')"></select>
                 <div class="setting-description">

@@ -102,7 +102,8 @@ const baseAssignment = {
   allow_self_autograde: null,
   from_source: false,
   current_index: 0,
-  enforce_due: false
+  enforce_due: false,
+  is_private: true
 };
 
 export const DEMO_ASSIGNMENTS: Assignment[] = [
