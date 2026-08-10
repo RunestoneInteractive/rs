@@ -2286,6 +2286,18 @@ async def import_course_assignments(
                 detail=f"Course {source_course_id} not found",
             )
 
+        allowed = (
+            await session.execute(
+                select(visibility).where(Courses.id == source_course_id)
+            )
+        ).scalar()
+        if not allowed:
+            # 404 rather than 403: a private course should not confirm it exists.
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Course {source_course_id} not found",
+            )
+
         rows = (
             (
                 await session.execute(
