@@ -52,6 +52,8 @@ from rsptx.db.crud import (
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
     fetch_user,
+    INTERACTION_ONLY_EVENTS,
+    is_interaction_event,
     is_server_feedback,
     update_sub_chapter_progress,
     update_user_state,
@@ -146,8 +148,18 @@ async def log_book_event(
     rslogger.debug(useinfo_entry)
     idx = await create_useinfo_entry(useinfo_entry)
     response_dict = dict(timestamp=entry.timestamp)
-    if entry.event in EVENT2TABLE or entry.event == "selectquestion":
-        create_answer_table = True and entry.event != "selectquestion"
+    if (
+        entry.event in EVENT2TABLE
+        or entry.event in INTERACTION_ONLY_EVENTS
+        or entry.event == "selectquestion"
+    ):
+        # ``selectquestion`` and the interaction-only events (video, poll) have no
+        # answer table -- the useinfo row written above is the whole record -- but
+        # they still need to reach the scorer below.
+        create_answer_table = (
+            entry.event != "selectquestion"
+            and entry.event not in INTERACTION_ONLY_EVENTS
+        )
         if entry.event == "unittest":
             # info we need looks like: "act":"percent:100.0:passed:2:failed:0"
             if not re.match(r"^percent:\d+(\.\d+)?:passed:\d+:failed:\d+$", entry.act):
@@ -187,7 +199,14 @@ async def log_book_event(
 
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
-        if entry.event != "timedExam" and entry.event != "selectquestion":
+        if entry.event in INTERACTION_ONLY_EVENTS:
+            # Only score acts that represent real student activity; a video logs
+            # a "ready" event as soon as the player is built, and that must not
+            # earn credit for loading the page.
+            if is_interaction_event(entry.event, entry.act):
+                scoreSpec = await grade_submission(user, entry)
+                response_dict.update(scoreSpec.model_dump())
+        elif entry.event != "timedExam" and entry.event != "selectquestion":
             scoreSpec = await grade_submission(user, entry)
             response_dict.update(scoreSpec.model_dump())
 

@@ -74,3 +74,17 @@ class QuestionType(Enum):
     @classmethod
     def all_types(cls):
         return [member for member in cls]
+
+    @classmethod
+    def interaction_only_types(cls):
+        """Types with no notion of a correct answer: all we can ever know is
+        that the student interacted with them.  These correspond to the
+        ``INTERACTION_ONLY_EVENTS`` the scorer recognises."""
+        return [cls.VIDEO, cls.YOUTUBE, cls.POLL]
+
+    @classmethod
+    def correctness_gradable_types(cls):
+        """Every type that can be scored against a correct answer -- i.e. every
+        type for which ``pct_correct`` or ``all_or_nothing`` is meaningful."""
+        interaction_only = set(cls.interaction_only_types())
+        return [member for member in cls if member not in interaction_only]

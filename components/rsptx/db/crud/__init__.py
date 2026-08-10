@@ -9,7 +9,10 @@ from .crud import (
     fetch_all_api_tokens,
     fetch_api_token,
     is_server_feedback,
+    is_interaction_event,
     EVENT2TABLE,
+    INTERACTION_ACTS,
+    INTERACTION_ONLY_EVENTS,
 )
 from .user import (
     fetch_user,
@@ -320,7 +323,10 @@ __all__ += [
     "fetch_all_api_tokens",
     "fetch_api_token",
     "is_server_feedback",
+    "is_interaction_event",
     "EVENT2TABLE",
+    "INTERACTION_ACTS",
+    "INTERACTION_ONLY_EVENTS",
 ]
 
 # from .library

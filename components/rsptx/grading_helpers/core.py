@@ -14,6 +14,7 @@ from rsptx.db.crud import (
     fetch_one_assignment,
     fetch_peer_useinfo,
     has_submissions_after_deadline,
+    INTERACTION_ONLY_EVENTS,
 )
 from rsptx.validation.schemas import (
     LogItemIncoming,
@@ -76,7 +77,30 @@ async def grade_submission(
         rslogger.debug(
             f"Scoring {submission.div_id} for {user.username} scoreSpec = {scoreSpec}"
         )
-        if scoreSpec.which_to_grade == "first_answer":
+        if submission.event in INTERACTION_ONLY_EVENTS:
+            # Videos and polls have no answer table, so there is nothing for
+            # ``fetch_answers`` to look up (it would raise a KeyError on
+            # EVENT2TABLE).  Every interaction is also worth exactly the same, so
+            # first/last/best answer are indistinguishable here: score the
+            # interaction and upsert the single question_grades row.
+            scoreSpec.username = user.username
+            scoreSpec.score = await score_one_answer(scoreSpec, submission)
+            answer = await fetch_question_grade(user.username, user.course_name, div_id)
+            if answer:
+                answer.score = scoreSpec.score
+                await update_question_grade_entry(
+                    user.username,
+                    user.course_name,
+                    div_id,
+                    scoreSpec.score,
+                    answer.id,
+                )
+            else:
+                await create_question_grade_entry(
+                    user.username, user.course_name, div_id, scoreSpec.score
+                )
+            update_total = True
+        elif scoreSpec.which_to_grade == "first_answer":
             answers = await fetch_answers(
                 submission.div_id, submission.event, user.course_name, user.username
             )

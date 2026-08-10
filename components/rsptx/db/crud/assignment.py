@@ -8,7 +8,7 @@ from rsptx.validation.schemas import (
     CreateExercisesPayload,
 )
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
-from rsptx.data_types.autograde import AutogradeOptions
+from rsptx.data_types.autograde import AutogradeOptions, default_autograde_for
 from rsptx.response_helpers.core import canonical_utcnow
 
 import logging
@@ -922,11 +922,14 @@ async def update_assignment_exercises(
                     Question.chapter,
                     Question.subchapter,
                     Question.base_course,
+                    Question.question_type,
                 ).where(Question.id == question_id)
                 question_info_result = await session.execute(question_info_query)
                 question_info = question_info_result.first()
 
-                difficulty, chapter, subchapter, base_course = question_info
+                difficulty, chapter, subchapter, base_course, question_type = (
+                    question_info
+                )
                 question_points = difficulty or 1
 
                 default_activities_required = None
@@ -940,9 +943,7 @@ async def update_assignment_exercises(
                     question_id=question_id,
                     points=question_points,  # Use the points from the question
                     timed=None,  # Leave as null
-                    autograde=(
-                        "interaction" if payload.isReading else "pct_correct"
-                    ),  # Depends on isReading
+                    autograde=default_autograde_for(question_type, payload.isReading),
                     which_to_grade="best_answer",
                     reading_assignment=payload.isReading,
                     sorting_priority=max_sort_priority
@@ -1026,9 +1027,9 @@ async def add_assignment_question(
                 question_id=question.id,
                 points=data.points,  # Use the points from the question
                 timed=None,  # Leave as null
-                autograde=(
-                    "interaction" if data.is_reading else "pct_correct"
-                ),  # Depends on isReading
+                autograde=default_autograde_for(
+                    question.question_type, data.is_reading
+                ),
                 which_to_grade="best_answer",
                 reading_assignment=data.is_reading,
                 sorting_priority=max_sort_priority,

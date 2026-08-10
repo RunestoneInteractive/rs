@@ -67,6 +67,40 @@ EVENT2TABLE = {
     "SPLICE.getState": "splice_answers",
 }
 
+# Events that can be graded but have no answer table: there is nothing to store
+# beyond the ``useinfo`` row, because the interaction *is* the submission. These
+# live next to ``EVENT2TABLE`` because the two together define the set of events
+# the scorer knows about -- an event in neither is logged and nothing more.
+INTERACTION_ONLY_EVENTS = {"video", "poll"}
+
+# The acts that count as a genuine student interaction, keyed by event. ``None``
+# means every act for that event counts. The YouTube player fires
+# ``onStateChange`` with unstarted/cued as soon as it is built, which the video
+# component logs as ``ready``; scoring that would award full credit for merely
+# loading the page, so ``ready`` is deliberately absent.
+INTERACTION_ACTS = {
+    "video": {"play", "pause", "complete"},
+    "poll": None,
+}
+
+
+def is_interaction_event(event: str, act: str) -> bool:
+    """Return True when ``event``/``act`` is an interaction-only submission that
+    should be scored.
+
+    :param event: the ``event`` field of a ``LogItemIncoming``.
+    :param act: the ``act`` field, which for videos carries a ``:``-separated
+        payload such as ``play:12.5``.
+    :return: True if this is an interaction-only event whose act represents real
+        student activity.
+    """
+    if event not in INTERACTION_ONLY_EVENTS:
+        return False
+    allowed = INTERACTION_ACTS.get(event)
+    if allowed is None:
+        return True
+    return (act or "").split(":")[0] in allowed
+
 
 # Server-side grading
 # -------------------
