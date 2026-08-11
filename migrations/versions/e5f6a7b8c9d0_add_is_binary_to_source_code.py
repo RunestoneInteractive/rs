@@ -1,7 +1,7 @@
 """add is_binary to source_code
 
 Revision ID: e5f6a7b8c9d0
-Revises: c4e8a1f7b2d9
+Revises: a1c7e93d40b8
 Create Date: 2026-08-08 12:00:00.000000
 
 """
@@ -16,7 +16,7 @@ from rsptx.db.models import Web2PyBoolean
 
 # revision identifiers, used by Alembic.
 revision: str = "e5f6a7b8c9d0"
-down_revision: Union[str, None] = "c4e8a1f7b2d9"
+down_revision: Union[str, None] = "a1c7e93d40b8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
