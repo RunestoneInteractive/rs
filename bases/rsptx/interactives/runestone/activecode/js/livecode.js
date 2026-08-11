@@ -277,7 +277,7 @@ export default class LiveCode extends ActiveCode {
         var files = [];
         for (let f of allFilesRaw) {
             // Need to determine content and filename for each datafile
-            let fileName, content;
+            let fileName, content, isBinary = false;
             // Check on page to see if we have the datafile.
             // Datafiles are looked up via data-filename attribute while additional_files are looked up via id
             let fileElement;
@@ -310,6 +310,9 @@ export default class LiveCode extends ActiveCode {
                 // If the file came from an item with a data-filename attribute, use that as the filename
                 // otherwise this must be an RST item with filename as the id
                 fileName = fileElement.dataset.filename || f.filename;
+                isBinary =
+                    fileElement.dataset.isbinary === "true" ||
+                    fileElement.dataset.isBinary === "true";
             } else {
                 // check to see if file is in db
                 let result = null;
@@ -356,10 +359,19 @@ export default class LiveCode extends ActiveCode {
                     // favor student code if it exists
                     content = studentCode || result.file_contents;
                     fileName = result.filename;
+                    // binary files (e.g. .jar) are stored base64; the is_binary
+                    // flag tells us to hand the content to the server verbatim
+                    isBinary = result.is_binary === true;
                 }
             }
 
-            if (fileName) {
+            if (fileName && isBinary) {
+                files.push({
+                    name: fileName,
+                    content: content,
+                    isBinary: true,
+                });
+            } else if (fileName) {
                 let fileExtension = fileName.substring(
                     fileName.lastIndexOf(".") + 1,
                 );
@@ -798,7 +810,9 @@ export default class LiveCode extends ActiveCode {
         // File types being uploaded that come in already in base64 format
         var extensions = ["jar", "zip", "png", "jpg", "jpeg"];
         var contentsb64;
-        if (extensions.indexOf(extension) === -1) {
+        if (file.isBinary) {
+            contentsb64 = contents;
+        } else if (extensions.indexOf(extension) === -1) {
             contentsb64 = base64encode(contents);
         } else {
             contentsb64 = contents;
