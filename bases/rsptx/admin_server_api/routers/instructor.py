@@ -702,18 +702,32 @@ async def post_delete_course(
             )
         else:
             return JSONResponse(
-                status_code=500,
+                status_code=404,
                 content={
                     "success": False,
-                    "message": "Failed to delete course. Please check the logs for details.",
+                    "message": f"Course '{course.course_name}' no longer exists.",
                 },
             )
 
+    except RuntimeError as e:
+        # delete_course_completely raises this when it knows why it cannot
+        # proceed (base course, missing base course, ...). Safe to show.
+        rslogger.error(f"Cannot delete course {course.course_name}: {e}")
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": str(e)},
+        )
     except Exception as e:
-        rslogger.error(f"Error in delete_course endpoint: {e}")
+        # Anything else is unexpected -- log the detail, but do not echo raw
+        # database errors (they contain SQL and column values) back to the page.
+        rslogger.exception(f"Error in delete_course endpoint: {e}")
         return JSONResponse(
             status_code=500,
-            content={"success": False, "message": f"An error occurred: {str(e)}"},
+            content={
+                "success": False,
+                "message": "Failed to delete course. The deletion was rolled back "
+                "and no data was lost. Please report this to support.",
+            },
         )
 
 
