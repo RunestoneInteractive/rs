@@ -1,4 +1,5 @@
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
 import type { StudentAssignmentScoresResponse } from "@store/grader/grader.logic.api";
@@ -49,15 +50,17 @@ const detail: StudentAssignmentScoresResponse = {
 
 const renderDialog = (props: Partial<React.ComponentProps<typeof GradebookCellDialog>> = {}) =>
   renderWithMantine(
-    <GradebookCellDialog
-      opened
-      onClose={vi.fn()}
-      assignment={assignment}
-      student={student}
-      score={8}
-      manual={false}
-      {...props}
-    />
+    <MemoryRouter>
+      <GradebookCellDialog
+        opened
+        onClose={vi.fn()}
+        assignment={assignment}
+        student={student}
+        score={8}
+        manual={false}
+        {...props}
+      />
+    </MemoryRouter>
   );
 
 beforeEach(() => {
@@ -103,6 +106,22 @@ describe("GradebookCellDialog", () => {
     // A real instructor comment shows; the autograder's placeholder does not.
     expect(screen.getByText("nice work")).toBeInTheDocument();
     expect(screen.queryByText("autograded")).not.toBeInTheDocument();
+  });
+
+  it("opens each question on its grading page in a new tab", () => {
+    renderDialog();
+
+    const link = screen.getByRole("link", { name: "1.2.3" });
+
+    expect(link).toHaveAttribute("href", "/grader/7/questions/1/students/ada%40example.com");
+    expect(link).toHaveAttribute("target", "_blank");
+    // The div_id is still reachable when the number is what's displayed.
+    expect(link).toHaveAttribute("title", expect.stringContaining("q_one"));
+
+    expect(screen.getByRole("link", { name: "q_two" })).toHaveAttribute(
+      "href",
+      "/grader/7/questions/2/students/ada%40example.com"
+    );
   });
 
   it("links to the student's full report", () => {

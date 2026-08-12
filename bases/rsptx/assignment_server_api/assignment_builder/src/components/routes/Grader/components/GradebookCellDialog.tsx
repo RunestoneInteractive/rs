@@ -11,6 +11,7 @@ import {
   Text
 } from "@mantine/core";
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { Icon } from "@/components/ui/Icon";
 import { notify } from "@/components/ui/notify";
@@ -44,6 +45,10 @@ interface GradebookCellDialogProps {
  * div_id for a question that has no number. */
 const questionLabel = (q: StudentAssignmentQuestionScore): string =>
   (q.qnumber ?? "").trim() || q.name;
+
+/** Where this question, for this student, is graded. */
+const questionGradingPath = (assignmentId: number, questionId: number, sid: string): string =>
+  `/grader/${assignmentId}/questions/${questionId}/students/${encodeURIComponent(sid)}`;
 
 const regradeSummary = (report: RegradeReport): string => {
   const parts = [
@@ -202,8 +207,23 @@ export const GradebookCellDialog: React.FC<GradebookCellDialogProps> = ({
 
                 return (
                   <Table.Tr key={q.id}>
-                    <Table.Td title={label === q.name ? undefined : q.name}>
-                      {label}
+                    <Table.Td>
+                      {/* Grading happens on its own page; open it in a new tab so
+                          the gradebook (and this breakdown) stays put. */}
+                      <Anchor
+                        component={Link}
+                        to={questionGradingPath(assignment.id, q.id, student.sid)}
+                        target="_blank"
+                        rel="noopener"
+                        size="sm"
+                        title={
+                          label === q.name
+                            ? "Grade this question in a new tab"
+                            : `${q.name} — grade this question in a new tab`
+                        }
+                      >
+                        {label}
+                      </Anchor>
                       {/* "autograded" is the placeholder the autograder writes;
                           only a real instructor comment is worth showing. */}
                       {q.comment && q.comment !== "autograded" && (

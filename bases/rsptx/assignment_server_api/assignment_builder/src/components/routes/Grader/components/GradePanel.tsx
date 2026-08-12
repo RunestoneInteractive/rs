@@ -6,6 +6,7 @@ import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
 import { AutoSaveStatus } from "../hooks/useAutoSaveGrade";
 import styles from "../Grader.module.css";
+import { studentDisplayName } from "../state/graderSelectors";
 import { SaveStatusPill } from "./SaveStatusPill";
 
 interface Props {
@@ -69,9 +70,7 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
   }));
 
   const isDisabled = disabled || !student;
-  const studentName = student
-    ? `${student.first_name || ""} ${student.last_name || ""}`.trim() || student.sid
-    : "No student selected";
+  const studentName = student ? studentDisplayName(student) : "No student selected";
 
   return (
     <div className={styles.gradePane} data-tour="grader-grade-panel">

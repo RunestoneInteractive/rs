@@ -866,6 +866,62 @@ async def test_answers_list_shows_video_interaction(auth_instructor_client):
     assert mine[0]["attempts"] == 2
 
 
+async def test_answers_list_includes_students_who_did_not_submit(
+    auth_instructor_client,
+):
+    """Every enrolled student is listed, so an instructor can see who skipped the
+    question and record a zero instead of the class looking smaller than it is."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client, "answers_roster", "answers_roster_q"
+    )
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+    assert resp.status_code == 200
+    answers = resp.json()["detail"]["answers"]
+    mine = [a for a in answers if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    # 0 attempts and no answer is what marks the student as never having submitted.
+    assert mine[0]["attempts"] == 0
+    assert mine[0]["answer"] is None
+    assert mine[0]["timestamp"] is None
+    assert mine[0]["score"] is None
+
+
+async def test_answers_list_keeps_grade_without_submission(auth_instructor_client):
+    """A student graded by hand keeps that score in the list even though they
+    never submitted an answer."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client, "answers_roster_graded", "answers_roster_graded_q"
+    )
+
+    grade_resp = await auth_instructor_client.post(
+        "/instructor/grader/grade",
+        json={
+            "sid": "testuser1",
+            "div_id": "answers_roster_graded_q",
+            "score": 4,
+            "comment": "credit for the write-up",
+            "assignment_id": assignment_id,
+        },
+    )
+    assert grade_resp.status_code == 200
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+    mine = [a for a in resp.json()["detail"]["answers"] if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    assert mine[0]["attempts"] == 0
+    assert mine[0]["score"] == 4
+    assert mine[0]["comment"] == "credit for the write-up"
+
+
 async def test_answer_history_shows_video_timeline(auth_instructor_client):
     """The per-student history is built from useinfo for interaction-only
     questions."""

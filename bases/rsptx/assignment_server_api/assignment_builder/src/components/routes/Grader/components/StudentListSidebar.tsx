@@ -10,6 +10,7 @@ import {
   statusColor,
   statusIcon,
   statusLabel,
+  studentDisplayName,
   StudentGradingStatus
 } from "../state/graderSelectors";
 import styles from "./StudentListSidebar.module.css";
@@ -23,9 +24,6 @@ interface Props {
   hideGraded: boolean;
   onToggleHideGraded: (v: boolean) => void;
 }
-
-const studentName = (s: GraderStudentAnswer) =>
-  `${s.first_name || ""} ${s.last_name || ""}`.trim() || s.sid;
 
 export const StudentListSidebar: React.FC<Props> = ({
   answers,
@@ -48,7 +46,7 @@ export const StudentListSidebar: React.FC<Props> = ({
       const status = getStudentStatus(a, question, { dirtySids });
       if (hideGraded && (status === "graded" || status === "autograded")) return false;
       if (!q) return true;
-      return studentName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
+      return studentDisplayName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
     });
   }, [answers, filter, hideGraded, question, dirtySids]);
 
@@ -122,7 +120,7 @@ export const StudentListSidebar: React.FC<Props> = ({
             >
               <StatusDot status={status} />
               <div className={styles.itemBody}>
-                <div className={styles.itemName}>{studentName(a)}</div>
+                <div className={styles.itemName}>{studentDisplayName(a)}</div>
                 <div className={styles.itemMeta}>
                   <span className={styles.itemSid}>{a.sid}</span>
                   <span>·</span>

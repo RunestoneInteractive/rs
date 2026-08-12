@@ -9,6 +9,12 @@ export type StudentGradingStatus =
   | "pending"
   | "no_submission";
 
+/** The student's name as an instructor knows them, falling back to the username
+ * for a roster entry with no name on file. */
+export const studentDisplayName = (
+  s: Pick<GraderStudentAnswer, "first_name" | "last_name" | "sid">
+): string => `${s.first_name || ""} ${s.last_name || ""}`.trim() || s.sid;
+
 const isAutogradeManual = (autograde?: string) => !autograde || autograde === "manual";
 
 export const isAutogradeable = (q: { autograde?: string }): boolean =>

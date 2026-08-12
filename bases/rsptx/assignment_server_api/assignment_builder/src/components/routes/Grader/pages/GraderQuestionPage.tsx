@@ -23,6 +23,7 @@ import { useGraderPrefs } from "../hooks/useGraderPrefs";
 import { usePlatform } from "../hooks/usePlatform";
 import { useStudentNavigation } from "../hooks/useStudentNavigation";
 import styles from "../Grader.module.css";
+import { studentDisplayName } from "../state/graderSelectors";
 import { getDemoAnswersFor, getDemoQuestionsFor } from "../tour/graderDemoData";
 import { useGraderTourContext } from "../tour/GraderTourContext";
 
@@ -69,7 +70,9 @@ export const GraderQuestionPage: React.FC = () => {
     } else if (nav.firstUngraded) {
       targetSid = nav.firstUngraded;
     } else if (answers.length) {
-      targetSid = answers[0].sid;
+      // The roster includes students who never submitted; land on someone with
+      // work to look at when there is nothing left to grade.
+      targetSid = (answers.find((a) => a.attempts > 0) ?? answers[0]).sid;
     }
     if (targetSid) {
       navigate(
@@ -365,15 +368,28 @@ export const GraderQuestionPage: React.FC = () => {
             </div>
           ) : (
             <div className={styles.splitGrid}>
-              <SubmissionPane
-                ref={submissionRef}
-                assignmentId={aid}
-                questionId={qid}
-                questionName={data.question.name}
-                questionType={data.question.question_type}
-                htmlsrc={data.question.htmlsrc || questionMeta?.htmlsrc}
-                student={student}
-              />
+              {/* A student who never submitted is still on the list so a score
+                  can be recorded; there is simply no work to show them. */}
+              {student.attempts === 0 ? (
+                <div className={`${styles.emptyState} ${styles.emptyStateFill}`}>
+                  <Icon name="minus-circle" size={30} className={styles.emptyStateIcon} />
+                  <h3>No submission</h3>
+                  <p>
+                    {studentDisplayName(student)} has not submitted anything for this question. You
+                    can still record a score.
+                  </p>
+                </div>
+              ) : (
+                <SubmissionPane
+                  ref={submissionRef}
+                  assignmentId={aid}
+                  questionId={qid}
+                  questionName={data.question.name}
+                  questionType={data.question.question_type}
+                  htmlsrc={data.question.htmlsrc || questionMeta?.htmlsrc}
+                  student={student}
+                />
+              )}
               <GradePanel
                 ref={gradePanelRef}
                 student={student}

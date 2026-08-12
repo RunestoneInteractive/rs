@@ -326,8 +326,13 @@ async def list_question_answers(
     question_id: int = Query(...),
     user=Depends(auth_manager),
 ):
-    """Return the most-recent answer for every student (excluding instructors)
-    that submitted something for this question.
+    """Return the most-recent answer for every student in the course, excluding
+    instructors.
+
+    Students who never submitted are included with ``attempts`` of 0 and no
+    answer: an instructor still has to see them to record a zero, and the grading
+    page marks them "No submission" rather than pretending the class is smaller
+    than it is.
     """
     course = await fetch_course(user.course_name)
     assignment = await fetch_one_assignment(assignment_id)
@@ -417,11 +422,33 @@ async def list_question_answers(
                     latest_by_sid[c.sid] = c
                     answer_source[c.sid] = "code_table"
 
-    for sid, row in latest_by_sid.items():
-        stu = student_map.get(sid)
-        grade = await fetch_question_grade(sid, course.course_name, question.name)
+    # One query for the whole class rather than one per student: the roster is
+    # the loop bound now, not the (usually shorter) list of submitters.
+    grades_by_sid: dict = {}
+    async with async_session() as session:
+        res = await session.execute(
+            select(QuestionGrade)
+            .where(
+                and_(
+                    QuestionGrade.div_id == question.name,
+                    QuestionGrade.course_name == course.course_name,
+                )
+            )
+            .order_by(QuestionGrade.id)
+        )
+        # Ordered by id, so the last row written for a sid is the newest.
+        for g in res.scalars():
+            grades_by_sid[g.sid] = g
 
-        if answer_source.get(sid) == "code_table":
+    for sid, stu in student_map.items():
+        row = latest_by_sid.get(sid)
+        grade = grades_by_sid.get(sid)
+
+        if row is None:
+            answer_text = None
+            correct_val = None
+            percent_val = None
+        elif answer_source.get(sid) == "code_table":
             answer_text = row.code or ""
             correct_val = None
             percent_val = None
@@ -447,8 +474,13 @@ async def list_question_answers(
                 answer=answer_text,
                 correct=correct_val,
                 percent=percent_val,
-                timestamp=row.timestamp.isoformat() if row.timestamp else None,
-                attempts=attempt_counts.get(sid, 1),
+                timestamp=(
+                    row.timestamp.isoformat()
+                    if row is not None and row.timestamp
+                    else None
+                ),
+                # 0 attempts is what marks a student as never having submitted.
+                attempts=attempt_counts.get(sid, 0),
                 score=float(grade.score) if grade and grade.score is not None else None,
                 comment=grade.comment if grade else None,
                 max_points=max_points,
