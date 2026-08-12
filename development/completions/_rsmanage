@@ -8,29 +8,31 @@ _rsmanage() {
     local state
 
     commands=(
-        'addattribute:Add an attribute to the `course_attributes` table'
-        'addbookauthor:Add a user with author permissions for a book to the...'
+        'addattribute:Add the attribute ATTR with VALUE to COURSE in the...'
+        'addbookauthor:Add AUTHOR with author permissions for BOOK to the...'
         'addcourse:Create a course in the database'
-        'addeditor:Add an existing user as an editor for a given base course'
-        'addinstructor:Add an existing user as an instructor for a course'
+        'addeditor:Add the existing user USERNAME as an editor for the base...'
+        'addinstructor:Add the existing user USERNAME as an instructor for COURSE'
         'adduser:Add a user (or users from a csv file)'
         'approvedomain:Approve a domain for LTI 1.3'
         'build:rsmanage build [options] COURSE Build the book for an...'
-        'courseinfo:List all information for a single course'
+        'courseinfo:List all information for the single course COURSE_NAME'
         'datashop:Export the course data to the datashop format'
         'db:Connect to the database based on the current configuration'
+        'deletecourse:Delete COURSE_NAME and all of the data associated with it.'
         'env:Print out your configured environment If --checkdb is...'
         'fixtotals:Repair stale assignment totals in the grades table.'
-        'grade:Grade a problem set; hack for long-running grading processes'
+        'grade:Grade a problem set in COURSE; hack for long-running...'
         'initdb:Initialize and optionally reset the database'
-        'instructors:List instructor information for all courses or just for a...'
+        'instructorinfo:Display PII for the instructor USERNAME plus every course...'
+        'instructors:List instructor information for all courses, or just for...'
         'library:subcommands for managing the library table'
-        'peergroups'
-        'resetpw:Utility to change a users password.'
-        'rmuser:Utility to remove a user from the system completely.'
+        'peergroups:List the peer instruction partner groups recorded for COURSE'
+        'resetpw:Change USERNAME'\''s password.'
+        'rmuser:Remove the user USERNAME from the system completely.'
         'showanswers:Show students answers for a given assignment'
         'showattrs:Show all attributes for a course'
-        'studentinfo:display PII and all courses enrolled for a username'
+        'studentinfo:display PII and all courses enrolled for USERNAME'
         'telemetry:Preview (default) or send the anonymous usage check-in.'
     )
 
@@ -49,17 +51,17 @@ _rsmanage() {
             case $words[1] in
                 addattribute)
                     _arguments \
-                        '--course[Name of the course]:course: ' \
-                        '--attr[Attribute to add]:attr: ' \
-                        '--value[Attribute Value]:value: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:course: ' \
+                        '2:attr: ' \
+                        '3:value: '
                     ;;
                 addbookauthor)
                     _arguments \
-                        '--book[document-id or basecourse]:book: ' \
-                        '--author[Runestone username of an author or admin]:author: ' \
                         '--github[url of book on github]:github: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:book: ' \
+                        '2:author: '
                     ;;
                 addcourse)
                     _arguments \
@@ -83,15 +85,15 @@ _rsmanage() {
                     ;;
                 addeditor)
                     _arguments \
-                        '--username[user to promote to instructor]:username: ' \
-                        '--basecourse[name of base course]:basecourse: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:username: ' \
+                        '2:basecourse: '
                     ;;
                 addinstructor)
                     _arguments \
-                        '--username[user to promote to instructor]:username: ' \
-                        '--course[name of course]:course: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:username: ' \
+                        '2:course: '
                     ;;
                 adduser)
                     _arguments \
@@ -122,8 +124,8 @@ _rsmanage() {
                     ;;
                 courseinfo)
                     _arguments \
-                        '--name[Name of the course]:name: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:course_name: '
                     ;;
                 datashop)
                     _arguments \
@@ -136,6 +138,12 @@ _rsmanage() {
                 db)
                     _arguments \
                         '--help[Show this message and exit.]'
+                    ;;
+                deletecourse)
+                    _arguments \
+                        '--force[Skip the confirmation prompt -- for scripted use only]' \
+                        '--help[Show this message and exit.]' \
+                        '1:course_name: '
                     ;;
                 env)
                     _arguments \
@@ -156,9 +164,9 @@ _rsmanage() {
                 grade)
                     _arguments \
                         '--enforce[Enforce deadline when grading]' \
-                        '--course[The name of a course that should already exist in the DB]:course: ' \
                         '--pset[Database ID of the Problem Set]:pset: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:course: '
                     ;;
                 initdb)
                     _arguments \
@@ -167,10 +175,15 @@ _rsmanage() {
                         '--force[answer Yes to confirm questions]' \
                         '--help[Show this message and exit.]'
                     ;;
+                instructorinfo)
+                    _arguments \
+                        '--help[Show this message and exit.]' \
+                        '1:username: '
+                    ;;
                 instructors)
                     _arguments \
-                        '--course[The name of a course that should already exist in the DB]:course: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:course: '
                     ;;
                 library)
                     local -a library_cmds
@@ -243,19 +256,19 @@ _rsmanage() {
                     ;;
                 peergroups)
                     _arguments \
-                        '--course[name of course]:course: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:course: '
                     ;;
                 resetpw)
                     _arguments \
-                        '--username[Username, must be unique]:username: ' \
                         '--password[password - plaintext -- sorry]:password: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:username: '
                     ;;
                 rmuser)
                     _arguments \
-                        '--username[Username, must be unique]:username: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:username: '
                     ;;
                 showanswers)
                     _arguments \
@@ -273,8 +286,8 @@ _rsmanage() {
                     ;;
                 studentinfo)
                     _arguments \
-                        '--student[Name of the student]:student: ' \
-                        '--help[Show this message and exit.]'
+                        '--help[Show this message and exit.]' \
+                        '1:username: '
                     ;;
                 telemetry)
                     _arguments \

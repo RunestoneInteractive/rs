@@ -995,7 +995,7 @@ add_book_to_db() {
     # Run the addbookauthor command interactively
     # Instead of providing the inputs by pipe, use the parameters directly, which is supported by the command and more reliable than simulating interactive input
     # using interactive intput would require -T on the run command, which can cause issues with some environments and is less efficient
-    if docker compose run --rm rsmanage rsmanage addbookauthor --book "${book_name}" --author "testuser1"; then
+    if docker compose run --rm rsmanage rsmanage addbookauthor "${book_name}" "testuser1"; then
         print_success "Book added to database"
         log "Added book $book_name to database"
     else

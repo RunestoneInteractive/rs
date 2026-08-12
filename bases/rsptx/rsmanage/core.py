@@ -45,12 +45,15 @@ from rsptx.db.crud import (
     create_instructor_course_entry,
     create_library_book,
     create_user_course_entry,
+    delete_course_completely,
     delete_user,
     fetch_all_course_attributes,
     fetch_assignments,
     fetch_course,
     fetch_courses_by_start_date,
     fetch_courses_for_user,
+    fetch_course_by_id,
+    fetch_course_enrollment_stats,
     fetch_course_instructors,
     fetch_group,
     fetch_instructor_courses,
@@ -584,11 +587,11 @@ async def adduser(
 
 
 @cli.command()
-@click.option("--username", help="Username, must be unique")
+@click.argument("username", required=False)
 @click.option("--password", help="password - plaintext -- sorry")
 @pass_config
 async def resetpw(config, username, password):
-    """Utility to change a users password. Useful If they can't do it through the normal mechanism"""
+    """Change USERNAME's password. Useful If they can't do it through the normal mechanism"""
     userinfo = {}
     username = username or await click.prompt("Username")
     userinfo["password"] = password or await click.prompt("Password", hide_input=True)
@@ -603,10 +606,10 @@ async def resetpw(config, username, password):
 
 
 @cli.command()
-@click.option("--username", help="Username, must be unique")
+@click.argument("username", required=False)
 @pass_config
 async def rmuser(config, username):
-    """Utility to remove a user from the system completely."""
+    """Remove the user USERNAME from the system completely."""
 
     sid = username or await click.prompt("Username")
     await delete_user(sid)
@@ -650,12 +653,12 @@ def env(config, checkdb):
 
 
 @cli.command()
-@click.option("--username", default=None, help="user to promote to instructor")
-@click.option("--course", default=None, help="name of course")
+@click.argument("username", required=False)
+@click.argument("course", required=False)
 @pass_config
 async def addinstructor(config, username, course):
     """
-    Add an existing user as an instructor for a course
+    Add the existing user USERNAME as an instructor for COURSE
     """
 
     username = username or await click.prompt("Username")
@@ -714,12 +717,12 @@ async def addinstructor(config, username, course):
 
 
 @cli.command()
-@click.option("--username", help="user to promote to instructor", default=None)
-@click.option("--basecourse", help="name of base course", default=None)
+@click.argument("username", required=False)
+@click.argument("basecourse", required=False)
 @pass_config
 async def addeditor(config, username, basecourse):
     """
-    Add an existing user as an editor for a given base course
+    Add the existing user USERNAME as an editor for the base course BASECOURSE
     """
 
     username = username or await click.prompt("Username")
@@ -771,31 +774,31 @@ async def addeditor(config, username, basecourse):
 
 
 @cli.command()
-@click.option("--name", help="Name of the course")
+@click.argument("course_name", required=False)
 @pass_config
-async def courseinfo(config, name):
+async def courseinfo(config, course_name):
     """
-    List all information for a single course
+    List all information for the single course COURSE_NAME
 
     """
 
-    if not name:
-        name = await click.prompt("What course do you want info about?")
+    if not course_name:
+        course_name = await click.prompt("What course do you want info about?")
 
-    course = await fetch_course(name)
+    course = await fetch_course(course_name)
     if not course:
-        click.echo(f"Sorry, the course {name} does not exist")
+        click.echo(f"Sorry, the course {course_name} does not exist")
         sys.exit(-1)
     cid = course.id
     start_date = course.term_start_date
     inst = course.institution
     bc = course.base_course
 
-    student_list = await fetch_users_for_course(name)
+    student_list = await fetch_users_for_course(course_name)
     s_count = len(student_list)
-    res = await fetch_course_instructors(name)
+    res = await fetch_course_instructors(course_name)
 
-    print(f"Course Information for {name} -- ({cid})")
+    print(f"Course Information for {course_name} -- ({cid})")
     print(inst)
     print(f"timezone: {course.timezone}  Login Required: {course.login_required}")
     print(
@@ -810,17 +813,98 @@ async def courseinfo(config, name):
 
 
 @cli.command()
-@click.option("--student", default=None, help="Name of the student")
+@click.argument("course_name", required=False)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Skip the confirmation prompt -- for scripted use only",
+)
 @pass_config
-async def studentinfo(config, student):
+async def deletecourse(config, course_name, force):
     """
-    display PII and all courses enrolled for a username
+    Delete COURSE_NAME and all of the data associated with it.
+
+    This is irreversible. Students enrolled in the course are not deleted; they
+    are moved to the base course and marked inactive. Base courses cannot be
+    deleted this way.
+    """
+    if not course_name:
+        course_name = await click.prompt("What course do you want to delete?")
+
+    course = await fetch_course(course_name)
+    if not course:
+        click.echo(f"Sorry, the course {course_name} does not exist")
+        sys.exit(-1)
+
+    if course.base_course == course.course_name:
+        click.echo(
+            f"{course_name} is a base course; "
+            "use the library commands to manage base courses."
+        )
+        sys.exit(-1)
+
+    stats = await fetch_course_enrollment_stats(course.id, course.course_name)
+    assignments = await fetch_assignments(course.course_name, fetch_all=True)
+    instructors = await fetch_course_instructors(course.course_name)
+
+    click.echo(f"Course: {course.course_name} ({course.id})")
+    click.echo(f"  Institution: {course.institution}")
+    click.echo(f"  Base course: {course.base_course}")
+    click.echo(f"  Start date: {course.term_start_date}")
+    click.echo(
+        f"  Students: {stats['enrolled']} enrolled, "
+        f"{stats['with_activity']} with recorded activity"
+    )
+    click.echo(f"  Last activity: {stats['last_activity'] or 'never'}")
+    click.echo(f"  Assignments: {len(assignments)}")
+    click.echo(
+        "  Instructors: "
+        + (", ".join(i.username for i in instructors) if instructors else "none")
+    )
+    click.echo("")
+    click.echo(
+        "This will permanently delete the course, its assignments and grades, and "
+        "all student work recorded in it. It cannot be undone."
+    )
+
+    if not force:
+        confirm = await click.prompt(
+            "Type the course name to confirm deletion (anything else aborts)",
+            default="",
+            show_default=False,
+        )
+        if confirm != course.course_name:
+            click.echo("Aborted -- nothing was deleted.")
+            sys.exit(1)
+
+    try:
+        deleted = await delete_course_completely(course.course_name)
+    except RuntimeError as e:
+        click.echo(f"Could not delete {course.course_name}: {e}")
+        sys.exit(-1)
+
+    if deleted:
+        click.echo(f"Deleted {course.course_name}")
+    else:
+        click.echo(f"{course.course_name} no longer exists")
+        sys.exit(-1)
+
+
+@cli.command()
+@click.argument("username", required=False)
+@pass_config
+async def studentinfo(config, username):
+    """
+    display PII and all courses enrolled for USERNAME
     """
 
+    if not username:
+        username = await click.prompt("Student Id: ")
+
+    student = await fetch_user(username)
     if not student:
-        student = await click.prompt("Student Id: ")
-
-    student = await fetch_user(student)
+        click.echo(f"Sorry, the user {username} does not exist")
+        sys.exit(-1)
     courses = await fetch_courses_for_user(student.id)
 
     print("id\tFirst\tLast\temail")
@@ -835,13 +919,94 @@ async def studentinfo(config, student):
 
 
 @cli.command()
-@click.option("--course", default=None, help="Name of the course")
-@click.option("--attr", default=None, help="Attribute to add")
-@click.option("--value", default=None, help="Attribute Value")
+@click.argument("username", required=False)
+@pass_config
+async def instructorinfo(config, username):
+    """
+    Display PII for the instructor USERNAME plus every course they teach and
+    its enrollment stats.
+    """
+
+    if not username:
+        username = await click.prompt("Instructor username")
+
+    instructor = await fetch_user(username)
+    if not instructor:
+        click.echo(f"Sorry, the user {username} does not exist")
+        sys.exit(-1)
+
+    print(f"Instructor information for {instructor.username}")
+    print(f"  id:         {instructor.id}")
+    print(f"  name:       {instructor.first_name} {instructor.last_name}")
+    print(f"  email:      {instructor.email}")
+    print(f"  active:     {instructor.active}")
+    print(f"  created on: {instructor.created_on}")
+    print(f"  home course: {instructor.course_name} ({instructor.course_id})")
+    print("")
+
+    ci_rows = await fetch_instructor_courses(instructor.id)
+    if not ci_rows:
+        print(f"{instructor.username} is not an instructor for any course.")
+        return
+
+    courses = []
+    for row in ci_rows:
+        course = await fetch_course_by_id(row.course)
+        if not course:
+            # A course_instructor row whose course is gone -- worth seeing.
+            print(f"WARNING: course id {row.course} no longer exists")
+            continue
+        stats = await fetch_course_enrollment_stats(course.id, course.course_name)
+        courses.append((course, stats))
+
+    courses.sort(key=lambda c: (c[0].term_start_date is None, c[0].term_start_date))
+
+    name_width = max([len(c.course_name) for c, _ in courses] + [len("Course")])
+    base_width = max([len(c.base_course) for c, _ in courses] + [len("Base course")])
+    header = (
+        f"{'Course'.ljust(name_width)}  {'cid'.rjust(6)}  "
+        f"{'Base course'.ljust(base_width)}  {'Term start'.ljust(10)}  "
+        f"{'Enrolled'.rjust(8)}  {'Active'.rjust(6)}  {'Worked'.rjust(6)}  "
+        "Last activity"
+    )
+    print(f"Courses taught by {instructor.username} ({len(courses)}):")
+    print(header)
+    print("-" * len(header))
+
+    total_enrolled = 0
+    total_active = 0
+    for course, stats in courses:
+        last = stats["last_activity"]
+        print(
+            f"{course.course_name.ljust(name_width)}  {str(course.id).rjust(6)}  "
+            f"{course.base_course.ljust(base_width)}  "
+            f"{str(course.term_start_date).ljust(10)}  "
+            f"{str(stats['enrolled']).rjust(8)}  {str(stats['active']).rjust(6)}  "
+            f"{str(stats['with_activity']).rjust(6)}  "
+            f"{last.strftime('%Y-%m-%d') if last else 'never'}"
+        )
+        total_enrolled += stats["enrolled"]
+        total_active += stats["active"]
+
+    print("")
+    print(
+        f"Total: {len(courses)} courses, {total_enrolled} enrollments, "
+        f"{total_active} in active accounts"
+    )
+    print(
+        "(Worked = distinct students with a recorded interaction in the course; it can "
+        "exceed Enrolled when a student has since been unenrolled)"
+    )
+
+
+@cli.command()
+@click.argument("course", required=False)
+@click.argument("attr", required=False)
+@click.argument("value", required=False)
 @pass_config
 async def addattribute(config, course, attr, value):
     """
-    Add an attribute to the `course_attributes` table
+    Add the attribute ATTR with VALUE to COURSE in the `course_attributes` table
 
     """
     course = course or await click.prompt("Name of the course ")
@@ -865,7 +1030,7 @@ async def addattribute(config, course, attr, value):
 
 
 @cli.command()
-@click.argument("course", default=None)
+@click.argument("course", required=False)
 @pass_config
 async def showattrs(config, course):
     """
@@ -887,13 +1052,11 @@ async def showattrs(config, course):
 
 
 @cli.command()
-@click.option(
-    "--course", help="The name of a course that should already exist in the DB"
-)
+@click.argument("course", required=False)
 @pass_config
 async def instructors(config, course):
     """
-    List instructor information for all courses or just for a single course
+    List instructor information for all courses, or just for COURSE
 
     """
     if course:
@@ -908,7 +1071,7 @@ async def instructors(config, course):
 
 
 @cli.command()
-@click.argument("domain", default=None)
+@click.argument("domain", required=False)
 @pass_config
 async def approvedomain(config, domain):
     """
@@ -938,14 +1101,12 @@ async def approvedomain(config, domain):
 
 
 @cli.command()
+@click.argument("course", required=False)
 @click.option("--enforce", is_flag=True, help="Enforce deadline when grading")
-@click.option(
-    "--course", help="The name of a course that should already exist in the DB"
-)
 @click.option("--pset", help="Database ID of the Problem Set")
 @pass_config
 async def grade(config, course, pset, enforce):
-    """Grade a problem set; hack for long-running grading processes"""
+    """Grade a problem set in COURSE; hack for long-running grading processes"""
     os.chdir(findProjectRoot())
 
     userinfo = {}
@@ -1218,8 +1379,8 @@ def db(config):
 
 
 @cli.command()
-@click.argument("course_name", default=None)
-@click.argument("assignment_name", default=None)
+@click.argument("course_name", required=False)
+@click.argument("assignment_name", required=False)
 @click.option("--sid", default=None)
 @click.option("-t", "--timezone", default=0)
 @pass_config
@@ -1427,8 +1588,9 @@ def check_db_for_useinfo(config):
 
 
 @cli.command()
-@click.option("--course", help="name of course")
+@click.argument("course", required=False)
 def peergroups(course):
+    """List the peer instruction partner groups recorded for COURSE"""
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     ap = r.hgetall(f"partnerdb_{course}")
     if len(ap) > 0:
@@ -1439,12 +1601,12 @@ def peergroups(course):
 
 
 @cli.command()
-@click.option("--book", help="document-id or basecourse")
-@click.option("--author", help="Runestone username of an author or admin")
+@click.argument("book", required=False)
+@click.argument("author", required=False)
 @click.option("--github", help="url of book on github", default="")
 @pass_config
 async def addbookauthor(config, book, author, github):
-    """Add a user with author permissions for a book to the Runestone DB.
+    """Add AUTHOR with author permissions for BOOK to the Runestone DB.
     Note that this will create the permissions for the user designated as author
     to use the runestone author interface to build and deploy the book.
     The name of the book must match the document-id as defined in the docinfo section

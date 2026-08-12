@@ -25,6 +25,7 @@ from ..models import (
     UserTopicPracticeSurvey,
     Code,
     QuestionGrade,
+    Useinfo,
 )
 from ..async_session import async_session
 from rsptx.logging import rslogger
@@ -696,6 +697,50 @@ async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
         res = await session.execute(query)
     student_list = [AuthUserValidator.from_orm(x) for x in res.scalars().fetchall()]
     return student_list
+
+
+async def fetch_course_enrollment_stats(
+    course_id: int, course_name: str
+) -> Dict[str, Any]:
+    """
+    Summarize enrollment and activity for a single course.
+
+    Counting rather than fetching matters here: a caller that only wants the
+    number of students should not pull every student row across the wire.
+
+    :param course_id: int, the ``courses.id`` of the course
+    :param course_name: str, the ``courses.course_name`` of the course
+    :return: dict with ``enrolled``, ``active`` (auth_user.active is true),
+        ``with_activity`` (distinct students with a useinfo row) and
+        ``last_activity`` (most recent useinfo timestamp, or None)
+    """
+    # ``active`` is a Web2PyBoolean ('T'/'F'), so compare it to True rather than
+    # using is_(), which would render SQL postgres will not accept for a CHAR(1).
+    is_active = AuthUser.active == True  # noqa: E712
+    enrollment_query = (
+        select(
+            func.count(UserCourse.user_id),
+            func.count(UserCourse.user_id).filter(is_active),
+        )
+        .select_from(UserCourse)
+        .join(AuthUser, AuthUser.id == UserCourse.user_id)
+        .where(UserCourse.course_id == course_id)
+    )
+    # useinfo.course_id holds the course *name* -- see the note on the model.
+    activity_query = select(
+        func.count(func.distinct(Useinfo.sid)), func.max(Useinfo.timestamp)
+    ).where(Useinfo.course_id == course_name)
+
+    async with async_session() as session:
+        enrolled, active = (await session.execute(enrollment_query)).one()
+        with_activity, last_activity = (await session.execute(activity_query)).one()
+
+    return dict(
+        enrolled=enrolled,
+        active=active,
+        with_activity=with_activity,
+        last_activity=last_activity,
+    )
 
 
 async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
