@@ -26,9 +26,14 @@ async def fetch_user(
     """
     Retrieve a user by their username (user_name)
 
-    fallback_to_registration is for LTI logins to match accounts with usernames that have
-    been modified.
-    If user_name is not found, try to find the user by their registration_id (initial id).
+    fallback_to_registration is for LTI logins. If user_name is not found, try to find
+    the user by their registration_id -- the identity the account was originally created
+    under. Current code always writes registration_id equal to the username (or to the
+    empty string), so this only reaches legacy rows where the two diverge.
+
+    Unlike username, registration_id has no unique constraint, so the fallback may match
+    several rows. Take the oldest, which is the account holding the user's history, and
+    warn rather than raising: a duplicate must not turn an LTI launch into a 500.
 
     :param user_name: str, the username of the user
     :return: AuthUserValidator, the AuthUserValidator object representing the user
@@ -37,12 +42,23 @@ async def fetch_user(
     async with async_session() as session:
         res = await session.execute(query)
         user = res.scalars().one_or_none()
-        if not user and fallback_to_registration:
-            fallback_query = select(AuthUser).where(
-                AuthUser.registration_id == user_name
+        # Guard the empty string: several code paths create users with
+        # registration_id="", so falling back on a blank name would match an
+        # arbitrary unrelated account and log the launching user in as them.
+        if not user and fallback_to_registration and user_name:
+            fallback_query = (
+                select(AuthUser)
+                .where(AuthUser.registration_id == user_name)
+                .order_by(AuthUser.id)
             )
             res = await session.execute(fallback_query)
-            user = res.scalars().one_or_none()
+            matches = res.scalars().all()
+            if len(matches) > 1:
+                rslogger.warning(
+                    f"Duplicate registration_id {user_name!r} on auth_user ids "
+                    f"{[u.id for u in matches]}; using the oldest."
+                )
+            user = matches[0] if matches else None
     return AuthUserValidator.from_orm(user)
 
 
