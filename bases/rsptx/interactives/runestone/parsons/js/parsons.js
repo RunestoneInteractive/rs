@@ -688,7 +688,7 @@ export default class Parsons extends RunestoneBase {
         // Determine how much indent should be possible in the answer area
         var indent = 0;
         if (!this.noindent) {
-            if (this.options.language == "natural") {
+            if (this.options.language == "natural" || this.options.language == "math" || this.options.language == "text") {
                 indent = this.solutionIndent();
             } else {
                 indent = Math.max(0, this.solutionIndent());
@@ -762,7 +762,8 @@ export default class Parsons extends RunestoneBase {
         // Pass 1: render math (if needed) and measure natural width of each block
         const isMath =
             this.options.language == "natural" ||
-            this.options.language == "math";
+            this.options.language == "math" ||
+            this.options.language == "text";
         for (i = 0; i < blocks.length; i++) {
             const item = blocks[i].view;
             if (isMath) {
@@ -897,7 +898,8 @@ export default class Parsons extends RunestoneBase {
         let self = this;
         if (
             this.options.language == "natural" ||
-            this.options.language == "math"
+            this.options.language == "math" ||
+            this.options.language == "text"
         ) {
             if (
                 typeof MathJax !== "undefined" &&

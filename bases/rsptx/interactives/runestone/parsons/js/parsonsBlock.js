@@ -51,7 +51,8 @@ export default class ParsonsBlock {
             line.view.classList.remove(...INDENT_CLASSES);
             if (
                 this.problem.options.language != "natural" &&
-                this.problem.options.language != "math"
+                this.problem.options.language != "math" &&
+                this.problem.options.language != "text"
             ) {
                 if (lineIndent > 0) {
                     line.view.classList.add("indent" + lineIndent);
@@ -98,7 +99,8 @@ export default class ParsonsBlock {
                     // todo: if language is natural or math then don't do this
                     if (
                         this.problem.options.language !== "natural" &&
-                        this.problem.options.language !== "math"
+                        this.problem.options.language !== "math" &&
+                        this.problem
                     ) {
                         lines[i].view.classList.add(
                             "indent" + (lines[i].indent - line.indent),
