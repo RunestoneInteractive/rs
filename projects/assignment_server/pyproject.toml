@@ -47,6 +47,9 @@ dependencies = [
     "cryptography>=46.0.0,<47",
     "greenlet>=3.2.2,<4",
     "requests>=2.0.0,<3",
+    # Required by the rsptx/lti1p1 brick (OAuth1-signed grade passback).
+    "lxml>=6.0,<7",
+    "oauth2>=1.9",
 ]
 
 [dependency-groups]
@@ -110,3 +113,4 @@ exclude = [
 "../../components/rsptx/endpoint_validators" = "rsptx/endpoint_validators"
 "../../bases/rsptx/assignment_server_api" = "rsptx/assignment_server_api"
 "../../components/rsptx/lti1p3" = "rsptx/lti1p3"
+"../../components/rsptx/lti1p1" = "rsptx/lti1p1"

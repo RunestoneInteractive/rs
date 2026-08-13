@@ -157,6 +157,46 @@ async def attempt_lti1p3_score_updates(
     )
 
 
+async def attempt_lti1p3_score_updates_for(
+    rs_assign_id: int,
+    updates: List[Tuple[int, float]],
+    force: bool = False,
+    instructor_triggered: bool = False,
+):
+    """
+    Attempt to send score updates for an explicit set of users.
+
+    Unlike :func:`attempt_lti1p3_score_updates`, which pushes every graded
+    student on the assignment, this sends only the users named in ``updates``
+    -- while still resolving the assignment's grading data (and therefore the
+    OAuth token and HTTP session) once for the whole batch rather than once per
+    student, as repeated :func:`attempt_lti1p3_score_update` calls would.
+
+    :param rs_assign_id: The Runestone assignment id
+    :param updates: List of tuples (rs_user_id, score) to send
+    :param force: If True, will send the score even if the grades are not yet released in RS or the course is set to not auto-update grades
+    :param instructor_triggered: If True, report submission.submittedAt as just before the assignment deadline.
+    """
+    rslogger.debug("LTI1p3 - attempt_lti1p3_score_updates_for")
+    if not updates:
+        return
+    lti_assign = await fetch_lti1p3_grading_data_for_assignment(rs_assign_id)
+    if not lti_assign:
+        return
+
+    resolved = []
+    for rs_user_id, score in updates:
+        lti_user = await fetch_lti1p3_user(rs_user_id, lti_assign.lti1p3_course.id)
+        resolved.append((lti_user, score))
+
+    await _send_lti1p3_score_updates(
+        lti_assign=lti_assign,
+        updates=resolved,
+        force=force,
+        instructor_triggered=instructor_triggered,
+    )
+
+
 async def _send_lti1p3_score_updates(
     lti_assign: Lti1p3Assignment,
     updates: List[Tuple[Lti1p3User, int]],

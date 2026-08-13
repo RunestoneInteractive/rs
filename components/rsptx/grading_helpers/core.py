@@ -283,7 +283,14 @@ async def compute_total_score(
         )
     rslogger.debug(f"newGrade = {newGrade}")
     res = await upsert_grade(newGrade)
-    # And send the grade off to any LTI1.3 tools that are listening
+    # And send the grade off to any LTI1.3 tools that are listening.
+    #
+    # This one path stays 1.3-only on purpose. It runs on every scored student
+    # answer -- the hottest path in the system -- and dispatching by LTI version
+    # (rsptx.grading_helpers.lti_push) costs two extra queries per event, while
+    # the 1.1 outcomes POST is blocking. LTI 1.1 courses get their scores from
+    # the instructor-triggered paths instead (recompute totals, regrade, manual
+    # grade), which batch the push. Revisit if real-time 1.1 passback is wanted.
     await attempt_lti1p3_score_update(user.id, scoreSpec.assignment_id, total)
     return total
 

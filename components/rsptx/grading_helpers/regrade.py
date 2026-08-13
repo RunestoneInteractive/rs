@@ -21,7 +21,7 @@ from rsptx.db.models import (
     QuestionValidator,
     SelectedQuestion,
 )
-from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.logging import rslogger
 from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
     CODE_TABLE_TYPES,
@@ -391,7 +391,6 @@ async def _recompute_total_for_user(
     course_name: str,
     dry_run: bool = False,
     only_existing: bool = False,
-    instructor_triggered: bool = False,
 ) -> TotalChange:
     """Roll the student's ``question_grades`` up into their ``grades`` row.
 
@@ -404,7 +403,11 @@ async def _recompute_total_for_user(
     rows at all and silently rolled the total up to 0.
 
     With ``dry_run`` the would-be total is computed and reported but nothing is
-    written and no LTI score is pushed.
+    written.
+
+    This does not push to the LMS: the caller batches the returned changes and
+    pushes them together (see ``_push_total_changes``), so the LTI version and
+    credentials are resolved once instead of once per student.
 
     With ``only_existing`` a student who has no ``grades`` row yet is left alone
     instead of having one created at 0. Normal grading wants the row created;
@@ -447,10 +450,53 @@ async def _recompute_total_for_user(
             manual_total=False,
         )
     await upsert_grade(new_grade)
-    await attempt_lti1p3_score_update(
-        user.id, assignment.id, total, instructor_triggered=instructor_triggered
-    )
     return change
+
+
+async def _push_total_changes(
+    course: CoursesValidator,
+    assignment: AssignmentValidator,
+    changes: List[TotalChange],
+    user_map: Dict[str, AuthUserValidator],
+    push_unchanged: bool = False,
+    instructor_triggered: bool = False,
+) -> None:
+    """Send the totals that moved to the course's LMS, in one batch.
+
+    Only students whose total actually changed are pushed. Recomputing a whole
+    roster typically moves a handful of grades, and the LMS call is one HTTP
+    round trip per student with no batch form in either LTI version -- so
+    pushing unconditionally, as this used to, meant hundreds of calls to say
+    nothing.
+
+    The trade-off is that a push which fails is never retried on its own: a
+    later recompute sees the total as unchanged and skips it. ``push_unchanged``
+    is the repair hatch for that -- it resends every student's current total,
+    including manually pinned ones, so an instructor can force the LMS back into
+    agreement with the Runestone gradebook.
+
+    Students with no ``grades`` row are always skipped; there is no score to
+    send.
+    """
+    updates = []
+    for c in changes:
+        if c.skipped_no_grade_row:
+            continue
+        if c.skipped_manual and not push_unchanged:
+            continue
+        if not (c.changed or push_unchanged):
+            continue
+        user = user_map.get(c.sid)
+        if user is not None:
+            updates.append((user.id, c.new_score))
+
+    if updates:
+        await attempt_lti_score_updates(
+            assignment,
+            course.id,
+            updates,
+            instructor_triggered=instructor_triggered,
+        )
 
 
 async def recompute_totals_detail(
@@ -460,6 +506,7 @@ async def recompute_totals_detail(
     dry_run: bool = False,
     only_existing: bool = False,
     instructor_triggered: bool = False,
+    push_unchanged: bool = False,
 ) -> List[TotalChange]:
     """Recompute assignment totals for the given students and report what moved.
 
@@ -468,6 +515,10 @@ async def recompute_totals_detail(
     run would do. With ``only_existing`` students who have no ``grades`` row are
     reported as skipped rather than having one created. Students whose roll-up
     raises are logged and omitted.
+
+    Totals that moved are pushed to the course's LMS in a single batch once the
+    recompute finishes; ``push_unchanged`` resends every student's total instead
+    (see ``_push_total_changes``).
     """
     users = await fetch_users_for_course(course.course_name)
     user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
@@ -487,11 +538,20 @@ async def recompute_totals_detail(
                     course.course_name,
                     dry_run=dry_run,
                     only_existing=only_existing,
-                    instructor_triggered=instructor_triggered,
                 )
             )
         except Exception as e:  # pragma: no cover - defensive
             rslogger.error(f"recompute totals failed sid={user.username}: {e}")
+
+    if not dry_run:
+        await _push_total_changes(
+            course,
+            assignment,
+            changes,
+            user_map,
+            push_unchanged=push_unchanged,
+            instructor_triggered=instructor_triggered,
+        )
     return changes
 
 
@@ -500,17 +560,22 @@ async def recompute_totals_for(
     assignment: AssignmentValidator,
     sids: Optional[List[str]] = None,
     instructor_triggered: bool = False,
+    push_unchanged: bool = False,
 ) -> int:
-    """Recompute assignment totals (and push LTI 1.3 scores) for the given
-    students. When ``sids`` is empty/None every student in the course is
-    recomputed. Returns the number of students processed.
+    """Recompute assignment totals (and push the ones that moved to the course's
+    LMS) for the given students. When ``sids`` is empty/None every student in
+    the course is recomputed. Returns the number of students processed.
 
     This is used by the manual multi-grade flow, where individual grades are
     written through ``POST /grade`` (which does not itself recompute totals).
     """
     return len(
         await recompute_totals_detail(
-            course, assignment, sids, instructor_triggered=instructor_triggered
+            course,
+            assignment,
+            sids,
+            instructor_triggered=instructor_triggered,
+            push_unchanged=push_unchanged,
         )
     )
 
@@ -563,17 +628,24 @@ async def regrade_batch(
     if not dry_run and options.recompute_totals and processed_sids:
         users = await fetch_users_for_course(course.course_name)
         user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
+        changes: List[TotalChange] = []
         for sid in processed_sids:
             user = user_map.get(sid)
             if user is not None:
                 try:
-                    await _recompute_total_for_user(
-                        user,
-                        assignment,
-                        course.course_name,
-                        instructor_triggered=instructor_triggered,
+                    changes.append(
+                        await _recompute_total_for_user(
+                            user, assignment, course.course_name
+                        )
                     )
                 except Exception as e:  # pragma: no cover - defensive
                     rslogger.error(f"recompute totals failed sid={sid}: {e}")
+        await _push_total_changes(
+            course,
+            assignment,
+            changes,
+            user_map,
+            instructor_triggered=instructor_triggered,
+        )
 
     return report
