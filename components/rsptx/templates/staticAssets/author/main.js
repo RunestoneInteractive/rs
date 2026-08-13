@@ -295,7 +295,7 @@ function startExtract() {
     data.sample_size = getSampleSize();
     data.include_basecourse = getIncludeBasecourse();
 
-    data.specific_course = document.getElementById("specific_course").value;
+    data.specific_course = document.getElementById("specific_course")?.value?.trim();
     data.preserve_user_ids = getPreserveUsernames();
 
     if (data.specific_course) {
