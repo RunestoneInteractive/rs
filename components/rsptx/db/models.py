@@ -427,6 +427,10 @@ class SourceCode(Base, IdMixin):
     # Filename to use when saving contents to Jobe or trying to include
     # this file in a program. It is OK to reuse the same filename for different
     filename = Column(String(512))
+    # True when the file contents are a base64 binary payload (e.g. a
+    # compiled .jar or .zip), which must be handed to a server (Jobe) verbatim
+    # rather than treated as source.  Text files leave it False.
+    is_binary = Column(Web2PyBoolean, nullable=False)
     # Owner of the datafile (username of the instructor who created it)
     # Used to enforce uniqueness: filename + owner + course_id should be unique
     owner = Column(String(512), index=True)
