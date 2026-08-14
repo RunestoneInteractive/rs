@@ -133,6 +133,19 @@ async def _load_user(user_id: str) -> AuthUserValidator:
 load_user = cast(Callable[[str], Awaitable[AuthUserValidator]], _load_user)
 
 
+async def get_optional_user(request: Request) -> Optional[AuthUserValidator]:
+    """Return the authenticated user, or None for anonymous/browsing-mode visitors.
+
+    Unlike ``Depends(auth_manager)``, this never raises -- it lets the route
+    itself decide what to do for logged-out users (e.g. serve a static/backup
+    resource instead of one that requires an account).
+    """
+    try:
+        return await auth_manager(request)
+    except NotAuthenticatedException:
+        return None
+
+
 async def is_instructor(
     request: Request, user: Optional[AuthUserValidator] = None
 ) -> bool:
