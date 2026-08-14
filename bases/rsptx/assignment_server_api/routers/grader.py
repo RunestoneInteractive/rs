@@ -37,7 +37,7 @@ from rsptx.db.models import (
 )
 from rsptx.endpoint_validators import instructor_role_required
 from rsptx.logging import rslogger
-from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.response_helpers.core import make_json_response
 from rsptx.grading_helpers.answer_tables import (
     CODE_TABLE_TYPES,
@@ -737,7 +737,7 @@ async def upsert_grade(
             await session.commit()
 
     # Roll the new question grade up into the assignment total (and push the new
-    # total to any LTI 1.3 tool). recompute_totals_for honors a pinned
+    # total to the course's LMS). recompute_totals_for honors a pinned
     # manual_total and applies the assignment threshold.
     recomputed = []
     for assignment in await _assignments_to_recompute(course, payload):
@@ -875,6 +875,7 @@ async def regrade_run(
 class RecomputeTotalsRequest(BaseModel):
     assignment_id: int
     sids: List[str] = []
+    push_unchanged: bool = False
 
 
 @router.post("/recompute_totals")
@@ -886,6 +887,10 @@ async def recompute_totals(
 
     Used after the manual multi-grade flow, since the single ``POST /grade``
     endpoint only writes per-question grades without rolling up the total.
+
+    Only totals that actually moved are sent to the LMS. ``push_unchanged``
+    resends every student's current total instead, to repair an LMS gradebook
+    that has drifted out of agreement with Runestone's.
     """
     course = await fetch_course(user.course_name)
     assignment = await fetch_one_assignment(payload.assignment_id)
@@ -900,7 +905,11 @@ async def recompute_totals(
     sids = [s for s in payload.sids if s not in instructor_ids]
 
     processed = await recompute_totals_for(
-        course, assignment, sids, instructor_triggered=True
+        course,
+        assignment,
+        sids,
+        instructor_triggered=True,
+        push_unchanged=payload.push_unchanged,
     )
     rslogger.info(
         f"Recompute totals by {user.username} assignment={assignment.id} "
@@ -1029,10 +1038,10 @@ async def set_manual_assignment_total(
         grade = await set_manual_total(
             student.id, assignment.id, course.course_name, payload.score, True
         )
-        await attempt_lti1p3_score_update(
-            student.id,
-            assignment.id,
-            payload.score,
+        await attempt_lti_score_updates(
+            assignment,
+            course.id,
+            [(student.id, payload.score)],
             instructor_triggered=True,
         )
         rslogger.info(

@@ -35,6 +35,9 @@ dependencies = [
     "pydantic-settings>=2.0.3,<3",
     "pytz>=2024.2,<2025",
     "requests>=2.0.0,<3",
+    # Required by the rsptx/lti1p1 brick (OAuth1-signed grade passback).
+    "lxml>=6.0,<7",
+    "oauth2>=1.9",
     "jwcrypto>=1.5.6,<2",
     "psycopg2-binary>=2.0.0,<3",
     "openai>=1.59.3,<2",
@@ -101,4 +104,5 @@ bypass-selection = true
 "../../bases/rsptx/book_server_api" = "rsptx/book_server_api"
 "../../components/rsptx/practice" = "rsptx/practice"
 "../../components/rsptx/lti1p3" = "rsptx/lti1p3"
+"../../components/rsptx/lti1p1" = "rsptx/lti1p1"
 "../../components/rsptx/data_types" = "rsptx/data_types"
