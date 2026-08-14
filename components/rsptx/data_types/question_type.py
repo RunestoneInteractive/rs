@@ -61,6 +61,18 @@ class QuestionType(Enum):
         "Embed external content using an iFrame",
     )
 
+    DOENET = (
+        "doenet",
+        "Doenet",
+        "Embed an interactive activity using Doenet",
+    )
+
+    SPLICE = (
+        "splice",
+        "SPLICE",
+        "Embed an external interactive activity using SPLICE",
+    )
+
     def to_dict(self):
         return {
             "value": self.value[0],
