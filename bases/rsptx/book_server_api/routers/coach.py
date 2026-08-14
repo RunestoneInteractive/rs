@@ -33,7 +33,7 @@ from fastapi import status
 from .assessment import get_question_source, SelectQRequest
 
 # Import function for fetching api - comment out for DEV purposes
-from rsptx.auth.session import auth_manager, NotAuthenticatedException
+from rsptx.auth.session import get_optional_user
 from rsptx.db.crud.crud import fetch_api_token
 from rsptx.db.crud.course import fetch_course
 from rsptx.db.crud.question import fetch_question
@@ -199,23 +199,10 @@ async def get_question_html(request: Request, div_id: str):
     return {"html": html}
 
 
-async def _get_optional_user(request: Request):
-    """Return the authenticated user, or None for anonymous/browsing-mode visitors.
-
-    Unlike ``Depends(auth_manager)``, this never raises -- it lets the route
-    itself decide what to do for logged-out users (e.g. serve the static
-    backup Parsons problem instead of the CodeTailor/LLM-personalized one).
-    """
-    try:
-        return await auth_manager(request)
-    except NotAuthenticatedException:
-        return None
-
-
 # @router.post("/ns/coach/parsons_scaffolding")
 @router.post("/parsons_scaffolding")
 async def parsons_scaffolding(
-    request: Request, course: Optional[str], user=Depends(_get_optional_user)
+    request: Request, course: Optional[str], user=Depends(get_optional_user)
 ):
     # Get `course` directly from the query string
     rslogger.warning(f"URL seen: {request.url}")
