@@ -33,7 +33,7 @@ from fastapi import status
 from .assessment import get_question_source, SelectQRequest
 
 # Import function for fetching api - comment out for DEV purposes
-from rsptx.auth.session import auth_manager
+from rsptx.auth.session import auth_manager, NotAuthenticatedException
 from rsptx.db.crud.crud import fetch_api_token
 from rsptx.db.crud.course import fetch_course
 from rsptx.db.crud.question import fetch_question
@@ -199,10 +199,23 @@ async def get_question_html(request: Request, div_id: str):
     return {"html": html}
 
 
+async def _get_optional_user(request: Request):
+    """Return the authenticated user, or None for anonymous/browsing-mode visitors.
+
+    Unlike ``Depends(auth_manager)``, this never raises -- it lets the route
+    itself decide what to do for logged-out users (e.g. serve the static
+    backup Parsons problem instead of the CodeTailor/LLM-personalized one).
+    """
+    try:
+        return await auth_manager(request)
+    except NotAuthenticatedException:
+        return None
+
+
 # @router.post("/ns/coach/parsons_scaffolding")
 @router.post("/parsons_scaffolding")
 async def parsons_scaffolding(
-    request: Request, course: Optional[str], user=Depends(auth_manager)
+    request: Request, course: Optional[str], user=Depends(_get_optional_user)
 ):
     # Get `course` directly from the query string
     rslogger.warning(f"URL seen: {request.url}")
@@ -239,6 +252,22 @@ async def parsons_scaffolding(
         parsonsexample_code = extract_parsons_code(parsonsexample_html)
     else:
         parsonsexample_code = "LLM-example"
+
+    if user is None:
+        # Browsing-mode/anonymous visitors can get the pre-authored backup
+        # Parsons problem, but never the CodeTailor/LLM-personalized one --
+        # that requires an account so we can call out to the LLM on their
+        # behalf and track usage.
+        if parsonsexample != "LLM-example" and parsonsexample_html:
+            return _build_static_parsons_response(
+                parsonsexample_code, parsons_attrs, personalization_level
+            )
+        return JSONResponse(
+            content={
+                "detail": "You need to be logged in to Runestone to access this resource"
+            },
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
 
     # Fetch API token
     api_token = None
