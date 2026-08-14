@@ -229,18 +229,16 @@ async def create_traceback(exc: Exception, request: Request, host: str):
             dl.append(dict(name=name, local_vars=local_vars))
             curr = curr.tb_next
         rslogger.debug(f"{dl[-2:]=}")
-
+        local_vars_json = []
         # Keep the last few frames' locals as JSON. The values are arbitrary
         # runtime objects, so serialize with ``default=repr`` (and round-trip
         # through json so the column gets a plain structure, never raw objects).
-        try:
-            local_vars_json = json.loads(json.dumps(dl[-2:], default=repr))
-        except (TypeError, ValueError):
-            local_vars_json = [
-                {"name": d["name"], "local_vars": repr(d["local_vars"])}
-                for d in dl[-2:]
-            ]
-
+        for frame in dl:
+            for k, v in frame["local_vars"].items():
+                try:
+                    local_vars_json.append(json.dumps(v))
+                except (TypeError, ValueError):
+                    local_vars_json.append(json.dumps(repr(v)))
         # if the request is a post get the form data or json
         pb = ""
         if request.method == "POST":
