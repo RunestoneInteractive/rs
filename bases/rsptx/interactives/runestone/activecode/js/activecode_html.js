@@ -152,6 +152,20 @@ export default class HTMLActiveCode extends ActiveCode {
         else { __fail(msg + " — got '" + actual + "'"); }
     };
 
+    window.assertCountAtLeast = function(selector, expected, msg) {
+        msg = msg || ("'" + selector + "' count is at least " + expected);
+        var actual = document.querySelectorAll(selector).length;
+        if (actual >= expected) { __pass(msg); }
+        else { __fail(msg + " — got " + actual); }
+    };
+
+    window.assertCountAtMost = function(selector, expected, msg) {
+        msg = msg || ("'" + selector + "' count is at most " + expected);
+        var actual = document.querySelectorAll(selector).length;
+        if (actual <= expected) { __pass(msg); }
+        else { __fail(msg + " — got " + actual); }
+    };
+    
     window.assertValidHTML = function(msg) {
         msg = msg || "Document has properly nested HTML tags";
         try {
