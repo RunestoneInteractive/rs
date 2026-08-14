@@ -1,6 +1,6 @@
 import sortBy from "lodash/sortBy";
 
-import { Exercise } from "@/types/exercises";
+import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
 import { SelectedKey, TreeNode } from "@/types/treeNode";
 
 export const createExerciseId = (): string => {
@@ -123,6 +123,17 @@ export const getExercisesWithoutReadings = (exercises: Exercise[]) => {
     (exercise) => exercise.sorting_priority
   );
 };
+
+/**
+ * An exercise can be opened in the editor only if the current user wrote it, its
+ * type has an editor, and it carries the JSON the editor reads. Shared by the
+ * table's edit affordance and by the deep-link handler, so a link can never open
+ * something the pencil icon would have hidden.
+ */
+export const isExerciseEditable = (exercise: Exercise, username?: string | null): boolean =>
+  exercise.owner === username &&
+  supportedExerciseTypesToEdit.includes(exercise.question_type) &&
+  !!exercise.question_json;
 
 const shouldIncludeNode = (node: TreeNode, selectedTypes: string[]): boolean =>
   !node.children?.length

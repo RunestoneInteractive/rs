@@ -36,6 +36,15 @@ export const useExercisesSelector = () => {
 
   const isStaleForAssignment = exercisesForAssignmentId !== (selectedAssignmentId ?? null);
 
+  // True only once the exercises in the store belong to this assignment and have
+  // settled. Deep-link resolution depends on it: an empty list on the first render
+  // — before the route's assignment id reaches the store, so the query hasn't even
+  // started — is not evidence that an exercise id is missing.
+  const exercisesReady =
+    selectedAssignmentId != null &&
+    exercisesForAssignmentId === selectedAssignmentId &&
+    !isExercisesFetching;
+
   const assignmentExercises = getExercisesWithoutReadings(exercises);
 
   const refetch = () => {
@@ -82,6 +91,7 @@ export const useExercisesSelector = () => {
     assignmentExercises,
     removeExercises,
     chapters,
+    exercisesReady,
     isExercisesLoading,
     isExercisesError: isExercisesError || !selectedAssignmentId,
     refetchExercises

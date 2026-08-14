@@ -21,7 +21,8 @@ import { difficultyOptions } from "@/config/exerciseTypes";
 import { useJwtUser } from "@/hooks/useJwtUser";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
-import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
+import { Exercise } from "@/types/exercises";
+import { isExerciseEditable } from "@/utils/exercise";
 
 import { CopyExerciseModal } from "../components/CopyExercise/CopyExerciseModal";
 import { EditDropdownValueHeader } from "../components/EditAllExercises/EditDropdownValueHeader";
@@ -188,10 +189,7 @@ export const AssignmentExercisesTable = ({
   const [copyModalVisible, setCopyModalVisible] = useState(false);
   const [selectedExerciseForCopy, setSelectedExerciseForCopy] = useState<Exercise | null>(null);
 
-  const getIsEditable = (exercise: Exercise) =>
-    exercise.owner === username &&
-    supportedExerciseTypesToEdit.includes(exercise.question_type) &&
-    !!exercise.question_json;
+  const getIsEditable = (exercise: Exercise) => isExerciseEditable(exercise, username);
 
   const handleCopyClick = (exercise: Exercise) => {
     setSelectedExerciseForCopy(exercise);
@@ -277,7 +275,7 @@ export const AssignmentExercisesTable = ({
                 aria-label="Edit exercise"
                 onClick={() => {
                   setCurrentEditExercise(row);
-                  setViewMode("edit");
+                  setViewMode("edit", { exerciseId: String(row.question_id) });
                 }}
               >
                 <Icon name="pencil" />

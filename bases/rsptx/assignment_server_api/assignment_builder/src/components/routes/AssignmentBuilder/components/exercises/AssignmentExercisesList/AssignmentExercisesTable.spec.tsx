@@ -77,6 +77,7 @@ vi.mock("../components/CopyExercise/CopyExerciseModal", () => ({
 const EXERCISES: Exercise[] = [
   {
     id: 11,
+    question_id: 911,
     name: "exercise_one",
     title: "Exercise one",
     qnumber: "q-1",
@@ -95,6 +96,7 @@ const EXERCISES: Exercise[] = [
   },
   {
     id: 12,
+    question_id: 912,
     name: "exercise_two",
     title: "Exercise two",
     qnumber: "q-2",
@@ -152,7 +154,7 @@ describe("AssignmentExercisesTable", () => {
     await userEvent.click(screen.getByRole("button", { name: "Edit exercise" }));
 
     expect(setCurrentEditExercise).toHaveBeenCalledWith(EXERCISES[0]);
-    expect(setViewMode).toHaveBeenCalledWith("edit");
+    expect(setViewMode).toHaveBeenCalledWith("edit", { exerciseId: "911" });
   });
 
   it("opens the copy modal from the copy button", async () => {
