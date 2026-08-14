@@ -1,5 +1,6 @@
 # generate imports
 import datetime
+from difflib import SequenceMatcher
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, func, and_, delete, update
 from ..models import (
@@ -757,16 +758,157 @@ async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
     return course_list
 
 
-async def fetch_courses_by_institution(institution: str) -> List[CoursesValidator]:
+# Words that carry no distinguishing information in an institution name. Almost
+# every school has one of these, so matching on them alone makes "Luther College"
+# look like "Nazareth College".
+_INSTITUTION_STOPWORDS = frozenset(
+    {
+        "a",
+        "academy",
+        "and",
+        "at",
+        "campus",
+        "center",
+        "central",
+        "city",
+        "college",
+        "community",
+        "county",
+        "for",
+        "in",
+        "inc",
+        "institute",
+        "institution",
+        "junior",
+        "of",
+        "polytechnic",
+        "school",
+        "seminary",
+        "state",
+        "technical",
+        "technology",
+        "the",
+        "university",
+    }
+)
+
+# Abbreviations readers type instead of the full word.
+_INSTITUTION_ABBREVIATIONS = {
+    "u": "university",
+    "univ": "university",
+    "uni": "university",
+    "coll": "college",
+    "cc": "community college",
+    "hs": "high school",
+    "st": "saint",
+    "&": "and",
+}
+
+
+def _normalize_institution(name: str) -> List[str]:
+    """
+    Lower-case an institution name, drop punctuation, and expand common
+    abbreviations, returning the resulting token list.
+    """
+    cleaned = "".join(ch if ch.isalnum() else " " for ch in name.lower())
+    tokens = []
+    for token in cleaned.split():
+        tokens.extend(_INSTITUTION_ABBREVIATIONS.get(token, token).split())
+    return tokens
+
+
+def _acronym(tokens: List[str]) -> str:
+    """Initials of ``tokens``, skipping the short connectors ("mit", "unc")."""
+    return "".join(
+        t[0] for t in tokens if t not in {"of", "the", "at", "and", "for", "in"}
+    )
+
+
+def _tokens_match(needle_token: str, candidate_token: str) -> bool:
+    """
+    True when two single tokens name the same thing: identical, one a prefix of
+    the other ("mass" / "massachusetts"), or close enough to be a typo.
+    """
+    if needle_token == candidate_token:
+        return True
+    if len(needle_token) >= 4 and candidate_token.startswith(needle_token):
+        return True
+    if len(candidate_token) >= 4 and needle_token.startswith(candidate_token):
+        return True
+    if min(len(needle_token), len(candidate_token)) >= 4:
+        # 0.8 is about "one transposed or wrong letter in a six-letter word"
+        # ("luthar"/"luther"), while still rejecting "iowa"/"idaho".
+        return SequenceMatcher(None, needle_token, candidate_token).ratio() >= 0.8
+    return False
+
+
+def institution_match_score(needle: str, candidate: str) -> float:
+    """
+    Score how well the institution the reader typed (``needle``) matches a
+    course's stored institution (``candidate``), from 0.0 (no match) to 1.0.
+
+    Scoring is token-based rather than whole-string: what matters is whether the
+    *distinctive* words the reader typed all turn up in the candidate, so
+    "Luther" matches "Luther College" but not "Nazareth College".
+
+    :param needle: str, the institution name the reader typed
+    :param candidate: str, the institution name stored on a course
+    :return: float, the match score in [0.0, 1.0]
+    """
+    needle_tokens = _normalize_institution(needle)
+    candidate_tokens = _normalize_institution(candidate)
+    if not needle_tokens or not candidate_tokens:
+        return 0.0
+
+    # An acronym for the whole name ("MIT", "UNC") won't survive token matching.
+    if len(needle_tokens) == 1 and len(needle_tokens[0]) >= 2:
+        if needle_tokens[0] == _acronym(candidate_tokens):
+            return 1.0
+
+    needle_key = [t for t in needle_tokens if t not in _INSTITUTION_STOPWORDS]
+    candidate_key = [t for t in candidate_tokens if t not in _INSTITUTION_STOPWORDS]
+
+    if not needle_key:
+        # The reader typed only generic words ("community college"). Nothing
+        # distinctive to match on, so fall back to whole-string similarity.
+        return SequenceMatcher(
+            None, " ".join(needle_tokens), " ".join(candidate_tokens)
+        ).ratio()
+
+    matched = sum(
+        1 for nt in needle_key if any(_tokens_match(nt, ct) for ct in candidate_key)
+    )
+    coverage = matched / len(needle_key)
+    if coverage < 1.0:
+        # Partial coverage is only a match when the reader typed several words
+        # and most of them landed, e.g. "Univ of Illinois Urbana" vs
+        # "University of Illinois at Urbana-Champaign".
+        return coverage * 0.8
+
+    # Every distinctive word matched, so this is a match no matter how much else
+    # the candidate's name carries ("Luther" has to find "Luther College,
+    # Decorah IA"). Extra words only cost rank, never the match itself, so an
+    # exact name sorts above one that merely contains what was typed.
+    extra = len(candidate_key) - matched
+    return max(0.8, 1.0 - 0.05 * extra)
+
+
+async def fetch_courses_by_institution(
+    institution: str, threshold: float = 0.75, limit: int = 20
+) -> List[CoursesValidator]:
     """
     Return courses whose institution fuzzy-matches the given string and whose
     term_start_date is within the last 9 months (i.e. active or recently started).
-    Uses Python difflib so no pg_trgm extension is required.
+    Matching is done in Python (see :func:`institution_match_score`) so no
+    pg_trgm extension is required.
 
     :param institution: str, the institution name to match
+    :param threshold: float, the minimum match score to include a course
+    :param limit: int, the maximum number of courses to return
     :return: List[CoursesValidator]
     """
-    from difflib import SequenceMatcher
+    if not institution.strip():
+        return []
 
     cutoff = datetime.date.today() - datetime.timedelta(days=275)  # ~9 months
     query = select(Courses).where(
@@ -776,14 +918,28 @@ async def fetch_courses_by_institution(institution: str) -> List[CoursesValidato
         res = await session.execute(query)
         all_courses = res.scalars().fetchall()
 
-    needle = institution.lower()
     matches = []
     seen = set()
     for course in all_courses:
-        ratio = SequenceMatcher(None, needle, course.institution.lower()).ratio()
-        if ratio >= 0.6 and course.course_name not in seen:
+        if course.course_name in seen:
+            continue
+        score = institution_match_score(institution, course.institution)
+        if score >= threshold:
             seen.add(course.course_name)
-            matches.append((ratio, CoursesValidator.from_orm(course)))
+            # Negate the date so "latest first" sorts alongside the ascending
+            # course_name in a single key. The query filters on term_start_date,
+            # so it can't be None here, but don't let a bad row raise.
+            start = course.term_start_date or datetime.date.min
+            matches.append(
+                (
+                    -score,
+                    -start.toordinal(),
+                    course.course_name,
+                    CoursesValidator.from_orm(course),
+                )
+            )
 
-    matches.sort(key=lambda x: x[0], reverse=True)
-    return [c for _, c in matches[:20]]
+    # Best match first, then the most recent term, then course_name so the
+    # ordering is stable run to run.
+    matches.sort(key=lambda x: x[:3])
+    return [c for *_, c in matches[:limit]]

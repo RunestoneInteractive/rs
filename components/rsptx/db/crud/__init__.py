@@ -81,6 +81,7 @@ from .course import (
     fetch_instructor_courses,
     fetch_users_for_course,
     fetch_courses_by_institution,
+    institution_match_score,
     update_course_settings,
     user_in_course,
 )
@@ -565,4 +566,5 @@ __all__ += [
     "set_reset_token",
     "consume_reset_token",
     "fetch_courses_by_institution",
+    "institution_match_score",
 ]
