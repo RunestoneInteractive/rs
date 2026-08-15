@@ -11,6 +11,7 @@ from fastapi import (
     APIRouter,
     Cookie,
     Depends,
+    HTTPException,
     Request,
     status,
     Form,
@@ -67,6 +68,12 @@ from rsptx.db.crud import (
     user_in_course,
     get_peer_votes,
     search_exercises,
+    fetch_shareable_assignment_tree,
+    search_assignments,
+    search_shareable_courses,
+    import_assignment,
+    import_course_assignments,
+    fetch_assignment_for_preview,
     create_api_token,
     delete_api_token,
     fetch_all_api_tokens,
@@ -109,6 +116,7 @@ from rsptx.validation.schemas import (
     UpdateAssignmentExercisesPayload,
     AssignmentQuestionUpdateDict,
     ExercisesSearchRequest,
+    AssignmentsSearchRequest,
     CreateExercisesPayload,
     ValidateQuestionNameRequest,
     CopyQuestionRequest,
@@ -692,6 +700,8 @@ async def new_assignment(
         from_source=False,
         current_index=0,
         updated_date=canonical_utcnow(),
+        # Sharing is opt-in; the instructor turns it on later if they want to.
+        is_private=True,
     )
     try:
         res = await create_assignment(new_assignment)
@@ -1832,7 +1842,16 @@ async def delete_single_token(
 
 @router.delete("/assignments/{assignment_id}")
 @instructor_role_required()
-async def remove_assignment(assignment_id: int, request: Request):
+@with_course()
+async def remove_assignment(assignment_id: int, request: Request, course=None):
+    # delete_assignment keys off the id alone, so without this check any
+    # instructor could delete any assignment on the platform by guessing an id.
+    existing = await fetch_one_assignment(assignment_id)
+    if not existing or existing.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     rslogger.debug(f"Attempting to delete assignment {assignment_id}")
     try:
         await delete_assignment(assignment_id=assignment_id)
@@ -2064,7 +2083,17 @@ async def duplicate_assignment_endpoint(
 ):
     """
     Duplicate an assignment with all its exercises and readings.
+
+    Duplicating is a within-course operation. Copying in from somewhere else
+    goes through the import endpoint, which enforces the sharing rules -- so
+    this has to refuse a foreign id or it would be a way around them.
     """
+    source = await fetch_one_assignment(assignment_id)
+    if not source or source.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     try:
         assignments = await fetch_assignments(course.course_name, fetch_all=True)
         existing_names = {assignment.name for assignment in assignments}
@@ -2086,6 +2115,267 @@ async def duplicate_assignment_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error duplicating assignment: {str(e)}",
         )
+
+
+@router.post("/assignments/search")
+@instructor_role_required()
+@with_course()
+async def search_assignments_endpoint(
+    request: Request,
+    search_request: AssignmentsSearchRequest,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Browse assignments other instructors have marked as shareable.
+
+    Results span every course on the platform, so an instructor can pick up a
+    problem set from a course they have no connection to. ``use_base_course``
+    narrows this to the caller's own book and ``only_my_courses`` to courses
+    they instruct; the two are independent and apply together. The caller's
+    current course is left out -- importing an assignment into the course it
+    already lives in is not a thing anyone wants.
+
+    Rows carry ``already_imported`` for anything the caller has previously
+    imported into this course, which is what keeps a second import from
+    happening by accident.
+    """
+    if search_request.use_base_course:
+        search_request.base_course = course.base_course
+    else:
+        search_request.base_course = None
+
+    try:
+        result = await search_assignments(
+            search_request,
+            user_id=user.id,
+            exclude_course_id=course.id,
+            target_course_id=course.id,
+            prefer_base_course=course.base_course,
+        )
+    except Exception as e:
+        rslogger.error(f"Error searching assignments: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error searching assignments: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=result)
+
+
+@router.get("/assignments/{assignment_id}/preview")
+@instructor_role_required()
+@with_course()
+async def preview_assignment_endpoint(
+    request: Request,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Summarize an assignment from another course before importing it.
+
+    Deliberately separate from ``GET /assignments/{assignment_id}``, which is
+    scoped to the caller's own course. Widening that endpoint to cover this case
+    would put the "is it mine" and "is it shared" rules in one place where a
+    later edit could blur them; this one answers only the sharing question.
+    """
+    try:
+        preview = await fetch_assignment_for_preview(
+            assignment_id, user_id=user.id, target_course=course
+        )
+    except HTTPException as e:
+        return make_json_response(status=e.status_code, detail=e.detail)
+    except Exception as e:
+        rslogger.error(f"Error previewing assignment {assignment_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error previewing assignment: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=preview)
+
+
+@router.post("/assignments/{assignment_id}/import")
+@instructor_role_required()
+@with_course()
+async def import_assignment_endpoint(
+    request: Request,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Copy a shareable assignment from another course into the caller's course.
+
+    The exercises are linked, not copied -- the same thing adding an exercise
+    from another course already does. Readings are left behind when the books
+    differ, since they name a subchapter of a book the caller's students are
+    not reading; ``skipped_readings`` says how many.
+    """
+    try:
+        result = await import_assignment(
+            source_assignment_id=assignment_id,
+            target_course=course,
+            importing_user=user,
+        )
+    except HTTPException as e:
+        return make_json_response(status=e.status_code, detail=e.detail)
+    except Exception as e:
+        rslogger.error(f"Error importing assignment {assignment_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error importing assignment: {str(e)}",
+        )
+
+    return make_json_response(
+        status=status.HTTP_201_CREATED,
+        detail={
+            "status": "success",
+            "id": result.assignment.id,
+            "name": result.name,
+            "skipped_readings": result.skipped_readings,
+        },
+    )
+
+
+# Not under /assignments/: `GET /assignments/{assignment_id}` is registered far
+# earlier in this file, and Starlette matches in registration order, so a path
+# like /assignments/shareable_tree binds "shareable_tree" to assignment_id and
+# dies in int coercion. A sibling of /shareable_courses cannot collide.
+@router.get("/shareable_tree")
+@instructor_role_required()
+@with_course()
+async def shareable_assignment_tree_endpoint(
+    request: Request,
+    search: str = "",
+    use_base_course: bool = False,
+    only_my_courses: bool = False,
+    page: int = 0,
+    limit: int = 20,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Courses with the assignments each offers, for the import browser's tree.
+
+    Both levels in one response: the page is bounded by courses, so expanding
+    one is instant rather than another round trip. The caller's own book sorts
+    first, and every assignment says whether it is already in their course.
+    """
+    try:
+        result = await fetch_shareable_assignment_tree(
+            user_id=user.id,
+            target_course=course,
+            search=search,
+            use_base_course=use_base_course,
+            only_my_courses=only_my_courses,
+            page=page,
+            limit=min(max(limit, 1), 100),
+        )
+    except Exception as e:
+        rslogger.error(f"Error building the shareable assignment tree: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error loading shared assignments: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=result)
+
+
+@router.get("/shareable_courses")
+@instructor_role_required()
+@with_course()
+async def shareable_courses_endpoint(
+    request: Request,
+    search: str = "",
+    use_base_course: bool = False,
+    only_my_courses: bool = False,
+    page: int = 0,
+    limit: int = 20,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    List courses with assignments the caller could import.
+
+    The course-first half of importing: "give me what that course uses" rather
+    than "find me one problem set". The book's own course sorts first, since an
+    instructor looking for material for their book should not have to search
+    for the book itself.
+    """
+    try:
+        result = await search_shareable_courses(
+            user_id=user.id,
+            search=search,
+            base_course=course.base_course if use_base_course else None,
+            prefer_base_course=course.base_course,
+            only_my_courses=only_my_courses,
+            exclude_course_id=course.id,
+            page=page,
+            limit=min(max(limit, 1), 100),
+        )
+    except Exception as e:
+        rslogger.error(f"Error listing shareable courses: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error listing shareable courses: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=result)
+
+
+class ImportCoursePayload(BaseModel):
+    source_course_id: int
+    # Off only when the instructor deliberately wants a second set. Defaulting
+    # to skipping is what makes re-running this after the source course adds an
+    # assignment useful rather than duplicating everything already taken.
+    skip_existing: bool = True
+
+
+@router.post("/assignments/import_course")
+@instructor_role_required()
+@with_course()
+async def import_course_assignments_endpoint(
+    request: Request,
+    payload: ImportCoursePayload,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Import every importable assignment from one course into the caller's.
+
+    Each assignment goes through the same path as a single import, so the
+    sharing rules, name de-duplication and cross-book reading handling are
+    identical. Partial success is a normal outcome and is reported as one:
+    the response says what came across, what was already here and what failed.
+    """
+    try:
+        result = await import_course_assignments(
+            source_course_id=payload.source_course_id,
+            target_course=course,
+            importing_user=user,
+            skip_existing=payload.skip_existing,
+        )
+    except HTTPException as e:
+        return make_json_response(status=e.status_code, detail=e.detail)
+    except Exception as e:
+        rslogger.error(f"Error importing course {payload.source_course_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error importing course assignments: {str(e)}",
+        )
+
+    return make_json_response(
+        status=status.HTTP_201_CREATED,
+        detail={
+            "status": "success",
+            "imported": result.imported,
+            "skipped_existing": result.skipped_existing,
+            "skipped_readings": result.skipped_readings,
+            "failed": result.failed,
+        },
+    )
 
 
 class CreateDatafilePayload(BaseModel):

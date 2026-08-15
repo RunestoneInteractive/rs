@@ -24,6 +24,7 @@ interface AssignmentListProps {
   onEdit: (assignment: Assignment) => void;
   onDuplicate: (assignment: Assignment) => void;
   onEnforceDueChange: (assignment: Assignment, enforce_due: boolean) => void;
+  onImport: () => void;
   onVisibilityChange: (
     assignment: Assignment,
     data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
@@ -70,8 +71,9 @@ export const AssignmentList = ({
   onEdit,
   onDuplicate,
   onEnforceDueChange,
-  onVisibilityChange,
-  onRemove
+  onImport,
+  onRemove,
+  onVisibilityChange
 }: AssignmentListProps) => {
   const [sortField, setSortField] = useState<string>(
     () => localStorage.getItem(SORT_STORAGE_KEY) || "name"
@@ -281,7 +283,13 @@ export const AssignmentList = ({
         )
       }
     ],
-    [confirmRemove, onDuplicate, onEdit, onEnforceDueChange, onVisibilityChange]
+    [
+      confirmRemove,
+      onDuplicate,
+      onEdit,
+      onEnforceDueChange,
+      onVisibilityChange
+    ]
   );
 
   const showEmptyState = !loading && assignments.length === 0;
@@ -300,6 +308,9 @@ export const AssignmentList = ({
             placeholder="Search assignments"
             className={styles.search}
           />
+          <Button variant="default" leftSection={<Icon name="download" />} onClick={onImport}>
+            Import
+          </Button>
           <Button
             className={styles.primaryCta}
             leftSection={<Icon name="plus" />}

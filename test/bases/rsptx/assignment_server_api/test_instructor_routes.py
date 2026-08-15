@@ -409,3 +409,386 @@ async def test_student_scores_rejects_non_instructor(
         params={"username": "scored_student"},
     )
     assert resp.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Cross-course assignment sharing and import
+# ---------------------------------------------------------------------------
+
+
+async def _add_shareable_assignment(course_id, name, is_private):
+    return await create_assignment(
+        AssignmentValidator(
+            course=course_id,
+            name=name,
+            points=10,
+            released=False,
+            description="sharing route test assignment",
+            duedate=datetime.datetime(2099, 1, 1),
+            visible=True,
+            from_source=False,
+            is_peer=False,
+            current_index=0,
+            peer_async_visible=False,
+            kind="Regular",
+            is_private=is_private,
+        )
+    )
+
+
+@pytest.fixture(scope="session")
+async def foreign_course(instructor_user):
+    """A course the caller does not instruct, derived from a book.
+
+    Deliberately not a base course: assignments that live directly on a book
+    row have always been copyable by anyone, so one of those would pass the
+    authorization check for a reason unrelated to the sharing flag.
+    """
+    from rsptx.db.crud import create_course, create_course_attribute
+    from rsptx.db.models import CoursesValidator
+
+    existing = await fetch_course("route_foreign_course")
+    if existing:
+        return existing
+
+    await create_course(
+        CoursesValidator(
+            course_name="route_foreign_course",
+            base_course="overview",
+            term_start_date=datetime.date(2026, 1, 1),
+            login_required=False,
+            allow_pairs=False,
+            downloads_enabled=False,
+            courselevel="",
+            institution="Other University",
+            new_server=True,
+        )
+    )
+    course = await fetch_course("route_foreign_course")
+    await create_course_attribute(course.id, "share_assignments", "true")
+    return course
+
+
+@pytest.fixture(scope="session")
+async def foreign_shared_assignment(foreign_course):
+    """A shareable assignment in a course the caller does not instruct."""
+    return await _add_shareable_assignment(foreign_course.id, "route_shared_hw", False)
+
+
+@pytest.fixture(scope="session")
+async def closed_foreign_course(instructor_user):
+    """A foreign course that never opted in to sharing."""
+    from rsptx.db.crud import create_course
+    from rsptx.db.models import CoursesValidator
+
+    existing = await fetch_course("route_closed_course")
+    if existing:
+        return existing
+
+    await create_course(
+        CoursesValidator(
+            course_name="route_closed_course",
+            base_course="overview",
+            term_start_date=datetime.date(2026, 1, 1),
+            login_required=False,
+            allow_pairs=False,
+            downloads_enabled=False,
+            courselevel="",
+            institution="Other University",
+            new_server=True,
+        )
+    )
+    return await fetch_course("route_closed_course")
+
+
+@pytest.fixture(scope="session")
+async def foreign_private_assignment(closed_foreign_course):
+    """An assignment in a course that has not opted in to sharing.
+
+    Its own course rather than the shared one: opting in covers every assignment
+    in a course, so a single course cannot hold both cases.
+    """
+    return await _add_shareable_assignment(
+        closed_foreign_course.id, "route_private_hw", True
+    )
+
+
+@pytest.fixture(scope="session")
+async def base_course_private_assignment(instructor_user):
+    """A private assignment sitting directly on a book row."""
+    course = await fetch_course("overview")
+    return await _add_shareable_assignment(course.id, "route_book_private_hw", True)
+
+
+async def test_search_lists_a_shared_foreign_assignment(
+    auth_instructor_client, foreign_shared_assignment
+):
+    resp = await auth_instructor_client.post(
+        "/instructor/assignments/search", json={"page": 0, "limit": 50}
+    )
+    assert resp.status_code == 200
+    names = [a["name"] for a in resp.json()["detail"]["assignments"]]
+    assert "route_shared_hw" in names
+
+
+async def test_search_omits_a_course_that_has_not_opted_in(
+    auth_instructor_client, foreign_private_assignment
+):
+    """Sharing is off until a course turns it on."""
+    resp = await auth_instructor_client.post(
+        "/instructor/assignments/search", json={"page": 0, "limit": 50}
+    )
+    assert resp.status_code == 200
+    names = [a["name"] for a in resp.json()["detail"]["assignments"]]
+    assert "route_private_hw" not in names
+
+
+async def test_search_can_be_limited_to_the_callers_own_courses(
+    auth_instructor_client, foreign_shared_assignment
+):
+    """test_instructor teaches only the course being imported into.
+
+    Search already leaves that one out, so narrowing to their own courses has
+    to leave nothing -- and in particular must not fall back to showing
+    everything, which is how an empty "my courses" list could go wrong.
+    """
+    wide = await auth_instructor_client.post(
+        "/instructor/assignments/search", json={"page": 0, "limit": 50}
+    )
+    assert "route_shared_hw" in [a["name"] for a in wide.json()["detail"]["assignments"]]
+
+    narrowed = await auth_instructor_client.post(
+        "/instructor/assignments/search",
+        json={"page": 0, "limit": 50, "only_my_courses": True},
+    )
+    assert narrowed.status_code == 200
+    assert narrowed.json()["detail"]["assignments"] == []
+
+
+async def test_search_marks_an_assignment_the_caller_already_imported(
+    auth_instructor_client, foreign_course
+):
+    """Its own assignment, not the shared fixture, so test order cannot decide
+    whether the "before" case has already been imported."""
+    assignment = await _add_shareable_assignment(
+        foreign_course.id, "route_reimport_hw", False
+    )
+
+    async def search_row():
+        resp = await auth_instructor_client.post(
+            "/instructor/assignments/search",
+            json={
+                "page": 0,
+                "limit": 50,
+                "filters": {
+                    "name": {"value": "route_reimport_hw", "matchMode": "equals"}
+                },
+            },
+        )
+        assert resp.status_code == 200
+        return resp.json()["detail"]["assignments"][0]
+
+    assert (await search_row())["already_imported"] is False
+
+    imported = await auth_instructor_client.post(
+        f"/instructor/assignments/{assignment.id}/import"
+    )
+    assert imported.status_code == 201
+
+    row = await search_row()
+    assert row["already_imported"] is True
+    assert row["imported_as"] == imported.json()["detail"]["name"]
+
+
+async def test_search_lists_a_books_own_assignment(
+    auth_instructor_client, base_course_private_assignment
+):
+    """Official material needs no sharing flag, and says so in the row."""
+    resp = await auth_instructor_client.post(
+        "/instructor/assignments/search",
+        json={
+            "page": 0,
+            "limit": 50,
+            "filters": {
+                "name": {"value": "route_book_private_hw", "matchMode": "equals"}
+            },
+        },
+    )
+    assert resp.status_code == 200
+    rows = resp.json()["detail"]["assignments"]
+    assert [r["name"] for r in rows] == ["route_book_private_hw"]
+    assert rows[0]["is_official"] is True
+
+
+async def test_shareable_courses_lists_a_course_with_shared_assignments(
+    auth_instructor_client, foreign_shared_assignment
+):
+    resp = await auth_instructor_client.get("/instructor/shareable_courses")
+    assert resp.status_code == 200
+    detail = resp.json()["detail"]
+    names = [c["course_name"] for c in detail["courses"]]
+    assert "route_foreign_course" in names
+    assert detail["pagination"]["total"] >= 1
+
+
+async def test_shareable_tree_nests_assignments_under_their_course(
+    auth_instructor_client, foreign_shared_assignment
+):
+    """Exercises the real route, not just the query behind it.
+
+    Regression: this lived at /assignments/shareable_tree, which Starlette
+    matched against the much earlier /assignments/{assignment_id} and rejected
+    in int coercion. A CRUD-only test cannot see that.
+    """
+    resp = await auth_instructor_client.get("/instructor/shareable_tree")
+    assert resp.status_code == 200, resp.text
+
+    courses = resp.json()["detail"]["courses"]
+    source = next(c for c in courses if c["course_name"] == "route_foreign_course")
+    assert "route_shared_hw" in [a["name"] for a in source["assignments"]]
+
+
+async def test_shareable_tree_can_be_limited_to_this_book(
+    auth_instructor_client, foreign_shared_assignment
+):
+    """The caller's book is test_course_1; the shared course is on overview."""
+    resp = await auth_instructor_client.get(
+        "/instructor/shareable_tree", params={"use_base_course": True}
+    )
+    assert resp.status_code == 200
+    names = [c["course_name"] for c in resp.json()["detail"]["courses"]]
+    assert "route_foreign_course" not in names
+
+    wide = await auth_instructor_client.get("/instructor/shareable_tree")
+    assert "route_foreign_course" in [
+        c["course_name"] for c in wide.json()["detail"]["courses"]
+    ]
+
+
+async def test_import_course_takes_a_whole_courses_assignments(
+    auth_instructor_client, foreign_course
+):
+    """Bulk import, with its own course so the counts do not depend on which
+    other tests have already copied from the shared fixture."""
+    from rsptx.db.crud import fetch_course
+
+    source = await fetch_course("route_foreign_course")
+    await _add_shareable_assignment(source.id, "route_bulk_one", False)
+
+    resp = await auth_instructor_client.post(
+        "/instructor/assignments/import_course",
+        json={"source_course_id": source.id},
+    )
+    assert resp.status_code == 201, resp.text
+    detail = resp.json()["detail"]
+    assert "route_bulk_one" in detail["imported"]
+    assert detail["failed"] == []
+
+    # A second pass finds nothing new.
+    again = await auth_instructor_client.post(
+        "/instructor/assignments/import_course",
+        json={"source_course_id": source.id},
+    )
+    assert again.status_code == 201
+    assert again.json()["detail"]["imported"] == []
+    assert "route_bulk_one" in again.json()["detail"]["skipped_existing"]
+
+
+async def test_import_course_refuses_the_callers_own_course(
+    auth_instructor_client, instructor_user
+):
+    course = await fetch_course(instructor_user.course_name)
+    resp = await auth_instructor_client.post(
+        "/instructor/assignments/import_course",
+        json={"source_course_id": course.id},
+    )
+    assert resp.status_code == 400
+
+
+async def test_preview_of_a_shared_assignment_is_allowed(
+    auth_instructor_client, foreign_shared_assignment
+):
+    resp = await auth_instructor_client.get(
+        f"/instructor/assignments/{foreign_shared_assignment.id}/preview"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["detail"]["name"] == "route_shared_hw"
+
+
+async def test_preview_of_a_private_foreign_assignment_is_refused(
+    auth_instructor_client, foreign_private_assignment
+):
+    resp = await auth_instructor_client.get(
+        f"/instructor/assignments/{foreign_private_assignment.id}/preview"
+    )
+    assert resp.status_code == 404
+
+
+async def test_import_of_a_shared_assignment_succeeds(
+    auth_instructor_client, foreign_shared_assignment
+):
+    resp = await auth_instructor_client.post(
+        f"/instructor/assignments/{foreign_shared_assignment.id}/import"
+    )
+    assert resp.status_code == 201
+    detail = resp.json()["detail"]
+    assert detail["status"] == "success"
+    # The client tells the instructor what was left behind, so the count is
+    # part of the response even when nothing was.
+    assert detail["skipped_readings"] == 0
+
+
+async def test_import_of_a_private_foreign_assignment_is_refused(
+    auth_instructor_client, foreign_private_assignment
+):
+    resp = await auth_instructor_client.post(
+        f"/instructor/assignments/{foreign_private_assignment.id}/import"
+    )
+    assert resp.status_code == 404
+
+
+async def test_duplicate_refuses_an_assignment_from_another_course(
+    auth_instructor_client, foreign_private_assignment
+):
+    """Duplicate is a within-course operation.
+
+    Without this check it would copy any assignment by id, which is a way
+    around the sharing rules the import endpoint enforces -- and the import
+    browser now puts foreign ids in front of the caller.
+    """
+    resp = await auth_instructor_client.post(
+        f"/instructor/assignments/{foreign_private_assignment.id}/duplicate"
+    )
+    assert resp.status_code == 404
+
+
+async def test_delete_refuses_an_assignment_from_another_course(
+    auth_instructor_client, foreign_shared_assignment
+):
+    """Deleting keys off the id alone, so it has to be scoped to the course."""
+    resp = await auth_instructor_client.delete(
+        f"/instructor/assignments/{foreign_shared_assignment.id}"
+    )
+    assert resp.status_code == 404
+
+    # Still there.
+    still_there = await auth_instructor_client.get(
+        f"/instructor/assignments/{foreign_shared_assignment.id}/preview"
+    )
+    assert still_there.status_code == 200
+
+
+async def test_a_private_assignment_on_a_book_is_still_importable(
+    auth_instructor_client, base_course_private_assignment
+):
+    """Assignments that live directly on a book row stay copyable by anyone.
+
+    That is what the older Copy Assignments page has always allowed, so the
+    sharing flag does not take it away. Search agrees: a book's assignments are
+    listed without anyone opting in, since no book author has a UI for the flag
+    and requiring one would hide every official assignment there is.
+    """
+    resp = await auth_instructor_client.post(
+        f"/instructor/assignments/{base_course_private_assignment.id}/import"
+    )
+    assert resp.status_code == 201
