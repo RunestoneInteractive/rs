@@ -112,6 +112,11 @@ def extract_parsons_code(html_block):
     the code inside <pre class="parsonsblocks">...</pre> -- the question prompt
     text lives in a sibling <div class="parsons_question"> and must be excluded,
     otherwise it gets treated as (and rendered as) one of the draggable blocks.
+
+    This is the raw Parsons editor markup ("---"-separated blocks, some tagged
+    "#distractor"/"#paired"/"#settled"/"#tag:...;...;"), still needed as-is by
+    the Parsons puzzle widget (parsons.js parses this same markup client-side).
+    Use extract_parsons_solution() to get compilable solution code instead.
     """
     pre_match = re.search(
         r'<pre[^>]*class="parsonsblocks"[^>]*>(.*?)</pre>', html_block, flags=re.DOTALL
@@ -134,6 +139,30 @@ def extract_parsons_code(html_block):
     return result
 
 
+def extract_parsons_solution(parsonsexample_code):
+    """
+    Given the raw Parsons editor markup (as returned by extract_parsons_code),
+    return only the compilable solution code: "---"-separated blocks tagged
+    "#distractor"/"#paired" are dropped entirely (they aren't part of the
+    correct solution), and scaffolding tags ("#settled", "#tag:...;...;") are
+    stripped from the remaining blocks. Mirrors the block-parsing logic in
+    runestone/parsons/js/parsons.js::initializeLines.
+    """
+    blocks = parsonsexample_code.split("---")
+    clean_lines = []
+    for block in blocks:
+        if "#distractor" in block or "#paired" in block:
+            # Not part of the correct solution -- drop the whole block.
+            continue
+        for line in block.splitlines():
+            line = re.sub(r"#settled\b.*$", "", line)
+            line = re.sub(r"#tag:[^;]*;[^;]*;\s*$", "", line)
+            line = line.rstrip()
+            if line.strip() and line.strip() != "=====":
+                clean_lines.append(line)
+    return "\n".join(clean_lines)
+
+
 def _build_static_parsons_response(
     parsonsexample_code, parsons_attrs, personalization_level
 ):
@@ -144,7 +173,7 @@ def _build_static_parsons_response(
             </pre>
             """
     return (
-        parsonsexample_code
+        extract_parsons_solution(parsonsexample_code)
         + "||split||"
         + parsons_html
         + "||split||"
