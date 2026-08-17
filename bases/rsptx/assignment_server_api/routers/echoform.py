@@ -57,15 +57,21 @@ MAX_VALUES_PER_FIELD = 50
 MAX_NAME_CHARS = 200
 MAX_VALUE_CHARS = 4096
 
-# Make the page inert: no scripts, styles, images or navigation of any kind, and
-# it may not be framed.  ``sandbox`` (with no tokens) is the strongest form.
+# Make the page inert: no scripts, styles, images or navigation of any kind.
+# ``sandbox`` (with no tokens) is the strongest form.
+#
+# Framing is allowed from our own origin so that a form written in an
+# ``activecode`` HTML exercise can submit into the exercise's own output frame
+# instead of forcing ``target="_blank"``.  Clickjacking is not a concern here:
+# the page has no controls, performs no action, and only redisplays data the
+# embedder just submitted -- and a cross-origin framer still cannot read it.
 SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'none'; base-uri 'none'; form-action 'none'; "
-        "frame-ancestors 'none'; sandbox"
+        "frame-ancestors 'self'; sandbox"
     ),
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    "X-Frame-Options": "SAMEORIGIN",
     "Referrer-Policy": "no-referrer",
     "Cache-Control": "no-store",
 }

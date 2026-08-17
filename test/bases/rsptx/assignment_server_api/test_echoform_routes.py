@@ -96,8 +96,10 @@ def test_newlines_become_breaks(client):
 def test_security_headers_present(client):
     res = client.get("/echoform")
     assert "sandbox" in res.headers["content-security-policy"]
+    # Framable from our own origin (activecode output frames), nowhere else.
+    assert "frame-ancestors 'self'" in res.headers["content-security-policy"]
     assert res.headers["x-content-type-options"] == "nosniff"
-    assert res.headers["x-frame-options"] == "DENY"
+    assert res.headers["x-frame-options"] == "SAMEORIGIN"
     assert res.headers["cache-control"] == "no-store"
 
 
