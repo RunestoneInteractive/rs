@@ -26,6 +26,14 @@ from .user import (
 
 from .assignment import (
     create_assignment,
+    fetch_assignment_for_preview,
+    fetch_shareable_assignment_tree,
+    import_assignment,
+    import_course_assignments,
+    search_assignments,
+    search_shareable_courses,
+    shift_duedate_between_courses,
+    term_start_utc,
     create_assignment_question,
     create_deadline_exception,
     delete_deadline_exception,
@@ -281,6 +289,14 @@ __all__ = []
 # from .assignment
 __all__ += [
     "create_assignment",
+    "fetch_assignment_for_preview",
+    "fetch_shareable_assignment_tree",
+    "import_assignment",
+    "import_course_assignments",
+    "search_assignments",
+    "search_shareable_courses",
+    "shift_duedate_between_courses",
+    "term_start_utc",
     "create_assignment_question",
     "create_deadline_exception",
     "delete_deadline_exception",

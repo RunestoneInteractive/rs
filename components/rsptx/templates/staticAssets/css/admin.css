@@ -755,6 +755,89 @@ tr.duplicate {
     color: #333;
 }
 
+/* Step 2's assignment picker is injected by JS, so the gap that keeps the Copy
+   button off the dropdown belongs on the container rather than on whichever
+   element the script happened to render last. Its label sits outside a
+   .form-group, so it needs the same treatment those labels get. */
+.copy-assignments .assignment-picker {
+    margin-bottom: 20px;
+}
+
+.copy-assignments .assignment-picker label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+/* The source-course picker. Scrolls rather than paginates: it is a shortlist to
+   choose from, and searching is the way through a long one. */
+.copy-assignments .course-results {
+    margin-top: 15px;
+    max-height: 22rem;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+.copy-assignments .course-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+.copy-assignments .course-row:last-child {
+    border-bottom: none;
+}
+
+.copy-assignments .course-row:hover,
+.copy-assignments .course-row:focus-visible {
+    background: #f4f8ff;
+}
+
+.copy-assignments .course-row.selected {
+    background: #e8f0fe;
+    box-shadow: inset 3px 0 0 #1a73e8;
+}
+
+.copy-assignments .course-row-title {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Pushed to its own line so the course name and its badges stay together. */
+.copy-assignments .course-row-meta {
+    flex-basis: 100%;
+    font-size: 13px;
+    color: #666;
+}
+
+.copy-assignments .course-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+}
+
+.copy-assignments .badge-primary {
+    background: #1a73e8;
+    color: #fff;
+}
+
+.copy-assignments .badge-secondary {
+    background: #e0e0e0;
+    color: #444;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
     .admin-page {
