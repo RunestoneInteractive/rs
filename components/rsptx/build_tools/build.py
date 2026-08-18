@@ -1007,38 +1007,40 @@ def test(config):
             console.print(ret.stderr.decode(stdout_err_encoding))
         exit(1)
 
-    _run_assignment_builder_tests()
+    _run_vitest_suite(ASSIGNMENT_BUILDER_DIR, "assignment_builder")
+    _run_vitest_suite(INTERACTIVES_DIR, "interactives")
 
     console.print("All checks passed", style="green")
 
 
-# The React assignment builder has its own test suite. It is not covered by
-# pytest, so run it here too -- a broken build surfaces at build time rather
-# than after deploy.
+# The React assignment builder and the Runestone interactive components each
+# have their own vitest suite. Neither is covered by pytest, so run them here
+# too -- a broken build surfaces at build time rather than after deploy.
 ASSIGNMENT_BUILDER_DIR = Path("bases/rsptx/assignment_server_api/assignment_builder")
+INTERACTIVES_DIR = Path("bases/rsptx/interactives")
 
 
-def _run_assignment_builder_tests():
-    """Run the assignment builder vitest suite, if its deps are installed."""
-    if not ASSIGNMENT_BUILDER_DIR.exists():
+def _run_vitest_suite(directory: Path, label: str):
+    """Run one vitest suite, if its dependencies are installed."""
+    if not directory.exists():
         return
 
-    if not (ASSIGNMENT_BUILDER_DIR / "node_modules").exists():
+    if not (directory / "node_modules").exists():
         console.print(
-            f"Skipping assignment builder tests: no node_modules in "
-            f"{ASSIGNMENT_BUILDER_DIR}. Run `npm install` there to enable them.",
+            f"Skipping {label} tests: no node_modules in {directory}. "
+            "Run `npm install` there to enable them.",
             style="bold yellow",
         )
         return
 
-    console.print("Running vitest in assignment_builder...", style="bold")
+    console.print(f"Running vitest in {label}...", style="bold")
     ret = subprocess.run(
         ["npx", "vitest", "run", "--coverage.enabled=false"],
-        cwd=ASSIGNMENT_BUILDER_DIR,
+        cwd=directory,
         capture_output=True,
     )
     if ret.returncode != 0:
-        console.print("Assignment builder tests failed", style="bold red")
+        console.print(f"{label} tests failed", style="bold red")
         if ret.stdout:
             console.print(ret.stdout.decode(stdout_err_encoding))
         if ret.stderr:
