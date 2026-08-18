@@ -11,6 +11,7 @@
 # Standard library
 # ----------------
 import ast
+import html
 import json
 
 # Third-party imports
@@ -161,6 +162,25 @@ def extract_parsons_solution(parsonsexample_code):
             if line.strip() and line.strip() != "=====":
                 clean_lines.append(line)
     return "\n".join(clean_lines)
+
+
+def _extract_suffix_code_from_htmlsrc(htmlsrc):
+    """
+    Book-authored activecode questions never get question_json.suffix_code
+    populated by the build pipeline (only instructor-authored custom
+    exercises do) -- their test code instead lives in the raw <textarea>
+    source, after a "====" or "===!" delimiter, same convention used by
+    build_tools/core.py::_determine_autograde.
+    """
+    if not htmlsrc:
+        return ""
+    match = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
+    text = html.unescape(match.group(1) if match else htmlsrc)
+    if "====" in text:
+        return text.partition("====")[2].strip()
+    if "===!" in text:
+        return text.partition("===!")[2].strip()
+    return ""
 
 
 def _build_static_parsons_response(
@@ -370,9 +390,7 @@ async def parsons_scaffolding(
     try:
         basecourse = getattr(course, "base_course", None)
         question = await fetch_question(problem_id, basecourse=basecourse)
-        if question and question.question_json:
-            internal_test_case = question.question_json.get("suffix_code", "") or ""
-        else:
+        if not question:
             rslogger.error(
                 f"CodeTailor: no question found for problem_id '{problem_id}'"
             )
@@ -380,6 +398,14 @@ async def parsons_scaffolding(
                 content={"error": f"CodeTailor: question '{problem_id}' not found"},
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
+        internal_test_case = ""
+        if question.question_json:
+            internal_test_case = question.question_json.get("suffix_code", "") or ""
+        if not internal_test_case:
+            # Book-authored questions (as opposed to instructor-authored
+            # custom exercises) don't populate question_json -- fall back to
+            # parsing the test code out of the raw textarea source instead.
+            internal_test_case = _extract_suffix_code_from_htmlsrc(question.htmlsrc)
     except Exception as e:
         rslogger.error(f"CodeTailor: could not fetch test code for '{problem_id}': {e}")
         return JSONResponse(
