@@ -297,7 +297,7 @@ async def _login_or_create_user(
     instructor membership, and return (user, is_new_enrollment).
     """
     user = await fetch_user(userinfo["email"], fallback_to_registration=True)
-
+    user_dict = {}
     if not user:
         user_dict = {
             "username": userinfo["username"],
@@ -318,12 +318,16 @@ async def _login_or_create_user(
             course = await fetch_course_by_id(course_id)
             user_dict["course_id"] = course_id
             user_dict["course_name"] = course.course_name
+        else:
+            rslogger.error(
+                f"LTI1.1 - missing course information for launch {user_dict}"
+            )
         try:
             new_user = AuthUserValidator(**user_dict)
             user = await create_user(new_user)
             rslogger.info(f"LTI1.1 - created user {user.username} ({user.id})")
         except (ValidationError, Exception) as e:
-            rslogger.error(f"LTI1.1 - error creating user: {e}")
+            rslogger.error(f"LTI1.1 - error creating user: {e} user info: {user_dict}")
             return None, False
 
     is_new_enrollment = False
