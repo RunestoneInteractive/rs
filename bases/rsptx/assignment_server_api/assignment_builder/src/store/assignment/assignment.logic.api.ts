@@ -39,6 +39,9 @@ export const ASSIGNMENT_TOAST_COPY = {
         } that belong to the other book. It is hidden until you make it visible.`
       : `Imported as "${name}". It is hidden until you make it visible.`,
   importError: "Couldn't import assignment. It may no longer be shared.",
+  // Shown separately from the success toast so it doesn't get lost inside a
+  // longer message -- the instructor needs to notice and go fix the timezone.
+  duedateWarning: (duedateWarning: string) => duedateWarning,
   loadTreeError: "Couldn't load shared assignments. Try again.",
   // Partial success is a normal outcome for a multi-import, so the toast counts
   // rather than claiming everything worked.
@@ -47,6 +50,7 @@ export const ASSIGNMENT_TOAST_COPY = {
     skipped_existing: string[];
     skipped_readings: number;
     failed: string[];
+    duedate_not_shifted: number;
   }) => {
     const parts = [`Imported ${result.imported.length}`];
 
@@ -58,6 +62,9 @@ export const ASSIGNMENT_TOAST_COPY = {
     }
     if (result.skipped_readings) {
       parts.push(`${result.skipped_readings} readings left behind`);
+    }
+    if (result.duedate_not_shifted) {
+      parts.push(`${result.duedate_not_shifted} due dates not adjusted`);
     }
     return `${parts.join(", ")}. Imports are hidden until you make them visible.`;
   }
@@ -260,6 +267,15 @@ export const assignmentApi = createApi({
         queryFulfilled
           .then(({ data }) => {
             notify.success(ASSIGNMENT_TOAST_COPY.importedMany(data.detail));
+            if (data.detail.duedate_not_shifted) {
+              notify.info(
+                ASSIGNMENT_TOAST_COPY.duedateWarning(
+                  "Some due dates could not be adjusted because a course timezone " +
+                    "setting is invalid. Update it in Course Settings, then check " +
+                    "the affected assignments."
+                )
+              );
+            }
           })
           .catch(() => {
             notify.error(ASSIGNMENT_TOAST_COPY.importError);
@@ -279,6 +295,9 @@ export const assignmentApi = createApi({
             notify.success(
               ASSIGNMENT_TOAST_COPY.imported(data.detail.name, data.detail.skipped_readings)
             );
+            if (data.detail.duedate_warning) {
+              notify.info(ASSIGNMENT_TOAST_COPY.duedateWarning(data.detail.duedate_warning));
+            }
           })
           .catch(() => {
             notify.error(ASSIGNMENT_TOAST_COPY.importError);
