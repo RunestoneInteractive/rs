@@ -478,9 +478,7 @@ export class PageProgressBar {
                 this.assignment_spec.activities_required =
                     this.activitiesPossible;
             }
-            console.log(`PageProgressBar: ${completeActivities} completed of ${requiredActivities} required activities on this page`)
-            if (completeActivities >= requiredActivities 
-                 ) {
+            if (completeActivities >= requiredActivities) {
                 this.sendCompletedReadingScore().then(() => {
                     console.log("Reading score sent for page");
                     // wait a tick then mark the page complete
