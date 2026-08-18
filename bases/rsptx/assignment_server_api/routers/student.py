@@ -1019,6 +1019,8 @@ async def doAssignment(
         questions_score=questions_score,
         readings_score=readings_score,
         user=user,
+        user_id=user.username,  # _base.html for ptx student pages needs user_id
+        base_course=course.base_course,
         # gradeRecordingUrl=URL('assignments', 'record_grade'),
         # calcTotalsURL=URL('assignments', 'calculate_totals'),
         released=assignment.released,
