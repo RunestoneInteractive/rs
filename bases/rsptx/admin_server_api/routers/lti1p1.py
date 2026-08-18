@@ -39,6 +39,7 @@ from rsptx.db.crud import (
     fetch_course,
     fetch_course_by_id,
     fetch_lti1p1_config_by_consumer,
+    fetch_lti1p1_course_ids,
     fetch_one_assignment,
     fetch_user,
     update_user,
@@ -134,22 +135,9 @@ async def index(request: Request):
     first_name = params.get("lis_person_name_given", None)
     full_name = params.get("lis_person_name_full", None)
     message_type = params.get("lti_message_type")
-    course_id = param_converter(params.get("custom_course_id", None))
-
-    if course_id:
-        # Allow the course_id to be either a number or the course name.
-        try:
-            course_id = int(course_id)
-        except ValueError:
-            cname = course_id
-            course = await fetch_course(cname)
-            if course:
-                course_id = course.id
-            else:
-                rslogger.error(f"LTI1.1 - invalid course name: {cname}")
-                return _render_error(
-                    request, [f"Invalid course name: {cname} LTI not launched."]
-                )
+    # The course is resolved from the consumer key below, once the signature has
+    # been verified; ``custom_course_id`` is only a fallback.
+    param_course_id = param_converter(params.get("custom_course_id", None))
 
     if full_name and not last_name:
         names = full_name.strip().split()
@@ -201,6 +189,14 @@ async def index(request: Request):
     ):
         return _render_error(request, ["OAuth Security Validation failed"])
 
+    # Resolve the course. The key/secret pair was issued for a specific course,
+    # so ``course_lti_map`` is authoritative and is preferred over the LMS's
+    # ``custom_course_id``, which instructors routinely copy from another course
+    # or forget to update when they copy a course in the LMS.
+    course, course_error = await _resolve_course(lti_record, param_course_id)
+    if course_error:
+        return _render_error(request, [course_error])
+
     # Create / update / login the user.
     userinfo = {
         "first_name": first_name,
@@ -208,9 +204,7 @@ async def index(request: Request):
         "email": email,
         "username": email,
     }
-    user, is_new_enrollment = await _login_or_create_user(
-        userinfo, course_id, instructor
-    )
+    user, is_new_enrollment = await _login_or_create_user(userinfo, course, instructor)
     if user is None:
         return _render_error(request, ["Unable to create user record"])
 
@@ -239,7 +233,11 @@ async def index(request: Request):
 
     # Content-item selection (deep linking).
     if message_type == "ContentItemSelectionRequest":
-        return await _provide_assignment_list(params, course_id, lti_record)
+        if course is None:
+            return _render_error(
+                request, ["This LTI key is not associated with a Runestone course."]
+            )
+        return await _provide_assignment_list(params, course, lti_record)
 
     # Assignment launch.
     if assignment_id:
@@ -289,13 +287,100 @@ async def index(request: Request):
     return await _send_to(f"https://{domain}/ns/course/index")
 
 
+async def _resolve_course(lti_record, param_course_id):
+    """
+    Decide which Runestone course this launch is for.
+
+    ``course_lti_map`` records the course the consumer key was issued for, and
+    that is what we trust. ``custom_course_id`` is supplied by the LMS and is
+    only consulted when the key is not mapped to exactly one course -- either
+    because the mapping predates the key (older installs) or because an
+    administrator pointed several courses at one key, in which case the LMS
+    parameter is what distinguishes them.
+
+    Returns the course row rather than just its id: everything downstream needs
+    ``course_name`` as well, and resolving here means a mapping that points at a
+    deleted course is caught once, in the one place that knows what to do about
+    it, instead of raising an AttributeError further in.
+
+    :return: (course, error_message); exactly one is non-None on a bad course,
+        and (None, None) when the launch carries no course at all.
+    """
+    mapped = await fetch_lti1p1_course_ids(lti_record.id)
+
+    # Resolve the LMS-supplied value, which may be an id or a course name.
+    param_id = None
+    if param_course_id:
+        try:
+            param_id = int(param_course_id)
+        except ValueError:
+            cname = str(param_course_id)
+            course = await fetch_course(cname)
+            if course:
+                param_id = course.id
+            elif not mapped:
+                rslogger.error(f"LTI1.1 - invalid course name: {cname}")
+                return None, f"Invalid course name: {cname} LTI not launched."
+            else:
+                rslogger.warning(
+                    f"LTI1.1 - invalid course name {cname} from the LMS; using the "
+                    f"course mapped to consumer key {lti_record.consumer}"
+                )
+
+    if len(mapped) == 1:
+        course_id = mapped[0]
+        if param_id is not None and param_id != course_id:
+            rslogger.warning(
+                f"LTI1.1 - LMS sent custom_course_id {param_id} but consumer key "
+                f"{lti_record.consumer} is mapped to course {course_id}; using "
+                "the mapped course"
+            )
+    elif len(mapped) > 1:
+        # Ambiguous mapping: the LMS parameter is the only thing that can pick
+        # one, and it must name a course the key is actually mapped to.
+        if param_id not in mapped:
+            rslogger.error(
+                f"LTI1.1 - consumer key {lti_record.consumer} maps to courses "
+                f"{mapped} but the LMS sent custom_course_id {param_id}"
+            )
+            return (
+                None,
+                "This LTI key is shared by several courses and the launch did not identify one of them.",
+            )
+        course_id = param_id
+    else:
+        # No mapping for this key -- fall back to whatever the LMS told us.
+        if param_id is None:
+            rslogger.error(
+                f"LTI1.1 - no course mapped to consumer key {lti_record.consumer} "
+                "and no custom_course_id in the launch"
+            )
+            return None, None
+        course_id = param_id
+
+    course = await fetch_course_by_id(course_id)
+    if course is None:
+        rslogger.error(
+            f"LTI1.1 - course {course_id} for consumer key {lti_record.consumer} "
+            "does not exist"
+        )
+        return None, f"Course {course_id} no longer exists. LTI not launched."
+    return course, None
+
+
 async def _login_or_create_user(
-    userinfo: dict, course_id: Optional[int], instructor: bool
+    userinfo: dict, course, instructor: bool
 ) -> tuple[Optional[AuthUserValidator], bool]:
     """
     Find or create the Runestone user for this launch, provision course and
     instructor membership, and return (user, is_new_enrollment).
+
+    The returned user is guaranteed to carry the launched course: an LTI user
+    typically has several Runestone courses, and every later request in this
+    session -- as well as the assignment check in :func:`_launch_assignment` --
+    reads ``course_id``/``course_name`` off this row.
     """
+    course_id = course.id if course else None
     user = await fetch_user(userinfo["email"], fallback_to_registration=True)
     user_dict = {}
     if not user:
@@ -314,9 +399,8 @@ async def _login_or_create_user(
             "donated": False,
             "accept_tcp": True,
         }
-        if course_id:
-            course = await fetch_course_by_id(course_id)
-            user_dict["course_id"] = course_id
+        if course:
+            user_dict["course_id"] = course.id
             user_dict["course_name"] = course.course_name
         else:
             rslogger.error(
@@ -331,12 +415,28 @@ async def _login_or_create_user(
             return None, False
 
     is_new_enrollment = False
-    if course_id:
-        course = await fetch_course_by_id(course_id)
+    if course:
         # Keep course_id/course_name current (verifyInstructor uses course_name).
-        await update_user(
-            user.id, {"course_id": course_id, "course_name": course.course_name}
-        )
+        # The auth cookie only carries the username, so the course a request
+        # runs in is whatever this row says -- switching it here is what makes
+        # the redirect below land in the launched course rather than in
+        # whichever course the user last visited.
+        if user.course_id != course.id or user.course_name != course.course_name:
+            await update_user(
+                user.id, {"course_id": course.id, "course_name": course.course_name}
+            )
+            # ``update_user`` writes but hands nothing back, so the object we
+            # were given is now stale in exactly the field we just changed.
+            # Re-read it: _launch_assignment compares the assignment's course
+            # against ``user.course_id``, and a stale value there rejects a
+            # perfectly good assignment launch.
+            user = await fetch_user(user.username, fallback_to_registration=True)
+            if user is None:
+                rslogger.error(
+                    f"LTI1.1 - user {userinfo['username']} vanished while switching "
+                    f"to course {course.course_name}"
+                )
+                return None, False
 
         # Update instructor status.
         if instructor:
@@ -443,9 +543,7 @@ async def _launch_assignment(
     ), None
 
 
-async def _provide_assignment_list(
-    params: dict, course_id: int, lti_record
-) -> HTMLResponse:
+async def _provide_assignment_list(params: dict, course, lti_record) -> HTMLResponse:
     """
     Deep-linking (ContentItemSelection): return an auto-submitting form listing
     the course's assignments, signed with the consumer key/secret, per
@@ -455,7 +553,6 @@ async def _provide_assignment_list(
     return_url = params.get("content_item_return_url")
     extra_data = params.get("data", None)
 
-    course = await fetch_course_by_id(course_id)
     assignments = await fetch_assignments(course.course_name, fetch_all=True)
     graph = []
     for assignment in assignments:
@@ -467,7 +564,7 @@ async def _provide_assignment_list(
                 "title": assignment.name,
                 "text": assignment.description,
                 "custom": {
-                    "custom_course_id": course_id,
+                    "custom_course_id": course.id,
                     "assignment_id": assignment.id,
                 },
             }

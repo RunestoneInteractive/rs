@@ -241,3 +241,212 @@ def test_a_total_above_the_assignment_points_is_clamped_to_full_credit():
         core.send_lti1p1_grade(10, 12, KEY, SECRET, "https://lms/outcomes", "s-1")
 
     assert req.return_value.post_replace_result.call_args.args[0] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# _resolve_course -- which course does a launch belong to?
+#
+# The consumer key is issued per course (course_lti_map), so that mapping wins
+# over the LMS's custom_course_id, which instructors copy between courses and
+# forget to update.
+# ---------------------------------------------------------------------------
+from contextlib import ExitStack, contextmanager  # noqa: E402
+
+from rsptx.admin_server_api.routers import lti1p1 as lti1p1_router  # noqa: E402
+
+LTI_RECORD = SimpleNamespace(id=7, consumer=KEY, secret=SECRET)
+
+
+def _course(course_id, name=None):
+    return SimpleNamespace(id=course_id, course_name=name or f"course-{course_id}")
+
+
+@contextmanager
+def _patch_resolve(mapped, course_by_name=None, courses_by_id=None):
+    """Patch the lookups _resolve_course makes.
+
+    ``courses_by_id`` defaults to "every id exists"; pass a dict to model a
+    mapping that points at a course that has since been deleted.
+    """
+
+    async def by_id(course_id):
+        if courses_by_id is None:
+            return _course(course_id)
+        return courses_by_id.get(course_id)
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(
+                lti1p1_router, "fetch_lti1p1_course_ids", AsyncMock(return_value=mapped)
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                lti1p1_router, "fetch_course", AsyncMock(return_value=course_by_name)
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                lti1p1_router, "fetch_course_by_id", AsyncMock(side_effect=by_id)
+            )
+        )
+        yield
+
+
+async def test_mapped_course_wins_over_the_lms_parameter():
+    with _patch_resolve([42]):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, "999")
+    assert (course.id, error) == (42, None)
+
+
+async def test_mapped_course_is_used_when_the_lms_sends_nothing():
+    with _patch_resolve([42]):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, None)
+    assert (course.id, error) == (42, None)
+
+
+async def test_falls_back_to_the_lms_parameter_when_the_key_is_unmapped():
+    with _patch_resolve([]):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, "999")
+    assert (course.id, error) == (999, None)
+
+
+async def test_unmapped_key_accepts_a_course_name():
+    with _patch_resolve([], course_by_name=_course(17)):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, "intro-cs")
+    assert (course.id, error) == (17, None)
+
+
+async def test_unmapped_key_with_an_unknown_course_name_is_an_error():
+    with _patch_resolve([], course_by_name=None):
+        course, error = await lti1p1_router._resolve_course(
+            LTI_RECORD, "no-such-course"
+        )
+    assert course is None
+    assert "no-such-course" in error
+
+
+async def test_a_bad_course_name_is_survivable_when_the_key_is_mapped():
+    """The mapping is what we trust, so a stale LMS name is only a warning."""
+    with _patch_resolve([42], course_by_name=None):
+        course, error = await lti1p1_router._resolve_course(
+            LTI_RECORD, "no-such-course"
+        )
+    assert (course.id, error) == (42, None)
+
+
+async def test_a_shared_key_is_disambiguated_by_the_lms_parameter():
+    with _patch_resolve([42, 43]):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, "43")
+    assert (course.id, error) == (43, None)
+
+
+async def test_a_shared_key_pointing_outside_its_courses_is_an_error():
+    with _patch_resolve([42, 43]):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, "99")
+    assert course is None
+    assert error
+
+
+async def test_a_mapping_to_a_deleted_course_is_an_error():
+    with _patch_resolve([42], courses_by_id={}):
+        course, error = await lti1p1_router._resolve_course(LTI_RECORD, None)
+    assert course is None
+    assert "42" in error
+
+
+# ---------------------------------------------------------------------------
+# _login_or_create_user -- the launched course must stick to the user row
+#
+# The auth cookie carries only the username, so every later request reads the
+# course off auth_user. An LTI user usually has several Runestone courses, so
+# the row has to be switched to the one being launched -- and the object we hand
+# back has to agree with it, because _launch_assignment validates the assignment
+# against user.course_id.
+# ---------------------------------------------------------------------------
+
+USERINFO = {
+    "first_name": "Jo",
+    "last_name": "Doe",
+    "email": "jo@example.com",
+    "username": "jo@example.com",
+}
+
+
+@contextmanager
+def _patch_login(existing_user, refreshed_user=None):
+    """Patch _login_or_create_user's collaborators.
+
+    ``fetch_user`` returns ``existing_user`` first and ``refreshed_user`` on the
+    re-read that follows the course switch -- mirroring a real update_user,
+    which writes the row but hands nothing back.
+    """
+    fetch = AsyncMock(side_effect=[existing_user, refreshed_user])
+    update = AsyncMock()
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(lti1p1_router, "fetch_user", fetch))
+        stack.enter_context(patch.object(lti1p1_router, "update_user", update))
+        for name in (
+            "create_instructor_course_entry",
+            "delete_course_instructor",
+            "create_user_course_entry",
+        ):
+            stack.enter_context(patch.object(lti1p1_router, name, AsyncMock()))
+        stack.enter_context(
+            patch.object(lti1p1_router, "user_in_course", AsyncMock(return_value=True))
+        )
+        yield fetch, update
+
+
+def _user(course_id, course_name):
+    return SimpleNamespace(
+        id=1,
+        username=USERINFO["username"],
+        course_id=course_id,
+        course_name=course_name,
+    )
+
+
+async def test_the_launched_course_is_written_to_the_user_row():
+    launched = _course(42, "cs101-fall")
+    with _patch_login(_user(9, "other-course"), _user(42, "cs101-fall")) as (
+        _f,
+        update,
+    ):
+        user, _new = await lti1p1_router._login_or_create_user(
+            USERINFO, launched, instructor=False
+        )
+
+    assert update.await_args.args[1] == {
+        "course_id": 42,
+        "course_name": "cs101-fall",
+    }
+    # ...and the object handed back agrees with what was written, so the
+    # assignment check in _launch_assignment sees the launched course.
+    assert (user.course_id, user.course_name) == (42, "cs101-fall")
+
+
+async def test_a_user_already_in_the_launched_course_is_not_rewritten():
+    launched = _course(42, "cs101-fall")
+    with _patch_login(_user(42, "cs101-fall")) as (_f, update):
+        user, _new = await lti1p1_router._login_or_create_user(
+            USERINFO, launched, instructor=False
+        )
+
+    update.assert_not_awaited()
+    assert (user.course_id, user.course_name) == (42, "cs101-fall")
+
+
+async def test_a_renamed_course_updates_the_stored_course_name():
+    """course_name is what verifyInstructor matches on, so it must track too."""
+    launched = _course(42, "cs101-spring")
+    with _patch_login(_user(42, "cs101-fall"), _user(42, "cs101-spring")) as (
+        _f,
+        update,
+    ):
+        user, _new = await lti1p1_router._login_or_create_user(
+            USERINFO, launched, instructor=False
+        )
+
+    update.assert_awaited_once()
+    assert user.course_name == "cs101-spring"

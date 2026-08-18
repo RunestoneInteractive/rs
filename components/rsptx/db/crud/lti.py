@@ -453,6 +453,29 @@ async def create_lti1p1_config(course_name: str, course_id: int) -> LtiKey:
     return new_key
 
 
+async def fetch_lti1p1_course_ids(lti_key_id: int) -> List[int]:
+    """
+    Fetch the Runestone course ids associated with an LTI 1.1 key.
+
+    This is the authoritative mapping: the key/secret pair was issued for a
+    specific course (see :func:`create_lti1p1_config`), so a launch signed with
+    that key belongs to that course regardless of what the LMS says in
+    ``custom_course_id``.  Returns a list because nothing in the schema stops an
+    administrator from pointing several courses at one key.
+
+    :param lti_key_id: int, ``lti_keys.id`` of the key that signed the launch
+    :return: List[int], the course ids mapped to that key (oldest mapping first)
+    """
+    query = (
+        select(CourseLtiMap.course_id)
+        .where(CourseLtiMap.lti_id == lti_key_id)
+        .order_by(CourseLtiMap.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [row[0] for row in res.all()]
+
+
 async def fetch_lti1p1_config_by_consumer(consumer: str) -> Optional[LtiKey]:
     """
     Fetch the LTI 1.1 key record for a given consumer key. Used to validate the
