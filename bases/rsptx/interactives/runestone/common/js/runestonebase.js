@@ -198,8 +198,9 @@ export default class RunestoneBase {
                 body: JSON.stringify(eventInfo),
             },
         );
+        let response;
         try {
-            var response = await fetch(request);
+            response = await fetch(request);
             if (!response.ok) {
                 if (response.status === 422) {
                     // Get details about why this is unprocesable.
@@ -217,36 +218,45 @@ export default class RunestoneBase {
                     Status: ${response.status}`);
             }
             post_return = await response.json();
-            let scoreSpec = post_return.detail;
-            let gradeBox = null;
-            if (this.selector_id) {
-                let selector_id = this.selector_id.replace(
-                    "-toggleSelectedQuestion",
-                    "",
-                );
-                gradeBox = document.getElementById(`${selector_id}_score`);
-            } else {
-                gradeBox = document.getElementById(`${this.divid}_score`);
-            }
-            if (gradeBox && !this.isTimed && scoreSpec) {
-                this.updateScores(gradeBox, scoreSpec);
-            }
         } catch (e) {
             let detail = "none";
             if (post_return && post_return.detail) {
                 detail = post_return.detail;
             }
+            // ``response`` is unset if fetch itself rejected.
+            let statusCode = response ? response.status : "no response";
             if (eBookConfig.useRunestoneServices) {
                 alert(`Error: Your action was not saved!
                     The error was ${e}
-                    Status Code: ${response.status}
+                    Status Code: ${statusCode}
                     Detail: ${JSON.stringify(detail, null, 4)}.
                     Please report this error!`);
             }
             // send a request to save this error
             console.log(
-                `Error: ${e} Detail: ${detail} Status Code: ${response.status}`,
+                `Error: ${e} Detail: ${detail} Status Code: ${statusCode}`,
             );
+            return post_return;
+        }
+        // The log entry is saved. Everything below only updates the score display on
+        // an assignment page; a failure here is a display bug, not a lost submission,
+        // so it must never reach the alert above. See issue #1393.
+        try {
+            let scoreSpec = post_return ? post_return.detail : null;
+            // Only graded events come back with a score spec. Ungraded ones --
+            // view_toggle, selectquestion, parsonsMove and friends -- have no score
+            // to report, so there is nothing to update.
+            if (scoreSpec && "assigned" in scoreSpec && !this.isTimed) {
+                let boxId = this.selector_id
+                    ? this.selector_id.replace("-toggleSelectedQuestion", "")
+                    : this.divid;
+                let gradeBox = document.getElementById(`${boxId}_score`);
+                if (gradeBox) {
+                    this.updateScores(gradeBox, scoreSpec);
+                }
+            }
+        } catch (e) {
+            console.error(`Could not update the score display: ${e}`);
         }
         return post_return;
     }
@@ -254,8 +264,13 @@ export default class RunestoneBase {
     // the presence of the gradeBox is used to determine if we are on an assignment page.
     updateScores(gradeBox, scoreSpec) {
         if (!scoreSpec.assigned || scoreSpec.score === null) {
-            document.getElementById(`${this.divid}_message`).innerHTML =
-                "Score not updated.  Submissions are closed.";
+            // Not every component has a matching message div, and select questions
+            // name theirs after the selector rather than the rendered question.
+            let messageBox = document.getElementById(`${this.divid}_message`);
+            if (messageBox) {
+                messageBox.innerHTML =
+                    "Score not updated.  Submissions are closed.";
+            }
             return;
         }
         let scoreSpan = gradeBox.getElementsByClassName("qscore")[0];

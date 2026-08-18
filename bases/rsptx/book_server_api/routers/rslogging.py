@@ -211,7 +211,17 @@ async def log_book_event(
             response_dict.update(scoreSpec.model_dump())
 
     if idx:
-        return make_json_response(status=status.HTTP_201_CREATED, detail=response_dict)
+        # ``detail`` doubles as the score spec for the book JS. Events that are never
+        # graded -- ``view_toggle``, ``selectquestion``, ``parsonsMove`` and friends --
+        # used to come back as a bare ``{"timestamp": ...}``, which is truthy, so the
+        # client tried to render a score update for an ungraded event and threw. Send
+        # nothing at all when there is no score (or grader feedback) to report, so the
+        # client can tell the two apart. See issue #1393.
+        scored = len(response_dict) > 1
+        return make_json_response(
+            status=status.HTTP_201_CREATED,
+            detail=response_dict if scored else None,
+        )
     else:
         return make_json_response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

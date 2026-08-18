@@ -259,3 +259,60 @@ async def test_bookevent_empty_body(auth_book_client):
     """An empty body returns 422."""
     resp = await auth_book_client.post("/logger/bookevent", json={})
     assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# the ``detail`` contract (issue #1393)
+#
+# ``detail`` doubles as the score spec for the book JS. Ungraded events used to
+# return a bare {"timestamp": ...}, which is truthy, so the client mistook it for
+# a score spec and threw a TypeError while trying to render a score update --
+# surfacing as a bogus "Your action was not saved!" alert on a 201 response.
+# ---------------------------------------------------------------------------
+
+
+async def test_ungraded_event_returns_no_detail(auth_book_client):
+    """``view_toggle`` is never graded, so there is no score spec to hand back."""
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("view_toggle", "turtle_draw_F_pp", "turtle_draw_F_sq"),
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["detail"] is None
+
+
+async def test_selectquestion_event_returns_no_detail(auth_book_client):
+    """The synthetic ``selectquestion`` interaction event is not graded either."""
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("selectquestion", "interaction", "turtle_draw_F_sq"),
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["detail"] is None
+
+
+async def test_page_view_returns_no_detail(auth_book_client):
+    """Page views carry no score either."""
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("page", "view", "ch1_introduction"),
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["detail"] is None
+
+
+async def test_graded_event_returns_score_spec(auth_book_client, student_user):
+    """A graded event still returns a real score spec, and it carries the
+    ``assigned`` key the client uses to tell a score spec from an empty reply."""
+    div_id = "interaction_video_detail"
+    await _assign_interaction_question(student_user, div_id, "youtube")
+
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("video", "play:3", div_id, course_name=STUDENT_COURSE),
+    )
+    assert resp.status_code in (200, 201)
+    detail = resp.json()["detail"]
+    assert detail is not None
+    assert "assigned" in detail
+    assert detail["assigned"] is True
