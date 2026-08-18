@@ -111,7 +111,7 @@ describe("generateDragAndDropPreview", () => {
       name: "placeholderTest"
     });
 
-    expect(result).toContain('for="placeholderTest_placeholder"');
+    expect(result).toContain('for="placeholderTest_placeholder_r2"');
     expect(result).toContain("Plant");
   });
 
@@ -224,6 +224,79 @@ describe("generateDragAndDropPreview", () => {
 
     const dropzoneMatches = [...result.matchAll(/data-subcomponent="dropzone"/g)];
     expect(dropzoneMatches.length).toBe(1);
+  });
+
+  it("gives every premise sharing a dropzone the same category as that dropzone", () => {
+    const result = generateDragAndDropPreview({
+      left: [
+        { id: "l1", label: "Corn" },
+        { id: "l2", label: "Peas" },
+        { id: "l3", label: "Pear" }
+      ],
+      right: [
+        { id: "r1", label: "Vegetable" },
+        { id: "r2", label: "Fruit" }
+      ],
+      correctAnswers: [
+        ["l1", "r1"],
+        ["l2", "r1"],
+        ["l3", "r2"]
+      ],
+      feedback: "Try again.",
+      name: "manyToOne"
+    });
+
+    expect(result).toContain(
+      '<li data-subcomponent="draggable" id="manyToOne_drag_l1" data-category="manyToOne_cat_r1">Corn</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="draggable" id="manyToOne_drag_l2" data-category="manyToOne_cat_r1">Peas</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="dropzone" for="manyToOne_drag_l1" data-category="manyToOne_cat_r1">Vegetable</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="draggable" id="manyToOne_drag_l3" data-category="manyToOne_cat_r2">Pear</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="dropzone" for="manyToOne_drag_l3" data-category="manyToOne_cat_r2">Fruit</li>'
+    );
+  });
+
+  it("emits a premise only once when it is linked to several dropzones", () => {
+    const result = generateDragAndDropPreview({
+      left: [{ id: "l1", label: "Cat" }],
+      right: [
+        { id: "r1", label: "Animal" },
+        { id: "r2", label: "Pet" }
+      ],
+      correctAnswers: [
+        ["l1", "r1"],
+        ["l1", "r2"]
+      ],
+      feedback: "Try again.",
+      name: "multiLink"
+    });
+
+    const draggableMatches = [...result.matchAll(/data-subcomponent="draggable"/g)];
+
+    expect(draggableMatches.length).toBe(1);
+  });
+
+  it("gives each unmatched right item its own placeholder id", () => {
+    const result = generateDragAndDropPreview({
+      left: [],
+      right: [
+        { id: "r1", label: "Animal" },
+        { id: "r2", label: "Plant" }
+      ],
+      correctAnswers: [],
+      feedback: "Try again.",
+      name: "twoPlaceholders"
+    });
+
+    expect(result).toContain('for="twoPlaceholders_placeholder_r1"');
+    expect(result).toContain('for="twoPlaceholders_placeholder_r2"');
   });
 
   it("generates a valid fallback id when name contains only special characters", () => {

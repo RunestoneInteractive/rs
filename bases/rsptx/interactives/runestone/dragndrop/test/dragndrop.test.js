@@ -55,6 +55,24 @@ function makeLegacyFixture({ id = "test_dnd_legacy" } = {}) {
     return document.getElementById(id);
 }
 
+// Two premises that belong in the same dropzone, in the markup the assignment
+// builder generates for a many-to-one question.
+function makeManyToOneFixture({ id = "test_dnd_many" } = {}) {
+    document.body.innerHTML = `
+      <div class="runestone">
+        <ul data-component="dragndrop" id="${id}" data-random="no">
+          <span data-subcomponent="question">Sort the food.</span>
+          <li data-subcomponent="draggable" id="${id}_drag_l1" data-category="${id}_cat_r1">Corn</li>
+          <li data-subcomponent="dropzone" for="${id}_drag_l1" data-category="${id}_cat_r1">Vegetable</li>
+          <li data-subcomponent="draggable" id="${id}_drag_l2" data-category="${id}_cat_r1">Peas</li>
+          <li data-subcomponent="draggable" id="${id}_drag_l3" data-category="${id}_cat_r2">Pear</li>
+          <li data-subcomponent="dropzone" for="${id}_drag_l3" data-category="${id}_cat_r2">Fruit</li>
+          <span data-subcomponent="feedback">Not quite.</span>
+        </ul>
+      </div>`;
+    return document.getElementById(id);
+}
+
 const tick = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function makeDnd(fixtureOpts = {}, extraOpts = {}, Cls = DragNDrop) {
@@ -154,6 +172,22 @@ describe("construction from legacy data-subcomponent markup", () => {
         ]);
         expect(dnd.premiseArray[0].dataset.category).toBe("cat_a");
         expect(dnd.responseArray[0].dataset.category).toBe("cat_a");
+    });
+
+    it("grades every premise that shares a dropzone as correct", async () => {
+        const id = "test_dnd_many";
+        const orig = makeManyToOneFixture({ id });
+        const dnd = new DragNDrop({ orig, useRunestoneServices: false });
+        await dnd.component_ready_promise;
+        await tick();
+        // Both Corn and Peas belong in the Vegetable zone.
+        place(dnd, `${id}_drag_l1`, `${id}_drop_l1`);
+        place(dnd, `${id}_drag_l2`, `${id}_drop_l1`);
+        place(dnd, `${id}_drag_l3`, `${id}_drop_l3`);
+        dnd.checkCurrentAnswer();
+        expect(dnd.incorrectNum).toBe(0);
+        expect(dnd.correctNum).toBe(3);
+        expect(dnd.correct).toBe(true);
     });
 });
 

@@ -36,6 +36,14 @@ export const generateDragAndDropPreview = ({
   const usedLeftItems = new Set<string>();
   const connectedRightItems = new Set<string>();
 
+  // The dragndrop component decides whether a premise was dropped in the right
+  // place by comparing its data-category with the dropzone's. Deriving the
+  // category from the dropzone's `for` attribute (the old behaviour) can only
+  // express one premise per dropzone, so the second and later premises that
+  // belong in the same dropzone were graded as misplaced. Give every premise
+  // and its dropzone the same explicit category instead.
+  const categoryFor = (rightId: string): string => `${safeId}_cat_${rightId}`;
+
   left.forEach((leftItem) => {
     const connections = correctAnswers.filter(([sourceId]) => sourceId === leftItem.id);
 
@@ -46,11 +54,17 @@ export const generateDragAndDropPreview = ({
 
         if (rightItem) {
           const dragId = `${safeId}_drag_${leftItem.id}`;
+          const category = categoryFor(rightItem.id);
 
-          html += `<li data-subcomponent="draggable" id="${dragId}">${removePTags(leftItem.label || "")}</li>`;
+          // A premise lives in exactly one dropzone, so emit it only once even
+          // if the author linked it to several -- duplicate ids would break the
+          // component.
+          if (!usedLeftItems.has(leftItem.id)) {
+            html += `<li data-subcomponent="draggable" id="${dragId}" data-category="${category}">${removePTags(leftItem.label || "")}</li>`;
+          }
 
           if (!connectedRightItems.has(rightItem.id)) {
-            html += `<li data-subcomponent="dropzone" for="${dragId}">${removePTags(rightItem.label || "")}</li>`;
+            html += `<li data-subcomponent="dropzone" for="${dragId}" data-category="${category}">${removePTags(rightItem.label || "")}</li>`;
             connectedRightItems.add(rightItem.id);
           }
 
@@ -74,10 +88,12 @@ export const generateDragAndDropPreview = ({
 
   right.forEach((rightItem) => {
     if (!usedRightItems.has(rightItem.id)) {
-      const placeholderId = `${safeId}_placeholder`;
+      // The `for` value becomes the dropzone's element id, so it has to be
+      // unique across every dropzone with no premises of its own.
+      const placeholderId = `${safeId}_placeholder_${rightItem.id}`;
 
       html += `
-    <li data-subcomponent="dropzone" for="${placeholderId}">${removePTags(rightItem.label || "")}</li>`;
+    <li data-subcomponent="dropzone" for="${placeholderId}" data-category="${categoryFor(rightItem.id)}">${removePTags(rightItem.label || "")}</li>`;
     }
   });
 
