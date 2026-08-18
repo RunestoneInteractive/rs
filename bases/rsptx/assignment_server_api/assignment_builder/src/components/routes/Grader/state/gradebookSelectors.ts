@@ -62,6 +62,56 @@ export const studentTotal = (
   return graded ? Math.round(total * 100) / 100 : null;
 };
 
+/**
+ * The number a cell shows: raw points when the course asked for points, the
+ * percent of what the assignment was worth otherwise. An assignment worth no
+ * points has no meaningful percent, so its raw score is shown either way.
+ */
+export const displayScore = (
+  score: number | null | undefined,
+  points: number | null | undefined,
+  showPoints: boolean
+): number | null => {
+  if (score == null) return null;
+  if (showPoints || !points) return score;
+  return Math.round((score / points) * 10000) / 100;
+};
+
+/**
+ * A student's total across the visible assignments, in the units the gradebook is
+ * displaying. In percent mode the denominator counts only the assignments that
+ * have a score, so ungraded work does not read as a zero.
+ */
+export const studentTotalDisplay = (
+  lookup: Map<string, GradebookCell>,
+  assignments: GradebookAssignment[],
+  sid: string,
+  showPoints: boolean
+): number | null => {
+  let earned = 0;
+  let possible = 0;
+  let graded = false;
+
+  for (const assignment of assignments) {
+    const score = getCellScore(lookup, sid, assignment.id);
+
+    if (score != null) {
+      earned += score;
+      possible += assignment.points ?? 0;
+      graded = true;
+    }
+  }
+  if (!graded) return null;
+  return displayScore(Math.round(earned * 100) / 100, possible, showPoints);
+};
+
+/**
+ * The unit suffix for an assignment column header: how much it is worth in points
+ * mode, a bare percent sign otherwise.
+ */
+export const columnUnitLabel = (points: number | null | undefined, showPoints: boolean): string =>
+  showPoints ? ` / ${points ?? 0}` : " %";
+
 export const formatScore = (score: number | null | undefined): string => {
   if (score == null) return "—";
   return Number.isInteger(score) ? String(score) : String(Math.round(score * 100) / 100);

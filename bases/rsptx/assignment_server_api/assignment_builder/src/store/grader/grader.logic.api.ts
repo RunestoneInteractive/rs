@@ -203,6 +203,9 @@ export interface GradebookResponse {
   students: GradebookStudent[];
   cells: GradebookCell[];
   averages: Record<string, number | null>;
+  /** Courses default to percentages; the show_points course attribute opts into
+   * raw points. */
+  show_points: boolean;
 }
 
 /** One question's worth of a single student's assignment breakdown. */
@@ -243,6 +246,14 @@ export interface SetManualTotalResponse {
   sid: string;
   score: number | null;
   manual_total: boolean;
+}
+
+export interface SetGradebookUnitsRequest {
+  show_points: boolean;
+}
+
+export interface SetGradebookUnitsResponse {
+  show_points: boolean;
 }
 
 export const GRADEBOOK_CSV_URL = "/assignment/instructor/grader/gradebook.csv";
@@ -509,6 +520,29 @@ export const graderApi = createApi({
         { type: "StudentScores", id: studentScoresTag(req.assignment_id, req.sid) },
         "Gradebook"
       ]
+    }),
+    setGradebookUnits: build.mutation<SetGradebookUnitsResponse, SetGradebookUnitsRequest>({
+      query: (body) => ({
+        method: "POST",
+        url: "/assignment/instructor/grader/gradebook/units",
+        body
+      }),
+      transformResponse: (r: DetailResponse<SetGradebookUnitsResponse>) => r.detail,
+      // The whole table re-reads this flag, so patch the cache rather than
+      // refetching the matrix just to change its units.
+      onQueryStarted: async ({ show_points }, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          graderApi.util.updateQueryData("getGradebook", undefined, (draft) => {
+            draft.show_points = show_points;
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      }
     })
   })
 });
@@ -529,5 +563,6 @@ export const {
   useSetAssignmentThresholdMutation,
   useGetGradebookQuery,
   useGetStudentAssignmentScoresQuery,
-  useSetManualTotalMutation
+  useSetManualTotalMutation,
+  useSetGradebookUnitsMutation
 } = graderApi;

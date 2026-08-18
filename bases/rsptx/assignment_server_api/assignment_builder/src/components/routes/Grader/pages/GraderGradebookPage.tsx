@@ -19,15 +19,18 @@ import {
 } from "@store/grader/grader.logic.api";
 
 import { GradebookCellDialog } from "../components/GradebookCellDialog";
+import { GradebookUnitsToggle } from "../components/GradebookUnitsToggle";
 import styles from "../Grader.module.css";
 import {
   assignmentAverage,
   buildCellLookup,
+  columnUnitLabel,
+  displayScore,
   filterAssignments,
   filterStudents,
   formatScore,
   getCell,
-  studentTotal
+  studentTotalDisplay
 } from "../state/gradebookSelectors";
 
 interface OpenCell {
@@ -42,6 +45,9 @@ export const GraderGradebookPage: React.FC = () => {
   const [openCell, setOpenCell] = useState<OpenCell | null>(null);
 
   const lookup = useMemo(() => buildCellLookup(data?.cells ?? []), [data?.cells]);
+  // Scores read as a percent of each assignment unless the course opted into raw
+  // points; until the data lands there is nothing to show either way.
+  const showPoints = !!data?.show_points;
   const courseName = window.eBookConfig?.course ?? "course";
   const csvFilename = gradebookCsvFilename(courseName);
 
@@ -132,6 +138,7 @@ export const GraderGradebookPage: React.FC = () => {
             clearable
             className={styles.gradebookFilterSelect}
           />
+          <GradebookUnitsToggle showPoints={showPoints} />
           {exportButton}
         </div>
       </div>
@@ -158,11 +165,14 @@ export const GraderGradebookPage: React.FC = () => {
                 {assignments.map((a) => (
                   <Table.Th key={a.id} className={styles.gradebookNumHead}>
                     <span className={styles.gradebookColName}>{a.name}</span>
-                    <span className={styles.cellSubtle}> / {a.points}</span>
+                    <span className={styles.cellSubtle}>
+                      {columnUnitLabel(a.points, showPoints)}
+                    </span>
                   </Table.Th>
                 ))}
                 <Table.Th className={styles.gradebookNumHead}>
                   {columnsFiltered ? "Total (shown)" : "Total"}
+                  {!showPoints && <span className={styles.cellSubtle}> %</span>}
                 </Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -187,7 +197,9 @@ export const GraderGradebookPage: React.FC = () => {
                               : "Click for the question breakdown"
                           }
                         >
-                          <span>{formatScore(cell?.score ?? null)}</span>
+                          <span>
+                            {formatScore(displayScore(cell?.score, a.points, showPoints))}
+                          </span>
                           {cell?.manual_total && (
                             <span className={styles.gradebookManualDot} aria-hidden="true" />
                           )}
@@ -196,7 +208,7 @@ export const GraderGradebookPage: React.FC = () => {
                     );
                   })}
                   <Table.Td className={`${styles.gradebookNumCell} ${styles.gradebookTotalCell}`}>
-                    {formatScore(studentTotal(lookup, assignments, student.sid))}
+                    {formatScore(studentTotalDisplay(lookup, assignments, student.sid, showPoints))}
                   </Table.Td>
                 </Table.Tr>
               ))}
@@ -206,7 +218,9 @@ export const GraderGradebookPage: React.FC = () => {
                 <Table.Th className={styles.gradebookStudentCell}>Class average</Table.Th>
                 {assignments.map((a) => (
                   <Table.Td key={a.id} className={styles.gradebookNumCell}>
-                    {formatScore(assignmentAverage(data?.cells ?? [], a.id))}
+                    {formatScore(
+                      displayScore(assignmentAverage(data?.cells ?? [], a.id), a.points, showPoints)
+                    )}
                   </Table.Td>
                 ))}
                 <Table.Td className={styles.gradebookNumCell}>—</Table.Td>

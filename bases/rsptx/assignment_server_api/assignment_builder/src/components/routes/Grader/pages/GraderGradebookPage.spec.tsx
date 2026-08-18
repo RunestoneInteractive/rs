@@ -5,9 +5,10 @@ import type { GradebookResponse } from "@store/grader/grader.logic.api";
 
 import { GraderGradebookPage } from "./GraderGradebookPage";
 
-const { mockUseGetGradebookQuery, mockCellDialog } = vi.hoisted(() => ({
+const { mockUseGetGradebookQuery, mockCellDialog, mockUnitsToggle } = vi.hoisted(() => ({
   mockUseGetGradebookQuery: vi.fn(),
-  mockCellDialog: vi.fn()
+  mockCellDialog: vi.fn(),
+  mockUnitsToggle: vi.fn()
 }));
 
 vi.mock("@store/grader/grader.logic.api", async (importOriginal) => {
@@ -27,6 +28,15 @@ vi.mock("../components/GradebookCellDialog", () => ({
   }
 }));
 
+// Likewise the units toggle: it owns the mutation, so the page only has to tell
+// it which units the course is on.
+vi.mock("../components/GradebookUnitsToggle", () => ({
+  GradebookUnitsToggle: (props: Record<string, unknown>) => {
+    mockUnitsToggle(props);
+    return null;
+  }
+}));
+
 const matrix: GradebookResponse = {
   assignments: [
     { id: 1, name: "Quiz 1", points: 10, duedate: null, released: true },
@@ -42,7 +52,10 @@ const matrix: GradebookResponse = {
     { sid: "s2", assignment_id: 1, score: 6, released: true },
     { sid: "s2", assignment_id: 2, score: null, released: false }
   ],
-  averages: { "1": 7, "2": 5 }
+  averages: { "1": 7, "2": 5 },
+  // Points are the exception, but they keep these assertions readable; the
+  // percent default gets its own test below.
+  show_points: true
 };
 
 beforeEach(() => {
@@ -68,6 +81,49 @@ describe("GraderGradebookPage", () => {
     expect(table.getByText("Alan Turing")).toBeInTheDocument();
     expect(table.getByText("13")).toBeInTheDocument();
     expect(table.getByText("Class average")).toBeInTheDocument();
+  });
+
+  it("shows each score as a percent of the assignment unless the course wants points", () => {
+    mockUseGetGradebookQuery.mockReturnValue({
+      data: { ...matrix, show_points: false },
+      isLoading: false
+    });
+    renderWithMantine(<GraderGradebookPage />);
+
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
+
+    // 8/10 and 5/5 for Ada, 6/10 for Alan, and Ada's 13/15 total.
+    expect(table.getByText("80")).toBeInTheDocument();
+    expect(table.getByText("86.67")).toBeInTheDocument();
+    // Alan was graded only on the 10 point Quiz 1, so his score and his total are
+    // both 60% — his ungraded homework is left out of the denominator.
+    expect(table.getAllByText("60")).toHaveLength(2);
+    // The headers name the units, and no longer advertise the points available.
+    expect(table.queryByText("/ 10")).not.toBeInTheDocument();
+    expect(table.getAllByText("%").length).toBeGreaterThan(0);
+  });
+
+  it("shows points and the points available when the course asks for points", () => {
+    renderWithMantine(<GraderGradebookPage />);
+
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
+
+    expect(table.getByText("/ 10")).toBeInTheDocument();
+    expect(table.getByText("8")).toBeInTheDocument();
+    expect(table.getByText("13")).toBeInTheDocument();
+  });
+
+  it("tells the units toggle which units the course is on", () => {
+    renderWithMantine(<GraderGradebookPage />);
+    expect(mockUnitsToggle).toHaveBeenCalledWith(expect.objectContaining({ showPoints: true }));
+
+    vi.clearAllMocks();
+    mockUseGetGradebookQuery.mockReturnValue({
+      data: { ...matrix, show_points: false },
+      isLoading: false
+    });
+    renderWithMantine(<GraderGradebookPage />);
+    expect(mockUnitsToggle).toHaveBeenCalledWith(expect.objectContaining({ showPoints: false }));
   });
 
   it("renders an Export CSV download link to the CSV endpoint", () => {

@@ -9,6 +9,8 @@ import {
   assignmentAverage,
   buildCellLookup,
   cellKey,
+  columnUnitLabel,
+  displayScore,
   filterAssignments,
   filterStudents,
   formatScore,
@@ -17,7 +19,8 @@ import {
   isCellManual,
   isTotalStale,
   questionScoreSum,
-  studentTotal
+  studentTotal,
+  studentTotalDisplay
 } from "./gradebookSelectors";
 
 const assignments: GradebookAssignment[] = [
@@ -118,6 +121,62 @@ describe("studentTotal", () => {
   it("returns null when the student has no graded cells", () => {
     const lookup = buildCellLookup([{ sid: "s3", assignment_id: 1, score: null, released: true }]);
     expect(studentTotal(lookup, assignments, "s3")).toBeNull();
+  });
+});
+
+describe("displayScore", () => {
+  it("returns the raw score in points mode", () => {
+    expect(displayScore(8, 10, true)).toBe(8);
+  });
+
+  it("converts to a percent of the assignment's points", () => {
+    expect(displayScore(8, 10, false)).toBe(80);
+  });
+
+  it("rounds a percent to two decimals", () => {
+    expect(displayScore(1, 3, false)).toBe(33.33);
+  });
+
+  it("passes the raw score through when the assignment is worth nothing", () => {
+    expect(displayScore(2, 0, false)).toBe(2);
+  });
+
+  it("stays null for an ungraded cell", () => {
+    expect(displayScore(null, 10, false)).toBeNull();
+    expect(displayScore(undefined, 10, true)).toBeNull();
+  });
+});
+
+describe("studentTotalDisplay", () => {
+  it("sums points in points mode", () => {
+    const lookup = buildCellLookup(cells);
+    expect(studentTotalDisplay(lookup, assignments, "s1", true)).toBe(13);
+  });
+
+  it("reports a percent of the points available across graded assignments", () => {
+    const lookup = buildCellLookup(cells);
+    expect(studentTotalDisplay(lookup, assignments, "s1", false)).toBe(86.67);
+  });
+
+  it("leaves ungraded assignments out of the denominator", () => {
+    const lookup = buildCellLookup(cells);
+    // s2 was graded only on the 10 point A1, so 6/10 rather than 6/15.
+    expect(studentTotalDisplay(lookup, assignments, "s2", false)).toBe(60);
+  });
+
+  it("returns null when the student has no graded cells", () => {
+    const lookup = buildCellLookup([{ sid: "s3", assignment_id: 1, score: null, released: true }]);
+    expect(studentTotalDisplay(lookup, assignments, "s3", false)).toBeNull();
+  });
+});
+
+describe("columnUnitLabel", () => {
+  it("names the points available in points mode", () => {
+    expect(columnUnitLabel(10, true)).toBe(" / 10");
+  });
+
+  it("marks the column as a percent otherwise", () => {
+    expect(columnUnitLabel(10, false)).toBe(" %");
   });
 });
 

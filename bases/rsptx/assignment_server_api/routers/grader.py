@@ -26,6 +26,7 @@ from rsptx.db.crud import (
     update_question_grade_entry,
     update_assignment_released,
     update_assignment_threshold,
+    update_course_settings,
 )
 from rsptx.db.models import (
     Assignment,
@@ -1088,27 +1089,61 @@ def _format_score(value: float) -> str:
     return str(round(value, 2))
 
 
+def _display_score(score: float, points: float, show_points: bool) -> float:
+    """The number to display for a score: the raw points, or the percent of what
+    the assignment was worth. An assignment worth nothing has no meaningful
+    percent, so its raw score is reported either way.
+    """
+    if show_points or not points:
+        return score
+    return round(score / points * 100, 2)
+
+
 def _gradebook_to_csv(data: dict) -> str:
+    """Render the gradebook as CSV in the same units the on-screen gradebook uses:
+    a percent of each assignment's points, or raw points when the course has set
+    the ``show_points`` attribute.
+    """
     output = io.StringIO()
     writer = csv.writer(output)
     assignments = data["assignments"]
-    writer.writerow(["Student"] + [a["name"] for a in assignments] + ["Total"])
+    show_points = bool(data.get("show_points"))
+
+    def column_name(assignment: dict) -> str:
+        if show_points:
+            return f"{assignment['name']} ({assignment['points']} pts)"
+        return f"{assignment['name']} (%)"
+
+    writer.writerow(
+        ["Student"]
+        + [column_name(a) for a in assignments]
+        + ["Total" if show_points else "Total (%)"]
+    )
     scores = {
         (cell["sid"], cell["assignment_id"]): cell["score"] for cell in data["cells"]
     }
     for student in data["students"]:
         row = [student["name"]]
-        total = 0.0
+        earned = 0.0
+        possible = 0.0
         graded = False
         for assignment in assignments:
             score = scores.get((student["sid"], assignment["id"]))
             if score is None:
                 row.append("")
-            else:
-                row.append(_format_score(score))
-                total += score
-                graded = True
-        row.append(_format_score(total) if graded else "")
+                continue
+            points = assignment["points"] or 0
+            row.append(_format_score(_display_score(score, points, show_points)))
+            earned += score
+            possible += points
+            graded = True
+        # The total is a percent of only the assignments this student was graded
+        # on, so ungraded work does not read as a zero.
+        row.append(
+            _format_score(_display_score(earned, possible, show_points))
+            if graded
+            else ""
+        )
         writer.writerow(row)
     return output.getvalue()
 
@@ -1146,4 +1181,33 @@ async def get_gradebook_csv(request: Request, user=Depends(auth_manager)):
         iter([content]),
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+class GradebookUnitsRequest(BaseModel):
+    show_points: bool
+
+
+@router.post("/gradebook/units")
+@instructor_role_required()
+async def set_gradebook_units(
+    payload: GradebookUnitsRequest, request: Request, user=Depends(auth_manager)
+):
+    """Switch this course's gradebook between percentages and raw points.
+
+    This writes the same ``show_points`` course attribute the course settings page
+    edits, so it is a course-wide setting rather than a per-instructor view
+    preference. LTI 1.3 grade passback reads the same attribute to decide whether
+    it sends points or a score out of 100.
+    """
+    course = await fetch_course(user.course_name)
+    await update_course_settings(
+        course.id, "show_points", "true" if payload.show_points else "false"
+    )
+    rslogger.info(
+        f"Gradebook units set by {user.username} course={course.course_name} "
+        f"show_points={payload.show_points}"
+    )
+    return make_json_response(
+        status=status.HTTP_200_OK, detail={"show_points": payload.show_points}
     )

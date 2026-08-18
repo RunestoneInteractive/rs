@@ -1164,11 +1164,17 @@ async def fetch_gradebook(course_name: str) -> dict:
     does not modify any shared fetch_* function.
 
     :param course_name: str, the course name
-    :return: dict with ``assignments``, ``students``, ``cells`` and ``averages``
+    :return: dict with ``assignments``, ``students``, ``cells``, ``averages`` and
+        ``show_points``
     """
     from .course import fetch_course
+    from .course_attrs import course_attr_is_true, fetch_all_course_attributes
 
     course = await fetch_course(course_name)
+    # Grades are shown as a percent of each assignment's points unless the course
+    # has opted into raw points.
+    course_attrs = await fetch_all_course_attributes(course.id)
+    show_points = course_attr_is_true(course_attrs, "show_points")
 
     async with async_session() as session:
         assignment_rows = (
@@ -1292,6 +1298,7 @@ async def fetch_gradebook(course_name: str) -> dict:
         "students": student_list,
         "cells": cells,
         "averages": averages,
+        "show_points": show_points,
     }
 
 

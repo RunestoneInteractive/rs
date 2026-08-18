@@ -81,7 +81,15 @@ async def test_gradebook_returns_matrix_shape(auth_instructor_client):
     resp = await auth_instructor_client.get("/instructor/grader/gradebook/data")
     assert resp.status_code == 200
     detail = resp.json()["detail"]
-    assert set(detail.keys()) == {"assignments", "students", "cells", "averages"}
+    assert set(detail.keys()) == {
+        "assignments",
+        "students",
+        "cells",
+        "averages",
+        "show_points",
+    }
+    # Courses show percentages unless they opt into points.
+    assert detail["show_points"] is False
     assert isinstance(detail["assignments"], list)
     assert isinstance(detail["students"], list)
     assert isinstance(detail["cells"], list)
@@ -113,7 +121,59 @@ async def test_gradebook_csv_is_text_csv(auth_instructor_client):
     assert "attachment" in resp.headers.get("content-disposition", "")
     first_line = resp.text.splitlines()[0]
     assert first_line.startswith("Student")
-    assert first_line.rstrip().endswith("Total")
+    # Percentages are the default, and the header says so.
+    assert first_line.rstrip().endswith("Total (%)")
+    assert "gradebook_csv_test (%)" in first_line
+
+
+async def test_gradebook_units_toggle_persists_the_course_attribute(
+    auth_instructor_client,
+):
+    """The gradebook's units toggle writes the same show_points course attribute the
+    course settings page edits, and the gradebook reads it back."""
+    from rsptx.db.crud import fetch_all_course_attributes, fetch_course
+
+    async def units():
+        resp = await auth_instructor_client.get("/instructor/grader/gradebook/data")
+        assert resp.status_code == 200
+        return resp.json()["detail"]["show_points"]
+
+    original = await units()
+    try:
+        for show_points in (True, False):
+            resp = await auth_instructor_client.post(
+                "/instructor/grader/gradebook/units",
+                json={"show_points": show_points},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["detail"]["show_points"] is show_points
+            assert await units() is show_points
+
+            # The attribute itself, not just what the gradebook reports.
+            course = await fetch_course("test_course_1")
+            attrs = await fetch_all_course_attributes(course.id)
+            assert attrs["show_points"] == str(show_points).lower()
+    finally:
+        await auth_instructor_client.post(
+            "/instructor/grader/gradebook/units", json={"show_points": original}
+        )
+
+
+async def test_gradebook_units_rejects_non_instructor(auth_student_client):
+    """A student cannot change how the course reports grades."""
+    resp = await auth_student_client.post(
+        "/instructor/grader/gradebook/units", json={"show_points": True}
+    )
+    assert resp.status_code in (401, 403)
+
+
+async def test_gradebook_units_requires_a_boolean(auth_instructor_client):
+    """A missing or non-boolean show_points is a validation error, not a silent
+    write of some coerced value."""
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/gradebook/units", json={}
+    )
+    assert resp.status_code == 422
 
 
 async def test_gradebook_csv_rejects_non_instructor(auth_student_client):
@@ -949,3 +1009,66 @@ async def test_answer_history_shows_video_timeline(auth_instructor_client):
     assert all(h["source"] == "useinfo" for h in history)
     # "ready" is not a student interaction and stays out of the timeline.
     assert len(history) == 2
+
+
+def _csv_fixture(show_points):
+    return {
+        "assignments": [
+            {"id": 1, "name": "Quiz 1", "points": 10},
+            {"id": 2, "name": "Homework 2", "points": 5},
+        ],
+        "students": [
+            {"sid": "ada", "name": "Ada Lovelace"},
+            {"sid": "alan", "name": "Alan Turing"},
+            {"sid": "grace", "name": "Grace Hopper"},
+        ],
+        "cells": [
+            {"sid": "ada", "assignment_id": 1, "score": 8},
+            {"sid": "ada", "assignment_id": 2, "score": 5},
+            {"sid": "alan", "assignment_id": 1, "score": 6},
+            {"sid": "alan", "assignment_id": 2, "score": None},
+        ],
+        "show_points": show_points,
+    }
+
+
+async def test_gradebook_csv_writes_percentages_by_default():
+    """Without the show_points course attribute every score is a percent of what
+    the assignment was worth, and a student's total is a percent of only the
+    assignments they were graded on."""
+    from rsptx.assignment_server_api.routers.grader import _gradebook_to_csv
+
+    rows = _gradebook_to_csv(_csv_fixture(False)).splitlines()
+
+    assert rows[0] == "Student,Quiz 1 (%),Homework 2 (%),Total (%)"
+    assert rows[1] == "Ada Lovelace,80,100,86.67"
+    # Alan's ungraded homework is left out of the denominator, not scored as zero.
+    assert rows[2] == "Alan Turing,60,,60"
+    # A student with nothing graded has no total at all.
+    assert rows[3] == "Grace Hopper,,,"
+
+
+async def test_gradebook_csv_writes_points_when_course_asks():
+    """With show_points set the CSV carries raw points and names how much each
+    assignment was worth."""
+    from rsptx.assignment_server_api.routers.grader import _gradebook_to_csv
+
+    rows = _gradebook_to_csv(_csv_fixture(True)).splitlines()
+
+    assert rows[0] == "Student,Quiz 1 (10 pts),Homework 2 (5 pts),Total"
+    assert rows[1] == "Ada Lovelace,8,5,13"
+    assert rows[2] == "Alan Turing,6,,6"
+
+
+async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score():
+    """An assignment worth nothing has no meaningful percent, so its score is
+    reported as-is rather than as a division by zero."""
+    from rsptx.assignment_server_api.routers.grader import _gradebook_to_csv
+
+    data = _csv_fixture(False)
+    data["assignments"] = [{"id": 1, "name": "Ungraded", "points": 0}]
+    data["cells"] = [{"sid": "ada", "assignment_id": 1, "score": 3}]
+
+    rows = _gradebook_to_csv(data).splitlines()
+
+    assert rows[1] == "Ada Lovelace,3,3"

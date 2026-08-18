@@ -860,7 +860,8 @@ describe("getGradebook", () => {
         assignments: [{ id: 1, name: "A1", points: 10, duedate: null, released: true }],
         students: [{ sid: "s1", name: "Stu One" }],
         cells: [{ sid: "s1", assignment_id: 1, score: 8, released: true }],
-        averages: { "1": 8 }
+        averages: { "1": 8 },
+        show_points: false
       }
     };
     const result = response.detail;
@@ -868,6 +869,7 @@ describe("getGradebook", () => {
     expect(result.students[0].sid).toBe("s1");
     expect(result.cells[0].score).toBe(8);
     expect(result.averages["1"]).toBe(8);
+    expect(result.show_points).toBe(false);
   });
 });
 
