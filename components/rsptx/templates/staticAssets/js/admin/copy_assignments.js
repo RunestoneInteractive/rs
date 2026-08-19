@@ -6,9 +6,11 @@
  */
 
 const SEARCH_DEBOUNCE_MS = 300;
+const COURSE_PAGE_SIZE = 25;
 
 let selectedCourse = null;
 let searchTimer = null;
+let coursePage = 0;
 
 function debounce(fn, ms) {
     return function (...args) {
@@ -32,7 +34,8 @@ async function loadCourses() {
         search: document.getElementById("courseSearch").value,
         use_base_course: document.getElementById("useBaseCourse").checked,
         only_my_courses: document.getElementById("onlyMyCourses").checked,
-        limit: 25,
+        page: coursePage,
+        limit: COURSE_PAGE_SIZE,
     });
 
     results.setAttribute("aria-busy", "true");
@@ -52,6 +55,7 @@ async function loadCourses() {
 
     results.removeAttribute("aria-busy");
     results.innerHTML = "";
+    renderPager(data.pagination);
 
     if (!data.courses.length) {
         const empty = document.createElement("p");
@@ -64,6 +68,77 @@ async function loadCourses() {
     for (const course of data.courses) {
         results.appendChild(courseRow(course));
     }
+
+    // The list scrolls inside its own box, so a fresh page has to start at the
+    // top of it -- otherwise page 2 opens halfway down.
+    results.scrollTop = 0;
+}
+
+// Start over at page one: any change to the filters makes the page number
+// meaningless, and staying on page 4 of the old result set is how a search
+// that did match comes back empty.
+function reloadCourses() {
+    coursePage = 0;
+    loadCourses();
+}
+
+function pagerButton(label, disabled, page) {
+    const button = document.createElement("button");
+    button.type = "button";
+    // Not .btn: that one is sized for a page's main action, and this is a
+    // control the reader should be able to ignore.
+    button.className = "pager-btn";
+    button.textContent = label;
+    button.disabled = disabled;
+    button.onclick = async () => {
+        coursePage = page;
+        await loadCourses();
+        // Rendering the pager replaced the button that was just clicked, so
+        // hand focus to its stand-in -- or to the other one, when the page it
+        // moved to is the last and this button came back disabled.
+        const buttons = [
+            ...document.getElementById("coursePagination").querySelectorAll("button"),
+        ].filter((candidate) => !candidate.disabled);
+        const replacement =
+            buttons.find((candidate) => candidate.textContent === label) || buttons[0];
+        if (replacement) {
+            replacement.focus();
+        }
+    };
+    return button;
+}
+
+// The list spans every course that shares, not just this instructor's, so it
+// runs to more pages than anyone would scroll. Without this the first page was
+// all there was, and a course further down the alphabet could not be reached
+// at all.
+function renderPager(pagination) {
+    const pager = document.getElementById("coursePagination");
+    pager.innerHTML = "";
+
+    if (!pagination || pagination.pages <= 1) {
+        return;
+    }
+
+    const page = pagination.page;
+
+    pager.appendChild(pagerButton("Previous", page === 0, page - 1));
+
+    const status = document.createElement("span");
+    status.className = "pager-status";
+    // The total is here because it is the answer to "is what I want even in
+    // this list": a count of 400 says to search rather than to keep clicking.
+    status.textContent = `Page ${page + 1} of ${pagination.pages} — ${
+        pagination.total
+    } course${pagination.total === 1 ? "" : "s"}`;
+    // The container carries aria-live, not this span: a live region has to be
+    // in the document before its text changes to be announced, and this span
+    // is built fresh on every page.
+    pager.appendChild(status);
+
+    pager.appendChild(
+        pagerButton("Next", page >= pagination.pages - 1, page + 1)
+    );
 }
 
 function courseRow(course) {
@@ -263,12 +338,12 @@ function showMessage(message, type) {
 document.addEventListener("DOMContentLoaded", function () {
     document
         .getElementById("courseSearch")
-        .addEventListener("input", debounce(loadCourses, SEARCH_DEBOUNCE_MS));
+        .addEventListener("input", debounce(reloadCourses, SEARCH_DEBOUNCE_MS));
     document
         .getElementById("useBaseCourse")
-        .addEventListener("change", loadCourses);
+        .addEventListener("change", reloadCourses);
     document
         .getElementById("onlyMyCourses")
-        .addEventListener("change", loadCourses);
+        .addEventListener("change", reloadCourses);
     loadCourses();
 });

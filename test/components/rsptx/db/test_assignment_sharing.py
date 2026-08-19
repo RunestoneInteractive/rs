@@ -909,6 +909,31 @@ async def test_shareable_courses_puts_the_callers_book_first(sharing_world):
     assert _course(result, SRC_BOOK)["is_official"] is True
 
 
+async def test_shareable_courses_rank_my_own_above_strangers(sharing_world):
+    """ "Copy what I did last term" is the other reason to be here, and this
+    list spans every course on the site -- so a course of the caller's own
+    outranks a shared stranger's however late in the alphabet it sits."""
+    mine = await _make_course(
+        "sharing_zz_mine_course", SRC_BOOK, datetime.date(2026, 8, 24), CHICAGO
+    )
+    await create_instructor_course_entry(sharing_world["importer"].id, mine.id)
+    await _make_assignment(mine.id, "Last Term's Homework", is_private=True)
+
+    result = await search_shareable_courses(
+        user_id=sharing_world["importer"].id,
+        prefer_base_course=SRC_BOOK,
+        exclude_course_id=sharing_world["dst"].id,
+        limit=100,
+    )
+
+    names = _course_names(result)
+    assert names[0] == SRC_BOOK
+    # Sorts after sharing_src_course alphabetically, so being ahead of it can
+    # only be the ranking.
+    assert names.index("sharing_zz_mine_course") < names.index(SRC_COURSE)
+    assert _course(result, "sharing_zz_mine_course")["is_mine"] is True
+
+
 async def test_shareable_courses_counts_only_what_can_be_taken(sharing_world):
     """The build-generated assignment is excluded here too, so the count is not
     a promise the course page then breaks."""

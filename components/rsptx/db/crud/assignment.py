@@ -2415,6 +2415,9 @@ async def search_shareable_courses(
     visibility rules :func:`search_assignments` applies, so nothing shows up
     here that would turn out to be empty when opened.
 
+    Ordering is the caller's book, then the courses they teach, then the rest,
+    alphabetically within each group.
+
     :param user_id: id of the requesting instructor
     :param search: matched against course name, institution and book title
     :param base_course: restrict to one book
@@ -2468,14 +2471,21 @@ async def search_shareable_courses(
         for term in search.strip().split():
             query = query.where(or_(*[col.ilike(f"%{term}%") for col in columns]))
 
-    # The caller's own book first; everything else alphabetically. Other books
-    # get no boost -- another book's official set is no more relevant to this
-    # instructor than a colleague's course, and putting every book on top buries
-    # the courses that actually share.
+    # The caller's own book first, then the courses they teach, then everyone
+    # else -- alphabetical within each group. Their own courses rank second
+    # because "copy what I did last term" is the other common reason to be
+    # here, and a course named late in the alphabet would otherwise sit pages
+    # deep in a list that spans every course on the site. Other books get no
+    # boost -- another book's official set is no more relevant to this
+    # instructor than a colleague's course, and putting every book on top
+    # buries the courses that actually share.
+    rank = []
     if prefer_base_course:
-        query = query.order_by(
-            case((Courses.course_name == prefer_base_course, 0), else_=1)
-        )
+        rank.append((Courses.course_name == prefer_base_course, 0))
+    if my_course_ids:
+        rank.append((Courses.id.in_(my_course_ids), 1))
+    if rank:
+        query = query.order_by(case(*rank, else_=2))
     query = query.order_by(Courses.course_name)
 
     count_query = select(func.count()).select_from(query.subquery())

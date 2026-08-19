@@ -146,9 +146,7 @@ async def test_shareable_courses_counts_only_shared_assignments(
     auth_admin_instructor_client, copy_source_course
 ):
     resp = await auth_admin_instructor_client.get("/instructor/shareable_courses")
-    row = next(
-        c for c in resp.json()["courses"] if c["course_name"] == SOURCE_COURSE
-    )
+    row = next(c for c in resp.json()["courses"] if c["course_name"] == SOURCE_COURSE)
     assert row["shareable_count"] == 2
     assert row["is_mine"] is False
 
@@ -163,6 +161,31 @@ async def test_shareable_courses_can_be_limited_to_my_own(
     names = [c["course_name"] for c in resp.json()["courses"]]
     assert "admin_copy_mine" in names
     assert SOURCE_COURSE not in names
+
+
+async def test_shareable_courses_pages_through_the_list(
+    auth_admin_instructor_client, copy_source_course, other_instructor_course
+):
+    """The picker pages now, because the list covers every course that shares
+    and one page of it is not the whole answer."""
+    first = await auth_admin_instructor_client.get(
+        "/instructor/shareable_courses", params={"limit": 1}
+    )
+    second = await auth_admin_instructor_client.get(
+        "/instructor/shareable_courses", params={"limit": 1, "page": 1}
+    )
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    first_page, second_page = first.json(), second.json()
+    assert first_page["pagination"]["pages"] >= 2
+    assert first_page["pagination"]["total"] == second_page["pagination"]["total"]
+    assert second_page["pagination"]["page"] == 1
+    # The second page is a different course, not the first one again.
+    assert (
+        second_page["courses"][0]["course_name"]
+        != first_page["courses"][0]["course_name"]
+    )
 
 
 async def test_source_assignments_hides_a_course_that_has_not_opted_in(

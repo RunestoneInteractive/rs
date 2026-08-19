@@ -23,7 +23,8 @@
                         <input type="text" id="courseSearch" class="form-control" autocomplete="off"
                             placeholder="Course name, institution or book" aria-describedby="courseSearchHelp">
                         <small id="courseSearchHelp" class="form-text text-muted">
-                            Official assignments for {{ base_course.course_name }} are listed first.
+                            Official assignments for {{ base_course.course_name }} are listed first,
+                            then the courses you teach.
                         </small>
                     </div>
 
@@ -39,6 +40,9 @@
 
                     <div id="courseResults" class="course-results" role="listbox"
                         aria-label="Courses you can copy from"></div>
+
+                    <div id="coursePagination" class="course-pagination" role="navigation"
+                        aria-label="Course list pages" aria-live="polite"></div>
                 </div>
             </div>
 

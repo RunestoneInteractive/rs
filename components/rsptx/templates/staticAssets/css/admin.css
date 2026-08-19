@@ -838,6 +838,49 @@ tr.duplicate {
     color: #444;
 }
 
+.copy-assignments .course-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Empty on a single-page list, and an empty flex box with a gap still takes
+   up space; collapse it so nothing shifts. */
+.copy-assignments .course-pagination:empty {
+    display: none;
+}
+
+.copy-assignments .pager-status {
+    font-size: 13px;
+    color: #666;
+}
+
+.copy-assignments .pager-btn {
+    padding: 5px 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a73e8;
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.copy-assignments .pager-btn:hover:not(:disabled),
+.copy-assignments .pager-btn:focus-visible {
+    background: #f4f8ff;
+}
+
+.copy-assignments .pager-btn:disabled {
+    color: #999;
+    border-color: #e6e6e6;
+    cursor: not-allowed;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
     .admin-page {
