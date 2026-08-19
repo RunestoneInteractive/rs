@@ -2235,6 +2235,7 @@ async def import_assignment_endpoint(
             "id": result.assignment.id,
             "name": result.name,
             "skipped_readings": result.skipped_readings,
+            "duedate_warning": result.duedate_warning,
         },
     )
 
@@ -2374,6 +2375,7 @@ async def import_course_assignments_endpoint(
             "skipped_existing": result.skipped_existing,
             "skipped_readings": result.skipped_readings,
             "failed": result.failed,
+            "duedate_not_shifted": result.duedate_not_shifted,
         },
     )
 

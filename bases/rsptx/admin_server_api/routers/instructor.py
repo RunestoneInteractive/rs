@@ -1206,15 +1206,20 @@ async def copy_assignment(
                 target_course=course,
                 importing_user=user,
             )
+            message = (
+                f'Copied as "{result.name}". It is hidden until you make it visible.'
+            )
+            if result.duedate_warning:
+                message += f" {result.duedate_warning}"
             return JSONResponse(
                 content={
                     "success": True,
-                    "message": f'Copied as "{result.name}". It is hidden until you '
-                    f"make it visible.",
+                    "message": message,
                     "imported": [result.name],
                     "skipped_existing": [],
                     "skipped_readings": result.skipped_readings,
                     "failed": [],
+                    "duedate_warning": result.duedate_warning,
                 }
             )
 
@@ -1237,16 +1242,25 @@ async def copy_assignment(
             parts.append(f"{len(bulk.failed)} could not be copied")
         if bulk.skipped_readings:
             parts.append(f"{bulk.skipped_readings} readings left behind")
+        if bulk.duedate_not_shifted:
+            parts.append(f"{bulk.duedate_not_shifted} due dates not adjusted")
+
+        message = ", ".join(parts) + ". Copies are hidden until you make them visible."
+        if bulk.duedate_not_shifted:
+            message += (
+                " Some due dates could not be adjusted because a course timezone "
+                "setting is invalid -- update it in Course Settings."
+            )
 
         return JSONResponse(
             content={
                 "success": True,
-                "message": ", ".join(parts)
-                + ". Copies are hidden until you make them visible.",
+                "message": message,
                 "imported": bulk.imported,
                 "skipped_existing": bulk.skipped_existing,
                 "skipped_readings": bulk.skipped_readings,
                 "failed": bulk.failed,
+                "duedate_not_shifted": bulk.duedate_not_shifted,
             }
         )
 
