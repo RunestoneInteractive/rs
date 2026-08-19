@@ -1206,7 +1206,9 @@ async def copy_assignment(
                 target_course=course,
                 importing_user=user,
             )
-            message = f'Copied as "{result.name}". It is hidden until you make it visible.'
+            message = (
+                f'Copied as "{result.name}". It is hidden until you make it visible.'
+            )
             if result.duedate_warning:
                 message += f" {result.duedate_warning}"
             return JSONResponse(
