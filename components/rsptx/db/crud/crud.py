@@ -71,7 +71,7 @@ EVENT2TABLE = {
 # beyond the ``useinfo`` row, because the interaction *is* the submission. These
 # live next to ``EVENT2TABLE`` because the two together define the set of events
 # the scorer knows about -- an event in neither is logged and nothing more.
-INTERACTION_ONLY_EVENTS = {"video", "poll"}
+INTERACTION_ONLY_EVENTS = {"video", "poll", "quizly"}
 
 # The acts that count as a genuine student interaction, keyed by event. ``None``
 # means every act for that event counts. The YouTube player fires
@@ -81,6 +81,7 @@ INTERACTION_ONLY_EVENTS = {"video", "poll"}
 INTERACTION_ACTS = {
     "video": {"play", "pause", "complete"},
     "poll": None,
+    "quizly": None,
 }
 
 
