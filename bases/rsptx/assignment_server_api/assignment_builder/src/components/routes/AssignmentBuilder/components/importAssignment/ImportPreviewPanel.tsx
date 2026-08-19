@@ -68,6 +68,12 @@ export const ImportPreviewPanel = ({ assignmentId, onClose }: ImportPreviewPanel
             </Alert>
           ) : null}
 
+          {preview.duedate_warning ? (
+            <Alert variant="light" color="yellow" title="Due date not adjusted">
+              {preview.duedate_warning}
+            </Alert>
+          ) : null}
+
           {preview.skipped_readings > 0 ? (
             <Alert
               variant="light"

@@ -643,6 +643,42 @@ async def test_import_shifts_the_due_date_by_the_offset_from_term_start(sharing_
     )
 
 
+async def test_import_keeps_the_original_duedate_when_a_course_timezone_is_invalid(
+    sharing_world,
+):
+    """A timezone the tz database no longer recognizes should not sink the import.
+
+    An instructor can end up with a course timezone that zoneinfo later stops
+    recognizing (a deprecated alias dropped from the tz database). The due
+    date shift depends on being able to resolve that zone, so it is skipped
+    rather than raising -- the assignment still imports, just without a
+    re-dated due date, and the caller gets a warning to relay.
+    """
+    bad_tz_course = await _make_course(
+        "sharing_bad_tz_course",
+        SRC_BOOK,
+        datetime.date(2026, 1, 12),
+        "Not/A_Real_Zone",
+    )
+    await create_instructor_course_entry(sharing_world["owner"].id, bad_tz_course.id)
+    await _share_assignments(bad_tz_course.id)
+
+    stored = datetime.datetime(2026, 1, 20, 23, 59)
+    source_assignment = await _make_assignment(
+        bad_tz_course.id, "Bad Timezone Homework", is_private=False, duedate=stored
+    )
+
+    result = await import_assignment(
+        source_assignment_id=source_assignment.id,
+        target_course=sharing_world["dst"],
+        importing_user=sharing_world["importer"],
+    )
+
+    assert result.assignment.duedate == stored
+    assert result.duedate_warning is not None
+    assert "timezone" in result.duedate_warning.lower()
+
+
 # Already imported
 # ----------------
 

@@ -1,6 +1,6 @@
 import datetime
 from typing import NamedTuple, Optional, List
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
 from rsptx.validation import schemas
@@ -1511,24 +1511,44 @@ def term_start_utc(
 
 def shift_duedate_between_courses(
     duedate: datetime.datetime, source_course, target_course
-) -> datetime.datetime:
+) -> tuple[datetime.datetime, Optional[str]]:
     """Re-date ``duedate`` so it keeps its offset from the start of term.
 
     Both term starts are anchored in their own course timezone, so the offset
     is preserved as local wall clock time even when the two terms fall on
     opposite sides of a DST change. If either course is missing a term start
     there is nothing to shift against, so the original date is kept.
+
+    A course timezone that is no longer a recognized zoneinfo key (a user can
+    pick one that later gets removed from the tz database) would otherwise
+    take the whole import down with it. That is worse than an unshifted due
+    date, so the shift is skipped and a warning string is returned instead of
+    raising -- the caller still gets an assignment, just not a re-dated one.
     """
     if not (source_course.term_start_date and target_course.term_start_date):
-        return duedate
+        return duedate, None
 
-    due_delta = duedate - term_start_utc(
-        source_course.term_start_date, source_course.timezone
-    )
-    return (
-        term_start_utc(target_course.term_start_date, target_course.timezone)
-        + due_delta
-    )
+    try:
+        due_delta = duedate - term_start_utc(
+            source_course.term_start_date, source_course.timezone
+        )
+        shifted = (
+            term_start_utc(target_course.term_start_date, target_course.timezone)
+            + due_delta
+        )
+    except (ZoneInfoNotFoundError, ValueError) as e:
+        rslogger.warning(
+            f"Could not shift due date from {source_course.course_name!r} to "
+            f"{target_course.course_name!r}, one of their timezones is invalid "
+            f"({source_course.timezone!r} -> {target_course.timezone!r}): {e}"
+        )
+        return duedate, (
+            "The due date could not be adjusted because a course timezone "
+            "setting is invalid. Update the timezone in Course Settings, then "
+            "check this assignment's due date."
+        )
+
+    return shifted, None
 
 
 def _normalize_assignment_kind(kind: str, is_timed: bool, is_peer: bool):
@@ -1586,12 +1606,16 @@ class ImportedAssignment(NamedTuple):
 
     ``skipped_readings`` is how many rows were left behind by the cross-book
     rule above, so the caller can say so rather than letting the instructor
-    discover the gap themselves.
+    discover the gap themselves. ``duedate_warning`` is set when the due date
+    could not be shifted to the target course's term because a course
+    timezone is invalid -- the assignment still imports, with its original
+    due date.
     """
 
     assignment: AssignmentValidator
     name: str
     skipped_readings: int
+    duedate_warning: Optional[str] = None
 
 
 def _searchable_column(field: str, joined_columns: dict):
@@ -2036,8 +2060,11 @@ async def fetch_assignment_for_preview(
         )
 
     duedate = assignment.duedate
+    duedate_warning = None
     if target_course is not None:
-        duedate = shift_duedate_between_courses(duedate, source_course, target_course)
+        duedate, duedate_warning = shift_duedate_between_courses(
+            duedate, source_course, target_course
+        )
 
     cross_book = (
         target_course is not None
@@ -2073,6 +2100,7 @@ async def fetch_assignment_for_preview(
         "already_imported": source_assignment_id in existing_imports,
         "imported_as": existing_imports.get(source_assignment_id),
         "skipped_readings": will_import.count(False),
+        "duedate_warning": duedate_warning,
         "questions": [
             {
                 "id": row.Question.id,
@@ -2116,7 +2144,7 @@ async def import_assignment(
         source_assignment_id, importing_user.id
     )
 
-    duedate = shift_duedate_between_courses(
+    duedate, duedate_warning = shift_duedate_between_courses(
         assignment.duedate, source_course, target_course
     )
     is_timed, is_peer = _normalize_assignment_kind(
@@ -2216,7 +2244,7 @@ async def import_assignment(
         f"into {target_course.course_name} as {result.id} ({new_name}) with "
         f"{len(rows_to_import)} questions, {skipped_readings} readings skipped"
     )
-    return ImportedAssignment(result, new_name, skipped_readings)
+    return ImportedAssignment(result, new_name, skipped_readings, duedate_warning)
 
 
 class BulkImportResult(NamedTuple):
@@ -2225,12 +2253,16 @@ class BulkImportResult(NamedTuple):
     Names rather than counts so a caller can show either. ``skipped_existing``
     holds the source names that were passed over, which is the difference
     between "that course only had two new ones" and "nothing happened".
+    ``duedate_not_shifted`` counts imports whose due date could not be moved
+    to the target term because a course timezone is invalid -- the assignment
+    still imports, just with its original due date.
     """
 
     imported: List[str]
     skipped_existing: List[str]
     skipped_readings: int
     failed: List[str]
+    duedate_not_shifted: int = 0
 
 
 async def import_course_assignments(
@@ -2331,6 +2363,7 @@ async def import_course_assignments(
     skipped_existing: List[str] = []
     failed: List[str] = []
     skipped_readings = 0
+    duedate_not_shifted = 0
 
     for source in rows:
         if skip_existing and source.id in already_imported:
@@ -2350,13 +2383,18 @@ async def import_course_assignments(
             continue
         imported.append(result.name)
         skipped_readings += result.skipped_readings
+        if result.duedate_warning:
+            duedate_not_shifted += 1
 
     rslogger.info(
         f"Bulk imported {len(imported)} assignments from {source_course.course_name} "
         f"into {target_course.course_name}; {len(skipped_existing)} already present, "
-        f"{len(failed)} failed, {skipped_readings} readings skipped"
+        f"{len(failed)} failed, {skipped_readings} readings skipped, "
+        f"{duedate_not_shifted} due dates not shifted"
     )
-    return BulkImportResult(imported, skipped_existing, skipped_readings, failed)
+    return BulkImportResult(
+        imported, skipped_existing, skipped_readings, failed, duedate_not_shifted
+    )
 
 
 async def search_shareable_courses(

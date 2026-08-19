@@ -101,6 +101,7 @@ const {
         already_imported: false,
         imported_as: null,
         skipped_readings: 0,
+        duedate_warning: null,
         questions: [
           {
             id: 11,

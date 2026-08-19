@@ -36,6 +36,8 @@ export type SharedAssignmentPreview = {
   imported_as: string | null;
   /** How many readings will be left behind, which only happens cross-book. */
   skipped_readings: number;
+  /** Set when the due date could not be shifted because a course's timezone is invalid. */
+  duedate_warning: string | null;
   questions: SharedAssignmentQuestion[];
 };
 
@@ -44,6 +46,8 @@ export type ImportAssignmentResult = {
   id: number;
   name: string;
   skipped_readings: number;
+  /** Set when the due date could not be shifted because a course's timezone is invalid. */
+  duedate_warning: string | null;
 };
 
 /** One assignment under a course in the import tree. */
@@ -103,4 +107,6 @@ export type ImportCourseResult = {
   skipped_existing: string[];
   skipped_readings: number;
   failed: string[];
+  /** How many imports kept their original due date because a course timezone is invalid. */
+  duedate_not_shifted: number;
 };
