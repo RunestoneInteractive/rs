@@ -260,6 +260,11 @@ const GodotShellSingleton = {
     // Enables or disables the Run button on every registered instance.
     // -------------------------------------------------------------------------
     _setAllRunButtons(enabled) {
+        // when the run buttons are set to true
+        // the run is over.
+        if (enabled && this.logGdResults) {
+            this.logCurrentAnswer()
+        }
         for (let inst of this.instances) {
             if (inst.runButton) {
                 setTimeout(() => {
@@ -368,8 +373,6 @@ export default class GodotActiveCode extends ActiveCode {
         this.unit_results = `percent:${pct}:passed:${passed}:failed:${failed}`;
         this.testResult   = data.passed;
 
-        // Trigger standard Runestone grade logging.
-        this.logCurrentAnswer();
     }
 
     // -------------------------------------------------------------------------
@@ -533,10 +536,11 @@ export default class GodotActiveCode extends ActiveCode {
     // -------------------------------------------------------------------------
     async runProg(noUI, logResults) {
         if (typeof logResults === "undefined") {
-            this.logResults = true;
+            this.logGdResults = true;
         } else {
-            this.logResults = logResults;
+            this.logGdResults = logResults;
         }
+        var saveCode = "True";
 
         // Clear previous output and results table for this instance.
         $(this.output).text("Running…");
@@ -545,6 +549,8 @@ export default class GodotActiveCode extends ActiveCode {
         this.unitResultsDiv.innerHTML = "";
         this.unitResultsDiv.style.display = "none";
         this._outputLines = [];
+        // manage_scubber determines if the code has changed
+        this.saveCode = await this.manage_scrubber(saveCode);
 
         // Get the student's code from the CodeMirror editor.
         var studentCode = this.editor.getValue();
