@@ -321,7 +321,7 @@ export default class GodotActiveCode extends ActiveCode {
         // Buffer for print() lines received before or between result messages.
         // Cleared at the start of each run and displayed in this.output
         // alongside the final summary.
-        this._printLines = [];
+        this._outputLines = [];
 
         this._createPlaceholder();
 
@@ -366,11 +366,11 @@ export default class GodotActiveCode extends ActiveCode {
         // print() output captured during the run, separated from
         // the summary line by a blank line.
         var summaryLine = $(this.output).text().toLowerCase().includes("error") ? $(this.output).text() : "No Errors";
-        var outputText = this._printLines.length > 0
-            ? this._printLines.join("\n") + "\n\n" + summaryLine
-            : summaryLine;
-        $(this.output).text(outputText);
+        var formatted = this._formatOutputLines();
+        $(this.output).text(formatted.lines.join("\n"));
         $(this.output).css("visibility", "visible");
+        $(this.output).toggleClass("error", formatted.hasError);
+
 
         // Store unit_results in the same format Runestone expects for
         // unittest events (matches Python/SQL grade passback format).
@@ -496,28 +496,46 @@ export default class GodotActiveCode extends ActiveCode {
             text.startsWith("Progress saved") ||
             text.startsWith("vram")) return;
 
-        this._printLines.push(text);
+        this._outputLines.push({ type: "print", text: text });
 
         // Show print output immediately as it arrives, so students see it
         // even before the result comes back (e.g. during a long sample window).
-        var current = $(this.output).text();
-        $(this.output).text(
-            current ? current + "\n" + text : text
-        );
-        $(this.output).css("visibility", "visible");
+        this._renderOutput();
     }
 
     // -------------------------------------------------------------------------
     // Called when the shell posts { type: "error", message }.
     // -------------------------------------------------------------------------
     _onError(message) {
-        $(this.output).text("Error: " + message);
-        $(this.output).css("visibility", "visible");
-        $(this.output).addClass("error");
+        if (typeof message !== "string") return;
+        if (!message.startsWith("SCRIPT ERROR:")) return;
 
-        // Hide any stale results table from a previous run.
-        this.unitResultsDiv.style.display = "none";
-        this.unitResultsDiv.innerHTML = "";
+        this._outputLines.push({ type: "error", text: message });
+        this._renderOutput();
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared line-formatting logic used by both the live view (_renderOutput)
+    // and the final summary (_onResult). Builds a flat array of display lines
+    // from _outputLines, in arrival order, with errors prefixed. If there were
+    // no errors at all, appends a trailing "No Errors" confirmation line.
+    // -------------------------------------------------------------------------
+    _formatOutputLines() {
+        var lines = this._outputLines.map(function(entry) {
+            return entry.type === "error" ? "Error: " + entry.text : entry.text;
+        });
+        var hasError = this._outputLines.some(function(e) { return e.type === "error"; });
+        if (!hasError) {
+            lines.push("No Errors");
+        }
+        return { lines: lines, hasError: hasError };
+    }
+
+    _renderOutput() {
+        var formatted = this._formatOutputLines();
+        $(this.output).text(formatted.lines.join("\n"));
+        $(this.output).css("visibility", "visible");
+        $(this.output).toggleClass("error", formatted.hasError);
     }
 
     // -------------------------------------------------------------------------
@@ -537,7 +555,7 @@ export default class GodotActiveCode extends ActiveCode {
         $(this.output).removeClass("error");
         this.unitResultsDiv.innerHTML = "";
         this.unitResultsDiv.style.display = "none";
-        this._printLines = [];
+        this._outputLines = [];
 
         // Get the student's code from the CodeMirror editor.
         var studentCode = this.editor.getValue();
