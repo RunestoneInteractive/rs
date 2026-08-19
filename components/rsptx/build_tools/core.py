@@ -1167,20 +1167,42 @@ def _extract_question_metadata(question, dbtext):
             idchild = el.attrib.get("id", "fix_me")
 
     # Determine question type
-    try:
+    if el is None:
+        qtype = "unknown"
+    elif "data-component" in el.attrib:
         qtype = el.attrib["data-component"]
         if qtype == "codelens":
-            id_el = el.find("./*[@class='pytutorVisualizer']")
-            idchild = id_el.attrib["id"]
+            # The element carrying data-component may not have the id; the id we
+            # want lives on the pytutorVisualizer div somewhere inside it.
+            pt_id = _find_pytutor_id(el)
+            if pt_id:
+                idchild = pt_id
+            elif idchild == "fix_me":
+                rslogger.error(
+                    "no pytutorVisualizer id found for codelens question: "
+                    f"\n{ET.tostring(question).decode('utf8')}"
+                )
         qtype = QT_MAP.get(qtype, qtype)
-    except Exception:
-        if el is not None:
-            qtype = "webwork"
-            # Note: dbtext will be updated with ET.tostring(el) in the calling function if needed
-        else:
-            qtype = "unknown"
+    else:
+        qtype = "webwork"
+        # Note: dbtext will be updated with ET.tostring(el) in the calling function if needed
 
     return el, idchild, old_ww_id, qtype
+
+
+def _find_pytutor_id(el):
+    """Find the id of the pytutorVisualizer div inside a codelens question.
+
+    The class attribute may hold more than one class (e.g.
+    ``class="pytutorVisualizer exercise-interactive"``) so match on the class
+    token rather than the whole attribute.
+    """
+    for child in el.iter():
+        classes = child.attrib.get("class", "").split()
+        if any(c.lower() == "pytutorvisualizer" for c in classes):
+            if "id" in child.attrib:
+                return child.attrib["id"]
+    return None
 
 
 def _determine_practice_flag(qtype, el):
