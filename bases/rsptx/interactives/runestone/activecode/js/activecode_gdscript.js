@@ -300,17 +300,8 @@ export default class GodotActiveCode extends ActiveCode {
         // Resolve pck URL for Runestone server vs static build,
         // mirroring how SQL resolves dburl.
         if (this.pckUrl) {
-            if (
-                eBookConfig.useRunestoneServices ||
-                window.location.search.includes("mode=browsing")
-            ) {
-                // PTX markup on Runestone server
-                var bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
-                this.pckUrl = `${window.location.origin}/${bookprefix}/${this.pckUrl}`;
-            } else {
-                const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-                this.pckUrl = `${currentDir}${this.pckUrl}`;
-            }
+            const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+            this.pckUrl = `${currentDir}${this.pckUrl}`;
         }
 
         // unit_results string for logBookEvent, same format as SQL/Python.
