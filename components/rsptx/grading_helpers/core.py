@@ -27,6 +27,7 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.lti_push import schedule_lti1p1_score_push
 from rsptx.grading_helpers.scoring import (
     score_answer_values,
     score_peer_values,
@@ -283,15 +284,19 @@ async def compute_total_score(
         )
     rslogger.debug(f"newGrade = {newGrade}")
     res = await upsert_grade(newGrade)
-    # And send the grade off to any LTI1.3 tools that are listening.
+    # And send the grade off to whichever LTI tools are listening.
     #
-    # This one path stays 1.3-only on purpose. It runs on every scored student
-    # answer -- the hottest path in the system -- and dispatching by LTI version
-    # (rsptx.grading_helpers.lti_push) costs two extra queries per event, while
-    # the 1.1 outcomes POST is blocking. LTI 1.1 courses get their scores from
-    # the instructor-triggered paths instead (recompute totals, regrade, manual
-    # grade), which batch the push. Revisit if real-time 1.1 passback is wanted.
+    # This runs on every scored student answer and every completed reading page
+    # -- the hottest path in the system -- so the two versions are dispatched
+    # differently. The 1.3 push is awaited inline as it always has been. The 1.1
+    # push only reaches an LMS for courses linked over 1.1 (a cached lookup, not
+    # a query per event) and is handed to a debounced background task, because
+    # its replaceResult POST is blocking and a student's save must not wait on a
+    # third-party LMS. See rsptx.grading_helpers.lti_push.
     await attempt_lti1p3_score_update(user.id, scoreSpec.assignment_id, total)
+    await schedule_lti1p1_score_push(
+        user.id, user.course_id, scoreSpec.assignment_id, total
+    )
     return total
 
 

@@ -143,13 +143,26 @@ def _patch_push(
         patch.object(
             core, "fetch_all_grades_for_assignment", AsyncMock(return_value=grades)
         ),
+        # A one-student batch reads just that student's grade row rather than
+        # the whole roster, so both readers have to be stubbed.
+        patch.object(
+            core,
+            "fetch_grade",
+            AsyncMock(
+                side_effect=lambda uid, aid: next(
+                    (g for g in grades if g.auth_user == uid), None
+                )
+            ),
+        ),
         patch.object(core, "send_lti1p1_grade", MagicMock()),
     )
 
 
 async def test_score_updates_send_one_replace_result_per_student():
-    cfg, attrs, grades, send = _patch_push([_grade(1), _grade(2, "sourced-2")])
-    with cfg, attrs, grades, send as send_mock:
+    cfg, attrs, grades, one_grade, send = _patch_push(
+        [_grade(1), _grade(2, "sourced-2")]
+    )
+    with cfg, attrs, grades, one_grade, send as send_mock:
         sent = await core.attempt_lti1p1_score_updates(
             _assignment(), 5, [(1, 7.0), (2, 3.0)]
         )
@@ -161,8 +174,8 @@ async def test_score_updates_send_one_replace_result_per_student():
 
 
 async def test_credentials_and_grades_are_read_once_for_the_batch():
-    cfg, attrs, grades, send = _patch_push([_grade(i) for i in range(1, 4)])
-    with cfg as cfg_mock, attrs, grades as grades_mock, send:
+    cfg, attrs, grades, one_grade, send = _patch_push([_grade(i) for i in range(1, 4)])
+    with cfg as cfg_mock, attrs, grades as grades_mock, one_grade, send:
         await core.attempt_lti1p1_score_updates(
             _assignment(), 5, [(1, 1.0), (2, 2.0), (3, 3.0)]
         )
@@ -173,8 +186,8 @@ async def test_credentials_and_grades_are_read_once_for_the_batch():
 
 async def test_student_who_never_launched_is_skipped():
     """No sourcedid means the LMS has nowhere to put the score."""
-    cfg, attrs, grades, send = _patch_push([_grade(1, sourcedid=None)])
-    with cfg, attrs, grades, send as send_mock:
+    cfg, attrs, grades, one_grade, send = _patch_push([_grade(1, sourcedid=None)])
+    with cfg, attrs, grades, one_grade, send as send_mock:
         sent = await core.attempt_lti1p1_score_updates(_assignment(), 5, [(1, 7.0)])
 
     assert sent == 0
@@ -182,8 +195,8 @@ async def test_student_who_never_launched_is_skipped():
 
 
 async def test_nothing_is_sent_for_a_course_with_no_lti1p1_link():
-    cfg, attrs, grades, send = _patch_push([_grade(1)], lti_key=None)
-    with cfg, attrs, grades, send as send_mock:
+    cfg, attrs, grades, one_grade, send = _patch_push([_grade(1)], lti_key=None)
+    with cfg, attrs, grades, one_grade, send as send_mock:
         sent = await core.attempt_lti1p1_score_updates(_assignment(), 5, [(1, 7.0)])
 
     assert sent == 0
@@ -191,8 +204,8 @@ async def test_nothing_is_sent_for_a_course_with_no_lti1p1_link():
 
 
 async def test_unreleased_grades_are_not_sent_unless_forced():
-    cfg, attrs, grades, send = _patch_push([_grade(1)])
-    with cfg, attrs, grades, send as send_mock:
+    cfg, attrs, grades, one_grade, send = _patch_push([_grade(1)])
+    with cfg, attrs, grades, one_grade, send as send_mock:
         assert (
             await core.attempt_lti1p1_score_updates(
                 _assignment(released=False), 5, [(1, 7.0)]
@@ -210,10 +223,10 @@ async def test_unreleased_grades_are_not_sent_unless_forced():
 
 
 async def test_auto_update_can_be_switched_off_per_course():
-    cfg, attrs, grades, send = _patch_push(
+    cfg, attrs, grades, one_grade, send = _patch_push(
         [_grade(1)], attrs={"no_lti_auto_grade_update": "true"}
     )
-    with cfg, attrs, grades, send as send_mock:
+    with cfg, attrs, grades, one_grade, send as send_mock:
         sent = await core.attempt_lti1p1_score_updates(_assignment(), 5, [(1, 7.0)])
 
     assert sent == 0
@@ -221,8 +234,10 @@ async def test_auto_update_can_be_switched_off_per_course():
 
 
 async def test_one_students_failure_does_not_abandon_the_batch():
-    cfg, attrs, grades, send = _patch_push([_grade(1), _grade(2, "sourced-2")])
-    with cfg, attrs, grades, send as send_mock:
+    cfg, attrs, grades, one_grade, send = _patch_push(
+        [_grade(1), _grade(2, "sourced-2")]
+    )
+    with cfg, attrs, grades, one_grade, send as send_mock:
         send_mock.side_effect = [RuntimeError("LMS down"), None]
         sent = await core.attempt_lti1p1_score_updates(
             _assignment(), 5, [(1, 7.0), (2, 3.0)]
@@ -450,3 +465,65 @@ async def test_a_renamed_course_updates_the_stored_course_name():
 
     update.assert_awaited_once()
     assert user.course_name == "cs101-spring"
+
+
+async def test_a_single_student_push_does_not_read_the_whole_roster():
+    """Real-time pushes arrive one student at a time; a full-roster query on
+    every scored answer would be a needless cost on the hottest path."""
+    assignment = SimpleNamespace(id=42, points=10, released=True)
+    grade = SimpleNamespace(
+        auth_user=7,
+        lis_result_sourcedid="sourcedid-7",
+        lis_outcome_url="https://lms.example.com/outcomes",
+    )
+    with (
+        patch.object(
+            core,
+            "fetch_lti1p1_config",
+            AsyncMock(return_value=SimpleNamespace(consumer="key", secret="secret")),
+        ),
+        patch.object(core, "fetch_all_course_attributes", AsyncMock(return_value={})),
+        patch.object(core, "fetch_grade", AsyncMock(return_value=grade)) as one_grade,
+        patch.object(
+            core, "fetch_all_grades_for_assignment", AsyncMock(return_value=[])
+        ) as all_grades,
+        patch.object(core, "send_lti1p1_grade") as send,
+    ):
+        sent = await core.attempt_lti1p1_score_updates(assignment, 5, [(7, 8.0)])
+
+    assert sent == 1
+    one_grade.assert_awaited_once_with(7, 42)
+    all_grades.assert_not_awaited()
+    assert send.call_args.args[5] == "sourcedid-7"
+
+
+async def test_a_batch_still_reads_the_roster_once():
+    assignment = SimpleNamespace(id=42, points=10, released=True)
+    grades = [
+        SimpleNamespace(
+            auth_user=uid,
+            lis_result_sourcedid=f"sourcedid-{uid}",
+            lis_outcome_url="https://lms.example.com/outcomes",
+        )
+        for uid in (7, 8)
+    ]
+    with (
+        patch.object(
+            core,
+            "fetch_lti1p1_config",
+            AsyncMock(return_value=SimpleNamespace(consumer="key", secret="secret")),
+        ),
+        patch.object(core, "fetch_all_course_attributes", AsyncMock(return_value={})),
+        patch.object(core, "fetch_grade", AsyncMock()) as one_grade,
+        patch.object(
+            core, "fetch_all_grades_for_assignment", AsyncMock(return_value=grades)
+        ) as all_grades,
+        patch.object(core, "send_lti1p1_grade"),
+    ):
+        sent = await core.attempt_lti1p1_score_updates(
+            assignment, 5, [(7, 8.0), (8, 9.0)]
+        )
+
+    assert sent == 2
+    all_grades.assert_awaited_once()
+    one_grade.assert_not_awaited()

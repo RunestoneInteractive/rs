@@ -23,6 +23,7 @@ import oauth2
 from rsptx.db.crud import (
     fetch_all_course_attributes,
     fetch_all_grades_for_assignment,
+    fetch_grade,
     fetch_lti1p1_config,
 )
 from rsptx.db.models import AssignmentValidator
@@ -174,8 +175,17 @@ async def attempt_lti1p1_score_updates(
         )
         return 0
 
-    grades = await fetch_all_grades_for_assignment(assignment.id)
-    grade_map = {g.auth_user: g for g in grades}
+    # The passback identifiers live on the grade row. Reading the whole
+    # assignment's grades is the cheap way to get them for a roster-sized batch,
+    # but real-time pushes arrive one student at a time -- fetching every
+    # student's grade to read one of them would put a full-roster query on the
+    # path of every scored answer.
+    if len(updates) == 1:
+        grade = await fetch_grade(updates[0][0], assignment.id)
+        grade_map = {grade.auth_user: grade} if grade else {}
+    else:
+        grades = await fetch_all_grades_for_assignment(assignment.id)
+        grade_map = {g.auth_user: g for g in grades}
 
     sent = 0
     for rs_user_id, score in updates:
