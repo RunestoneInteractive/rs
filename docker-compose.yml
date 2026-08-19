@@ -229,6 +229,8 @@ services:
       - UVICORN_MAX_REQUESTS_JITTER=30
       - UVICORN_TIMEOUT=60
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
+      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
       - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
 
     depends_on:
