@@ -109,6 +109,22 @@ body {
 			<div id="status-notice"></div>
 		</div>
 
+		<script>
+        (function () {
+            var _origError = console.error.bind(console);
+            console.error = function () {
+                _origError.apply(console, arguments);
+                var text = Array.prototype.join.call(arguments, ' ');
+                var target = window.hostOrigin || '*';
+                window.parent.postMessage({
+                    source:  'godot-activecode',
+                    subject: 'runestone',
+                    type:    'error',
+                    message: text
+                }, target);
+            };
+        }());
+        </script>
 		<script src="index.js"></script>
 		<script>
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":1497672,"index.wasm":35754592},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
