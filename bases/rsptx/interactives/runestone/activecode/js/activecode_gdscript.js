@@ -304,11 +304,9 @@ export default class GodotActiveCode extends ActiveCode {
                 eBookConfig.useRunestoneServices ||
                 window.location.search.includes("mode=browsing")
             ) {
-                if (this.pckUrl.startsWith("external")) {
-                    // PTX markup on Runestone server
-                    var bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
-                    this.pckUrl = `${window.location.origin}/${bookprefix}/${this.pckUrl}`;
-                }
+                // PTX markup on Runestone server
+                var bookprefix = `/ns/books/published/${eBookConfig.basecourse}`;
+                this.pckUrl = `${window.location.origin}/${bookprefix}/${this.pckUrl}`;
             } else {
                 const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
                 this.pckUrl = `${currentDir}${this.pckUrl}`;
