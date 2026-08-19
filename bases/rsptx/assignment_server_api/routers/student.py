@@ -1072,7 +1072,7 @@ async def addPreamble(base_course: str) -> str:
     # get the course attributes
     course_attrs = await fetch_all_course_attributes(course.id)
     if not course_attrs:
-        rslogger.error(f"Course attributes for {base_course} not found.")
+        rslogger.info(f"Course attributes for {base_course} not found.")
         return ""
     return course_attrs.get("latex_macros", "")
 
