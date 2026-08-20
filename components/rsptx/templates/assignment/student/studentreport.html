@@ -40,11 +40,11 @@ Progress Report
           <table>
             <thead>
               <tr>
-                <td>Assignment</td>
-                <td>Due Date</td>
-                <td>Score</td>
-                <td>Percent</td>
-                <td>Avg Score</td>
+                <th>Assignment</th>
+                <th>Due Date</th>
+                <th>Score</th>
+                <th>Percent</th>
+                <th>Avg Score</th>
               </tr>
             </thead>
             <tbody>
@@ -74,6 +74,11 @@ Progress Report
         <div class="dash-section-header">Recent Activity (Time in UTC)</div>
         <div class="dash-section-content scroll">
           <table class="nodec">
+            <tr>
+              <th>Timestamp</th>
+              <th>Event</th>
+              <th>Div ID</th>
+            </tr>
             {% for row in activity %}
             <tr>
               <td>{{ row.timestamp }}</td>
