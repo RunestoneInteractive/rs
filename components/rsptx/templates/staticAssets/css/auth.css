@@ -24,6 +24,10 @@
     text-align: center;
 }
 
+.danger-zone h2 {
+    font-size: 1.5em;
+}
+
 .auth-card .form-group label {
     font-weight: 500;
 }

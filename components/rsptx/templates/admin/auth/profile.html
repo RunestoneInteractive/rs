@@ -38,10 +38,10 @@
                    value="{{ user.email }}" required>
         </div>
 
-        <div class="section-label">Username</div>
+        <div class="section-label" id="username-label">Username</div>
         <div class="form-group">
-            <input type="text" class="form-control" value="{{ user.username }}" disabled>
-            <small class="form-text text-muted">Usernames cannot be changed.</small>
+            <input type="text" class="form-control" value="{{ user.username }}" disabled aria-describedby="username-help" aria-labelledby="username-label">
+            <small class="form-text text-muted" id="username-help">Usernames cannot be changed.</small>
         </div>
 
         <button type="submit" class="btn btn-rs-primary btn-rs-primary--inline">Save Changes</button>
@@ -53,8 +53,8 @@
     </div>
 
     <div class="danger-zone">
-        <h5>Delete Account</h5>
-        <p class="text-muted small">This permanently removes your account and all associated data. This cannot be undone.</p>
+        <h2>Delete Account</h2>
+        <p class="small">This permanently removes your account and all associated data. This cannot be undone.</p>
         <button class="btn-danger-outline" data-toggle="collapse" data-target="#deleteForm">
             Delete My Account
         </button>
@@ -62,9 +62,9 @@
             <form method="post" action="/admin/auth/delete-account"
                   onsubmit="return confirm('This will permanently delete your account. Are you sure?')">
                 <div class="form-group">
-                    <label>Type your username <strong>{{ user.username }}</strong> to confirm:</label>
+                    <label for="confirm">Type your username <strong>{{ user.username }}</strong> to confirm:</label>
                     <input type="text" class="form-control" name="confirm" required
-                           placeholder="{{ user.username }}">
+                           placeholder="{{ user.username }}" id="confirm">
                 </div>
                 <button type="submit" class="btn-danger-outline">Permanently Delete Account</button>
             </form>
