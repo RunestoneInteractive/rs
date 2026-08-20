@@ -3957,7 +3957,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "9.0.4"
+version = "9.0.9"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },

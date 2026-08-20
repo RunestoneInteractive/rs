@@ -1,5 +1,154 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-08-02 → 2026-08-19)
+
+Coverage: changes landed after the previous changelog update on **2026-08-02**, through **2026-08-19**.
+
+### Highlights
+
+- **web2py is gone (9.0.0):** the web2py server was removed from the monorepo (945 files, ~231k lines); unclaimed URLs now route to a new admin front door instead of web2py, `accessIssue` was replaced by a real sign-in-required page, LTI 1.1 launches were moved off the retired web2py destinations and w2py session info was dropped from LTI logins; the build and dev tooling no longer depends on web2py, `WEB2PY_CONFIG` became `SERVER_CONFIG`, unreferenced legacy assets were dropped from `staticAssets/js`, and the docs were rewritten for a monorepo without web2py. The app version was bumped to **9.0.0** to mark it (e316395d, 3818578d, ced9225e, 9ca14660, 915eef7f, 1bd9ef10, 532e2119, 59055d09, 5db27d55, 674100fa, 7f6486cc).
+- **Godot / GDScript activecode (new, WCU CooperLab):** browser-based Godot activecode landed — a GDScript CodeMirror mode moved into acfactory, a unit-test table, cross-iframe messaging with origin filtering, `print` routed to the output pane, disabled-test handling, `TimedGodotActiveCode`, `.zip` handling, and a shared `.wasm` per page (the godot-wasm div moves to whichever activecode was last run), on godot-shell 4.6.3 served from CDN; plus follow-up fixes for error output and `.pck` location (78545a90, d543cb6f, f7eeccd6, c53a022a, a6b4697e, 5c472d36, 217124a7, 07c59683, a43b2c5c, 164d28b8, 79617fff, e3fb64a1, abea7510, 9249535d, 8fd677b1, d17ae19e, 3af65f49, df9b45a7, caf5e81f, 213573b4, 0eafbcc4, 83338bdb).
+- **React gradebook is now the gradebook:** switched over from the old one, added filtering and a cell drill-down, made gradebook questions link into grading and grade the whole roster, and switched the display to percentages with a points toggle; fixed inconsistent counts (ea7cb01a, 2c2566cc, ed1857b9, 53494ec3, 64dfc80e).
+- **LTI 1.1 grade passback:** grades are pushed to LTI 1.1 courses from every grading path and in real time as students work; the launch course is resolved from `course_lti_map`; the `registration_id` fallback in `fetch_user` was hardened; LTI 1.1 errors are logged and LTI keys were added to the assignment server env (ca0b8c88, 0b86b9dd, e44239b2, 076843f3, 6b18024f, 8adcee1e).
+- **LTI 1.3:** LTI availability dates sync to assignments and the RS availability range syncs to the LMS on initial import; added an `instructorTriggered` param to `attempt_lti1p3_score_updates` and set it on instructor-triggered paths; invalid user info now raises; removed out-of-date docs and avoided a class of LTI1p3 errors (938e2a49, 7186d096, 360a019b, b69df74e, c74e0b17, 86bc8b5e, 603d9059).
+- **Grading fixes:** manual grading now updates the assignment total, with a new `rsmanage fixtotals` to repair stale totals (and a fix to its student miscount, plus LTI score-push tests); video and poll interactions are scored in assignments and re-graded/displayed in the grader, with quizly added to the interaction-only event list; fixed dragndrop grading when several premises share a dropzone; fixed assignment questions for `ac-single` and the URL used to grade an assignment; stopped hiding assignment questions whose chapter is not in the toc (e33a79b8, 30e073f2, 5121bf9d, 8f977209, 260b8de4, 4e9a8ed6, bc8443c3, f8892e20, faec9990, c9a3075b).
+- **Assignment import (new):** assignment import features landed, with warnings when due dates cannot be shifted (99235108, 138f9edc, 6186181f).
+- **CodeTailor / personalized Parsons:** fixed personalized Parsons block generation and Java test execution; browsing-mode users can now get the backup Parsons problem (with `get_optional_user` moved into `rsptx.auth.session` for reuse); fixed clipboard copy including distractor blocks and the false "question not found" for book-authored questions (5e8ed081, 15ecfb15, 78fcb01f, 9961e89e, f929289d).
+- **Authoring / exercise editor:** `/exercises/edit/<question_id>` works as a real link, the editor no longer clips its own content, added asserts for HTML autograding and an `echoform` endpoint on the assignment server (framable by same-origin pages), made the `text` language support math, fixed codelens parsing in the manifest, and added metadata for the library and create-course flows (e593e217, a910aee7, 8cecfcd7, cd02f59e, 197c70af, 2f69a71a, a36eeb4b, cbfd1411, b0aed4d5).
+- **Course management:** an instructor's own courses sort first in the copy-from picker; course names are stripped of leading/trailing whitespace; course deletion no longer fails on missing answer-table cleanup; institutions are matched on tokens instead of whole strings (with more stop words); added a landing-page setting; "no course attrs" is an info, not an error; removed configure-practice; added two rsmanage commands and shell completions (7d44d558, b81018ed, 554c6326, f240ecec, 8864a411, ba9b4f23, 1491e640, 73d4d4b7, cd5c7872, 40a18a26).
+- **Static assets / branding:** the real favicon is served for `/runestone/static/favicon.ico`, the logo was added to staticAssets, missing icons were restored with a redirect, webwork js moved to a new location, and the legal page was updated and linked (758961a4, 1f673b7d, d8239ea1, 06d3fce9, de5887f3, 72c55ac8).
+- **Build tooling:** `build_books` shows progress as a grid and logs build output to a file, no longer hangs on private repos, and resolves its database URL through settings; fixed missing tab handling; initial dev setup is no longer blocked when the overview can't be built (d4049cbd, d2ce35e8, 674100fa, fa6ed702, 0d9e0d0c).
+- **Misc fixes:** activity counts were off by one because of the page itself (with page-progress tests updated to match); `SERVER_PROTOCOL` identifies when to set secure cookies; the assignment builder prefers `scheduled_period` to `scheduled_hidden` when both start and end are set; hardcoded background colors were removed from the shortanswer input; doenet and splice were added to the `QuestionType` enum; fixed the bogus "action was not saved" alert on select-question toggles; flattened traceback `local_vars` serialization; caught non-numeric numbers (e34fcfa4, 258c1247, 5cc28014, db739b17, 383d0578, 0df2fac2, 13f36e95, 08c16070, 1585cfcb).
+- **CI / testing:** the interactives vitest suite now runs as part of build test (daccc76c).
+- **Releases:** app versions **8.10.8**, **9.0.0**, **9.0.3**, **9.0.4**, **9.0.6**, **9.0.7**, **9.0.8** shipped; bundled runestone JS bumped **8.2.2 → 8.2.6**.
+
+### Commit notes (for reference)
+
+- 78545a90 changes for gdscript browser activcode
+- d543cb6f add origin for JavaScriptBridge filtering
+- f7eeccd6 added test code to godot payload
+- c53a022a added gdscript mode for codemirror
+- a6b4697e added table for unit tests
+- 5c472d36 fix cross iframe messages
+- 217124a7 handle print messages to go to output
+- 07c59683 handle Disabled tests
+- a43b2c5c godot-shell-4.6.3
+- 164d28b8 updated code to work with godot-shell cdn
+- 79617fff fixed origin back to runestone.academy after testing
+- e3fb64a1 Apply suggestions from code review
+- abea7510 used copilot suggestion for change
+- 9249535d updated index.pck to support split screen testing
+- 8fd677b1 added import for TimedGodotActiveCode
+- d17ae19e fixed .visible bug for plain Nodes
+- 3af65f49 moved gdscript codemirror to acfactory
+- df9b45a7 .zip handling
+- caf5e81f shared .wasm per page for efficiency
+- e34fcfa4 Fix: activity counts off by 1 due to page.
+- e33a79b8 Fix: manual grading did not update the assignment total
+- 30e073f2 Add rsmanage fixtotals to repair stale assignment totals
+- 40a18a26 make / generate completions for rsmanage
+- 603d9059 Avoid LTI1p3 errors
+- 5121bf9d Fix fixtotals miscounting students, add LTI score push tests
+- c9a3075b Stop hiding assignment questions whose chapter is not in the toc
+- d949daf7 Add Barb's fall books
+- 81740a9e update runestone to version 8.2.2
+- 72c55ac8 Add link to legal page.
+- d4049cbd Show build_books progress as a grid, log build output to a file
+- 5cc28014 Use SERVER_PROTOCOL to identify when to set secure cookies
+- 938e2a49 Sync LTI availability dates to assignments
+- db739b17 Assignment builder: prefer scheduled_period to scheduled_hidden when start and end set
+- 7186d096 LTI1p3: sync RS availability range to LMS on initial import
+- fa6ed702 Fix: missing handling of tabs
+- ba9b4f23 Add setting for landing page.
+- 683ea2ea New version
+- e316395d Route unclaimed URLs to a new admin front door instead of web2py
+- 3818578d Replace web2py accessIssue with a sign-in-required page
+- ced9225e Remove w2py session info from lti logins
+- 0d9e0d0c patch to avoid blocking initial dev setup when overview can't be built
+- 5e8ed081 Fix personalized Parsons block generation and Java test execution
+- 9ca14660 Take LTI 1.1 launches off the retired web2py destinations
+- 3714b204 reorder courses for studyclues
+- 915eef7f Stop the build and dev tooling from depending on web2py
+- 1bd9ef10 Remove the web2py server
+- 532e2119 Update the docs for a monorepo without web2py
+- 59055d09 Drop unreferenced legacy assets from staticAssets/js
+- 5db27d55 Replace WEB2PY_CONFIG with SERVER_CONFIG
+- 674100fa Resolve the build tools' database URL through settings
+- 360a019b LTI1p3: add instructorTriggered param to attempt_lti1p3_score_updates
+- b69df74e Add instructorTriggered flag to call paths triggered by instructor action
+- 86bc8b5e LTI1p3 remove out of date documentation
+- c74e0b17 LTI1p3 raise exception for invalid user info
+- cbfd1411 New: meta data for library and create course
+- b0aed4d5 fix parameter name
+- 758961a4 Serve the real favicon for /runestone/static/favicon.ico
+- 2c2566cc Add filtering and a cell drill-down to the React gradebook
+- 1585cfcb Fix: catch non numeric numbers
+- 8be3bac0 update runestone to version 8.2.3
+- 7f6486cc update version to 9.0.0
+- d2ce35e8 Fix: do not hang on private repos
+- 64dfc80e Fix: make counts consistent
+- 25b93d83 update runestone to version 8.2.4
+- 06d3fce9 New location for webwork js
+- 1f673b7d Add logo to staticAssets
+- d8239ea1 Restore missing icons and provide redirect
+- de5887f3 Update legal page
+- 99235108 Implement assignment import features
+- 138f9edc Potential fix for pull request finding
+- 8f977209 Score video and poll interactions in assignments
+- 260b8de4 Re-grade and display video and poll questions in the grader
+- ea7cb01a Switch to React gradebook
+- 73d4d4b7 remove configure practice
+- 554c6326 Fix course deletion failing on missing answer-table cleanup
+- ed1857b9 Link gradebook questions to grading, and grade the whole roster
+- cd5c7872 Add two commands to rsmanage
+- ca0b8c88 Push grades to LTI 1.1 courses from every grading path
+- b81018ed eliminate leading/trailing whitespace from course
+- 2f69a71a Make sure 'text' language supports math
+- 383d0578 Remove hardcoded background colors from shortanswer input
+- 076843f3 Harden the LTI registration_id fallback in fetch_user
+- 08c16070 Flatten traceback local_vars serialization
+- cd02f59e Add an echoform endpoint to the assignment server
+- a910aee7 Stop the exercise editor from clipping its own content
+- e593e217 Make /exercises/edit/<question_id> work as a real link
+- 0df2fac2 Add doenet and splice to QuestionType enum
+- 8cecfcd7 New: asserts for html autograding
+- 15ecfb15 Allow browsing-mode users to get the backup Parsons problem
+- 78fcb01f Move get_optional_user into rsptx.auth.session for reuse
+- f240ecec Match institutions on tokens instead of whole strings
+- 8864a411 Additional stop words
+- a726a6a7 update runestone to version 8.2.5
+- 37ceab0f update version to 9.0.3
+- 9961e89e Fix CodeTailor clipboard copy including distractor Parsons blocks
+- 197c70af Allow /assignment/echoform to be framed by same-origin pages
+- faec9990 Fix: update URL to grade an assignment
+- 213573b4 bug fixes for error output
+- f929289d Fix CodeTailor false "question not found" for book-authored questions
+- 6b18024f Add logging for lti1.1 errors
+- 25e6b1d7 update version to 9.0.4
+- e44239b2 LTI 1.1: resolve the launch course from course_lti_map
+- 984ab73e Fix missing user and base_course for _base.html
+- 6186181f Add warnings if due dates can't be shifted when importing assignments
+- 13f36e95 Fix: bogus "action was not saved" alert on select question toggles
+- 258c1247 Update page progress tests to match the counts we want
+- daccc76c Run the interactives vitest suite as part of build test
+- 53494ec3 Show the gradebook in percentages, with a points toggle
+- 1449de87 update lock files
+- 97b0b983 update version to 9.0.6
+- bc8443c3 Fix dragndrop grading when several premises share a dropzone
+- 989d0a57 update version to 9.0.7
+- 78ab45c1 run black
+- 1d0212eb update version to 9.0.8
+- 0eafbcc4 removed the check for external since that might not be where the pck is.
+- 83338bdb removed special handling of pck since default way should work
+- d15a2304 update runestone to version 8.2.6
+- f8892e20 fix assignment Qs for ac-single
+- 1491e640 make "no course attrs" an info not an error
+- 0b86b9dd Push LTI 1.1 grades in real time as students work
+- 7d44d558 Put an instructor's own courses first in the copy-from picker
+- a36eeb4b fix parsing of codelens in manifest
+- 4e9a8ed6 Add quizly to interaction only events to grade
+- 8adcee1e Add LTI keys to assignment server env
+
 ## Updates since last changelog entry (2026-07-25 → 2026-08-02)
 
 Coverage: changes landed after the previous changelog update on **2026-07-25**, through **2026-08-02**.
