@@ -724,6 +724,7 @@ async def profile_page(request: Request):
             "user": user,
             "errors": [],
             "success": None,
+            "student_page": True,
             **(await _navbar_context(user)),
         },
     )
@@ -753,6 +754,7 @@ async def profile_post(
                 "user": user,
                 "errors": errors,
                 "success": None,
+                "student_page": True,
                 **(await _navbar_context(user)),
             },
         )
@@ -769,6 +771,7 @@ async def profile_post(
             "user": updated,
             "errors": [],
             "success": "Profile updated successfully.",
+            "student_page": True,
             **(await _navbar_context(updated)),
         },
     )
@@ -788,6 +791,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
                 "user": user,
                 "errors": ["Username confirmation did not match. Account not deleted."],
                 "success": None,
+                "student_page": True,
                 **(await _navbar_context(user)),
             },
         )
