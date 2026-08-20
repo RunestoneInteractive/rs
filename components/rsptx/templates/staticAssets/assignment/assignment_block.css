@@ -41,8 +41,8 @@ This is used in the chooseAssignment page and the current_course page.
 
 
 :root {
-  --color-success: #11b70e;
-  --color-error: #ff0000;
+  --color-success: #077e05;
+  --color-error: #e30000;
   --rs-assignment-meta: #fafafa;
   --rs-assignment-meta-border: #aaa;
 }

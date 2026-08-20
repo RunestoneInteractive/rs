@@ -29,38 +29,38 @@
     text-align: center;
     margin-bottom: 30px;
     padding: 20px 0;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--rs-color-border-subtle);
 }
 
 .page-header h1 {
-    color: #333;
+    color: var(--rs-color-text-strong);
     margin: 0;
     font-size: 2.5em;
     font-weight: 300;
 }
 
 .page-header p {
-    color: #666;
+    color: var(--rs-color-text-muted);
     margin: 10px 0 0 0;
 }
 
 /* ---------- Course info banner ---------- */
 .course-info {
-    background: #f0f7ff;
+    background: var(--rs-color-primary-background);
     padding: 15px;
     border-radius: 6px;
     margin-bottom: 20px;
-    border-left: 4px solid #4a90e2;
+    border-left: 4px solid var(--rs-color-primary);
 }
 
 .course-info h3 {
     margin: 0 0 5px 0;
-    color: #333;
+    color: var(--rs-color-text-strong);
 }
 
 .course-info p {
     margin: 0;
-    color: #666;
+    color: var(--rs-color-text-muted);
 }
 
 .course-info-row {
@@ -71,7 +71,7 @@
 }
 
 .course-link a {
-    color: #357abd;
+    color: var(--rs-color-primary-hover);
     font-weight: 600;
     text-decoration: none;
 }
@@ -84,7 +84,7 @@
 .back-link {
     display: inline-block;
     margin-bottom: 20px;
-    color: #4a90e2;
+    color: var(--rs-color-primary);
     text-decoration: none;
     font-size: 16px;
     font-weight: 600;
@@ -92,7 +92,7 @@
 }
 
 .back-link:hover {
-    color: #357abd;
+    color: var(--rs-color-primary-hover);
     text-decoration: underline;
 }
 
@@ -120,35 +120,35 @@
 }
 
 .btn:disabled {
-    background: #ccc;
+    background: var(--rs-color-border-strong);
     cursor: not-allowed;
     transform: none;
 }
 
 .btn-primary {
-    background: #4a90e2;
+    background: var(--rs-color-primary);
     color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #357abd;
+    background: var(--rs-color-primary-hover);
     color: white;
     opacity: 1;
 }
 
 .btn-danger {
-    background: #dc3545;
+    background: var(--rs-color-danger);
     color: white;
 }
 
 .btn-success {
-    background: #28a745;
+    background: var(--rs-color-success);
     color: white;
 }
 
 /* Large destructive-action button (reset exam, delete course) */
 .danger-btn {
-    background: linear-gradient(135deg, #dc3545, #c82333);
+    background: linear-gradient(135deg, var(--rs-color-danger), var(--rs-color-danger-hover));
     color: white;
     border: none;
     padding: 15px 30px;
@@ -162,13 +162,13 @@
 }
 
 .danger-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #c82333, #bd2130);
+    background: linear-gradient(135deg, var(--rs-color-danger-hover), var(--rs-color-danger-dark));
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
 }
 
 .danger-btn:disabled {
-    background: #6c757d;
+    background: var(--rs-color-secondary);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -182,27 +182,27 @@
 }
 
 .alert-success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
+    background: var(--rs-color-success-background);
+    border: 1px solid var(--rs-color-success-border);
+    color: var(--rs-color-success-text);
 }
 
 .alert-error,
 .alert-danger {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background: var(--rs-color-danger-background);
+    border: 1px solid var(--rs-color-danger-border);
+    color: var(--rs-color-danger-text);
 }
 
 .alert-warning {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    color: #856404;
+    background: var(--rs-color-warning-background);
+    border: 1px solid var(--rs-color-note-yellow);
+    color: var(--rs-color-warning-text);
 }
 
 .alert-info {
     background: #e7f3ff;
-    border: 1px solid #4a90e2;
+    border: 1px solid var(--rs-color-primary);
     color: #1e4d72;
 }
 
@@ -239,7 +239,7 @@
 
 .panel {
     background: white;
-    border: 1px solid #ddd;
+    border: 1px solid var(--rs-color-border);
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -247,11 +247,11 @@
 
 .panel h3 {
     margin: 0 0 15px 0;
-    color: #333;
+    color: var(--rs-color-text-strong);
     font-size: 1.4em;
     text-align: center;
     padding-bottom: 10px;
-    border-bottom: 2px solid #4a90e2;
+    border-bottom: 2px solid var(--rs-color-primary);
 }
 
 /* Centered white card holding a page's primary action */
@@ -261,7 +261,7 @@
     border-radius: 8px;
     padding: 30px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border: 1px solid #ddd;
+    border: 1px solid var(--rs-color-border);
 }
 
 .actions {
@@ -273,7 +273,7 @@
 .form-select {
     width: 100%;
     padding: 10px;
-    border: 2px solid #ddd;
+    border: 2px solid var(--rs-color-border);
     border-radius: 6px;
     font-size: 16px;
     background-color: white;
@@ -282,7 +282,7 @@
 
 .form-select:focus {
     outline: none;
-    border-color: #4a90e2;
+    border-color: var(--rs-color-primary);
     box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
@@ -298,14 +298,14 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #555;
+    color: var(--rs-color-text-subtle);
 }
 
 .settingsbox {
     margin-bottom: 20px;
     padding: 15px;
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
+    background: var(--rs-color-surface-subtle);
+    border: 1px solid var(--rs-color-border-subtle);
     border-radius: 6px;
     display: flex;
     flex-direction: column;
@@ -314,14 +314,14 @@
 
 .settingsbox label {
     font-weight: 600;
-    color: #333;
+    color: var(--rs-color-text-strong);
     margin-bottom: 5px;
 }
 
 .settingsbox input[type="text"],
 .settingsbox select {
     padding: 8px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--rs-color-border);
     border-radius: 4px;
     font-size: 14px;
     width: 100%;
@@ -345,26 +345,26 @@
 }
 
 .setting-description {
-    color: #666;
+    color: var(--rs-color-text-muted);
     font-size: 12px;
     margin-top: 4px;
 }
 
 .hint-text {
     margin-top: 15px;
-    color: #666;
+    color: var(--rs-color-text-muted);
     font-size: 14px;
 }
 
 /* ---------- Informational boxes ---------- */
 .help-doc {
-    background: #f8f9fa;
-    border-left: 4px solid #4a90e2;
+    background: var(--rs-color-surface-subtle);
+    border-left: 4px solid var(--rs-color-primary);
     padding: 12px 18px;
     border-radius: 6px;
     margin-top: 12px;
     margin-bottom: 0;
-    color: #333;
+    color: var(--rs-color-text-strong);
 }
 
 .help-doc p {
@@ -372,8 +372,8 @@
 }
 
 .warning-box {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
+    background: var(--rs-color-warning-background);
+    border: 1px solid var(--rs-color-note-yellow);
     border-radius: 6px;
     padding: 15px;
     margin: 20px 0;
@@ -382,20 +382,20 @@
 
 .warning-box h4 {
     margin: 0 0 10px 0;
-    color: #856404;
+    color: var(--rs-color-warning-text);
     font-size: 1.1em;
 }
 
 .warning-box p {
     margin: 0 0 10px 0;
-    color: #856404;
+    color: var(--rs-color-warning-text);
     line-height: 1.4;
 }
 
 .warning-box ul {
     margin: 10px 0;
     padding-left: 20px;
-    color: #856404;
+    color: var(--rs-color-warning-text);
 }
 
 .warning-box li {
@@ -404,15 +404,15 @@
 
 /* Red variant for irreversible actions */
 .warning-box--danger {
-    background: #f8d7da;
-    border-color: #f5c6cb;
-    border-left-color: #dc3545;
+    background: var(--rs-color-danger-background);
+    border-color: var(--rs-color-danger-border);
+    border-left-color: var(--rs-color-danger);
     padding: 20px;
 }
 
 .warning-box--danger h3 {
     margin: 0 0 15px 0;
-    color: #721c24;
+    color: var(--rs-color-danger-text);
     font-size: 1.4em;
     font-weight: bold;
 }
@@ -420,13 +420,13 @@
 .warning-box--danger h4,
 .warning-box--danger p,
 .warning-box--danger ul {
-    color: #721c24;
+    color: var(--rs-color-danger-text);
 }
 
 /* ---------- Result / status boxes ---------- */
 .result-box {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
+    background: var(--rs-color-success-background);
+    border: 1px solid var(--rs-color-success-border);
     border-radius: 6px;
     padding: 20px;
     margin-bottom: 20px;
@@ -434,17 +434,17 @@
 }
 
 .result-box.error {
-    background: #f8d7da;
-    border-color: #f5c6cb;
+    background: var(--rs-color-danger-background);
+    border-color: var(--rs-color-danger-border);
 }
 
 .result-box h3 {
     margin-top: 0;
-    color: #155724;
+    color: var(--rs-color-success-text);
 }
 
 .result-box.error h3 {
-    color: #721c24;
+    color: var(--rs-color-danger-text);
 }
 
 .result-message {
@@ -454,15 +454,15 @@
 
 /* Status-colored table rows (enrollment results) */
 tr.success {
-    background-color: #d4edda;
+    background-color: var(--rs-color-success-background);
 }
 
 tr.error {
-    background-color: #f8d7da;
+    background-color: var(--rs-color-danger-background);
 }
 
 tr.duplicate {
-    background-color: #fff3cd;
+    background-color: var(--rs-color-warning-background);
 }
 
 /* ============================================================
@@ -472,14 +472,14 @@ tr.duplicate {
 /* ---------- Instructor dashboard (menu.html) ---------- */
 .instructor-menu .accordion {
     margin-bottom: 20px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--rs-color-border);
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .instructor-menu .accordion-header {
-    background: linear-gradient(135deg, #4a90e2, #357abd);
+    background: linear-gradient(135deg, var(--rs-color-primary), var(--rs-color-primary-hover));
     color: white;
     padding: 20px;
     cursor: pointer;
@@ -496,7 +496,7 @@ tr.duplicate {
 
 .instructor-menu .accordion-header:hover,
 .instructor-menu .accordion-header.active {
-    background: linear-gradient(135deg, #357abd, #2a5f8f);
+    background: linear-gradient(135deg, var(--rs-color-primary-hover), var(--rs-color-primary-deep));
 }
 
 .instructor-menu .accordion-icon {
@@ -512,7 +512,7 @@ tr.duplicate {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
-    background: #f8f9fa;
+    background: var(--rs-color-surface-subtle);
 }
 
 .instructor-menu .accordion-content.active {
@@ -528,40 +528,40 @@ tr.duplicate {
 
 .instructor-menu .menu-item {
     background: white;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--rs-color-border-subtle);
     border-radius: 6px;
     padding: 15px;
     text-decoration: none;
-    color: #333;
+    color: var(--rs-color-text-strong);
     transition: all 0.3s ease;
     display: block;
 }
 
 .instructor-menu .menu-item:hover {
-    background: #f0f7ff;
-    border-color: #4a90e2;
+    background: var(--rs-color-primary-background);
+    border-color: var(--rs-color-primary);
     text-decoration: none;
-    color: #333;
+    color: var(--rs-color-text-strong);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(74, 144, 226, 0.2);
 }
 
 .instructor-menu .menu-item h4 {
     margin: 0 0 8px 0;
-    color: #4a90e2;
+    color: var(--rs-color-primary);
     font-size: 16px;
     font-weight: 600;
 }
 
 .instructor-menu .menu-item p {
     margin: 0;
-    color: #666;
+    color: var(--rs-color-text-muted);
     font-size: 14px;
     line-height: 1.4;
 }
 
 .instructor-menu .toggle-all-btn {
-    background: linear-gradient(135deg, #28a745, #20c997);
+    background: linear-gradient(135deg, var(--rs-color-success), #20c997);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -574,7 +574,7 @@ tr.duplicate {
 }
 
 .instructor-menu .toggle-all-btn:hover {
-    background: linear-gradient(135deg, #218838, #1dc7a0);
+    background: linear-gradient(135deg, var(--rs-color-success-hover), #1dc7a0);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
@@ -582,10 +582,10 @@ tr.duplicate {
 /* ---------- Manage instructors/TAs (add_instructor.html) ---------- */
 .instructor-admin #instructor-list {
     min-height: 200px;
-    border: 1px solid #eee;
+    border: 1px solid var(--rs-color-surface-muted);
     border-radius: 6px;
     padding: 10px 15px 10px 30px;
-    background: #f8f9fa;
+    background: var(--rs-color-surface-subtle);
 }
 
 .instructor-admin #instructor-list li {
@@ -593,7 +593,7 @@ tr.duplicate {
 }
 
 .instructor-admin #instructor-list li.selected {
-    background: #e0e0e0;
+    background: var(--rs-color-border-subtle);
     font-weight: bold;
 }
 
@@ -612,10 +612,10 @@ tr.duplicate {
 }
 
 .student-management pre {
-    background: #f8f9fa;
+    background: var(--rs-color-surface-subtle);
     padding: 10px;
     border-radius: 4px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--rs-color-border-subtle);
 }
 
 /* ---------- Delete course (course_delete.html) ---------- */
@@ -628,7 +628,7 @@ tr.duplicate {
     border-radius: 8px;
     padding: 30px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border: 2px solid #dc3545;
+    border: 2px solid var(--rs-color-danger);
     text-align: center;
     margin-top: 30px;
 }
@@ -641,20 +641,20 @@ tr.duplicate {
     display: block;
     margin-bottom: 10px;
     font-weight: bold;
-    color: #333;
+    color: var(--rs-color-text-strong);
 }
 
 .course-delete .confirmation-input input {
     width: 300px;
     padding: 10px;
-    border: 2px solid #ddd;
+    border: 2px solid var(--rs-color-border);
     border-radius: 4px;
     font-size: 16px;
     text-align: center;
 }
 
 .course-delete .confirmation-input input:focus {
-    border-color: #dc3545;
+    border-color: var(--rs-color-danger);
     outline: none;
 }
 
@@ -665,7 +665,7 @@ tr.duplicate {
 
 /* ---------- Create course (create_course.html) ---------- */
 .designer-container {
-    background: #fff;
+    background: var(--rs-color-white);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     padding: 30px;
@@ -677,14 +677,14 @@ tr.duplicate {
 }
 
 .designer-container .designer-header h1 {
-    color: #ab1059;
+    color: var(--rs-color-accent-magenta);
     font-size: 2.5em;
     font-weight: 300;
     margin: 0;
 }
 
 .designer-container .step-title {
-    color: #ab1059;
+    color: var(--rs-color-accent-magenta);
     font-size: 1.3em;
     margin-top: 30px;
     margin-bottom: 10px;
@@ -692,7 +692,7 @@ tr.duplicate {
 
 .designer-container .filter-title,
 .designer-container .book-section {
-    color: #4a90e2;
+    color: var(--rs-color-primary);
     font-size: 1.3em;
     margin-top: 10px;
     margin-bottom: 10px;
@@ -721,21 +721,21 @@ tr.duplicate {
 
 /* ---------- Copy assignments (copy_assignments.html) ---------- */
 .copy-assignments .card {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--rs-color-border-subtle);
     border-radius: 8px;
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .copy-assignments .card-header {
-    background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+    background: var(--rs-color-surface-subtle);
+    border-bottom: 1px solid var(--rs-color-border-subtle);
     padding: 15px 20px;
 }
 
 .copy-assignments .card-title {
     margin: 0;
-    color: #333;
+    color: var(--rs-color-text-strong);
     font-size: 18px;
     font-weight: 600;
 }
@@ -752,7 +752,7 @@ tr.duplicate {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #333;
+    color: var(--rs-color-text-strong);
 }
 
 /* Step 2's assignment picker is injected by JS, so the gap that keeps the Copy
@@ -905,10 +905,10 @@ tr.duplicate {
 
 .lti-config .panel h2 {
     margin: 0 0 15px 0;
-    color: #333;
+    color: var(--rs-color-text-strong);
     font-size: 1.4em;
     padding-bottom: 10px;
-    border-bottom: 2px solid #4a90e2;
+    border-bottom: 2px solid var(--rs-color-primary);
 }
 
 .lti-config .panel h3 {
