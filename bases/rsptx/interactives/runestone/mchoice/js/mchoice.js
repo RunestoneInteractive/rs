@@ -565,10 +565,10 @@ export default class MultipleChoice extends RunestoneBase {
         var numNeeded = this.correctList.length;
         var feedbackText = this.feedbackString;
         if (this.correct) {
-            this.feedBackDiv.innerHTML = `✔️ <ol type="A">${feedbackText}</ul>`;
+            this.feedBackDiv.innerHTML = `<span class="visuallyhidden">Feedback: Correct</span><span class="material-symbols-outlined mchoice-feedback-icon" aria-hidden="true">check_circle</span> <ol type="A">${feedbackText}</ol>`;
             this.feedBackDiv.className = "alert alert-info";
         } else {
-            this.feedBackDiv.innerHTML = `✖️ You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ul>`;
+            this.feedBackDiv.innerHTML = `<span class="visuallyhidden">Feedback: Incorrect</span><span class="material-symbols-outlined mchoice-feedback-icon" aria-hidden="true">error</span> You gave ${numGiven} ${answerStr} and got ${numCorrect} correct of ${numNeeded} needed.<ol type="A">${feedbackText}</ol>`;
             this.feedBackDiv.className = "alert alert-danger";
         }
         this.queueMathJax(this.feedBackDiv);
@@ -649,13 +649,13 @@ export default class MultipleChoice extends RunestoneBase {
         let feedbackText = this.singlefeedback;
 
         if (correct) {
-            this.feedBackDiv.innerHTML = "✔️ " + feedbackText;
-            this.feedBackDiv.className = "alert alert-info"; // use blue for better red/green blue color blindness
+            this.feedBackDiv.innerHTML = `<span class="visuallyhidden">Feedback: Correct</span><span class="material-symbols-outlined mchoice-feedback-icon" aria-hidden="true">check_circle</span> ` + feedbackText;
+            this.feedBackDiv.className = "alert alert-info";
         } else {
             if (feedbackText == null) {
                 feedbackText = "";
             }
-            this.feedBackDiv.innerHTML = "✖️ " + feedbackText;
+            this.feedBackDiv.innerHTML = `<span class="visuallyhidden">Feedback: Incorrect</span><span class="material-symbols-outlined mchoice-feedback-icon" aria-hidden="true">error</span> ` + feedbackText;
             this.feedBackDiv.className = "alert alert-danger";
         }
         this.queueMathJax(this.feedBackDiv);

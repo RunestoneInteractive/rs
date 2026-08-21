@@ -39,3 +39,7 @@ label.mchoice-option {
     margin-top: 10px;
     margin-bottom: 0;
 }
+
+.mchoice-feedback-icon {
+    display: block;
+}

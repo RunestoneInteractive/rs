@@ -103,9 +103,9 @@ describe("restoring a first-choice answer", () => {
         mc.restoreAnswers({ answer: "0", correct: true });
         expect(optWithValue(mc, 0).input.checked).toBe(true);
         // Correct answers use the blue info alert; a blanked answer would fall
-        // through to alert-danger (the pink ✖️ box from the bug report).
+        // through to alert-danger with error symbol.
         expect(mc.feedBackDiv.className).toContain("alert-info");
-        expect(mc.feedBackDiv.innerHTML).toContain("✔️");
+        expect(mc.feedBackDiv.innerHTML).toContain(`<span class="material-symbols-outlined mchoice-feedback-icon" aria-hidden="true">check_circle</span>`);
     });
 
     it("round-trips: what gets logged for choice 0 restores correctly", async () => {
