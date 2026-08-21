@@ -721,6 +721,7 @@ def _natural_sort_key(value: Optional[str]) -> List[Tuple[int, object]]:
     return [
         (0, int(chunk)) if chunk.isdigit() else (1, chunk.lower())
         for chunk in re.split(r"(\d+)", value)
+        if chunk
     ]
 
 
