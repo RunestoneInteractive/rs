@@ -17,7 +17,7 @@ Peer Instruction - Instructor
     }
 
     .peer-header h1 {
-        color: #4a90e2;
+        color: var(--rs-color-primary);
         font-size: 2.5em;
         font-weight: 300;
         margin-bottom: 10px;
@@ -35,7 +35,8 @@ Peer Instruction - Instructor
     }
 
     .table thead th {
-        background: linear-gradient(135deg, #4a90e2, #357abd);
+        /* #4a90e2 left the white header text at 3.29:1 */
+        background: linear-gradient(135deg, var(--rs-color-primary), var(--rs-color-primary-hover));
         color: white;
         border: none;
         padding: 15px;
@@ -56,14 +57,14 @@ Peer Instruction - Instructor
     }
 
     .table a {
-        color: #4a90e2;
+        color: var(--rs-color-primary);
         text-decoration: none;
         font-weight: 500;
         transition: color 0.2s ease;
     }
 
     .table a:hover {
-        color: #357abd;
+        color: var(--rs-color-primary-hover);
         text-decoration: underline;
     }
 

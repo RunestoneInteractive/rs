@@ -50,8 +50,9 @@ main {
   margin-right: auto;
 }
 
+/* plain `red` is 4.00:1 on white */
 .has-error {
-  color: red;
+  color: var(--rs-color-danger);
 }
 
 .autopermalink {

@@ -237,7 +237,9 @@
     -webkit-border-radius: 10px;
     border-radius: 10px;
     background-color: var(--background, #efefef);
-    border: 1px solid #d3d3d3;
+    /* #d3d3d3 is 1.4:1 on white; a draggable block's edge is what identifies
+       it as a control, so 1.4.11 wants 3:1. */
+    border: 1px solid var(--componentBorderColor, #767676);
     padding: 5px 10px;
     margin-top: 5px;
     overflow: hidden;
@@ -246,15 +248,17 @@
 .parsons .block.disabled {
     opacity: 0.3;
 }
+/* `black`/`white` here are the *page* colors, not fixed ones: in dark mode a
+   white fill under --bodyFont text measured 1.9:1 while a block was moving. */
 .parsons .block.down {
-    border: 2px solid black;
+    border: 2px solid var(--boxBorderColor, #000);
     padding: 4px 9px;
 }
 .parsons .block.up {
-    border: 2px solid black;
+    border: 2px solid var(--boxBorderColor, #000);
     padding: 4px 9px;
-    background-color: white;
-    box-shadow: 3px 3px 4px black;
+    background-color: var(--background, #fff);
+    box-shadow: 3px 3px 4px rgba(0, 0, 0, 0.6);
 }
 .parsons {
     display: block;
@@ -387,7 +391,9 @@
 
 .block-label {
     font-size: 0.75rem;
-    color: #7e7ee7;
+    /* #7e7ee7 was 3.49:1 on the light canvas and 3.86:1 on the dark one --
+       it needs to move in opposite directions per theme, so it is a variable. */
+    color: var(--parsonsLabelColor, #5858e0);
     vertical-align: middle;
     white-space: pre;
 }
@@ -429,9 +435,12 @@
     margin: 5px 0;
 }
 
-/* override red from bootstrap <code> */
+/* Override the red <code> color Bootstrap used to apply.  This has to stay a
+   theme variable rather than `black`: at (0,3,1) it outranks every prettify
+   rule, so a literal here painted parsons code black on the dark canvas
+   (1.56:1) no matter what the syntax palette said. */
 .parsons .block code {
-    color: black;
+    color: var(--synPlain);
 }
 
 /* CodeTailor-related CSS for Parsons START */

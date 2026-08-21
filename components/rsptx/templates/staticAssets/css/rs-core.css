@@ -79,6 +79,14 @@
     --rs-color-primary-deep: #2a5f8f;
     --rs-color-black-soft: #0a0a0a;
     --rs-color-blue-bright: #007fff;
+
+    /* A control's own border is often the only thing identifying it, which
+       WCAG 1.4.11 puts at 3:1 -- --rs-color-border (#ddd) is 1.36:1 and is
+       fine for decorative rules but not for an input outline. */
+    --rs-color-border-input: #8291a1; /* 3.22 on #fff */
+    /* Focus ring, drawn with outline-offset so it always sits on the page
+       background and keeps this ratio whatever it wraps. */
+    --rs-color-focus-ring: #0a4a8f;   /* 8.79 on #fff, 8.34 on #f8f9fa */
 }
 
 /* ---------- Reboot (minimal subset of Bootstrap's) ---------- */
@@ -212,6 +220,25 @@ button, [type="button"], [type="reset"], [type="submit"] {
 
 [hidden] {
     display: none !important;
+}
+
+/* ---------- Focus visibility (WCAG 2.4.7 / 1.4.11) ----------
+   One ring for every focusable element.  outline-offset pushes it into the
+   page background, so it keeps its 8.79:1 contrast whether it wraps a white
+   input or a saturated blue button.  :focus-visible means pointer users do
+   not see it on click, so there is no reason for a downstream rule to turn
+   it off again -- do not reintroduce `outline: none` anywhere.  The ring
+   supplements the control's own border, it never replaces it. */
+:focus-visible {
+    outline: 3px solid var(--rs-color-focus-ring);
+    outline-offset: 2px;
+}
+
+@supports not selector(:focus-visible) {
+    :focus {
+        outline: 3px solid var(--rs-color-focus-ring);
+        outline-offset: 2px;
+    }
 }
 
 /* ---------- Layout: containers and grid ---------- */
@@ -350,9 +377,10 @@ button, [type="button"], [type="reset"], [type="submit"] {
     text-decoration: none;
 }
 
-.btn:focus {
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+/* Was `outline: 0` plus a rgba(0,123,255,.25) shadow measuring 1.39:1 --
+   invisible.  The shadow is now only a halo behind the real ring above. */
+.btn:focus-visible {
+    box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.35);
 }
 
 .btn:disabled,
@@ -408,7 +436,7 @@ button, [type="button"], [type="reset"], [type="submit"] {
     color: var(--rs-color-form-text);
     background-color: var(--rs-color-white);
     background-clip: padding-box;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--rs-color-border-input);
     border-radius: 0.25rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
@@ -416,9 +444,10 @@ button, [type="button"], [type="reset"], [type="submit"] {
 .form-control:focus {
     color: var(--rs-color-form-text);
     background-color: var(--rs-color-white);
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    /* Border darkens too, so the state is legible to anyone who cannot make
+       out the ring; the ring itself comes from :focus-visible above. */
+    border-color: var(--rs-color-primary);
+    box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.35);
 }
 
 .form-control:disabled {

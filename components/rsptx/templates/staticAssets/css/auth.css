@@ -240,7 +240,8 @@
 }
 
 .badge-instructor {
-    background: #5b9fc8;
+    /* #5b9fc8 was 2.90:1 behind its white label */
+    background: #377ba5;
     color: var(--rs-color-white);
     font-size: 0.75em;
     padding: 2px 8px;
@@ -264,8 +265,9 @@
     color: var(--rs-color-white);
 }
 
+/* --rs-color-border-strong is #ccc, which left the white label at 1.61:1 */
 .btn-switch:disabled {
-    background: var(--rs-color-border-strong);
+    background: var(--rs-color-text-faint);
     cursor: default;
 }
 

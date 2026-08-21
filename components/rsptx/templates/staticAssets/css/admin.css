@@ -114,13 +114,18 @@
     transition: all 0.3s ease;
 }
 
+/* No opacity here: fading a white label over the blue fill dropped it to
+   2.97:1.  Each variant darkens its own background on hover instead. */
 .btn:hover:not(:disabled) {
-    opacity: 0.9;
     transform: translateY(-1px);
 }
 
+/* #ccc left the inherited white label at 1.61:1.  The color is set
+   explicitly because a bare `.btn` (no -primary/-danger variant) keeps
+   rs-core's dark #212529, which would only be 3.35:1 on this fill. */
 .btn:disabled {
-    background: var(--rs-color-border-strong);
+    background: var(--rs-color-text-faint);
+    color: var(--rs-color-white);
     cursor: not-allowed;
     transform: none;
 }
@@ -273,17 +278,20 @@
 .form-select {
     width: 100%;
     padding: 10px;
-    border: 2px solid var(--rs-color-border);
+    /* --rs-color-border is #ddd = 1.36:1; a control's own boundary is what
+       identifies it, which 1.4.11 puts at 3:1. */
+    border: 2px solid var(--rs-color-border-input);
     border-radius: 6px;
     font-size: 16px;
     background-color: white;
     transition: border-color 0.3s ease;
 }
 
+/* The ring comes from :focus-visible in rs-core.css -- do not add
+   `outline: none` back here. */
 .form-select:focus {
-    outline: none;
     border-color: var(--rs-color-primary);
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.35);
 }
 
 .form-select[size] {
@@ -321,7 +329,7 @@
 .settingsbox input[type="text"],
 .settingsbox select {
     padding: 8px 12px;
-    border: 1px solid var(--rs-color-border);
+    border: 1px solid var(--rs-color-border-input);
     border-radius: 4px;
     font-size: 14px;
     width: 100%;
@@ -543,7 +551,7 @@ tr.duplicate {
     text-decoration: none;
     color: var(--rs-color-text-strong);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 86, 179, 0.2);
 }
 
 .instructor-menu .menu-item h4 {
@@ -561,7 +569,8 @@ tr.duplicate {
 }
 
 .instructor-menu .toggle-all-btn {
-    background: linear-gradient(135deg, var(--rs-color-success), #20c997);
+    /* #20c997 was 2.13:1 behind the white label */
+    background: linear-gradient(135deg, var(--rs-color-success), #158464);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -574,7 +583,7 @@ tr.duplicate {
 }
 
 .instructor-menu .toggle-all-btn:hover {
-    background: linear-gradient(135deg, var(--rs-color-success-hover), #1dc7a0);
+    background: linear-gradient(135deg, #1a6c2d, #106a50);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
@@ -620,7 +629,7 @@ tr.duplicate {
 
 /* ---------- Delete course (course_delete.html) ---------- */
 .course-delete .page-header h1 {
-    color: #d9534f;
+    color: var(--rs-color-danger);
 }
 
 .course-delete .confirmation-section {
@@ -647,15 +656,15 @@ tr.duplicate {
 .course-delete .confirmation-input input {
     width: 300px;
     padding: 10px;
-    border: 2px solid var(--rs-color-border);
+    border: 2px solid var(--rs-color-border-input);
     border-radius: 4px;
     font-size: 16px;
     text-align: center;
 }
 
+/* Ring comes from :focus-visible in rs-core.css. */
 .course-delete .confirmation-input input:focus {
     border-color: var(--rs-color-danger);
-    outline: none;
 }
 
 .course-delete .danger-btn {
@@ -876,7 +885,7 @@ tr.duplicate {
 }
 
 .copy-assignments .pager-btn:disabled {
-    color: #999;
+    color: var(--rs-color-text-faint); /* #999 was 2.85:1 */
     border-color: #e6e6e6;
     cursor: not-allowed;
 }
@@ -955,6 +964,7 @@ tr.duplicate {
     text-decoration: none;
 }
 
+/* plain `red` is 4.00:1 on white */
 .out_of_print {
-    color: red;
+    color: var(--rs-color-danger);
 }

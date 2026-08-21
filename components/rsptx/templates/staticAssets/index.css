@@ -1,8 +1,9 @@
 /* Styling Runestone Library */
 .book_title {
     font-size: 5em;
-    background-color: #037ef7;
-    color: rgb(252, 240, 240);
+    /* was #037ef7 with rgb(252,240,240) text = 3.54:1 */
+    background-color: #0269cf;
+    color: #fff;
     width: 45em;
     height: 7mm;
     line-height: 1.8em;
@@ -17,8 +18,9 @@
     position: relative;
 }
 
+/* was #c94d23 = 4.13:1 behind the old off-white title text */
 .book_title:hover, .book_title:focus-within {
-    background-color: #c94d23;
+    background-color: #b8451f;
 }
 
 .sectionName {
@@ -80,8 +82,19 @@
 }
 
 
-input {
-    outline-style: none;
+/* Removing the focus outline from every input on the page is a
+   WCAG 2.4.7 (Level A) failure — this stylesheet is also loaded by the
+   instructor gradebook, invoice and assignment-summary pages.  The ring
+   now comes from the :focus-visible rule in rs-core.css.  The rule below
+   only strips the default outline from the inner input of the .searchbar
+   composite, whose wrapper draws the focus ring instead. */
+.searchbar:focus-within {
+    outline: 3px solid var(--rs-color-focus-ring, #0a4a8f);
+    outline-offset: 2px;
+}
+
+.searchbar input:focus {
+    outline: none;
 }
 
 /* The .searchbar box (border, icon, padding) is on the wrapping div; make the
@@ -98,7 +111,8 @@ input {
     margin-bottom: 5pt;
 }
 
+/* `red` is 4.00:1 on white */
 .out_of_print {
-    color: red;
+    color: var(--rs-color-danger, #dc3545);
     font-weight: bold;
 }
