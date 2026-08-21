@@ -7,7 +7,7 @@
 .back-link {
     float: right;
     font-size: 13px;
-    color: #4a90e2;
+    color: var(--rs-color-primary);
     text-decoration: none;
 }
 
@@ -22,13 +22,13 @@
     justify-content: space-between;
     margin: 24px 0 10px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--rs-color-border);
 }
 
 .section-header h2 {
     font-size: 20px;
     font-weight: 600;
-    color: #333;
+    color: var(--rs-color-text-strong);
     margin: 0;
 }
 
@@ -36,7 +36,7 @@
 .hot-section {
     width: 100%;
     overflow: hidden;
-    border: 1px solid #ddd;
+    border: 1px solid var(--rs-color-border);
     border-radius: 6px;
     margin-bottom: 8px;
 }

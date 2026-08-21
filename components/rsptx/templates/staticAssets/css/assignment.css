@@ -2,7 +2,7 @@
 
 body {
     padding-top: 60px;
-    background-color: #eeeeee;
+    background-color: var(--rs-color-surface-muted);
 }
 
 pre {
@@ -50,7 +50,7 @@ div#component-preview {
 }
 
 div.container {
-    background-color: #ffffff;
+    background-color: var(--rs-color-white);
 }
 
 div.section {
@@ -91,7 +91,7 @@ div.section {
 }
 
 .footer>.container {
-    background-color: #eeeeee;
+    background-color: var(--rs-color-surface-muted);
 }
 
 .brand-logo {
@@ -136,37 +136,37 @@ div.section {
     clear: both;
     font-weight: bold;
     line-height: 20px;
-    color: #333;
+    color: var(--rs-color-text-strong);
     white-space: nowrap;
 }
 
 :root {
-    --dropdownBg: #ffffff;
-    --dropdownHoverBg: #f5f5f5;
+    --dropdownBg: var(--rs-color-white);
+    --dropdownHoverBg: var(--rs-color-surface-muted);
 }
 
 [data-theme="dark"] {
     --dropdownBg: #1a1a1a;
-    --dropdownHoverBg: #333333;
+    --dropdownHoverBg: var(--rs-color-text-strong);
 }
 
 .dropdown-menu {
-    background-color: var(--dropdownBg, #ffffff);
+    background-color: var(--dropdownBg, var(--rs-color-white));
 }
 
 .dropdown-menu > li > a,
 .dropdown-menu > li > span,
 .dropdown-menu > li > div,
 .dropdown-menu > li > label {
-    color: var(--grayToWhite, #333);
+    color: var(--grayToWhite, var(--rs-color-text-strong));
 }
 
 .dropdown-menu > li > a:hover,
 .dropdown-menu > li > a:focus,
 .dropdown-menu > li > label:hover,
 .dropdown-menu > li > label:focus {
-    color: var(--grayToWhite, #333);
-    background-color: var(--dropdownHoverBg, #f5f5f5);
+    color: var(--grayToWhite, var(--rs-color-text-strong));
+    background-color: var(--dropdownHoverBg, var(--rs-color-surface-muted));
 }
 
 .loggedinuser {
@@ -177,7 +177,7 @@ div.section {
 
 .CodeMirror {
     margin: 0 0 1em 0;
-    background-color: #fff;
+    background-color: var(--rs-color-white);
     clear: both;
 }
 
@@ -234,9 +234,9 @@ input[type="button"].btn.btn-sm {
 .btn-default[disabled],
 .btn-default.disabled:hover,
 .btn-default[disabled]:hover {
-    color: #fff;
-    background-color: #474949;
-    border-color: #474949;
+    color: var(--rs-color-white);
+    background-color: var(--rs-color-button-dark);
+    border-color: var(--rs-color-button-dark);
 }
 
 .btn-default:hover,
@@ -245,7 +245,7 @@ input[type="button"].btn.btn-sm {
 .btn-default.active {
     background-color: #3a3c3c;
     border-color: #2e2f2f;
-    color: #fff;
+    color: var(--rs-color-white);
 }
 
 .tooltip {
@@ -267,13 +267,13 @@ h2 {
 
 /* default bookstrap alert color is hard to read (low contrast). */
 .alert {
-    color: #333;
+    color: var(--rs-color-text-strong);
     padding: 10px;
 }
 
 /* override the color styles applied by Skulpt to the unittest results divs */
 .unittest-results.alert-danger {
-    background-color: #f2dede !important;
+    background-color: var(--rs-color-danger-muted) !important;
 }
 
 .unittest-results.alert-success {
@@ -292,7 +292,7 @@ h2 {
     margin-top: 20px !important;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
     background-color: #fcf8e3;
-    border: 1px solid #fbeed5;
+    border: 1px solid var(--rs-color-note-background);
     -webkit-border-radius: 4px;
     -moz-border-radius: 4px;
     border-radius: 4px;
@@ -301,15 +301,15 @@ h2 {
 /* .alert-danger */
 .admonition.caution {
     color: #b94a48;
-    background-color: #f2dede;
+    background-color: var(--rs-color-danger-muted);
     border-color: #eed3d7;
 }
 
 /* .alert-info */
 .admonition.tip,
 .admonition.note {
-    color: #333;
-    background-color: #d9edf7;
+    color: var(--rs-color-text-strong);
+    background-color: var(--rs-color-info-background);
     border-color: #bce8f1;
 }
 
@@ -324,16 +324,16 @@ div.flash {
     margin: 0 0 10px 10px;
     vertical-align: middle;
     cursor: pointer;
-    color: #fff;
-    background-color: #000;
-    border: 2px solid #fff;
+    color: var(--rs-color-white);
+    background-color: var(--rs-color-black);
+    border: 2px solid var(--rs-color-white);
     border-radius: 8px;
     -moz-border-radius: 8px;
     -webkit-border-radius: 8px;
-    background-image: -webkit-linear-gradient(top, #222, #000);
-    background-image: -o-linear-gradient(top, #222, #000);
-    background-image: -moz-linear-gradient(90deg, #222, #000);
-    background-image: linear-gradient(top, #222, #000);
+    background-image: -webkit-linear-gradient(top, var(--rs-color-text-dark), var(--rs-color-black));
+    background-image: -o-linear-gradient(top, var(--rs-color-text-dark), var(--rs-color-black));
+    background-image: -moz-linear-gradient(90deg, var(--rs-color-text-dark), var(--rs-color-black));
+    background-image: linear-gradient(top, var(--rs-color-text-dark), var(--rs-color-black));
     background-repeat: repeat-x;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -369,7 +369,7 @@ div.flash {
 
 #sign_in_text td {
     font-size: 17px;
-    color: #333;
+    color: var(--rs-color-text-strong);
     font-family: 'lucida grande', Verdana, sans-serif;
     padding-bottom: 13px;
 }
@@ -390,7 +390,7 @@ div.flash {
 #programming-exercises>ol>li:nth-child(even) {
     padding: 1.2em 1.4em;
     background: #faf7df;
-    border: 1px solid #fbeed5;
+    border: 1px solid var(--rs-color-note-background);
     -webkit-border-radius: 4px;
     -moz-border-radius: 4px;
     border-radius: 4px;
@@ -413,7 +413,7 @@ div.flash {
 
 .compare-me-progress .progress-bar,
 .unittest-results-progress .progress-bar {
-    color: #333;
+    color: var(--rs-color-text-strong);
 }
 
 .unittest-results-progress {
@@ -474,7 +474,7 @@ div.flash {
 
 .footnote.table td.label {
     padding: 2px 5px 2px 5px;
-    background-color: #d9edf7;
+    background-color: var(--rs-color-info-background);
 }
 
 .ac-canvas {
@@ -518,7 +518,7 @@ div.flash {
 }
 
 .navLink a {
-    color: #999;
+    color: var(--rs-color-text-faint);
 }
 
 #completionButton {
@@ -526,39 +526,39 @@ div.flash {
     margin-bottom: 15px;
     padding-left: 70px;
     padding-right: 70px;
-    color: #fff;
+    color: var(--rs-color-white);
     font-weight: bold;
 }
 
 .buttonAskCompletion {
     background-color: #ffaa2b;
-    border-color: #ff9f19;
+    border-color: var(--rs-color-accent-orange);
     font-weight: bold;
 }
 
 .buttonAskCompletion:hover {
-    background-color: #ff9f19;
-    border-color: #ff9f19;
+    background-color: var(--rs-color-accent-orange);
+    border-color: var(--rs-color-accent-orange);
 }
 
 .buttonConfirmCompletion {
     background-color: #50d392;
-    border-color: #3dc682;
+    border-color: var(--rs-color-success-bright);
 
 }
 
 .buttonConfirmCompletion:hover {
-    background-color: #3dc682;
-    border-color: #3dc682;
+    background-color: var(--rs-color-success-bright);
+    border-color: var(--rs-color-success-bright);
 }
 
 .navLinkBg {
     height: 40px;
-    background-color: #fff;
+    background-color: var(--rs-color-white);
     z-index: 1;
     position: fixed;
     bottom: 55px;
-    color: #999;
+    color: var(--rs-color-text-faint);
     font-weight: bold;
     -webkit-box-shadow: 0px 0px 3px rgba(50, 50, 50, 0.5);
     -moz-box-shadow: 0px 0px 3px rgba(50, 50, 50, 0.5);
@@ -566,7 +566,7 @@ div.flash {
 }
 
 .navLinkBg:hover {
-    color: #999;
+    color: var(--rs-color-text-faint);
 }
 
 #navLinkBgRight {
@@ -583,7 +583,7 @@ div.flash {
 .activehtml {
     width: 100%;
     height: 400px;
-    background-color: #fff;
+    background-color: var(--rs-color-white);
 }
 
 .container .section>div.sidebar {
@@ -627,7 +627,7 @@ div.ExecutionVisualizer table.visualizer {
     width: auto;
     margin-left: auto;
     margin-right: auto;
-    background-color: #fff;
+    background-color: var(--rs-color-white);
 }
 
 div.settingsbox {

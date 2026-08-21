@@ -29,7 +29,7 @@
         margin-bottom: 28px;
     }
     .legal-header h1 { margin: 0 0 6px; line-height: 1.2; }
-    .legal-updated { margin: 0; color: #6a6a6a; font-size: 0.9rem; }
+    .legal-updated { margin: 0; color: #6c6c6c; font-size: 0.9rem; }
     .legal-doc h2 { margin-top: 2rem; font-size: 1.4rem; }
     .legal-doc h3 { margin-top: 1.6rem; font-size: 1.15rem; }
     .legal-doc ul, .legal-doc ol { padding-left: 1.4rem; }
@@ -51,9 +51,6 @@
 
 {% block content %}
 <div class="legal-doc">
-    <nav class="legal-breadcrumb">
-        <a href="/admin/legal">&larr; Legal &amp; Compliance</a>
-    </nav>
     <header class="legal-header">
         <h1>{{ page_title }}</h1>
         {% if updated %}<p class="legal-updated">Last updated: {{ updated }}</p>{% endif %}

@@ -3,7 +3,7 @@
    server look-and-feel (Bootstrap based). */
 
 #studentreport h1 {
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--rs-color-text-strong);
     margin: 0 0 0.5em 0;
     padding: 0.2em 0;
 }
@@ -15,22 +15,22 @@
 
 .dash-title-description {
     font-size: 0.6em;
-    color: #777777;
+    color: var(--rs-color-text-light);
 }
 
 .dash-section {
     margin: 0 0 1.5em 0;
-    border: 1px solid #ddd;
+    border: 1px solid var(--rs-color-border);
     border-radius: 4px;
-    background-color: #fff;
+    background-color: var(--rs-color-white);
 }
 
 .dash-section-header {
     font-size: 1rem;
     font-weight: bold;
     padding: 0.4em 0.6em;
-    border-bottom: 1px solid #333;
-    background-color: #f5f5f5;
+    border-bottom: 1px solid var(--rs-color-text-strong);
+    background-color: var(--rs-color-surface-muted);
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 }
@@ -55,12 +55,12 @@
 }
 
 .dash-section-content thead td {
-    border: 1px solid #ccc;
+    border: 1px solid var(--rs-color-border-strong);
     padding: 0.2em 0.5em;
 }
 
 .dash-section-content tbody tr {
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--rs-color-surface-muted);
 }
 
 .dash-section-content td {
@@ -81,11 +81,11 @@
 }
 
 #book-completion .started {
-    color: #998800;
+    color: #6e7a00;
 }
 
 #book-completion .notstarted {
-    color: #333333;
+    color: var(--rs-color-text-strong);
 }
 
 .chapter .clickable {
