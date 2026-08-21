@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional, Tuple, Dict
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.exc import IntegrityError
@@ -706,6 +707,23 @@ async def update_question(question: QuestionValidator) -> QuestionValidator:
     return question
 
 
+def _natural_sort_key(value: Optional[str]) -> List[Tuple[int, object]]:
+    """Key for natural ordering of exercise numbers like "Q3.10.1" or "Exercise 3.1.2".
+
+    Splits the string into alternating text/number chunks so numeric runs compare
+    numerically instead of character-by-character (e.g. "3.2.1" sorts before "3.10.1",
+    where a plain string sort would put "3.10.1" first). Each chunk is tagged with a
+    type flag so chunks of different types never get compared directly, which would
+    otherwise raise a TypeError.
+    """
+    if not value:
+        return [(1, "")]
+    return [
+        (0, int(chunk)) if chunk.isdigit() else (1, chunk.lower())
+        for chunk in re.split(r"(\d+)", value)
+    ]
+
+
 async def fetch_questions_for_chapter_subchapter(
     base_course: str,
     skipreading: bool = False,
@@ -807,6 +825,15 @@ async def fetch_questions_for_chapter_subchapter(
             del q.timestamp  # Does not convert to json
             del q.question
             questions[c.chapter_label][sc.sub_chapter_label].append(q)
+
+        # The SQL query above orders by Question.qnumber as a plain string, which
+        # sorts "3.10.1" before "3.2.1". Re-sort each subchapter's questions with a
+        # natural sort key so multi-part exercise numbers order the way a human expects.
+        for chapter_questions in questions.values():
+            for subchapter_questions in chapter_questions.values():
+                subchapter_questions.sort(
+                    key=lambda q: _natural_sort_key(q.qnumber or q.name)
+                )
 
         # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
         # This is the structure that is used by the React TreeTable component
