@@ -23,55 +23,193 @@ div.assignment-nav a {
     font-weight: 700;
 }
 
-/* custom modification of basic.css for color-contrast (AA compliant) */
+/* Syntax//chrome color overrides for contrast (AA in BOTH light and dark).
+   These were hard-coded light-mode values: readable on a white page, but the
+   same dark ink on the dark canvas in dark mode (e.g. prettify's .str fell to
+   2.9:1).  They now come from the --syn* theme variables in variables.less,
+   which is the only way to vary them here -- this file is imported *inside*
+   .ptx-runestone-container / .runestone-sphinx, so a :root.dark-mode selector
+   written here would be prefixed into a descendant selector and never match. */
+
+/* custom modification of basic.css */
 td.linenos pre {
-    color: #6b6b6b;
+    color: var(--synMuted, #6b6b6b);
 }
 
-/* custom modification of prettify.css for color-contrast (AA compliant) */
+/* The parsons code block's own text color.  prettify.css is imported
+   unscoped (straight through css-loader), so its `code.prettyprint` rule ties
+   on specificity with the book template's `code` styling and loses on order --
+   in dark mode that left black text on the dark canvas at 1.56:1.  Declaring
+   it here instead picks up the .runestone-sphinx / .ptx-runestone-container
+   prefix and wins. */
+code.prettyprint,
+pre.prettyprint {
+    color: var(--synPlain);
+}
+
+/* custom modification of prettify.css */
 .str {
-    color: #006b00;
+    color: var(--synString, #006b00);
 }
 
-/* custom modification of parsons.css for color-contrast (AA compliant) */
+/* custom modification of parsons.css */
 .parsons .block {
-    background-color: #fafafa;
+    background-color: var(--codeBlockBg, #fafafa);
 }
 
-/* custom modification of pygments.css for color-contrast (AA compliant) */
-.highlight .c1 {
-    color: #376a7b;
+/* Sphinx generates pygments.css with a light #eeffcc code-block fill and no
+   dark-mode variant, so in dark mode the block stayed pale while the text
+   around it went light (1.2:1).  These live inside .runestone-sphinx /
+   .ptx-runestone-container, which out-specifies the book's bare .highlight. */
+.highlight,
+.highlight pre,
+div[class^="highlight-"] .highlight {
+    background-color: var(--codeHighlightBg, #eeffcc);
 }
 
+/* Sphinx ships pygments' default theme, which has no dark variant and is not
+   fully AA even on its own light fill (21 of its 64 token colors fell below
+   4.5:1 there).  Every token class is mapped onto a --syn* variable so both
+   themes get a palette that clears AA against the matching --codeHighlightBg.
+   Grouped by role rather than one rule per class so the two stay in step. */
+
+/* comment */
+.highlight .c,
+.highlight .c1,
+.highlight .ch,
+.highlight .cm,
+.highlight .cs,
+.highlight .cpf {
+    color: var(--synComment);
+}
+
+/* keyword */
+.highlight .k,
+.highlight .kc,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .kt,
+.highlight .ow,
+.highlight .nb,
+.highlight .bp,
+.highlight .ne,
+.highlight .cp {
+    color: var(--synKeyword);
+}
+
+/* string */
+.highlight .s,
+.highlight .s1,
+.highlight .s2,
+.highlight .sa,
+.highlight .sb,
+.highlight .sc,
+.highlight .sd,
+.highlight .se,
+.highlight .sh,
+.highlight .dl,
+.highlight .sr,
+.highlight .ss {
+    color: var(--synString);
+}
+
+/* number */
+.highlight .m,
+.highlight .mb,
+.highlight .mf,
+.highlight .mh,
+.highlight .mi,
+.highlight .mo,
+.highlight .il {
+    color: var(--synNumber);
+}
+
+/* function */
+.highlight .nf,
+.highlight .fm,
+.highlight .nl,
+.highlight .nt,
+.highlight .na,
+.highlight .no {
+    color: var(--synFunction);
+}
+
+/* class */
+.highlight .nc,
 .highlight .nn {
-    color: #0f6c95;
+    color: var(--synClass);
 }
 
-.highlight .gp {
-    color: #a14c08;
+/* variable */
+.highlight .nv,
+.highlight .vc,
+.highlight .vg,
+.highlight .vi,
+.highlight .vm,
+.highlight .ni {
+    color: var(--synVariable);
 }
 
+/* operator */
+.highlight .o,
+.highlight .w,
+.highlight .nd {
+    color: var(--synOperator);
+}
+
+/* prompt */
+.highlight .gp,
+.highlight .sx {
+    color: var(--synPrompt);
+}
+
+/* interp */
 .highlight .si {
-    color: #3c773d;
+    color: var(--synInterp);
 }
 
-.highlight .nc {
-    color: #0b719d;
+/* error */
+.highlight .gr,
+.highlight .gt {
+    color: var(--synError);
 }
 
-/* `Search` functionality's result custom modification for color-contrast (AA compliant) */
+/* inserted */
+.highlight .gi {
+    color: var(--synInserted);
+}
+
+/* deleted */
+.highlight .gd {
+    color: var(--synDeleted);
+}
+
+/* heading */
+.highlight .gh,
+.highlight .gu {
+    color: var(--synHeading);
+}
+
+/* muted */
+.highlight .go {
+    color: var(--synMuted);
+}
+
+/* `Search` functionality's result custom modification */
 ul.search li div.context {
-    color: #6b6b6b;
+    color: var(--synMuted, #6b6b6b);
 }
 
 span.highlighted {
-    color: #4d4d4d;
+    color: var(--synHighlighted, #4d4d4d);
 }
 
-/* ActiveCode gutter custom modification for color-contrast (AA compliant) */
+/* ActiveCode gutter custom modification */
 
 .CodeMirror-linenumber {
-    color: #6b6b6b;
+    color: var(--synMuted, #6b6b6b);
 }
 
 .alert-warning {

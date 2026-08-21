@@ -393,13 +393,14 @@
 }
 
 /* open CodeTailor*/
+/* #ED7014 left the white label at 3.03:1; #BC580E keeps the orange at 4.63:1. */
 button.parsons-scaffolding-btn {
-  background-color: #ED7014 !important;
+  background-color: #BC580E !important;
   color: white !important;
 }
 
 button.reopen-help-btn {
-    background-color: #ED7014 !important;
+    background-color: #BC580E !important;
     color: white !important;
 }
 

@@ -14,10 +14,10 @@
     <form method="post" action="/admin/auth/courses" id="coursesForm">
         <input type="hidden" name="institution" value="{{ institution }}">
 
-        <div class="section-title">Enter Course Name Directly</div>
+        <div class="section-title" id="direct-course-label">Enter Course Name Directly</div>
         <p class="text-muted small">If your instructor gave you a specific course name, type it here.</p>
         <div class="form-group">
-            <input type="text" class="form-control" id="direct_course" placeholder="e.g. luther_thinkcspy_fall25"
+            <input type="text" class="form-control" id="direct_course" aria-labelledby="direct-course-label" placeholder="e.g. luther_thinkcspy_fall25"
                    oninput="selectDirect(this.value)">
         </div>
 
@@ -28,7 +28,7 @@
         <div class="course-option">
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="course_name"
-                       id="ic_{{ course.course_name }}" value="{{ course.course_name }}">
+                       id="ic_{{ course.course_name }}" value="{{ course.course_name }}" aria-label="Text filter for course or author name">
                 <label class="form-check-label" for="ic_{{ course.course_name }}">
                     <strong>{{ course.course_name }}</strong>
                     {% if course.institution %}<span class="text-muted"> — {{ course.institution }}</span>{% endif %}
@@ -40,7 +40,7 @@
 
         <div class="section-title">Open Books (Self-Study)</div>
         <p class="text-muted small">These books are available to anyone. Pick the one you want to read.</p>
-        <input type="text" class="form-control" id="bookFilter" placeholder="Filter books by title or author…">
+        <input type="text" class="form-control" id="bookFilter" placeholder="Filter books by title or author…"  aria-label="Text filter for course or author name">
         <div id="bookList">
         {% for book in open_books %}
         <div class="course-option book-entry"

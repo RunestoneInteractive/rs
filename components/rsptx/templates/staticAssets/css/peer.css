@@ -13,7 +13,7 @@
 }
 
 #pi-session-status {
-    border: 1px solid #333333;
+    border: 1px solid var(--rs-color-text-strong);
     background-color: #F2E0C3;
     padding: 9px 16px;
     border-radius: 4px;
@@ -98,7 +98,7 @@
 }
 
 .pi-step.active {
-    outline: 2px solid #1A6A83;
+    outline: 2px solid var(--rs-color-info-dark);
     outline-offset: 2px;
     border-radius: 5px;
     margin-right: 10px;
@@ -122,9 +122,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #777777;
-    border: 1px solid #777777;
-    background-color: #FFFFFF;
+    color: var(--rs-color-text-light);
+    border: 1px solid var(--rs-color-text-light);
+    background-color: var(--rs-color-white);
     font-size: 12px;
     z-index: 100;
 }
@@ -132,7 +132,7 @@
 .pi-stepper-line {
     height: 1px;
     flex: 1;
-    background-color: #000000;
+    background-color: var(--rs-color-black);
     margin: 34px 0px 0 0px;
 }
 
@@ -153,7 +153,7 @@
 }
 
 .pi-step.active .pi-step-number-inner {
-    color: #1A6A83;
+    color: var(--rs-color-info-dark);
     border: 1px solid #46B8DA;
 }
 
@@ -196,8 +196,8 @@
 
 #discussion_panel {
     margin: 20px 0;
-    background: #FBFBFB;
-    border: 0.5px solid #C7CDD1;
+    background: var(--rs-color-surface-raised);
+    border: 0.5px solid var(--rs-color-border-cool);
     border-radius: 12px;
     box-shadow: 0px 20px 24px 0px rgba(17, 17, 17, 0.06);
     padding-left: 0px;
@@ -208,8 +208,8 @@
     font-size: 22px;
     font-weight: 500;
     padding: 12px 24px;
-    background: #FBFBFB;
-    border: 1px solid #C7CDD1;
+    background: var(--rs-color-surface-raised);
+    border: 1px solid var(--rs-color-border-cool);
     border-radius: 12px 12px 0px 0px;
     box-shadow: 0px 2px 2px 0px rgba(17, 17, 17, 0.06);
 }
@@ -219,14 +219,14 @@
 }
 
 #discussion-panel-peer-votes {
-    border-bottom: 1px solid #C7CDD1;
+    border-bottom: 1px solid var(--rs-color-border-cool);
     padding: 16px 24px;
 }
 
 #discussion-panel-peer-votes-content {
     border-radius: 12px;
-    border: 2px solid #C7CDD1;
-    background: #FFFFFF;
+    border: 2px solid var(--rs-color-border-cool);
+    background: var(--rs-color-white);
     padding: 16px 32px;
 }
 
@@ -271,7 +271,7 @@
     display: flex;
     flex-direction: column;
     font-style: normal;
-    color: #333;
+    color: var(--rs-color-text-strong);
     gap: 4px;
 }
 
@@ -292,13 +292,13 @@
 
 #discussion-panel-messages #messages .sender-initials {
     display: flex;
-    background: #777777;
+    background: var(--rs-color-text-light);
     height: 24px;
     width: 24px;
     border-radius: 50%;
     align-items: center;
     justify-content: center;
-    color: #FFFFFF;
+    color: var(--rs-color-white);
 }
 
 #discussion-panel-messages #messages .sender-name {
@@ -329,8 +329,8 @@
     justify-content: space-between;
     width: 100%;
     border-radius: 12px;
-    border: 2px solid #C7CDD1;
-    background: #FFFFFF;
+    border: 2px solid var(--rs-color-border-cool);
+    background: var(--rs-color-white);
     padding: 8px 16px;
     margin-top: 10px;
     gap: 16px;

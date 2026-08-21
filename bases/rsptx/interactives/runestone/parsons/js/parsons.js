@@ -1020,7 +1020,7 @@ export default class Parsons extends RunestoneBase {
                             div.style.overflow = "visible";
                             div.style.fontSize = "43px";
                             div.style.verticalAlign = "middle";
-                            div.style.color = "#7e7ee7";
+                            div.style.color = "var(--parsonsLabelColor, #5858e0)";
                             div.innerHTML =
                                 "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
                         }
@@ -2335,8 +2335,8 @@ export default class Parsons extends RunestoneBase {
                     parseInt(getComputedStyle(slideUnderBlock.view).top) || 0;
             }
             var that = this;
-            block.view.style.borderColor = "#000";
-            block.view.style.backgroundColor = "#fff";
+            block.view.style.borderColor = "var(--boxBorderColor, #000)";
+            block.view.style.backgroundColor = "var(--background, #fff)";
             animate(
                 block.view,
                 {
@@ -2387,8 +2387,8 @@ export default class Parsons extends RunestoneBase {
                 },
             );
         } else {
-            block.view.style.borderColor = "#000";
-            block.view.style.backgroundColor = "#fff";
+            block.view.style.borderColor = "var(--boxBorderColor, #000)";
+            block.view.style.backgroundColor = "var(--background, #fff)";
             animate(
                 block.view,
                 {
@@ -2686,10 +2686,10 @@ export default class Parsons extends RunestoneBase {
                 {
                     duration: 1000, // 1 seccond
                     start: function () {
-                        block1.view.style.borderColor = "#000";
-                        block1.view.style.backgroundColor = "#fff";
-                        block2.view.style.borderColor = "#000";
-                        block2.view.style.backgroundColor = "#fff";
+                        block1.view.style.borderColor = "var(--boxBorderColor, #000)";
+                        block1.view.style.backgroundColor = "var(--background, #fff)";
+                        block2.view.style.borderColor = "var(--boxBorderColor, #000)";
+                        block2.view.style.backgroundColor = "var(--background, #fff)";
                         block2.lines[0].index += 1000;
                         that.moving = block2;
                         that.movingX = startX;
@@ -2734,10 +2734,10 @@ export default class Parsons extends RunestoneBase {
                 {
                     duration: 1000,
                     start: function () {
-                        block1.view.style.borderColor = "#000";
-                        block1.view.style.backgroundColor = "#fff";
-                        block2.view.style.borderColor = "#000";
-                        block2.view.style.backgroundColor = "#fff";
+                        block1.view.style.borderColor = "var(--boxBorderColor, #000)";
+                        block1.view.style.backgroundColor = "var(--background, #fff)";
+                        block2.view.style.borderColor = "var(--boxBorderColor, #000)";
+                        block2.view.style.backgroundColor = "var(--background, #fff)";
                     },
                     complete: function () {
                         block1.consumeBlock(block2);
@@ -3092,7 +3092,7 @@ export default class Parsons extends RunestoneBase {
                     div.style.overflow = "visible";
                     div.style.fontSize = "43px";
                     div.style.verticalAlign = "middle";
-                    div.style.color = "#7e7ee7";
+                    div.style.color = "var(--parsonsLabelColor, #5858e0)";
                     div.innerHTML =
                         "<span id= 'st' style = 'vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
                 }

@@ -44,7 +44,9 @@
     --componentBorderColor: #000000;
     --questionBgColor: #e1efff;
     --parsonsBgColor: #ffa;
-    --parsonsBorderColor: #ee0;
+    // #ee0 was 1.19:1 against the #ffa fill; the container edge is the only
+    // thing separating it from the page, so 1.4.11 wants 3:1.
+    --parsonsBorderColor: #919100;
     --parsonsCorrectBgColor: #dff0d8;
     --parsonsCorrectBorderColor: #ade595;
     --parsonsIncorrectBgColor: #f2dede;
@@ -57,19 +59,55 @@
     --draggableIncorrectBg: #f2dede;
     --dragLineColor: #000000;
     --boxBorderColor: #000000;
+
+    // --- Syntax highlighting ---
+    // Light values are the long-standing AA-compliant overrides that used to
+    // live inline in runestone.css; they are variables now so the dark themes
+    // can supply their own without component CSS needing a theme selector
+    // (component CSS is imported *inside* .ptx-runestone-container /
+    // .runestone-sphinx, so a :root rule there would never match).
+    --synComment: #3d7989;
+    --synKeyword: #007020;
+    --synString: #4070a0;
+    --synNumber: #208050;
+    --synFunction: #06287e;
+    --synClass: #0d79a6;
+    --synNamespace: #0d79a6;
+    --synVariable: #ac3dcc;
+    --synOperator: #666666;
+    --synPrompt: #b65508;
+    --synInterp: #3c773d;
+    --synError: #cc0000;
+    --synInserted: #008400;
+    --synDeleted: #a00000;
+    --synHeading: #000080;
+    --synPlain: #000000;
+    --synMuted: #6b6b6b;
+    --synHighlighted: #4d4d4d;
+    --codeBlockBg: #fafafa;
+    --codeHighlightBg: #eeffcc; // Sphinx pygments' code-block fill
+    --parsonsLabelColor: #5858e0;
 }
 
 :root.dark-mode {
     --background: #2c2f33;
     --outerBackground: #23272a;
-    --links: #7289da;
-    --bodyFont: var(--body-text-color, #99aab5);
+    // #7289da was 4.04:1 on this background; #8ab4f8 clears 4.5 on every
+    // dark surface below and still reads as a link next to --bodyFont.
+    --links: #8ab4f8;
+    // #99aab5 was 5.62:1 here but only 2.97:1 on --questionBgColor.
+    --bodyFont: var(--body-text-color, #c8d2d7);
     --tooltip: #000000;
     --grayToWhite: #e1e1e1;  /* AA compliant against known backgrounds */
+    // Without these the dark theme inherited the light #ffffff dropdown and
+    // rendered #e1e1e1 items on white at 1.31:1.
+    --dropdownBg: #1a1a1a;
+    --dropdownHoverBg: #333333;
     --navbar: #3d3d3d;
     --navbarFont: #ffffff;
     --navbarFontHover: #d6d6d6;
-    --alerts: #714082;
+    // Alert/component fills darkened so --bodyFont and --links both clear 4.5.
+    --alerts: #5d346a;
     --completionButton: #650087;
     --completionButtonHover: #560073;
     --completionButtonText: #ffffff;
@@ -77,32 +115,60 @@
     --admonitionBorder: #262626;
     --codeButtons: #67739d;
     --codeButtonsBorder: #ffffff;
-    --dangerAlerts: #8c2626;
-    --successAlerts: #217300;
-    --componentBgColor: var(--rs-component-bg, var(--knowl-background, #07467d));
+    --dangerAlerts: #7f2222;
+    --successAlerts: #174f00;
+    --componentBgColor: var(--rs-component-bg, var(--knowl-background, #07457c));
     --componentBorderColor: var(--rs-component-border, var(--knowl-border-color, #939090));
-    --questionBgColor: var(--rs-component-bg, var(--knowl-nested-1-background, #0f5a9b));
-    --parsonsBgColor: rgb(232, 232, 178);
-    --parsonsBorderColor: rgb(168, 168, 45);
-    --parsonsCorrectBgColor: #a3c097;
-    --parsonsCorrectBorderColor: #60904c;
-    --parsonsIncorrectBgColor: #ae9090;
-    --parsonsIncorrectBorderColor: #c16b6b;
+    --questionBgColor: var(--rs-component-bg, var(--knowl-nested-1-background, #0c4678));
+    // These are the *dark* theme's fills, but they were light colors, so the
+    // light text that sits on them (PreTeXt's #f2f2f2 body color, and our
+    // --bodyFont) measured 1.8-2.6:1.  The matching component reuses them for
+    // its graded boxes, which is where it showed up worst.  Borders lightened
+    // to keep 3:1 against the new darker fills.
+    --parsonsBgColor: #5b5b1b;
+    --parsonsBorderColor: #b4b430;
+    --parsonsCorrectBgColor: #455f3a;
+    --parsonsCorrectBorderColor: #8eba7b;
+    --parsonsIncorrectBgColor: #6e5151;
+    --parsonsIncorrectBorderColor: #d7a1a1;
 
     // --- Shared drag/drop + matching ---
     --draggableBgColor: #393434;
     --dropableBgColor: #2a2d30;
-    --draggableIncorrectBorder: red;
+    --draggableIncorrectBorder: #ff5353; // plain `red` was 2.55:1 on the fill
     --draggableIncorrectBg: #6d2d2d;
     --dragLineColor: #ffffff;
     --boxBorderColor: #ffffff;
+
+    // --- Syntax highlighting (lightened for a dark canvas) ---
+    --synComment: #4b96a9;
+    --synKeyword: #00a32e;
+    --synString: #6090bf;
+    --synNumber: #289f63;
+    --synFunction: #5a87f7;
+    --synClass: #1096cd;
+    --synNamespace: #1096cd;
+    --synVariable: #bf6ad8;
+    --synOperator: #8c8c8c;
+    --synPrompt: #e16a0a;
+    --synInterp: #55a956;
+    --synError: #ff4747;
+    --synInserted: #00a300;
+    --synDeleted: #ff4747;
+    --synHeading: #7d7dff;
+    --synPlain: #c8d2d7;
+    --synMuted: #8c8c8c;
+    --synHighlighted: #979797;
+    --codeBlockBg: var(--background);
+    --codeHighlightBg: #22242a; // pygments' #eeffcc stays light otherwise
+    --parsonsLabelColor: #8e8eea;
 }
 
 [data-theme="dark"] {
     --background: #2c2f33;
     --outerBackground: #23272a;
-    --links: #7289da;
-    --bodyFont: #99aab5;
+    --links: #8ab4f8;   // was #7289da = 4.04:1 on --background
+    --bodyFont: #c8d2d7; // was #99aab5 = 2.97:1 on --questionBgColor
     --tooltip: #000000;
     --grayToWhite: #ffffff;
     --dropdownBg: #1a1a1a;
@@ -110,25 +176,60 @@
     --navbar: #3d3d3d;
     --navbarFont: #ffffff;
     --navbarFontHover: #d6d6d6;
-    --alerts: #714082;
+    --alerts: #5d346a;
     --completionButton: #650087;
     --completionButtonHover: #560073;
     --completionButtonText: #ffffff;
     --admonition: #3d3d3d;
     --admonitionBorder: #262626;
-    --codeButtons: #7289da;
+    --codeButtons: #526fd2; // was #7289da = 3.33:1 behind its white label
     --codeButtonsBorder: #ffffff;
-    --dangerAlerts: #8c2626;
-    --successAlerts: #217300;
-    --componentBgColor: #07467d;
+    --dangerAlerts: #7f2222;
+    --successAlerts: #174f00;
+    --componentBgColor: #07457c;
     --componentBorderColor: #939090;
-    --questionBgColor: rgb(23, 85, 93);
+    --questionBgColor: #124349; // was rgb(23,85,93) = 3.52:1 under --bodyFont
 
     // --- Shared drag/drop + matching ---
     --draggableBgColor: #393434;
     --dropableBgColor: #2a2d30;
-    --draggableIncorrectBorder: red;
+    --draggableIncorrectBorder: #ff5353; // plain `red` was 2.55:1 on the fill
     --draggableIncorrectBg: #6d2d2d;
     --dragLineColor: #ffffff;
     --boxBorderColor: #ffffff;
+
+    // --- Parsons ---
+    // This block previously defined none of these, so a PreTeXt dark book
+    // silently inherited the *light* pale-yellow/green/pink fills while the
+    // body font stayed light — the container read as a light patch in an
+    // otherwise dark page.  Kept in step with :root.dark-mode above.
+    --parsonsBgColor: #5b5b1b;
+    --parsonsBorderColor: #b4b430;
+    --parsonsCorrectBgColor: #455f3a;
+    --parsonsCorrectBorderColor: #8eba7b;
+    --parsonsIncorrectBgColor: #6e5151;
+    --parsonsIncorrectBorderColor: #d7a1a1;
+
+    // --- Syntax highlighting (lightened for a dark canvas) ---
+    --synComment: #4b96a9;
+    --synKeyword: #00a32e;
+    --synString: #6090bf;
+    --synNumber: #289f63;
+    --synFunction: #5a87f7;
+    --synClass: #1096cd;
+    --synNamespace: #1096cd;
+    --synVariable: #bf6ad8;
+    --synOperator: #8c8c8c;
+    --synPrompt: #e16a0a;
+    --synInterp: #55a956;
+    --synError: #ff4747;
+    --synInserted: #00a300;
+    --synDeleted: #ff4747;
+    --synHeading: #7d7dff;
+    --synPlain: #c8d2d7;
+    --synMuted: #8c8c8c;
+    --synHighlighted: #979797;
+    --codeBlockBg: var(--background);
+    --codeHighlightBg: #22242a; // pygments' #eeffcc stays light otherwise
+    --parsonsLabelColor: #8e8eea;
 }

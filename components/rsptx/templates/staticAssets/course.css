@@ -20,3 +20,9 @@
     margin-right: auto;
   }
 }
+.course-chooser-toggle {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
