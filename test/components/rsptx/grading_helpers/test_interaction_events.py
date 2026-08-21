@@ -25,7 +25,7 @@ from rsptx.db.crud import (
 
 
 def test_video_and_poll_are_interaction_only():
-    assert INTERACTION_ONLY_EVENTS == {"video", "poll"}
+    assert INTERACTION_ONLY_EVENTS == {"video", "poll", "quizly"}
 
 
 def test_interaction_only_events_have_no_answer_table():
@@ -78,7 +78,7 @@ def _supported(option):
 
 
 def test_interaction_only_question_types():
-    assert INTERACTION_ONLY_QUESTION_TYPES == {"video", "youtube", "poll"}
+    assert INTERACTION_ONLY_QUESTION_TYPES == {"video", "youtube", "poll", "quizly"}
 
 
 def test_correctness_policies_exclude_interaction_only_types():

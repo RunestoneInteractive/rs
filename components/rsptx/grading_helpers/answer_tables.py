@@ -60,6 +60,7 @@ QTYPE_TO_INTERACTION_EVENTS = {
     "video": {"video"},
     "youtube": {"video"},
     "poll": {"poll"},
+    "quizly": {"quizly"},
 }
 
 

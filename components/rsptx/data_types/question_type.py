@@ -73,6 +73,12 @@ class QuestionType(Enum):
         "Embed an external interactive activity using SPLICE",
     )
 
+    QUIZLY = (
+        "quizly",
+        "Quizly",
+        "Create a quiz question using the Quizly platform",
+    )
+
     def to_dict(self):
         return {
             "value": self.value[0],
@@ -92,7 +98,7 @@ class QuestionType(Enum):
         """Types with no notion of a correct answer: all we can ever know is
         that the student interacted with them.  These correspond to the
         ``INTERACTION_ONLY_EVENTS`` the scorer recognises."""
-        return [cls.VIDEO, cls.YOUTUBE, cls.POLL]
+        return [cls.VIDEO, cls.YOUTUBE, cls.POLL, cls.QUIZLY]
 
     @classmethod
     def correctness_gradable_types(cls):
