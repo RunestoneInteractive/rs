@@ -181,18 +181,18 @@ export default class MultipleChoice extends RunestoneBase {
         this.optsForm.onsubmit = function () {
             return false;
         };
-        // Add fieldset and legend for accessibility
+        // Add fieldset and legend for accessibility - legend must come before the options
+        // so screen readers read the legend first.
         this.optsFieldSet = document.createElement("fieldset");
-        this.optsFieldSet.setAttribute("role", "radiogroup");
+        this.optsFieldSet.setAttribute(
+            "role",
+            this.multipleanswers ? "group" : "radiogroup",
+        );
         this.optsFieldSet.setAttribute(
             "aria-labelledby",
             this.divid + "_prompt",
         );
         this.optsForm.appendChild(this.optsFieldSet);
-        // generate form options
-        this.renderMCFormOpts();
-        this.renderMCFormButtons();
-        // Append the form to the container
         let legend = document.createElement("legend");
         if (this.multipleanswers) {
             legend.textContent = "Choose all that apply";
@@ -200,6 +200,10 @@ export default class MultipleChoice extends RunestoneBase {
             legend.textContent = "Choose one";
         }
         this.optsFieldSet.appendChild(legend);
+        // generate form options
+        this.renderMCFormOpts();
+        this.renderMCFormButtons();
+        // Append the form to the container
         this.containerDiv.appendChild(this.optsForm);
     }
 
