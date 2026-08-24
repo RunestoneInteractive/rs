@@ -143,6 +143,31 @@ describe("matching keyboard controls", () => {
         );
     });
 
+    it("refreshes box labels when MathJax speech becomes available", async () => {
+        const matching = await makeMatching({
+            question: {
+                statement: "Match the function.",
+                left: [
+                    {
+                        id: "p1",
+                        label: '<span class="process-math"></span>',
+                    },
+                ],
+                right: [{ id: "r1", label: "Derivative" }],
+                correctAnswers: [["p1", "r1"]],
+            },
+        });
+        const leftBox = matching.leftColumn.querySelector(".box");
+        const math = leftBox.querySelector(".process-math");
+        const mathContainer = document.createElement("mjx-container");
+
+        math.appendChild(mathContainer);
+        mathContainer.setAttribute("data-semantic-speech-none", "x squared");
+        await tick();
+
+        expect(leftBox.getAttribute("aria-label")).toBe("Draggable: x squared");
+    });
+
     it("only keeps right boxes tabbable while a left box is active", async () => {
         const matching = await makeMatching();
         const leftBoxes = [...matching.leftColumn.querySelectorAll(".box")];

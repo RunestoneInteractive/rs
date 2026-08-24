@@ -67,6 +67,7 @@ export class MatchingProblem extends RunestoneBase {
 
         this.renderBoxes();
         this.attachEvents();
+        this.observeMathJaxSpeech();
 
         this.queueMathJax(this.containerDiv).then(() => {
             this.disableBoxMathTabStops();
@@ -475,6 +476,24 @@ export class MatchingProblem extends RunestoneBase {
 
     disableBoxMathTabStops(root = this.containerDiv) {
         disableMathJaxTabStops(root, [".box"]);
+    }
+
+    observeMathJaxSpeech() {
+        if (typeof MutationObserver === "undefined") return;
+
+        this.mathJaxSpeechObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                const box = mutation.target.closest?.(".box");
+                if (box && this.allBoxes.includes(box)) {
+                    this.updateBoxAriaLabel(box);
+                }
+            }
+        });
+        this.mathJaxSpeechObserver.observe(this.containerDiv, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["data-semantic-speech-none"],
+        });
     }
 
     getColumnBoxes(role) {
