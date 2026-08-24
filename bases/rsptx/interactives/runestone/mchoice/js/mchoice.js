@@ -12,6 +12,10 @@
 ==========================================*/
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 //import "./../styles/runestone.css";
 import "../css/mchoice.css";
 
@@ -53,7 +57,10 @@ export default class MultipleChoice extends RunestoneBase {
         // https://docs.mathjax.org/en/latest/options/startup/startup.html
         // https://docs.mathjax.org/en/latest/web/configuration.html#startup-action
         // runestoneMathReady is defined in the preamble for all PTX authored books
-        this.queueMathJax(this.containerDiv);
+        this.queueMathJax(this.containerDiv).then(() => {
+            this.updateMathJaxOptionLabels();
+            this.disableOptionMathJaxTabStops();
+        });
         if (typeof Prism !== "undefined") {
             Prism.highlightAllUnder(this.containerDiv);
         }
@@ -208,12 +215,9 @@ export default class MultipleChoice extends RunestoneBase {
     }
 
     renderMCFormOpts() {
-        // creates input DOM elements
-        this.optionArray = []; // array with an object for each option containing the input and label for that option
-        var input_type = "radio";
-        if (this.multipleanswers) {
-            input_type = "checkbox";
-        }
+        // Creates input DOM elements.
+        this.optionArray = []; // Array with an object for each option containing its input and content div.
+        const inputType = this.multipleanswers ? "checkbox" : "radio";
         // this.indexArray is used to index through the answers
         // it is just 0-n normally, but the order is shuffled if the random option is present
         this.indexArray = [];
@@ -229,32 +233,75 @@ export default class MultipleChoice extends RunestoneBase {
         };
         for (var j = 0; j < this.answerList.length; j++) {
             var k = this.indexArray[j];
-            var optid = this.divid + "_opt_" + k;
-            // Create the label for the input
-            var label = document.createElement("label");
-            label.className = "mchoice-option";
-            // If the content begins with a ``<p>``, put the label inside of it. (Sphinx 2.0 puts all content in a ``<p>``, while Sphinx 1.8 doesn't).
-            var content = this.answerList[k].content;
-            var prefix = "";
-            if (content.startsWith("<p>")) {
-                prefix = "<p>";
-                content = content.slice(3);
-            }
-            label.innerHTML =
-                `${prefix}<input type="${input_type}" name="group1" value="${k}" id="${optid}" class="mchoice-input">` +
-                `${String.fromCharCode("A".charCodeAt(0) + j)}. ${content}`;
-            // create the object to store in optionArray
-            var inputEl = label.querySelector("input");
-            var optObj = {
-                input: inputEl,
-                label: label,
-            };
-            optObj.input.onclick = answerFunc;
+            const optObj = this.createMCOption(k, j, inputType, answerFunc);
 
             this.optionArray.push(optObj);
             // add the option to the form
-            this.optsFieldSet.appendChild(label);
+            this.optsFieldSet.appendChild(optObj.label);
         }
+    }
+
+    createMCOption(answerIndex, displayIndex, inputType, answerFunc) {
+        const optionId = this.divid + "_opt_" + answerIndex;
+        const optionLetter = String.fromCharCode(
+            "A".charCodeAt(0) + displayIndex,
+        );
+        const content = this.answerList[answerIndex].content;
+        const label = document.createElement("label");
+        label.className = "mchoice-option";
+
+        let input;
+        let accessibleText;
+        let visibleContent;
+        if (this.containsMathJax(content)) {
+            input = document.createElement("input");
+            input.type = inputType;
+            input.name = "group1";
+            input.value = answerIndex;
+            input.id = optionId;
+            input.className = "mchoice-input";
+
+            accessibleText = document.createElement("span");
+            accessibleText.className = "visuallyhidden";
+            accessibleText.textContent = `Option ${optionLetter}. Content follows.`;
+
+            visibleContent = document.createElement("span");
+            visibleContent.innerHTML = `${optionLetter}. ${content}`;
+            label.append(input, accessibleText, visibleContent);
+        } else {
+            let labelContent = content;
+            let prefix = "";
+            if (labelContent.startsWith("<p>")) {
+                prefix = "<p>";
+                labelContent = labelContent.slice(3);
+            }
+            label.innerHTML =
+                `${prefix}<input type="${inputType}" name="group1" value="${answerIndex}" id="${optionId}" class="mchoice-input">` +
+                `${optionLetter}. ${labelContent}`;
+            input = label.querySelector("input");
+        }
+
+        input.onclick = answerFunc;
+        return { input, label, accessibleText, visibleContent };
+    }
+
+    updateMathJaxOptionLabels() {
+        for (const option of this.optionArray) {
+            if (!option.accessibleText) {
+                continue;
+            }
+            option.accessibleText.textContent =
+                `Option ${getAccessibleElementText(option.visibleContent)}`;
+            option.visibleContent.setAttribute("aria-hidden", "true");
+        }
+    }
+
+    containsMathJax(content) {
+        return /MathJax|mjx-container|process-math/.test(content);
+    }
+
+    disableOptionMathJaxTabStops() {
+        disableMathJaxTabStops(this.containerDiv, [".mchoice-option"]);
     }
 
     renderMCFormButtons() {

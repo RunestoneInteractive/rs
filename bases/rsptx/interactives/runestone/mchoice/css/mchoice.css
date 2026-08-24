@@ -20,6 +20,10 @@
     display: inline;
 }
 
+.multiplechoice_section label > span[aria-hidden="true"] > .para {
+    display: inline;
+}
+
 /* The timed assessment strips off the container with the .multiplechoice_section class,
    so we need to apply the same styles to the .timedAssessment class */
 .timedAssessment .mchoice label > .para {

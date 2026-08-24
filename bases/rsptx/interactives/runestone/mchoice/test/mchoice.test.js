@@ -59,6 +59,28 @@ describe("construction", () => {
         expect(mc.correctIndexList).toEqual([0]);
         expect(mc.optionArray.map((o) => o.input.value)).toEqual(["0", "1"]);
     });
+
+    it("builds a MathJax option label from MathJax speech text", () => {
+        const mc = makeMC();
+        mc.answerList[1].content = `<span class="process-math">\\(x^2\\)</span>`;
+        const option = mc.createMCOption(1, 1, "radio", vi.fn());
+        const mathContent = option.visibleContent.querySelector(".process-math");
+        mathContent.innerHTML = `<mjx-container aria-label="x squared"></mjx-container>`;
+        mc.optionArray = [option];
+
+        mc.optsFieldSet.appendChild(option.label);
+        mc.updateMathJaxOptionLabels();
+
+        expect(option.label.tagName).toBe("LABEL");
+        expect(option.label.getAttribute("aria-label")).toBeNull();
+        expect(option.accessibleText.textContent).toBe("Option B. x squared");
+        expect(option.visibleContent.getAttribute("aria-hidden")).toBe("true");
+
+        option.label.click();
+        mc.disableOptionMathJaxTabStops();
+        expect(mathContent.firstElementChild.getAttribute("tabindex")).toBe("-1");
+        expect(option.input.checked).toBe(true);
+    });
 });
 
 describe("logging a first-choice answer (issue #1319)", () => {
