@@ -1104,10 +1104,18 @@ def _process_single_question(
             idchild = dynamic.attrib["id"]
             qtype = dynamic.attrib["data-component"]
     if qtype == "doenet":
-        # rewrite the url in the dbtext to use the course name in the path
+        # Rewrite the url in the dbtext to use the course name (base course) in
+        # the path. This src is baked in at build time and copied verbatim
+        # whenever the question is later linked/copied into a different course
+        # (e.g. via assignment import or exercise search), so it keeps pointing
+        # at this base course forever. mode=browsing tells serve_page to render
+        # it anonymously, which skips the "active course doesn't match the URL"
+        # redirect to the change-course page -- safe here because grading is
+        # driven entirely by the outer page's own session via postMessage, and
+        # base courses are never login_required.
         dbtext = re.sub(
             r'(<iframe.*?)src="(.*?.html)"',
-            rf'\1 src="/ns/books/published/{course_name}/\2"',
+            rf'\1 src="/ns/books/published/{course_name}/\2?mode=browsing"',
             dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
