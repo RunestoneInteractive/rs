@@ -1,4 +1,8 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 import "../css/matching.less";
 import { MatchingXmlConverter } from "./xmlconversion.js";
 export class MatchingProblem extends RunestoneBase {
@@ -65,6 +69,7 @@ export class MatchingProblem extends RunestoneBase {
 
         this.queueMathJax(this.containerDiv).then(() => {
             this.disableBoxMathTabStops();
+            this.updateBoxAriaLabels();
         });
     }
 
@@ -402,25 +407,34 @@ export class MatchingProblem extends RunestoneBase {
         div.innerHTML = label;
         div.tabIndex = 0;
         div.setAttribute("role", "button");
-        div.setAttribute(
-            "aria-label",
-            `${role === "drag" ? "Draggable" : "Droppable"}: ${label}`,
-        );
+        this.updateBoxAriaLabel(div);
         return div;
     }
 
-    disableBoxMathTabStops(root = this.containerDiv) {
-        const mathSelector = [
-            ".box .MathJax",
-            ".box mjx-container",
-            ".box .process-math",
-            ".box .MathJax [tabindex]",
-            ".box mjx-container [tabindex]",
-            ".box .process-math [tabindex]",
-        ].join(", ");
-        for (const mathElement of root.querySelectorAll(mathSelector)) {
-            mathElement.setAttribute("tabindex", "-1");
+    getBoxLabel(box) {
+        return getAccessibleElementText(box) || "box";
+    }
+
+    updateBoxAriaLabel(box) {
+        const labelPrefix =
+            box.dataset.role === "drag" ? "Draggable" : "Droppable";
+        box.setAttribute(
+            "aria-label",
+            labelPrefix + ": " + this.getBoxLabel(box),
+        );
+    }
+
+    updateBoxAriaLabels() {
+        for (const box of this.allBoxes || []) {
+            this.updateBoxAriaLabel(box);
         }
+        for (const connection of this.connections || []) {
+            this.updateLineAriaLabel(connection.line);
+        }
+    }
+
+    disableBoxMathTabStops(root = this.containerDiv) {
+        disableMathJaxTabStops(root, [".box"]);
     }
 
     getColumnBoxes(role) {
@@ -465,7 +479,7 @@ export class MatchingProblem extends RunestoneBase {
             const firstOppositeBox = this.getTabbableBoxes()[0];
             firstOppositeBox?.focus();
             if (this.ariaLive) {
-                this.ariaLive.textContent = `Selected ${box.textContent}. Tab to a box in the other column and press Enter to connect, or press Escape to cancel.`;
+                this.ariaLive.textContent = `Selected ${this.getBoxLabel(box)}. Tab to a box in the other column and press Enter to connect, or press Escape to cancel.`;
             }
             return;
         }
@@ -491,8 +505,12 @@ export class MatchingProblem extends RunestoneBase {
             }
             line.classList.add("selected");
             if (announce && this.ariaLive) {
-                const fromLabel = line.fromBox?.textContent || "one box";
-                const toLabel = line.toBox?.textContent || "another box";
+                const fromLabel = line.fromBox
+                    ? this.getBoxLabel(line.fromBox)
+                    : "one box";
+                const toLabel = line.toBox
+                    ? this.getBoxLabel(line.toBox)
+                    : "another box";
                 this.ariaLive.textContent = `Selected connection from ${fromLabel} to ${toLabel}. Press Enter to delete it.`;
             }
         }
@@ -638,9 +656,33 @@ export class MatchingProblem extends RunestoneBase {
         return line;
     }
 
+    updateLineAriaLabel(line) {
+        if (!line) {
+            return;
+        }
+        const fromLabel = line.fromBox
+            ? this.getBoxLabel(line.fromBox)
+            : "one box";
+        const toLabel = line.toBox
+            ? this.getBoxLabel(line.toBox)
+            : "another box";
+        line.setAttribute(
+            "aria-label",
+            "Connection from " +
+                fromLabel +
+                " to " +
+                toLabel +
+                ". Press Enter, Delete, or Backspace to remove.",
+        );
+    }
+
     removeLine(line) {
-        const fromLabel = line.fromBox?.textContent || "one box";
-        const toLabel = line.toBox?.textContent || "another box";
+        const fromLabel = line.fromBox
+            ? this.getBoxLabel(line.fromBox)
+            : "one box";
+        const toLabel = line.toBox
+            ? this.getBoxLabel(line.toBox)
+            : "another box";
         if (this.selectedLine === line) {
             this.setSelectedLine(null, false);
         }
@@ -691,6 +733,7 @@ export class MatchingProblem extends RunestoneBase {
 
         line.fromBox = fromBox;
         line.toBox = toBox;
+        this.updateLineAriaLabel(line);
 
         this.svg.appendChild(line);
         this.connections.push({ fromBox, toBox, line });
@@ -698,7 +741,7 @@ export class MatchingProblem extends RunestoneBase {
         this.isAnswered = true;
 
         if (this.ariaLive) {
-            this.ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
+            this.ariaLive.textContent = `Connected ${this.getBoxLabel(fromBox)} to ${this.getBoxLabel(toBox)}`;
         }
         return true;
     }
@@ -729,14 +772,11 @@ export class MatchingProblem extends RunestoneBase {
             if (conn.line) {
                 conn.line.classList.remove("correct", "incorrect");
             }
-            const fromLabel = conn.fromBox.textContent;
-            let toLabel = conn.toBox.textContent;
-            if (!toLabel) {
-                toLabel = conn.toBox.querySelector("img").alt; // innerHTML preserves everything inside <label>…</label>
-            }
+            const fromLabel = this.getBoxLabel(conn.fromBox);
+            const toLabel = this.getBoxLabel(conn.toBox);
             const line = document.createElement("div");
             line.className = "conn-entry";
-            line.textContent = `${fromLabel} → ${toLabel}`;
+            line.innerHTML = `${fromLabel} <span aria-hidden="true">→</span><span class="visuallyhidden">connected to</span> ${toLabel}`;
             this.connList.appendChild(line);
         });
     }

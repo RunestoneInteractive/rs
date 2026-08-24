@@ -54,6 +54,14 @@ function keydown(target, key, extra = {}) {
     );
 }
 
+function renderMathSpeech(element, speech) {
+    const math = element.querySelector(".process-math") || element;
+    math.innerHTML =
+        '<mjx-container data-semantic-speech-none="' +
+        speech +
+        '"><mjx-math aria-hidden="true">ignored</mjx-math></mjx-container>';
+}
+
 beforeEach(() => {
     document.body.innerHTML = "";
     window.componentMap = {};
@@ -84,6 +92,55 @@ describe("matching keyboard controls", () => {
 
         expect(nestedMath.tabIndex).toBe(-1);
         expect(nestedMathChild.tabIndex).toBe(-1);
+    });
+
+    it("uses MathJax speech for box and connection labels", async () => {
+        const matching = await makeMatching({
+            question: {
+                statement: "Match each function to its derivative.",
+                left: [
+                    {
+                        id: "p1",
+                        label: '<span class="process-math">\(x^2\)</span>',
+                    },
+                ],
+                right: [
+                    {
+                        id: "r1",
+                        label: 'Derivative <span class="process-math">\(2x\)</span>',
+                    },
+                ],
+                correctAnswers: [["p1", "r1"]],
+            },
+        });
+        const leftBox = matching.leftColumn.querySelector(".box");
+        const rightBox = matching.rightColumn.querySelector(".box");
+
+        renderMathSpeech(leftBox, "x squared");
+        renderMathSpeech(rightBox, "two x");
+        matching.updateBoxAriaLabels();
+
+        expect(leftBox.getAttribute("aria-label")).toBe("Draggable: x squared");
+        expect(rightBox.getAttribute("aria-label")).toBe(
+            "Droppable: Derivative two x",
+        );
+
+        keydown(leftBox, "Enter");
+        expect(matching.ariaLive.textContent).toBe(
+            "Selected x squared. Tab to a box in the other column and press Enter to connect, or press Escape to cancel.",
+        );
+
+        keydown(rightBox, "Enter");
+        const line = matching.connections[0].line;
+        expect(line.getAttribute("aria-label")).toBe(
+            "Connection from x squared to Derivative two x. Press Enter, Delete, or Backspace to remove.",
+        );
+        expect(matching.ariaLive.textContent).toBe(
+            "Connected x squared to Derivative two x",
+        );
+        expect(matching.connList.querySelector(".conn-entry").textContent).toBe(
+            "x squared → Derivative two x",
+        );
     });
 
     it("only keeps right boxes tabbable while a left box is active", async () => {
