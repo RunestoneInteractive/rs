@@ -933,11 +933,17 @@ function createStudyCluesWidget() {
                 return url ? `[${text}](${url})` : match;
             });
             const formattedResponse = marked.parse(markdownResponse);
-
+            // add a target="_blank" to all links in the formatted response
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = formattedResponse;
+            tempDiv.querySelectorAll("a").forEach((a) => {
+                a.setAttribute("target", "_blank");
+            });
+            const finalFormattedResponse = tempDiv.innerHTML;
             appendStudyCluesMessage(
                 messagesEl,
                 "assistant",
-                formattedResponse,
+                finalFormattedResponse,
                 true,
             );
         } catch (err) {
