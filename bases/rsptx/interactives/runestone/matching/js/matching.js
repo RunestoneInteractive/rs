@@ -340,31 +340,53 @@ export class MatchingProblem extends RunestoneBase {
     }
 
     createHelpModal() {
-        this.helpModal = document.createElement("div");
+        this.helpModal = document.createElement("dialog");
         this.helpModal.className = "help-modal";
+        this.helpModal.setAttribute("aria-live", "polite");
+        this.helpModal.setAttribute("aria-atomic", "true");
+        const titleId = this.divid + "-help-title";
         const text = `<p>Click and drag between boxes to create connections.</p>
         <p>Use the tab key to navigate to a box and press Enter to select it.  Focus then jumps to the other column; tab to the box you want to connect and press Enter.  Press Escape to cancel a selection.</p>
         <p>Click on a connection line or use the tab key to select it. Press Enter, Delete, or Backspace to remove a selected line.</p>
         <p>Click the "Check Me" button to check your connections, and save your work.</p>
         <p>Click the "Reset" button to clear all connections.</p>`;
 
-        this.helpModal.innerHTML = `
-          <div class="help-modal-content">
-            <button class="help-close">&times;</button>
-            <div class="help-text">${text}</div>
-          </div>`;
+        this.helpModal.setAttribute("aria-labelledby", titleId);
+        this.helpModal.innerHTML =
+            '<div class="help-modal-content">' +
+            '<button type="button" class="help-close" aria-label="Close matching help">&times;</button>' +
+            '<h2 id="' +
+            titleId +
+            '">Matching help</h2>' +
+            '<div class="help-text">' +
+            text +
+            "</div></div>";
         this.containerDiv.appendChild(this.helpModal);
         this.helpModal
             .querySelector(".help-close")
             .addEventListener("click", () => this.hideHelp());
+        this.helpModal.addEventListener("cancel", (event) => {
+            event.preventDefault();
+            this.hideHelp();
+        });
+        this.helpModal.addEventListener("click", (event) => {
+            if (event.target === this.helpModal) {
+                this.hideHelp();
+            }
+        });
+        this.helpModal.addEventListener("close", () => this.helpBtn?.focus());
     }
 
     showHelp() {
-        this.helpModal.style.display = "flex";
+        if (!this.helpModal.open) {
+            this.helpModal.showModal();
+        }
     }
 
     hideHelp() {
-        this.helpModal.style.display = "none";
+        if (this.helpModal.open) {
+            this.helpModal.close();
+        }
     }
 
     // Utility functions

@@ -376,4 +376,36 @@ describe("matching keyboard controls", () => {
             "Droppable: Meows",
         );
     });
+
+    it("opens help in a dismissible live dialog", async () => {
+        const matching = await makeMatching();
+        const dialog = matching.helpModal;
+        const closeButton = dialog.querySelector(".help-close");
+        dialog.showModal = vi.fn(function () {
+            this.setAttribute("open", "");
+        });
+        dialog.close = vi.fn(function () {
+            this.removeAttribute("open");
+            this.dispatchEvent(new Event("close"));
+        });
+
+        expect(dialog.tagName).toBe("DIALOG");
+        expect(dialog.getAttribute("aria-live")).toBe("polite");
+        expect(closeButton.getAttribute("aria-label")).toBe(
+            "Close matching help",
+        );
+
+        matching.helpBtn.click();
+        expect(dialog.showModal).toHaveBeenCalledOnce();
+        expect(dialog.open).toBe(true);
+
+        const cancel = new Event("cancel", { cancelable: true });
+        dialog.dispatchEvent(cancel);
+        expect(cancel.defaultPrevented).toBe(true);
+        expect(dialog.close).toHaveBeenCalledOnce();
+
+        matching.showHelp();
+        dialog.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        expect(dialog.close).toHaveBeenCalledTimes(2);
+    });
 });
