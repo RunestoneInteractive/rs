@@ -31,6 +31,10 @@
 
 import RunestoneBase from "../../common/js/runestonebase.js";
 import { t } from "../../common/js/rsi18n.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 import { DragndropXmlConverter } from "./xmlconversion.js";
 import "../css/dragndrop.less";
 import "./dragndrop-i18n.en.js";
@@ -197,6 +201,7 @@ export default class DragNDrop extends RunestoneBase {
         replaceSpan.dataset.category = category;
         replaceSpan.dataset.parent_id = this.divid;
         this.premiseArray.push(replaceSpan);
+        this.updatePremiseAriaLabel(replaceSpan);
         this.setDragListeners(replaceSpan);
         // now create an error message for when the premise is dropped in the wrong place
         let errorMessage = document.createElement("div");
@@ -295,6 +300,7 @@ export default class DragNDrop extends RunestoneBase {
         this.ivp = this.isValidPremise.bind(this);
         this.queueMathJax(this.containerDiv).then(() => {
             this.disablePremiseMathTabStops();
+            this.updatePremiseAriaLabels();
         });
     }
 
@@ -308,6 +314,7 @@ export default class DragNDrop extends RunestoneBase {
             // Ensure MathJax has completed before adjusting the zone widths
             this.queueMathJax(this.containerDiv).then(() => {
                 this.disablePremiseMathTabStops();
+                this.updatePremiseAriaLabels();
                 this.adjustDragDropWidths();
             });
         }
@@ -351,6 +358,7 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents erros w/appending child
                     this.draggableDiv.appendChild(draggedSpan);
+                    this.updatePremiseAriaLabel(draggedSpan);
                     this.adjustDragDropWidths();
                     this.minheight = this.draggableDiv.offsetHeight;
                     this.dragDropWrapDiv.style.minHeight =
@@ -441,6 +449,38 @@ export default class DragNDrop extends RunestoneBase {
                 }
             }
         }
+        this.updatePremiseAriaLabels();
+    }
+
+    getResponseLabel(response) {
+        if (!response) {
+            return "";
+        }
+        const responseClone = response.cloneNode(true);
+        for (const premise of responseClone.querySelectorAll(".premise")) {
+            premise.remove();
+        }
+        return getAccessibleElementText(responseClone);
+    }
+
+    updatePremiseAriaLabel(premise) {
+        const premiseLabel = getAccessibleElementText(premise);
+        const response = this.responseArray.includes(premise.parentElement)
+            ? premise.parentElement
+            : null;
+        const placementLabel = response
+            ? "placed in " + this.getResponseLabel(response)
+            : "unplaced";
+        premise.setAttribute(
+            "aria-label",
+            premiseLabel + " matching premise, " + placementLabel,
+        );
+    }
+
+    updatePremiseAriaLabels() {
+        for (const premise of this.premiseArray) {
+            this.updatePremiseAriaLabel(premise);
+        }
     }
 
     findPremise(id) {
@@ -495,6 +535,7 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
                     this.draggableDiv.appendChild(draggedSpan);
+                    this.updatePremiseAriaLabel(draggedSpan);
                 }
             }.bind(this),
         );
@@ -539,23 +580,7 @@ export default class DragNDrop extends RunestoneBase {
     }
 
     disablePremiseMathTabStops(root = this.containerDiv) {
-        const mathSelector = [
-            ".premise .MathJax",
-            ".premise mjx-container",
-            ".premise .process-math",
-            ".premise .MathJax [tabindex]",
-            ".premise mjx-container [tabindex]",
-            ".premise .process-math [tabindex]",
-            ".response .MathJax",
-            ".response mjx-container",
-            ".response .process-math",
-            ".response .MathJax [tabindex]",
-            ".response mjx-container [tabindex]",
-            ".response .process-math [tabindex]",
-        ].join(", ");
-        for (const mathElement of root.querySelectorAll(mathSelector)) {
-            mathElement.setAttribute("tabindex", "-1");
-        }
+        disableMathJaxTabStops(root, [".premise", ".response"]);
     }
 
     movePremiseFocus(premise, moveDown) {
@@ -629,6 +654,7 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
                     dropTarget.appendChild(draggedSpan);
+                    this.updatePremiseAriaLabel(draggedSpan);
                     // log a drop event
                     this.logBookEvent({
                         event: "dragNdrop-drop",
@@ -638,6 +664,7 @@ export default class DragNDrop extends RunestoneBase {
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
                     this.disablePremiseMathTabStops();
+                    this.updatePremiseAriaLabels();
                     this.adjustDragDropWidths();
                 });
             }.bind(this),
@@ -696,7 +723,7 @@ export default class DragNDrop extends RunestoneBase {
         if (!this.dragDropWrapDiv) {
             return;
         }
-        const premiseLabel = premise.textContent.trim();
+        const premiseLabel = getAccessibleElementText(premise);
         this.dragDropWrapDiv.tabIndex = 0;
         this.dragDropWrapDiv.setAttribute("role", "application");
         this.dragDropWrapDiv.setAttribute(
@@ -878,6 +905,7 @@ export default class DragNDrop extends RunestoneBase {
             this.activeResponse = destination;
         }
         destination.appendChild(premise);
+        this.updatePremiseAriaLabel(premise);
         this.isAnswered = true;
         this.logBookEvent({
             event: "dragNdrop-drop",
@@ -886,6 +914,7 @@ export default class DragNDrop extends RunestoneBase {
         });
         this.queueMathJax(this.containerDiv).then(() => {
             this.disablePremiseMathTabStops();
+            this.updatePremiseAriaLabels();
             this.adjustDragDropWidths();
         });
     }
@@ -1014,6 +1043,7 @@ export default class DragNDrop extends RunestoneBase {
             premise.removeAttribute("aria-errormessage");
             this.draggableDiv.appendChild(premise);
         }
+        this.updatePremiseAriaLabels();
         this.answerState = {};
         // Start the "3 tries before red" cycle over after a reset
         this.tries = 0;

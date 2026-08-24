@@ -95,6 +95,14 @@ function place(dnd, premiseId, responseId) {
     response.appendChild(premise);
 }
 
+function renderMathSpeech(element, speech) {
+    const math = element.querySelector(".process-math") || element;
+    math.innerHTML =
+        '<mjx-container data-semantic-speech-none="' +
+        speech +
+        '"><mjx-math aria-hidden="true">ignored</mjx-math></mjx-container>';
+}
+
 // Feedback text is written inside a setTimeout(…, 10).
 const feedbackSettles = () => tick(20);
 
@@ -466,6 +474,73 @@ describe("keyboard controls", () => {
         expect(premise.classList.contains("selected")).toBe(false);
     });
 
+    it("updates premise aria labels as premises are placed and returned", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const response = dnd.responseArray.find((r) => r.id === "r1");
+
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Dog matching premise, unplaced",
+        );
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(response.contains(premise)).toBe(true);
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Dog matching premise, placed in Barks",
+        );
+
+        dnd.dragDropWrapDiv.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Dog matching premise, unplaced",
+        );
+    });
+
+    it("uses MathJax speech for premise aria labels", async () => {
+        const dnd = await makeDnd({
+            question: {
+                statement: "Match each function to its derivative.",
+                left: [
+                    {
+                        id: "p1",
+                        label: '<span class="process-math">\(x^2\)</span>',
+                    },
+                ],
+                right: [
+                    {
+                        id: "r1",
+                        label: '<span class="process-math">\(2x\)</span>',
+                    },
+                ],
+                correctAnswers: [["p1", "r1"]],
+            },
+        });
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[0];
+
+        renderMathSpeech(premise, "x squared");
+        renderMathSpeech(response, "two x");
+        dnd.updatePremiseAriaLabels();
+
+        expect(premise.getAttribute("aria-label")).toBe(
+            "x squared matching premise, unplaced",
+        );
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+
+        expect(premise.getAttribute("aria-label")).toBe(
+            "x squared matching premise, placed in two x",
+        );
+        expect(dnd.keyboardInstructionDiv.textContent).toBe(
+            "Moving x squared. Use arrow keys to choose a target, Enter to place, or Escape to cancel.",
+        );
+    });
     it.each(["Enter", " "])(
         "places the selected premise in a response with %j",
         async (key) => {
