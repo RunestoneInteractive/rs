@@ -209,6 +209,20 @@
     font-size: 0.9rem;
 }
 
+.match-feedback {
+    max-width: 780px;
+    margin: 0 auto 1rem;
+    padding: 10px 14px;
+    background: var(--background, #ffffff);
+    border: 1px solid var(--componentBorderColor, #cccccc);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.match-feedback[hidden] {
+    display: none;
+}
+
 .conn-entry {
     margin: 4px 0;
 }

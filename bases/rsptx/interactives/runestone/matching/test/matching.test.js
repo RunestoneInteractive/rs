@@ -307,4 +307,33 @@ describe("matching keyboard controls", () => {
         expect(matching.connections[0].fromBox).toBe(leftBoxes[0]);
         expect(matching.connections[0].toBox).toBe(rightBoxes[0]);
     });
+
+    it("shows live feedback after checking and hides it after an edit", async () => {
+        const matching = await makeMatching();
+        const leftBoxes = [...matching.leftColumn.querySelectorAll(".box")];
+        const rightBoxes = [...matching.rightColumn.querySelectorAll(".box")];
+
+        expect(matching.feedbackDiv.hidden).toBe(true);
+        expect(matching.feedbackDiv.getAttribute("role")).toBe("status");
+        expect(matching.feedbackDiv.getAttribute("aria-live")).toBe("polite");
+        expect(matching.feedbackDiv.previousElementSibling).toBe(
+            matching.connList,
+        );
+
+        leftBoxes[0].click();
+        rightBoxes[0].click();
+        expect(matching.feedbackDiv.hidden).toBe(true);
+
+        matching.gradeConnections();
+        expect(matching.feedbackDiv.hidden).toBe(false);
+        expect(matching.feedbackDiv.textContent).toContain("Score:");
+        expect(matching.connList.querySelector(".conn-entry")).not.toBe(null);
+
+        const restored = await makeMatching();
+        expect(restored.feedbackDiv.hidden).toBe(true);
+
+        keydown(matching.connections[0].line, "Enter");
+        expect(matching.feedbackDiv.hidden).toBe(true);
+        expect(matching.feedbackDiv.textContent).toBe("");
+    });
 });

@@ -38,6 +38,7 @@ export class MatchingProblem extends RunestoneBase {
             console.error("Error setting statement:", error);
         }
         this.connList = this.createConnList(container);
+        this.feedbackDiv = this.createFeedbackDiv(container);
         this.ariaLive = this.createAriaLive(container);
         this.controlDiv = this.createControlDiv(container);
         this.createHelpModal();
@@ -162,15 +163,16 @@ export class MatchingProblem extends RunestoneBase {
 
         const badgeClass =
             this.scorePercent === 100 ? " match-score-perfect" : "";
-        this.connList.innerHTML = `<div class="match-results"><span class="match-score-badge${badgeClass}">Score: ${this.scorePercent}%</span><span class="match-counts">${this.correctCount} correct &middot; ${this.incorrectCount} incorrect &middot; ${this.missingCount} missing</span></div>`;
+        this.feedbackDiv.hidden = false;
+        this.feedbackDiv.innerHTML = `<div class="match-results"><span class="match-score-badge${badgeClass}">Score: ${this.scorePercent}%</span><span class="match-counts">${this.correctCount} correct &middot; ${this.incorrectCount} incorrect &middot; ${this.missingCount} missing</span></div>`;
         if (
             this.scorePercent !== 100 &&
             this.boxData.feedback &&
             this.boxData.feedback.trim()
         ) {
-            this.connList.innerHTML += `<div class="match_feedback exercise-content"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
+            this.feedbackDiv.innerHTML += `<div class="match_feedback exercise-content"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
         }
-        this.queueMathJax(this.connList);
+        this.queueMathJax(this.feedbackDiv);
     }
 
     createStatement(container) {
@@ -231,7 +233,6 @@ export class MatchingProblem extends RunestoneBase {
             this.missingCount = parsedData.missingCount;
             this.scorePercent = parsedData.score;
             this.restoreAnswers();
-            this.renderFeedback();
         }
     }
     setLocalStorage() {
@@ -284,6 +285,17 @@ export class MatchingProblem extends RunestoneBase {
             '<strong>Connections:</strong><div class="conn-entry conn-empty">No connections yet. Drag between boxes to connect them.</div>';
         container.appendChild(connList);
         return connList;
+    }
+
+    createFeedbackDiv(container) {
+        const feedbackDiv = document.createElement("div");
+        feedbackDiv.className = "match-feedback";
+        feedbackDiv.hidden = true;
+        feedbackDiv.setAttribute("role", "status");
+        feedbackDiv.setAttribute("aria-live", "polite");
+        feedbackDiv.setAttribute("aria-atomic", "true");
+        container.appendChild(feedbackDiv);
+        return feedbackDiv;
     }
 
     createAriaLive(container) {
@@ -753,9 +765,15 @@ export class MatchingProblem extends RunestoneBase {
         });
     }
 
+    hideFeedback() {
+        this.feedbackDiv.hidden = true;
+        this.feedbackDiv.replaceChildren();
+    }
+
     updateConnectionModel() {
         // Any change to the connections invalidates previously rendered
         // grading marks, so clear them along with rebuilding the list.
+        this.hideFeedback();
         this.allBoxes.forEach((box) =>
             box.classList.remove("match-correct", "match-incorrect"),
         );
