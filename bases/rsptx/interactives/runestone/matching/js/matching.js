@@ -160,6 +160,7 @@ export class MatchingProblem extends RunestoneBase {
                 }
             });
         });
+        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
 
         const badgeClass =
             this.scorePercent === 100 ? " match-score-perfect" : "";
@@ -430,9 +431,14 @@ export class MatchingProblem extends RunestoneBase {
     updateBoxAriaLabel(box) {
         const labelPrefix =
             box.dataset.role === "drag" ? "Draggable" : "Droppable";
+        const gradingState = box.classList.contains("match-incorrect")
+            ? ", incorrect"
+            : box.classList.contains("match-correct")
+              ? ", correct"
+              : "";
         box.setAttribute(
             "aria-label",
-            labelPrefix + ": " + this.getBoxLabel(box),
+            labelPrefix + ": " + this.getBoxLabel(box) + gradingState,
         );
     }
 
@@ -777,6 +783,7 @@ export class MatchingProblem extends RunestoneBase {
         this.allBoxes.forEach((box) =>
             box.classList.remove("match-correct", "match-incorrect"),
         );
+        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
         this.connList.innerHTML = "<strong>Connections:</strong>";
         if (this.connections.length === 0) {
             const empty = document.createElement("div");

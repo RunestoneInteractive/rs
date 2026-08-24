@@ -336,4 +336,44 @@ describe("matching keyboard controls", () => {
         expect(matching.feedbackDiv.hidden).toBe(true);
         expect(matching.feedbackDiv.textContent).toBe("");
     });
+
+    it("updates box labels for grading states and connection edits", async () => {
+        const matching = await makeMatching();
+        const boxes = [...matching.allBoxes];
+        const premise = boxes.find((box) => box.dataset.id === "p1");
+        const correctResponse = boxes.find((box) => box.dataset.id === "r1");
+        const incorrectResponse = boxes.find((box) => box.dataset.id === "r2");
+
+        premise.click();
+        correctResponse.click();
+        matching.gradeConnections();
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Draggable: Dog, correct",
+        );
+        expect(correctResponse.getAttribute("aria-label")).toBe(
+            "Droppable: Barks, correct",
+        );
+
+        keydown(matching.connections[0].line, "Enter");
+        expect(premise.getAttribute("aria-label")).toBe("Draggable: Dog");
+        expect(correctResponse.getAttribute("aria-label")).toBe(
+            "Droppable: Barks",
+        );
+
+        premise.click();
+        incorrectResponse.click();
+        matching.gradeConnections();
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Draggable: Dog, incorrect",
+        );
+        expect(incorrectResponse.getAttribute("aria-label")).toBe(
+            "Droppable: Meows, incorrect",
+        );
+
+        matching.resetConnections();
+        expect(premise.getAttribute("aria-label")).toBe("Draggable: Dog");
+        expect(incorrectResponse.getAttribute("aria-label")).toBe(
+            "Droppable: Meows",
+        );
+    });
 });
