@@ -1,4 +1,8 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 import "../css/matching.less";
 import { MatchingXmlConverter } from "./xmlconversion.js";
 export class MatchingProblem extends RunestoneBase {
@@ -34,6 +38,7 @@ export class MatchingProblem extends RunestoneBase {
             console.error("Error setting statement:", error);
         }
         this.connList = this.createConnList(container);
+        this.feedbackDiv = this.createFeedbackDiv(container);
         this.ariaLive = this.createAriaLive(container);
         this.controlDiv = this.createControlDiv(container);
         this.createHelpModal();
@@ -41,6 +46,8 @@ export class MatchingProblem extends RunestoneBase {
         this.connections = [];
         this.allBoxes = [];
         this.selectedBox = null;
+        this.activeBoxRole = null;
+        this.selectedLine = null;
         this.startBox = null;
         this.tempLine = null;
         this.useRunestoneServices = eBookConfig.useRunestoneServices;
@@ -61,7 +68,10 @@ export class MatchingProblem extends RunestoneBase {
         this.renderBoxes();
         this.attachEvents();
 
-        this.queueMathJax(this.containerDiv);
+        this.queueMathJax(this.containerDiv).then(() => {
+            this.disableBoxMathTabStops();
+            this.updateBoxAriaLabels();
+        });
     }
 
     // required elements for a Runestone component
@@ -150,18 +160,20 @@ export class MatchingProblem extends RunestoneBase {
                 }
             });
         });
+        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
 
         const badgeClass =
             this.scorePercent === 100 ? " match-score-perfect" : "";
-        this.connList.innerHTML = `<div class="match-results"><span class="match-score-badge${badgeClass}">Score: ${this.scorePercent}%</span><span class="match-counts">${this.correctCount} correct &middot; ${this.incorrectCount} incorrect &middot; ${this.missingCount} missing</span></div>`;
+        this.feedbackDiv.hidden = false;
+        this.feedbackDiv.innerHTML = `<div class="match-results"><span class="match-score-badge${badgeClass}">Score: ${this.scorePercent}%</span><span class="match-counts">${this.correctCount} correct &middot; ${this.incorrectCount} incorrect &middot; ${this.missingCount} missing</span></div>`;
         if (
             this.scorePercent !== 100 &&
             this.boxData.feedback &&
             this.boxData.feedback.trim()
         ) {
-            this.connList.innerHTML += `<div class="match_feedback exercise-content"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
+            this.feedbackDiv.innerHTML += `<div class="match_feedback exercise-content"><strong>Feedback:</strong> ${this.boxData.feedback}</div>`;
         }
-        this.queueMathJax(this.connList);
+        this.queueMathJax(this.feedbackDiv);
     }
 
     createStatement(container) {
@@ -222,7 +234,6 @@ export class MatchingProblem extends RunestoneBase {
             this.missingCount = parsedData.missingCount;
             this.scorePercent = parsedData.score;
             this.restoreAnswers();
-            this.renderFeedback();
         }
     }
     setLocalStorage() {
@@ -277,6 +288,17 @@ export class MatchingProblem extends RunestoneBase {
         return connList;
     }
 
+    createFeedbackDiv(container) {
+        const feedbackDiv = document.createElement("div");
+        feedbackDiv.className = "match-feedback";
+        feedbackDiv.hidden = true;
+        feedbackDiv.setAttribute("role", "status");
+        feedbackDiv.setAttribute("aria-live", "polite");
+        feedbackDiv.setAttribute("aria-atomic", "true");
+        container.appendChild(feedbackDiv);
+        return feedbackDiv;
+    }
+
     createAriaLive(container) {
         const ariaLive = document.createElement("div");
         ariaLive.className = "aria-live";
@@ -318,31 +340,53 @@ export class MatchingProblem extends RunestoneBase {
     }
 
     createHelpModal() {
-        this.helpModal = document.createElement("div");
+        this.helpModal = document.createElement("dialog");
         this.helpModal.className = "help-modal";
+        this.helpModal.setAttribute("aria-live", "polite");
+        this.helpModal.setAttribute("aria-atomic", "true");
+        const titleId = this.divid + "-help-title";
         const text = `<p>Click and drag between boxes to create connections.</p>
         <p>Use the tab key to navigate to a box and press Enter to select it.  Focus then jumps to the other column; tab to the box you want to connect and press Enter.  Press Escape to cancel a selection.</p>
-        <p>Click on a connection line to remove it. You can also use the tab key to select lines.  Press the delete key to remove a selected line.</p>
+        <p>Click on a connection line or use the tab key to select it. Press Enter, Delete, or Backspace to remove a selected line.</p>
         <p>Click the "Check Me" button to check your connections, and save your work.</p>
         <p>Click the "Reset" button to clear all connections.</p>`;
 
-        this.helpModal.innerHTML = `
-          <div class="help-modal-content">
-            <button class="help-close">&times;</button>
-            <div class="help-text">${text}</div>
-          </div>`;
+        this.helpModal.setAttribute("aria-labelledby", titleId);
+        this.helpModal.innerHTML =
+            '<div class="help-modal-content">' +
+            '<button type="button" class="help-close" aria-label="Close matching help">&times;</button>' +
+            '<h2 id="' +
+            titleId +
+            '">Matching help</h2>' +
+            '<div class="help-text">' +
+            text +
+            "</div></div>";
         this.containerDiv.appendChild(this.helpModal);
         this.helpModal
             .querySelector(".help-close")
             .addEventListener("click", () => this.hideHelp());
+        this.helpModal.addEventListener("cancel", (event) => {
+            event.preventDefault();
+            this.hideHelp();
+        });
+        this.helpModal.addEventListener("click", (event) => {
+            if (event.target === this.helpModal) {
+                this.hideHelp();
+            }
+        });
+        this.helpModal.addEventListener("close", () => this.helpBtn?.focus());
     }
 
     showHelp() {
-        this.helpModal.style.display = "flex";
+        if (!this.helpModal.open) {
+            this.helpModal.showModal();
+        }
     }
 
     hideHelp() {
-        this.helpModal.style.display = "none";
+        if (this.helpModal.open) {
+            this.helpModal.close();
+        }
     }
 
     // Utility functions
@@ -398,13 +442,163 @@ export class MatchingProblem extends RunestoneBase {
         div.innerHTML = label;
         div.tabIndex = 0;
         div.setAttribute("role", "button");
-        div.setAttribute(
-            "aria-label",
-            `${role === "drag" ? "Draggable" : "Droppable"}: ${label}`,
-        );
+        this.updateBoxAriaLabel(div);
         return div;
     }
 
+    getBoxLabel(box) {
+        return getAccessibleElementText(box) || "box";
+    }
+
+    updateBoxAriaLabel(box) {
+        const labelPrefix =
+            box.dataset.role === "drag" ? "Draggable" : "Droppable";
+        const gradingState = box.classList.contains("match-incorrect")
+            ? ", incorrect"
+            : box.classList.contains("match-correct")
+              ? ", correct"
+              : "";
+        box.setAttribute(
+            "aria-label",
+            labelPrefix + ": " + this.getBoxLabel(box) + gradingState,
+        );
+    }
+
+    updateBoxAriaLabels() {
+        for (const box of this.allBoxes || []) {
+            this.updateBoxAriaLabel(box);
+        }
+        for (const connection of this.connections || []) {
+            this.updateLineAriaLabel(connection.line);
+        }
+    }
+
+    disableBoxMathTabStops(root = this.containerDiv) {
+        disableMathJaxTabStops(root, [".box"]);
+    }
+
+    getColumnBoxes(role) {
+        const column = role === "drag" ? this.leftColumn : this.rightColumn;
+        return Array.from(column.querySelectorAll(".box")).filter((box) =>
+            this.allBoxes.includes(box),
+        );
+    }
+
+    getTabbableBoxes() {
+        if (!this.selectedBox) {
+            return this.allBoxes;
+        }
+        return this.getColumnBoxes(
+            this.selectedBox.dataset.role === "drag" ? "drop" : "drag",
+        );
+    }
+
+    updateBoxTabStops() {
+        const tabbableBoxes = new Set(this.getTabbableBoxes());
+        for (const box of this.allBoxes) {
+            box.tabIndex = tabbableBoxes.has(box) ? 0 : -1;
+        }
+    }
+
+    setSelectedBox(box) {
+        this.setSelectedLine(null, false);
+        if (this.selectedBox) {
+            this.selectedBox.classList.remove("selected");
+        }
+        this.selectedBox = box;
+        this.activeBoxRole = box ? box.dataset.role : null;
+        if (box) {
+            box.classList.add("selected");
+        }
+        this.updateBoxTabStops();
+    }
+
+    activateBox(box) {
+        if (!this.selectedBox) {
+            this.setSelectedBox(box);
+            const firstOppositeBox = this.getTabbableBoxes()[0];
+            firstOppositeBox?.focus();
+            if (this.ariaLive) {
+                this.ariaLive.textContent = `Selected ${this.getBoxLabel(box)}. Tab to a box in the other column and press Enter to connect, or press Escape to cancel.`;
+            }
+            return;
+        }
+
+        if (box !== this.selectedBox) {
+            this.createPermanentLine(this.selectedBox, box);
+        }
+        this.setSelectedBox(null);
+        box.focus();
+    }
+
+    setSelectedLine(line, announce = true) {
+        if (this.selectedLine && this.selectedLine !== line) {
+            this.selectedLine.classList.remove("selected");
+        }
+        this.selectedLine = line;
+        if (line) {
+            if (this.selectedBox) {
+                this.selectedBox.classList.remove("selected");
+                this.selectedBox = null;
+                this.activeBoxRole = null;
+                this.updateBoxTabStops();
+            }
+            line.classList.add("selected");
+            if (announce && this.ariaLive) {
+                const fromLabel = line.fromBox
+                    ? this.getBoxLabel(line.fromBox)
+                    : "one box";
+                const toLabel = line.toBox
+                    ? this.getBoxLabel(line.toBox)
+                    : "another box";
+                this.ariaLive.textContent = `Selected connection from ${fromLabel} to ${toLabel}. Press Enter to delete it.`;
+            }
+        }
+    }
+
+    cancelSelectedBox() {
+        const selected = this.selectedBox;
+        if (!selected) {
+            return;
+        }
+        this.setSelectedBox(null);
+        selected.focus();
+        if (this.ariaLive) {
+            this.ariaLive.textContent = "Selection cancelled.";
+        }
+    }
+
+    moveBoxFocus(box, moveDown) {
+        const boxOrder = this.selectedBox
+            ? this.getTabbableBoxes()
+            : this.getColumnBoxes(box.dataset.role);
+        const currentIndex = boxOrder.indexOf(box);
+        if (currentIndex === -1) {
+            return;
+        }
+        const targetIndex = Math.max(
+            0,
+            Math.min(currentIndex + (moveDown ? 1 : -1), boxOrder.length - 1),
+        );
+        boxOrder[targetIndex]?.focus();
+    }
+
+    moveBoxFocusAcrossColumns(rightColumn) {
+        const targetRole = rightColumn ? "drop" : "drag";
+        this.getColumnBoxes(targetRole)[0]?.focus();
+    }
+
+    moveTabFocus(box, moveBackward) {
+        const boxOrder = this.getTabbableBoxes();
+        const currentIndex = boxOrder.indexOf(box);
+        if (currentIndex === -1 || boxOrder.length === 0) {
+            return;
+        }
+        const offset = moveBackward ? -1 : 1;
+        const targetIndex =
+            (currentIndex + offset + boxOrder.length) % boxOrder.length;
+        boxOrder[targetIndex]?.focus();
+    }
     getCenter(el) {
         const elRect = el.getBoundingClientRect();
         const containerRect = this.workspace.getBoundingClientRect();
@@ -469,15 +663,31 @@ export class MatchingProblem extends RunestoneBase {
         line.setAttribute("role", "button"); // Add ARIA role for accessibility
         line.setAttribute(
             "aria-label",
-            "Connection line. Press Delete to remove.",
+            "Connection line. Press Enter, Delete, or Backspace to remove.",
         ); // Add ARIA label
 
-        line.addEventListener("click", () => {
-            this.removeLine(line);
+        line.addEventListener("click", (e) => {
+            e.preventDefault();
+            line.focus();
+            this.setSelectedLine(line);
+        });
+
+        line.addEventListener("focus", () => {
+            this.setSelectedLine(line);
+        });
+
+        line.addEventListener("blur", () => {
+            if (this.selectedLine === line) {
+                this.setSelectedLine(null, false);
+            }
         });
 
         line.addEventListener("keydown", (e) => {
-            if (e.key === "Delete" || e.key === "Backspace") {
+            if (
+                e.key === "Enter" ||
+                e.key === "Delete" ||
+                e.key === "Backspace"
+            ) {
                 e.preventDefault();
                 this.removeLine(line);
             }
@@ -486,7 +696,36 @@ export class MatchingProblem extends RunestoneBase {
         return line;
     }
 
+    updateLineAriaLabel(line) {
+        if (!line) {
+            return;
+        }
+        const fromLabel = line.fromBox
+            ? this.getBoxLabel(line.fromBox)
+            : "one box";
+        const toLabel = line.toBox
+            ? this.getBoxLabel(line.toBox)
+            : "another box";
+        line.setAttribute(
+            "aria-label",
+            "Connection from " +
+                fromLabel +
+                " to " +
+                toLabel +
+                ". Press Enter, Delete, or Backspace to remove.",
+        );
+    }
+
     removeLine(line) {
+        const fromLabel = line.fromBox
+            ? this.getBoxLabel(line.fromBox)
+            : "one box";
+        const toLabel = line.toBox
+            ? this.getBoxLabel(line.toBox)
+            : "another box";
+        if (this.selectedLine === line) {
+            this.setSelectedLine(null, false);
+        }
         this.svg.removeChild(line);
         const index = this.connections.findIndex(
             (conn) =>
@@ -495,6 +734,9 @@ export class MatchingProblem extends RunestoneBase {
         );
         if (index !== -1) this.connections.splice(index, 1);
         this.updateConnectionModel();
+        if (this.ariaLive) {
+            this.ariaLive.textContent = `Removed connection from ${fromLabel} to ${toLabel}.`;
+        }
     }
 
     isConnected(a, b) {
@@ -531,6 +773,7 @@ export class MatchingProblem extends RunestoneBase {
 
         line.fromBox = fromBox;
         line.toBox = toBox;
+        this.updateLineAriaLabel(line);
 
         this.svg.appendChild(line);
         this.connections.push({ fromBox, toBox, line });
@@ -538,7 +781,7 @@ export class MatchingProblem extends RunestoneBase {
         this.isAnswered = true;
 
         if (this.ariaLive) {
-            this.ariaLive.textContent = `Connected ${fromBox.textContent} to ${toBox.textContent}`;
+            this.ariaLive.textContent = `Connected ${this.getBoxLabel(fromBox)} to ${this.getBoxLabel(toBox)}`;
         }
         return true;
     }
@@ -550,12 +793,19 @@ export class MatchingProblem extends RunestoneBase {
         });
     }
 
+    hideFeedback() {
+        this.feedbackDiv.hidden = true;
+        this.feedbackDiv.replaceChildren();
+    }
+
     updateConnectionModel() {
         // Any change to the connections invalidates previously rendered
         // grading marks, so clear them along with rebuilding the list.
+        this.hideFeedback();
         this.allBoxes.forEach((box) =>
             box.classList.remove("match-correct", "match-incorrect"),
         );
+        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
         this.connList.innerHTML = "<strong>Connections:</strong>";
         if (this.connections.length === 0) {
             const empty = document.createElement("div");
@@ -569,14 +819,11 @@ export class MatchingProblem extends RunestoneBase {
             if (conn.line) {
                 conn.line.classList.remove("correct", "incorrect");
             }
-            const fromLabel = conn.fromBox.textContent;
-            let toLabel = conn.toBox.textContent;
-            if (!toLabel) {
-                toLabel = conn.toBox.querySelector("img").alt; // innerHTML preserves everything inside <label>…</label>
-            }
+            const fromLabel = this.getBoxLabel(conn.fromBox);
+            const toLabel = this.getBoxLabel(conn.toBox);
             const line = document.createElement("div");
             line.className = "conn-entry";
-            line.textContent = `${fromLabel} → ${toLabel}`;
+            line.innerHTML = `${fromLabel} <span aria-hidden="true">→</span><span class="visuallyhidden">connected to</span> ${toLabel}`;
             this.connList.appendChild(line);
         });
     }
@@ -627,43 +874,30 @@ export class MatchingProblem extends RunestoneBase {
             });
 
             box.addEventListener("keydown", (e) => {
+                if (e.target !== box) {
+                    return;
+                }
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    if (!this.selectedBox) {
-                        this.selectedBox = box;
-                        box.classList.add("selected");
-                        // Jump focus to the top of the opposite column so
-                        // the user doesn't have to tab through the rest of
-                        // this column and every connection line to get
-                        // there. (With nothing selected, natural tab order
-                        // still visits the lines so they can be deleted.)
-                        const opposite = this.allBoxes.find(
-                            (b) => b.dataset.role !== box.dataset.role,
-                        );
-                        if (opposite) opposite.focus();
-                        if (this.ariaLive) {
-                            this.ariaLive.textContent = `Selected ${box.textContent}. Tab to a box in the other column and press Enter to connect, or press Escape to cancel.`;
-                        }
-                    } else {
-                        if (box !== this.selectedBox)
-                            this.createPermanentLine(this.selectedBox, box);
-                        this.selectedBox.classList.remove("selected");
-                        this.selectedBox = null;
-                        const currentIndex = this.allBoxes.indexOf(box);
-                        const next = this.allBoxes[currentIndex + 1];
-                        if (next) next.focus();
-                        else this.allBoxes[0].focus();
-                    }
+                    this.activateBox(box);
                 } else if (e.key === "Escape" && this.selectedBox) {
                     e.preventDefault();
-                    const selected = this.selectedBox;
-                    selected.classList.remove("selected");
-                    this.selectedBox = null;
-                    selected.focus();
-                    if (this.ariaLive) {
-                        this.ariaLive.textContent = "Selection cancelled.";
-                    }
+                    this.cancelSelectedBox();
+                } else if (this.selectedBox && e.key === "Tab") {
+                    e.preventDefault();
+                    this.moveTabFocus(box, e.shiftKey);
+                } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                    this.moveBoxFocus(box, e.key === "ArrowDown");
+                } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                    e.preventDefault();
+                    this.moveBoxFocusAcrossColumns(e.key === "ArrowRight");
                 }
+            });
+
+            box.addEventListener("click", (e) => {
+                e.preventDefault();
+                this.activateBox(box);
             });
 
             box.addEventListener("mouseenter", () => {
