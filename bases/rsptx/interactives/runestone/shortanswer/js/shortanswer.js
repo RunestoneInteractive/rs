@@ -98,6 +98,7 @@ export default class ShortAnswer extends RunestoneBase {
         // the answer has not been saved yet. Update as soon as user types in
         // the box, not just when they loose focus.
         this.jTextArea.addEventListener("keydown", () => {
+            this.feedbackDiv.classList.remove("visuallyhidden");
             if (this.isTimed) {
                 // no need for danger status... nothing for user to do here
                 this.feedbackDiv.innerHTML =
@@ -137,8 +138,11 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.style.width = "530px";
         this.feedbackDiv.style.fontStyle = "italic";
         this.feedbackDiv.id = this.divid + "_feedback";
-        this.feedbackDiv.classList.add("shortanswer__feedback");
-        this.feedbackDiv.style.display = "none";
+        this.feedbackDiv.classList.add(
+            "shortanswer__feedback",
+            "visuallyhidden",
+        );
+        this.feedbackDiv.ariaLive = "polite";
         this.fieldSet.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div");
@@ -248,7 +252,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.innerHTML = "Your answer has been saved.";
         this.feedbackDiv.classList.remove("alert-danger");
         this.feedbackDiv.classList.add("alert", "alert-success");
-        this.feedbackDiv.style.display = "block";
+        this.feedbackDiv.classList.remove("visuallyhidden");
     }
     setLocalStorage(data) {
         if (!this.graderactive) {
@@ -359,8 +363,8 @@ export default class ShortAnswer extends RunestoneBase {
         }
         if (feedbackStr !== "") {
             this.feedbackDiv.innerHTML = feedbackStr;
-            this.feedbackDiv.style.display = "block";
             this.feedbackDiv.classList.add("alert", "alert-success");
+            this.feedbackDiv.classList.remove("visuallyhidden");
         }
     }
 
