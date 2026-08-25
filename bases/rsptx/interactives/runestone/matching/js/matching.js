@@ -67,6 +67,7 @@ export class MatchingProblem extends RunestoneBase {
 
         this.renderBoxes();
         this.attachEvents();
+        this.observeMathJaxSpeech();
 
         this.queueMathJax(this.containerDiv).then(() => {
             this.disableBoxMathTabStops();
@@ -477,6 +478,38 @@ export class MatchingProblem extends RunestoneBase {
         disableMathJaxTabStops(root, [".box"]);
     }
 
+    observeMathJaxSpeech() {
+        if (typeof MutationObserver === "undefined") return;
+
+        this.mathJaxSpeechObserver = new MutationObserver((mutations) => {
+            const changedBoxes = new Set();
+            for (const mutation of mutations) {
+                const box = mutation.target.closest?.(".box");
+                if (box && this.allBoxes.includes(box)) {
+                    changedBoxes.add(box);
+                }
+            }
+            if (changedBoxes.size === 0) return;
+
+            changedBoxes.forEach((box) => this.updateBoxAriaLabel(box));
+            const changedConnections = this.connections.filter(
+                ({ fromBox, toBox }) =>
+                    changedBoxes.has(fromBox) || changedBoxes.has(toBox),
+            );
+            changedConnections.forEach(({ line }) =>
+                this.updateLineAriaLabel(line),
+            );
+            if (changedConnections.length > 0) {
+                this.renderConnectionList();
+            }
+        });
+        this.mathJaxSpeechObserver.observe(this.containerDiv, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["data-semantic-speech-none"],
+        });
+    }
+
     getColumnBoxes(role) {
         const column = role === "drag" ? this.leftColumn : this.rightColumn;
         return Array.from(column.querySelectorAll(".box")).filter((box) =>
@@ -798,14 +831,29 @@ export class MatchingProblem extends RunestoneBase {
         this.feedbackDiv.replaceChildren();
     }
 
-    updateConnectionModel() {
-        // Any change to the connections invalidates previously rendered
-        // grading marks, so clear them along with rebuilding the list.
-        this.hideFeedback();
-        this.allBoxes.forEach((box) =>
-            box.classList.remove("match-correct", "match-incorrect"),
-        );
-        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
+    appendConnectionBoxContent(entry, box) {
+        const speech = document.createElement("span");
+        speech.className = "visuallyhidden";
+        speech.textContent = this.getBoxLabel(box);
+
+        const visual = document.createElement("span");
+        visual.className = "conn-box-visual";
+        visual.setAttribute("aria-hidden", "true");
+        for (const child of box.childNodes) {
+            visual.appendChild(child.cloneNode(true));
+        }
+        visual
+            .querySelectorAll(
+                "a[href], button, input, select, textarea, [tabindex]",
+            )
+            .forEach((element) => {
+                element.tabIndex = -1;
+            });
+
+        entry.append(speech, visual);
+    }
+
+    renderConnectionList() {
         this.connList.innerHTML = "<strong>Connections:</strong>";
         if (this.connections.length === 0) {
             const empty = document.createElement("div");
@@ -816,16 +864,35 @@ export class MatchingProblem extends RunestoneBase {
             return;
         }
         this.connections.forEach((conn) => {
-            if (conn.line) {
-                conn.line.classList.remove("correct", "incorrect");
-            }
-            const fromLabel = this.getBoxLabel(conn.fromBox);
-            const toLabel = this.getBoxLabel(conn.toBox);
             const line = document.createElement("div");
             line.className = "conn-entry";
-            line.innerHTML = `${fromLabel} <span aria-hidden="true">→</span><span class="visuallyhidden">connected to</span> ${toLabel}`;
+            this.appendConnectionBoxContent(line, conn.fromBox);
+
+            const arrow = document.createElement("span");
+            arrow.setAttribute("aria-hidden", "true");
+            arrow.textContent = "→";
+            const connectionText = document.createElement("span");
+            connectionText.className = "visuallyhidden";
+            connectionText.textContent = "connected to";
+            line.append(arrow, connectionText);
+
+            this.appendConnectionBoxContent(line, conn.toBox);
             this.connList.appendChild(line);
         });
+    }
+
+    updateConnectionModel() {
+        // Any change to the connections invalidates previously rendered
+        // grading marks, so clear them along with rebuilding the list.
+        this.hideFeedback();
+        this.allBoxes.forEach((box) =>
+            box.classList.remove("match-correct", "match-incorrect"),
+        );
+        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
+        this.connections.forEach(({ line }) => {
+            line?.classList.remove("correct", "incorrect");
+        });
+        this.renderConnectionList();
     }
 
     /*
