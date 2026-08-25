@@ -138,8 +138,21 @@ describe("matching keyboard controls", () => {
         expect(matching.ariaLive.textContent).toBe(
             "Connected x squared to Derivative two x",
         );
-        expect(matching.connList.querySelector(".conn-entry").textContent).toBe(
-            "x squared → Derivative two x",
+        const connectionEntry = matching.connList.querySelector(".conn-entry");
+        expect(
+            [...connectionEntry.querySelectorAll(".visuallyhidden")].map(
+                (element) => element.textContent,
+            ),
+        ).toEqual(["x squared", "connected to", "Derivative two x"]);
+        const visualMath = connectionEntry.querySelectorAll(
+            '[aria-hidden="true"] mjx-container',
+        );
+        expect(visualMath).toHaveLength(2);
+        expect(visualMath[0].getAttribute("data-semantic-speech-none")).toBe(
+            "x squared",
+        );
+        expect(visualMath[1].getAttribute("data-semantic-speech-none")).toBe(
+            "two x",
         );
     });
 

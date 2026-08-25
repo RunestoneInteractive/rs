@@ -817,6 +817,28 @@ export class MatchingProblem extends RunestoneBase {
         this.feedbackDiv.replaceChildren();
     }
 
+    appendConnectionBoxContent(entry, box) {
+        const speech = document.createElement("span");
+        speech.className = "visuallyhidden";
+        speech.textContent = this.getBoxLabel(box);
+
+        const visual = document.createElement("span");
+        visual.className = "conn-box-visual";
+        visual.setAttribute("aria-hidden", "true");
+        for (const child of box.childNodes) {
+            visual.appendChild(child.cloneNode(true));
+        }
+        visual
+            .querySelectorAll(
+                "a[href], button, input, select, textarea, [tabindex]",
+            )
+            .forEach((element) => {
+                element.tabIndex = -1;
+            });
+
+        entry.append(speech, visual);
+    }
+
     updateConnectionModel() {
         // Any change to the connections invalidates previously rendered
         // grading marks, so clear them along with rebuilding the list.
@@ -838,11 +860,19 @@ export class MatchingProblem extends RunestoneBase {
             if (conn.line) {
                 conn.line.classList.remove("correct", "incorrect");
             }
-            const fromLabel = this.getBoxLabel(conn.fromBox);
-            const toLabel = this.getBoxLabel(conn.toBox);
             const line = document.createElement("div");
             line.className = "conn-entry";
-            line.innerHTML = `${fromLabel} <span aria-hidden="true">→</span><span class="visuallyhidden">connected to</span> ${toLabel}`;
+            this.appendConnectionBoxContent(line, conn.fromBox);
+
+            const arrow = document.createElement("span");
+            arrow.setAttribute("aria-hidden", "true");
+            arrow.textContent = "→";
+            const connectionText = document.createElement("span");
+            connectionText.className = "visuallyhidden";
+            connectionText.textContent = "connected to";
+            line.append(arrow, connectionText);
+
+            this.appendConnectionBoxContent(line, conn.toBox);
             this.connList.appendChild(line);
         });
     }
