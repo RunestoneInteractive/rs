@@ -62,8 +62,8 @@ export default class ShortAnswer extends RunestoneBase {
         this.newForm.name = this.newForm.id;
         this.newForm.action = "";
         this.containerDiv.appendChild(this.newForm);
-        this.fieldSet = document.createElement("fieldset");
-        this.newForm.appendChild(this.fieldSet);
+        this.formParts = document.createElement("div");
+        this.newForm.appendChild(this.formParts);
         this.firstLegendDiv = document.createElement("div");
         // move contents to new div, keeping any event listeners
         while (this.origElem.firstChild) {
@@ -71,10 +71,10 @@ export default class ShortAnswer extends RunestoneBase {
         }
         this.firstLegendDiv.classList.add("journal-question");
         this.firstLegendDiv.classList.add("exercise-statement");
-        this.fieldSet.appendChild(this.firstLegendDiv);
+        this.formParts.appendChild(this.firstLegendDiv);
         this.jInputDiv = document.createElement("div");
         this.jInputDiv.id = this.divid + "_journal_input";
-        this.fieldSet.appendChild(this.jInputDiv);
+        this.formParts.appendChild(this.jInputDiv);
         this.jOptionsDiv = document.createElement("div");
         this.jOptionsDiv.classList.add("journal-options");
         this.jInputDiv.appendChild(this.jOptionsDiv);
@@ -117,7 +117,7 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderMath(this.jTextArea.value);
         });
         this.buttonDiv = document.createElement("div");
-        this.fieldSet.appendChild(this.buttonDiv);
+        this.formParts.appendChild(this.buttonDiv);
         this.submitButton = document.createElement("button");
         this.submitButton.classList.add("btn", "btn-success");
         this.submitButton.type = "button";
@@ -132,7 +132,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.otherOptionsDiv = document.createElement("div");
         this.otherOptionsDiv.style.paddingLeft = "20px";
         this.otherOptionsDiv.classList.add("journal-options");
-        this.fieldSet.appendChild(this.otherOptionsDiv);
+        this.formParts.appendChild(this.otherOptionsDiv);
         // add a feedback div to give user feedback
         this.feedbackDiv = document.createElement("div");
         this.feedbackDiv.style.width = "530px";
@@ -143,7 +143,7 @@ export default class ShortAnswer extends RunestoneBase {
             "visuallyhidden",
         );
         this.feedbackDiv.ariaLive = "polite";
-        this.fieldSet.appendChild(this.feedbackDiv);
+        this.formParts.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div");
             this.attachDiv = attachDiv;
@@ -180,7 +180,7 @@ export default class ShortAnswer extends RunestoneBase {
                 this.rederedAnswerDiv.classList.add(
                     "shortanswer__rendered-answer-div",
                 );
-                this.fieldSet.appendChild(this.rederedAnswerDiv);
+                this.formParts.appendChild(this.rederedAnswerDiv);
 
                 this.renderedAnswerLabel = document.createElement("label");
                 this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
