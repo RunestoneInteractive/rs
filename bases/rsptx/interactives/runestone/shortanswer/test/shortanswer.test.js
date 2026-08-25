@@ -87,9 +87,13 @@ describe("construction", () => {
         expect(sa.optional).toBe(true);
     });
 
-    it("starts with the feedback div hidden", async () => {
+    it("starts with an empty feedback live region that is visually hidden", async () => {
         const sa = await makeShortAnswer();
-        expect(sa.feedbackDiv.style.display).toBe("none");
+        expect(sa.feedbackDiv.textContent).toBe("");
+        expect(sa.feedbackDiv.getAttribute("aria-live")).toBe("polite");
+        expect(
+            sa.feedbackDiv.classList.contains("visuallyhidden"),
+        ).toBe(true);
     });
 
     it("adds a file input when data-attachment is set (student mode)", async () => {
@@ -116,6 +120,9 @@ describe("editing feedback", () => {
             "Your answer has not been saved yet!",
         );
         expect(sa.feedbackDiv.classList.contains("alert-danger")).toBe(true);
+        expect(
+            sa.feedbackDiv.classList.contains("visuallyhidden"),
+        ).toBe(false);
     });
 
     it("shows the autosave message instead when timed", async () => {
@@ -160,7 +167,9 @@ describe("saving", () => {
         );
         expect(sa.feedbackDiv.innerHTML).toBe("Your answer has been saved.");
         expect(sa.feedbackDiv.classList.contains("alert-success")).toBe(true);
-        expect(sa.feedbackDiv.style.display).toBe("block");
+        expect(
+            sa.feedbackDiv.classList.contains("visuallyhidden"),
+        ).toBe(false);
     });
 
     it("passes a student id through to the log event when given", async () => {
@@ -222,7 +231,9 @@ describe("restoreAnswers", () => {
         const sa = await makeShortAnswer();
         sa.restoreAnswers({ answer: "x", score: 4, comment: "good work" });
         expect(sa.feedbackDiv.innerHTML).toBe("Score: 4 -- good work");
-        expect(sa.feedbackDiv.style.display).toBe("block");
+        expect(
+            sa.feedbackDiv.classList.contains("visuallyhidden"),
+        ).toBe(false);
     });
 
     it("adds a toggle button that swaps between on-time and late answers", async () => {
