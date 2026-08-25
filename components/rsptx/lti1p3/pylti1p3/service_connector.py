@@ -198,9 +198,17 @@ class ServiceConnector:
         json_body = None
         try:
             json_body = await r.json()
-        except json.JSONDecodeError:
-            text = await r.text()
-            raise LtiException(text)
+        except (aiohttp.ContentTypeError, json.JSONDecodeError):
+            # An AGS score POST legitimately answers 200 with an empty body and
+            # no content type (D2L does this), and Moodle is known to serve JSON
+            # as text/html -- aiohttp refuses both on mimetype alone. Only a
+            # non-empty body we cannot parse is a real error.
+            text = (await r.text()).strip()
+            if text:
+                try:
+                    json_body = json.loads(text)
+                except json.JSONDecodeError:
+                    raise LtiException(text)
 
         return {
             "headers": r.headers if case_insensitive_headers else dict(r.headers),
