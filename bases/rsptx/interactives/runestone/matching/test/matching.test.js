@@ -138,8 +138,66 @@ describe("matching keyboard controls", () => {
         expect(matching.ariaLive.textContent).toBe(
             "Connected x squared to Derivative two x",
         );
-        expect(matching.connList.querySelector(".conn-entry").textContent).toBe(
-            "x squared → Derivative two x",
+        const connectionEntry = matching.connList.querySelector(".conn-entry");
+        expect(
+            [...connectionEntry.querySelectorAll(".visuallyhidden")].map(
+                (element) => element.textContent,
+            ),
+        ).toEqual(["x squared", "connected to", "Derivative two x"]);
+        const visualMath = connectionEntry.querySelectorAll(
+            '[aria-hidden="true"] mjx-container',
+        );
+        expect(visualMath).toHaveLength(2);
+        expect(visualMath[0].getAttribute("data-semantic-speech-none")).toBe(
+            "x squared",
+        );
+        expect(visualMath[1].getAttribute("data-semantic-speech-none")).toBe(
+            "two x",
+        );
+    });
+
+    it("refreshes connection labels when MathJax speech becomes available", async () => {
+        const matching = await makeMatching({
+            question: {
+                statement: "Match the function.",
+                left: [
+                    {
+                        id: "p1",
+                        label: '<span class="process-math"></span>',
+                    },
+                ],
+                right: [{ id: "r1", label: "Derivative" }],
+                correctAnswers: [["p1", "r1"]],
+            },
+        });
+        const leftBox = matching.leftColumn.querySelector(".box");
+        const rightBox = matching.rightColumn.querySelector(".box");
+        const math = leftBox.querySelector(".process-math");
+        const mathContainer = document.createElement("mjx-container");
+
+        keydown(leftBox, "Enter");
+        keydown(rightBox, "Enter");
+        matching.gradeConnections();
+
+        math.appendChild(mathContainer);
+        mathContainer.setAttribute("data-semantic-speech-none", "x squared");
+        await tick();
+
+        expect(leftBox.getAttribute("aria-label")).toBe(
+            "Draggable: x squared, correct",
+        );
+        expect(matching.connections[0].line.getAttribute("aria-label")).toBe(
+            "Connection from x squared to Derivative. Press Enter, Delete, or Backspace to remove.",
+        );
+        expect(
+            [...matching.connList.querySelectorAll(".visuallyhidden")].map(
+                (element) => element.textContent,
+            ),
+        ).toEqual(["x squared", "connected to", "Derivative"]);
+        expect(matching.feedbackDiv.hidden).toBe(false);
+        expect(leftBox.classList.contains("match-correct")).toBe(true);
+        expect(matching.connections[0].line.classList.contains("correct")).toBe(
+            true,
         );
     });
 
