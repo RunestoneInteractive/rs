@@ -482,11 +482,25 @@ export class MatchingProblem extends RunestoneBase {
         if (typeof MutationObserver === "undefined") return;
 
         this.mathJaxSpeechObserver = new MutationObserver((mutations) => {
+            const changedBoxes = new Set();
             for (const mutation of mutations) {
                 const box = mutation.target.closest?.(".box");
                 if (box && this.allBoxes.includes(box)) {
-                    this.updateBoxAriaLabel(box);
+                    changedBoxes.add(box);
                 }
+            }
+            if (changedBoxes.size === 0) return;
+
+            changedBoxes.forEach((box) => this.updateBoxAriaLabel(box));
+            const changedConnections = this.connections.filter(
+                ({ fromBox, toBox }) =>
+                    changedBoxes.has(fromBox) || changedBoxes.has(toBox),
+            );
+            changedConnections.forEach(({ line }) =>
+                this.updateLineAriaLabel(line),
+            );
+            if (changedConnections.length > 0) {
+                this.renderConnectionList();
             }
         });
         this.mathJaxSpeechObserver.observe(this.containerDiv, {
@@ -839,14 +853,7 @@ export class MatchingProblem extends RunestoneBase {
         entry.append(speech, visual);
     }
 
-    updateConnectionModel() {
-        // Any change to the connections invalidates previously rendered
-        // grading marks, so clear them along with rebuilding the list.
-        this.hideFeedback();
-        this.allBoxes.forEach((box) =>
-            box.classList.remove("match-correct", "match-incorrect"),
-        );
-        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
+    renderConnectionList() {
         this.connList.innerHTML = "<strong>Connections:</strong>";
         if (this.connections.length === 0) {
             const empty = document.createElement("div");
@@ -857,9 +864,6 @@ export class MatchingProblem extends RunestoneBase {
             return;
         }
         this.connections.forEach((conn) => {
-            if (conn.line) {
-                conn.line.classList.remove("correct", "incorrect");
-            }
             const line = document.createElement("div");
             line.className = "conn-entry";
             this.appendConnectionBoxContent(line, conn.fromBox);
@@ -875,6 +879,20 @@ export class MatchingProblem extends RunestoneBase {
             this.appendConnectionBoxContent(line, conn.toBox);
             this.connList.appendChild(line);
         });
+    }
+
+    updateConnectionModel() {
+        // Any change to the connections invalidates previously rendered
+        // grading marks, so clear them along with rebuilding the list.
+        this.hideFeedback();
+        this.allBoxes.forEach((box) =>
+            box.classList.remove("match-correct", "match-incorrect"),
+        );
+        this.allBoxes.forEach((box) => this.updateBoxAriaLabel(box));
+        this.connections.forEach(({ line }) => {
+            line?.classList.remove("correct", "incorrect");
+        });
+        this.renderConnectionList();
     }
 
     /*

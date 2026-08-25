@@ -156,7 +156,7 @@ describe("matching keyboard controls", () => {
         );
     });
 
-    it("refreshes box labels when MathJax speech becomes available", async () => {
+    it("refreshes connection labels when MathJax speech becomes available", async () => {
         const matching = await makeMatching({
             question: {
                 statement: "Match the function.",
@@ -171,14 +171,34 @@ describe("matching keyboard controls", () => {
             },
         });
         const leftBox = matching.leftColumn.querySelector(".box");
+        const rightBox = matching.rightColumn.querySelector(".box");
         const math = leftBox.querySelector(".process-math");
         const mathContainer = document.createElement("mjx-container");
+
+        keydown(leftBox, "Enter");
+        keydown(rightBox, "Enter");
+        matching.gradeConnections();
 
         math.appendChild(mathContainer);
         mathContainer.setAttribute("data-semantic-speech-none", "x squared");
         await tick();
 
-        expect(leftBox.getAttribute("aria-label")).toBe("Draggable: x squared");
+        expect(leftBox.getAttribute("aria-label")).toBe(
+            "Draggable: x squared, correct",
+        );
+        expect(matching.connections[0].line.getAttribute("aria-label")).toBe(
+            "Connection from x squared to Derivative. Press Enter, Delete, or Backspace to remove.",
+        );
+        expect(
+            [...matching.connList.querySelectorAll(".visuallyhidden")].map(
+                (element) => element.textContent,
+            ),
+        ).toEqual(["x squared", "connected to", "Derivative"]);
+        expect(matching.feedbackDiv.hidden).toBe(false);
+        expect(leftBox.classList.contains("match-correct")).toBe(true);
+        expect(matching.connections[0].line.classList.contains("correct")).toBe(
+            true,
+        );
     });
 
     it("only keeps right boxes tabbable while a left box is active", async () => {
