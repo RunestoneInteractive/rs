@@ -119,7 +119,7 @@
                 <h4 class="book-section">{{ section }}</h4>
                 {% for course in course_list %}
                     {% if course.shelf_section == section %}
-                        <div class="radio book-entry" data-title="{{ course.title|lower }}" data-authors="{{ course.authors|lower }}" data-section="{{ section|lower }}">
+                        <div class="radio book-entry" data-title="{{ course.title|lower }}"  data-subtitle="{{ course.subtitle|lower }}" data-authors="{{ course.authors|lower }}" data-section="{{ section|lower }}">
                             <label>
                                 <input type="radio" name="coursetype" value="{{ course.basecourse }}" {% if submitted is defined and submitted.coursetype == course.basecourse %}checked{% endif %} onchange="suggestedCourseName()"/>
                                 {{ course.title }}{% if course.subtitle %}: {{ course.subtitle }}{% endif %}
