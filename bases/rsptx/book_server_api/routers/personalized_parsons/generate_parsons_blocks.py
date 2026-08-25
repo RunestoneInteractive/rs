@@ -439,7 +439,8 @@ def aggregate_code_to_Parsons_block_with_distractor(blocks):
                 )
                 if count_fixed == 0:
                     # then this is just a start of a distractor block stack, moved what we have stored in the block stack to the all_Parsons_blocks first
-                    all_Parsons_blocks[block_stack[0][0]] = block_stack
+                    for stacked_index, stacked_content in block_stack:
+                        all_Parsons_blocks[stacked_index] = stacked_content
                 # then continue
                 fixed_line_block, distractor_block = extract_distractor_Parsons_block(
                     block_stack
@@ -464,7 +465,8 @@ def aggregate_code_to_Parsons_block_with_distractor(blocks):
                     )
                     if count_fixed == 0:
                         # then this is just a start of a distractor block stack, moved what we have stored in the block stack to the all_Parsons_blocks first
-                        all_Parsons_blocks[block_stack[0][0]] = block_stack
+                        for stacked_index, stacked_content in block_stack:
+                            all_Parsons_blocks[stacked_index] = stacked_content
                     # then continue
                     (
                         fixed_line_block,

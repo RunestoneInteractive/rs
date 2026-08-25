@@ -189,7 +189,7 @@ def _build_static_parsons_response(
     """Return the ||split|| response string for a pre-defined (non-LLM) backup Parsons problem."""
     parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
-            {parsonsexample_code}
+{parsonsexample_code}
             </pre>
             """
     return (
@@ -509,7 +509,7 @@ async def parsons_scaffolding(
             example_block = re.sub(r"<(?=\S)", "< ", example_block)
             parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
-            {example_block}
+{example_block}
             </pre>
             """
             return (
@@ -563,7 +563,7 @@ async def parsons_scaffolding(
             )
             personalized_Parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
-            {personalized_Parsons_block}
+{personalized_Parsons_block}
             </pre>
             """
             print(
