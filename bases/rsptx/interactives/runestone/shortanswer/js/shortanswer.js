@@ -62,8 +62,8 @@ export default class ShortAnswer extends RunestoneBase {
         this.newForm.name = this.newForm.id;
         this.newForm.action = "";
         this.containerDiv.appendChild(this.newForm);
-        this.fieldSet = document.createElement("fieldset");
-        this.newForm.appendChild(this.fieldSet);
+        this.formParts = document.createElement("div");
+        this.newForm.appendChild(this.formParts);
         this.firstLegendDiv = document.createElement("div");
         // move contents to new div, keeping any event listeners
         while (this.origElem.firstChild) {
@@ -71,10 +71,10 @@ export default class ShortAnswer extends RunestoneBase {
         }
         this.firstLegendDiv.classList.add("journal-question");
         this.firstLegendDiv.classList.add("exercise-statement");
-        this.fieldSet.appendChild(this.firstLegendDiv);
+        this.formParts.appendChild(this.firstLegendDiv);
         this.jInputDiv = document.createElement("div");
         this.jInputDiv.id = this.divid + "_journal_input";
-        this.fieldSet.appendChild(this.jInputDiv);
+        this.formParts.appendChild(this.jInputDiv);
         this.jOptionsDiv = document.createElement("div");
         this.jOptionsDiv.classList.add("journal-options");
         this.jInputDiv.appendChild(this.jOptionsDiv);
@@ -98,6 +98,7 @@ export default class ShortAnswer extends RunestoneBase {
         // the answer has not been saved yet. Update as soon as user types in
         // the box, not just when they loose focus.
         this.jTextArea.addEventListener("keydown", () => {
+            this.feedbackDiv.classList.remove("visuallyhidden");
             if (this.isTimed) {
                 // no need for danger status... nothing for user to do here
                 this.feedbackDiv.innerHTML =
@@ -116,7 +117,7 @@ export default class ShortAnswer extends RunestoneBase {
             this.renderMath(this.jTextArea.value);
         });
         this.buttonDiv = document.createElement("div");
-        this.fieldSet.appendChild(this.buttonDiv);
+        this.formParts.appendChild(this.buttonDiv);
         this.submitButton = document.createElement("button");
         this.submitButton.classList.add("btn", "btn-success");
         this.submitButton.type = "button";
@@ -131,15 +132,18 @@ export default class ShortAnswer extends RunestoneBase {
         this.otherOptionsDiv = document.createElement("div");
         this.otherOptionsDiv.style.paddingLeft = "20px";
         this.otherOptionsDiv.classList.add("journal-options");
-        this.fieldSet.appendChild(this.otherOptionsDiv);
+        this.formParts.appendChild(this.otherOptionsDiv);
         // add a feedback div to give user feedback
         this.feedbackDiv = document.createElement("div");
         this.feedbackDiv.style.width = "530px";
         this.feedbackDiv.style.fontStyle = "italic";
         this.feedbackDiv.id = this.divid + "_feedback";
-        this.feedbackDiv.classList.add("shortanswer__feedback");
-        this.feedbackDiv.style.display = "none";
-        this.fieldSet.appendChild(this.feedbackDiv);
+        this.feedbackDiv.classList.add(
+            "shortanswer__feedback",
+            "visuallyhidden",
+        );
+        this.feedbackDiv.ariaLive = "polite";
+        this.formParts.appendChild(this.feedbackDiv);
         if (this.attachment) {
             let attachDiv = document.createElement("div");
             this.attachDiv = attachDiv;
@@ -176,7 +180,7 @@ export default class ShortAnswer extends RunestoneBase {
                 this.rederedAnswerDiv.classList.add(
                     "shortanswer__rendered-answer-div",
                 );
-                this.fieldSet.appendChild(this.rederedAnswerDiv);
+                this.formParts.appendChild(this.rederedAnswerDiv);
 
                 this.renderedAnswerLabel = document.createElement("label");
                 this.renderedAnswerLabel.innerHTML = "Rendered Answer:";
@@ -248,7 +252,7 @@ export default class ShortAnswer extends RunestoneBase {
         this.feedbackDiv.innerHTML = "Your answer has been saved.";
         this.feedbackDiv.classList.remove("alert-danger");
         this.feedbackDiv.classList.add("alert", "alert-success");
-        this.feedbackDiv.style.display = "block";
+        this.feedbackDiv.classList.remove("visuallyhidden");
     }
     setLocalStorage(data) {
         if (!this.graderactive) {
@@ -359,8 +363,8 @@ export default class ShortAnswer extends RunestoneBase {
         }
         if (feedbackStr !== "") {
             this.feedbackDiv.innerHTML = feedbackStr;
-            this.feedbackDiv.style.display = "block";
             this.feedbackDiv.classList.add("alert", "alert-success");
+            this.feedbackDiv.classList.remove("visuallyhidden");
         }
     }
 
