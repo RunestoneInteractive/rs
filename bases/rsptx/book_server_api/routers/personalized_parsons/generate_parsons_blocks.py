@@ -515,18 +515,20 @@ def aggregate_code_to_full_Parsons_block(blocks):
             block += "\n"
 
         this_indent = check_indentation_level(block)
+        stripped_block = block.strip()
+        is_import_line = bool(re.match(r"^(import|from)\b", stripped_block))
 
-        if block.strip().startswith("import"):
+        if is_import_line:
             import_block += block  # add to the import block
             continue  # continue processing without disrupting other logic
 
-        if import_block and not block.strip().startswith("import"):
+        if import_block and not is_import_line:
             all_Parsons_blocks.append(
                 import_block
             )  # add the collected import block at the beginning
             import_block = ""  # reset the import block
 
-        if block.strip().startswith(("def", "return")):
+        if re.match(r"^(def|return)\b", stripped_block):
             if Parsons_block:  # append any current accumulated block
                 all_Parsons_blocks.append(Parsons_block)
             Parsons_block = ""  # reset Parsons block
