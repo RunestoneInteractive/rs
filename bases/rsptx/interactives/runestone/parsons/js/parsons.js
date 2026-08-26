@@ -98,7 +98,13 @@ export default class Parsons extends RunestoneBase {
         this.checkCount = 0;
         this.numDistinct = 0;
         this.hasSolved = false;
-        this.initializeLines(fulltext.trim());
+        // Only trim trailing whitespace here. A leading trim() would strip real
+        // leading indentation off the first line of the first block whenever the
+        // <pre> tag's own leading newline has already been consumed by the browser's
+        // HTML parser (a well-known <pre> quirk), silently de-indenting only the
+        // first block relative to every other block. Blank leading/trailing lines
+        // within a block are still discarded further down, per block.
+        this.initializeLines(fulltext.trimEnd());
         this.initializeView();
         this.caption = "Parsons";
         this.addCaption("runestone");
