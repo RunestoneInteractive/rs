@@ -55,6 +55,7 @@ def _prefill(user, page: str) -> dict:
     return {
         "username": getattr(user, "username", "") or "",
         "course": getattr(user, "course_name", "") or "",
+        "email": getattr(user, "email", "") or "",
         "page": page or "",
         "description": "",
         "console_log": "",
@@ -86,7 +87,12 @@ async def _base_context(request: Request, user) -> dict:
 
 
 async def _create_github_issue(
-    username: str, course: str, page: str, description: str, console_log: str = ""
+    username: str,
+    email: str,
+    course: str,
+    page: str,
+    description: str,
+    console_log: str = "",
 ) -> str | None:
     """File the problem report as a GitHub issue.
 
@@ -105,6 +111,7 @@ async def _create_github_issue(
         f"| Field | Value |\n"
         f"| --- | --- |\n"
         f"| **Reporter** | {username or '(not logged in)'} |\n"
+        f"| **Email** | {email or '(not provided)'} |\n"
         f"| **Course** | {course or '(unknown)'} |\n"
         f"| **Page** | {page or '(not provided)'} |\n"
         f"| **Reported at** | {canonical_utcnow().isoformat()} |\n\n"
@@ -165,6 +172,7 @@ async def report_submit(
     request: Request,
     description: str = Form(...),
     username: str = Form(default=""),
+    email: str = Form(default=""),
     course: str = Form(default=""),
     page: str = Form(default=""),
     console_log: str = Form(default=""),
@@ -176,6 +184,7 @@ async def report_submit(
     # be filed under someone else's name.
     if user:
         username = getattr(user, "username", "") or username
+        email = getattr(user, "email", "") or email
         course = getattr(user, "course_name", "") or course
     description = description.strip()
 
@@ -199,7 +208,7 @@ async def report_submit(
         return templates.TemplateResponse("admin/problem_report.html", ctx)
 
     issue_url = await _create_github_issue(
-        username, course, page, description, console_log
+        username, email, course, page, description, console_log
     )
 
     if not issue_url:

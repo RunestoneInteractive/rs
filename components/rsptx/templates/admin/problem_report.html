@@ -55,6 +55,12 @@
                        {% if submitted.username %}readonly{% endif %}>
             </div>
             <div class="form-group col-md-6">
+                <label for="email">Your Email</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ submitted.email }}"
+                       {% if submitted.email %}readonly{% endif %}>
+            </div>
+            <div class="form-group col-md-6">
                 <label for="course">Course</label>
                 <input type="text" class="form-control" id="course" name="course"
                        value="{{ submitted.course }}"
