@@ -148,6 +148,12 @@ def extract_parsons_solution(parsonsexample_code):
     correct solution), and scaffolding tags ("#settled", "#tag:...;...;") are
     stripped from the remaining blocks. Mirrors the block-parsing logic in
     runestone/parsons/js/parsons.js::initializeLines.
+
+    extract_parsons_code() deliberately leaves HTML entities (e.g. "&lt;")
+    escaped, since its result is also re-embedded into a <pre> block for the
+    Parsons widget to re-render. This function's result instead goes straight
+    into a plain-text answer (clipboard copy, code_answer), so it must be
+    unescaped here or a "<" in the source shows up as literal "&lt;".
     """
     blocks = parsonsexample_code.split("---")
     clean_lines = []
@@ -160,7 +166,7 @@ def extract_parsons_solution(parsonsexample_code):
             line = re.sub(r"#tag:[^;]*;[^;]*;\s*$", "", line)
             line = line.rstrip()
             if line.strip() and line.strip() != "=====":
-                clean_lines.append(line)
+                clean_lines.append(html.unescape(line))
     return "\n".join(clean_lines)
 
 
