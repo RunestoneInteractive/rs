@@ -10,6 +10,7 @@
 # Standard library
 # ----------------
 import datetime
+import html as html_module
 import json
 import random
 import re
@@ -57,18 +58,66 @@ from rsptx.templates import get_shared_templates
 # Analogy themes for async LLM mode
 # ==================================
 PI_THEMES = [
-    {"id": "family_tree", "label": "Family Tree"},
-    {"id": "geographic", "label": "Geographic Hierarchy"},
-    {"id": "html_dom", "label": "HTML/DOM Tree"},
-    {"id": "university", "label": "Organizational Hierarchy"},
-    {"id": "apartment", "label": "Apartment Building"},
-    {"id": "grocery", "label": "Grocery Store"},
-    {"id": "airport", "label": "Airport"},
-    {"id": "discord", "label": "Discord Server"},
-    {"id": "video_game", "label": "Video Game World"},
-    {"id": "music_library", "label": "Music Library"},
-    {"id": "audio_production", "label": "Audio Production"},
-    {"id": "kitchen", "label": "Kitchen Storage"},
+    {
+        "id": "family_tree",
+        "label": "Family Tree",
+        "description": "parents, children, and ancestors",
+    },
+    {
+        "id": "geographic",
+        "label": "Geographic Hierarchy",
+        "description": "countries, states, and cities",
+    },
+    {
+        "id": "html_dom",
+        "label": "HTML/DOM Tree",
+        "description": "nested tags on a web page",
+    },
+    {
+        "id": "university",
+        "label": "Organizational Hierarchy",
+        "description": "departments, managers, and staff",
+    },
+    {
+        "id": "apartment",
+        "label": "Apartment Building",
+        "description": "floors, units, and rooms",
+    },
+    {
+        "id": "grocery",
+        "label": "Grocery Store",
+        "description": "aisles, sections, and shelves",
+    },
+    {
+        "id": "airport",
+        "label": "Airport",
+        "description": "terminals, gates, and flights",
+    },
+    {
+        "id": "discord",
+        "label": "Discord Server",
+        "description": "servers, categories, and channels",
+    },
+    {
+        "id": "video_game",
+        "label": "Video Game World",
+        "description": "worlds, levels, and areas",
+    },
+    {
+        "id": "music_library",
+        "label": "Music Library",
+        "description": "artists, albums, and tracks",
+    },
+    {
+        "id": "audio_production",
+        "label": "Audio Production",
+        "description": "projects, tracks, and clips",
+    },
+    {
+        "id": "kitchen",
+        "label": "Kitchen Storage",
+        "description": "cabinets, shelves, and containers",
+    },
 ]
 THEME_BY_ID = {t["id"]: t for t in PI_THEMES}
 
@@ -1493,6 +1542,51 @@ async def get_async_explainer(
                 r"^\s*i chose answer\s+\S+\.\s*my explanation was:\s*", re.I
             )
 
+            # Show which option each student picked on their first vote, so a justification can be shown alongside the answer it supports
+            # pi_vote comes from the async page the in-class session logs the same vote as mChoice
+            vote_query = (
+                select(Useinfo)
+                .where(
+                    Useinfo.event.in_(["pi_vote", "mChoice"]),
+                    Useinfo.div_id == div_id,
+                    Useinfo.course_id == course,
+                )
+                .order_by(Useinfo.id)
+            )
+            vote_result = await session.execute(vote_query)
+            votes_by_sid: dict[str, list[tuple[int, str]]] = {}
+            for row in vote_result.scalars().all():
+                answer = ""
+                if row.event == "pi_vote":
+                    try:
+                        vote = json.loads(row.act)
+                    except Exception:
+                        continue
+                    if vote.get("vote_num") == 1 and vote.get("answer"):
+                        answer = str(vote["answer"])
+                else:
+                    parts = (row.act or "").split(":")
+                    if len(parts) < 4 or parts[0] != "answer" or parts[3] != "vote1":
+                        continue
+                    try:
+                        answer = ",".join(
+                            chr(65 + int(i)) for i in parts[1].split(",") if i != ""
+                        )
+                    except (ValueError, TypeError):
+                        continue
+                if answer:
+                    votes_by_sid.setdefault(row.sid, []).append((row.id, answer))
+
+            def _answer_for(sid: str, msg_id: int) -> str:
+                # The answer this student had voted for when they wrote their message
+                best = ""
+                for vote_id, answer in votes_by_sid.get(sid, []):
+                    if vote_id <= msg_id:
+                        best = answer
+                    else:
+                        break
+                return best
+
             all_msgs = []
             last_per_sid = {}
             for row in messages:
@@ -1508,11 +1602,11 @@ async def get_async_explainer(
                     except Exception:
                         msg = row.act
                 if last_per_sid.get(row.sid) != msg:
-                    all_msgs.append((row.sid, msg))
+                    all_msgs.append((row.sid, msg, _answer_for(row.sid, row.id)))
                     last_per_sid[row.sid] = msg
 
         parts = []
-        for sid, msg in all_msgs:
+        for sid, msg, _ in all_msgs:
             parts.append(f"<li><strong>{sid}</strong> said: {msg}</li>")
 
         if not parts:
@@ -1522,7 +1616,7 @@ async def get_async_explainer(
 
         # Summarize the justifications when the course has an API key so
         summary = ""
-        items = [msg for _, msg in all_msgs]
+        items = [msg for _, msg, _a in all_msgs]
         if items:
             try:
                 from rsptx.db.crud import fetch_course
@@ -1553,6 +1647,8 @@ async def get_async_explainer(
             content={
                 "mess": mess,
                 "items": items,
+                # Which option each justification was arguing for, same order
+                "answers": [ans for _s, _m, ans in all_msgs],
                 "summary": summary,
                 "user": "",
                 "answer": "",
@@ -1567,23 +1663,59 @@ async def get_async_explainer(
         )
 
 
+def _html_to_text(html: str) -> str:
+    # Make the question HTML to plain text to keep code blocks readable.
+    if not html:
+        return ""
+    text = html
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
+    text = re.sub(r"</(p|div|li|pre|tr|h[1-6])>", "\n", text, flags=re.I)
+    text = re.sub(r"<li[^>]*>", "- ", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html_module.unescape(text)
+    text = "\n".join(
+        re.match(r"[ \t]*", line).group(0) + re.sub(r"[ \t]+", " ", line.strip())
+        for line in text.split("\n")
+    )
+    text = re.sub(r"\n[ \t]*\n[ \t]*\n+", "\n\n", text)
+    return text.strip()
+
+
 async def _get_mcq_context_async(div_id: str):
+    # Return (question_text, code_text, choices) for the LLM peer prompt.
     try:
         q = await fetch_question(div_id)
         if not q:
             rslogger.error(f"_get_mcq_context_async: no question row for {div_id}")
             return "", "", []
 
-        question = (q.question or "").strip()
-        code = (q.code or "").strip() if hasattr(q, "code") else ""
-        choices = []
-        try:
-            if q.answers:
-                opts = json.loads(q.answers)
-                for i, opt in enumerate(opts):
-                    choices.append(f"{chr(65+i)}. {opt.strip()}")
-        except Exception as e:
-            rslogger.warning(f"Could not parse choices for {div_id}: {e}")
+        question = ""
+        choices: list[str] = []
+
+        qjson = getattr(q, "question_json", None)
+        if qjson:
+            try:
+                if isinstance(qjson, str):
+                    qjson = json.loads(qjson)
+                question = _html_to_text(qjson.get("statement", ""))
+                for i, opt in enumerate(qjson.get("optionList", []) or []):
+                    choice_text = _html_to_text(opt.get("choice", ""))
+                    if choice_text:
+                        choices.append(f"{chr(65 + i)}. {choice_text}")
+            except Exception as e:
+                rslogger.warning(f"Could not parse question_json for {div_id}: {e}")
+
+        if not question:
+            raw_question = (getattr(q, "question", "") or "").strip()
+            if raw_question.startswith(".."):
+                raw_question = ""
+            question = _html_to_text(raw_question)
+        if not question:
+            question = _html_to_text((getattr(q, "htmlsrc", "") or "").strip())
+
+        code = ""
+        if not question:
+            rslogger.warning(f"_get_mcq_context_async: no question text for {div_id}")
         return question, code, choices
     except Exception:
         rslogger.exception(f"_get_mcq_context_async failed for {div_id}")
@@ -1655,14 +1787,16 @@ async def _generate_analogy_mapping_async(
         f"The student chose '{theme_label}' as their analogy theme.\n\n"
         f"Step 1: Identify the underlying CS concept this question is testing — one sentence, specific about what structurally happens (not just the topic name).\n\n"
         f"Step 2: Break the question's structure down into its meaningful spatial or logical elements — the starting point, the required location to perform the action, the target item, and the action itself. Do NOT include the command syntax itself as an element. Do NOT evaluate the outcome or describe dependencies (do not write elements like 'the outcome depends on...' or 'the action requires...'). Focus only on what factually exists: where the student currently is, where the target item is, and what location is needed to perform the action. Describe elements factually and neutrally. The structure should describe what exists, not what the right reasoning is. Use bullet points, one element per line.\n\n"
-        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}'. Every single item on the right side of the mapping MUST be a real, nameable part of '{theme_label}' and nothing else — do not borrow places, objects, or vocabulary from any other setting. The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or otherwise restricted area that an ordinary person in '{theme_label}' could not walk into. The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location, choosing an item and action that genuinely belong to '{theme_label}'. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
+        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. CRITICAL: use the relation that '{theme_label}' natively encodes. If the theme is a hierarchy of people or categories (family tree, organizational hierarchy, taxonomy), express the mapping in that theme's own relation words — parent, child, ancestor, descendant, reports to, belongs under — and do NOT convert it into desks, filing cabinets, rooms, floors, hallways, or aisles. Only use physical furniture or rooms if '{theme_label}' is literally a building or a place. Silently turning a hierarchy theme into office furniture is the single most common failure here, so check your mapping for it before continuing. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}'. Every single item on the right side of the mapping MUST be a real, nameable part of '{theme_label}' and nothing else — do not borrow places, objects, or vocabulary from any other setting. The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or otherwise restricted area that an ordinary person in '{theme_label}' could not walk into. The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location, choosing an item and action that genuinely belong to '{theme_label}'. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
         f"Step 4: Write the first message the LLM peer will send to the student. This message should:\n"
         f"- Be in casual, lowercase, peer voice — like a student talking to another student\n"
         f"- Use minimal commas\n"
         f"- Introduce the scene to the student from scratch — they have never heard of this scenario. Do not say 'i'm picturing X' or reference the scenario as if they already know it. Start with 'imagine you're in...' or 'so picture this...' to actually place them in the situation\n"
         f"- Set the scene in 1-2 sentences using theme vocabulary only — no file paths, no CS terms, no variable names\n"
+        f"- ENGAGE THE STUDENT'S OWN REASONING FIRST. Their explanation is in the context above. Open by picking up the specific thing they said and turning it into the scene, so the message reads as a response to them rather than a scenario dropped on them. Do not ignore their explanation and launch straight into 'so picture this'. If they gave no real explanation, then and only then open with the scene alone.\n"
         f"- Name the specific locations from your mapping rather than vague ones, so the conversation is grounded from the start\n"
         f"- After placing them in the scene, ask a specific, concrete location question using the exact mapped action — e.g. 'can you board your flight from the lobby or do you need to get to gate 12 first?' not vague questions like 'can you use it from here' or 'where does the item end up'. The action in the question must be the specific mapped action, not a generic 'use it' or 'access it'.\n"
+        f"- NEVER STATE THE ANSWER IN THE SETUP. Do not tell them they need to go anywhere. Never write phrases like 'but you need to go to X first' or 'you have to get to X' — that hands them the conclusion before they reason. Place them in the scene, say where the item is, and ask. The question must be genuinely open.\n"
         f"- Do NOT assume the student is wrong — the question works whether they are right or wrong\n"
         f"- Never imply the student is wrong or ask a rhetorical question with an obvious answer\n"
         f"- Never say 'our scenario' or announce it as an analogy\n"
@@ -1865,67 +1999,40 @@ async def get_async_llm_reflection(
                 )
 
     common_rules = (
-        "only speak in lower case.\n"
         "you are a student talking to another student during peer instruction.\n"
-        "you are both looking at the same multiple choice question with code and answers.\n"
-        "you remember the question and choices.\n"
-        "most messages should be short (1 to 3 sentences often very short).\n"
-        "use casual informal language and common typos.\n"
-        "never use commas.\n"
-        "never use gendered language.\n"
-        "do not use new lines.\n"
-        "never use em dashes (—) or formal punctuation. write the way you actually talk.\n"
-        "do not sound like a teacher.\n"
-        "do not explain step by step.\n"
-        "never say something is right or wrong.\n"
-        "STRICT RULE: every message must begin with one of these allowed openers: a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm'), or the word 'so' followed immediately by a scenario observation (not 'so exactly' or 'so right'). never begin with 'yeah', 'right', 'exactly', 'correct', 'yes', 'yep', 'true', 'good', 'nice', 'great', 'perfect', 'cool', 'totally', 'sure', 'got it', or any variation. these imply the student is correct. check your first word before every message.\n"
-        "never confirm or explain the code outcome after the student says something — only ask them to keep tracing or elaborate.\n"
-        "each follow-up must move the conversation forward — do not ask the same question twice in different words. if the student answered your last question, accept that and go one level deeper or bridge back to the actual problem.\n"
-        "never use phrases like 'not quite' or 'not exactly' or 'almost' or 'close' or 'not yet' or any phrase that implies the student is incorrect.\n"
-        "never react to whether the student's answer is correct or incorrect — only ask them to explain their reasoning.\n"
-        "never end a message with a rhetorical question whose obvious answer signals the student is wrong — like 'does that room just appear?' or 'is there really a backup area there?' — these tell the student they are wrong.\n"
-        "do not pretend to have picked an answer yourself.\n"
-        "never mention a choice letter as the correct answer.\n"
-        "if the question includes code never clearly describe the final result or fully state what it prints.\n"
-        "if the question does not include code do not make up or reference code that is not there.\n"
-        "only refer to what is actually in the question.\n"
-        "be aware of common misconceptions but do not introduce them yourself.\n"
-        "if there is code refer to it loosely like 'that line' or 'the loop' or 'the print'.\n"
-        "often hedge with uncertainty.\n"
-        "ask the other student to explain why they picked their answer and how they reasoned through it.\n"
-        "ask follow up questions about their reasoning like 'what makes you think that' or 'how did you trace through it'.\n"
-        "do not push them toward a different answer or imply their answer is wrong.\n"
-        "never reveal or hint at which answer is correct or incorrect.\n"
-        "never say things like 'the feedback says' or 'according to the answer' or reference any grading or correctness information.\n"
-        "do not make up information that is not in the question.\n"
-        "if you are unsure about something say so honestly instead of guessing.\n"
-        "if the other student mentions the same answer more than once or sounds confident in their answer you must tell them to go ahead and vote again — this overrides everything else.\n"
-        "do not ask another question or continue reasoning after they have confirmed their answer — just tell them to vote.\n"
-        "do not continue reasoning after telling them to vote again.\n"
-        "focus on getting them to think through the problem not on changing their mind.\n\n"
+        "the question and its answer choices are shown below. only talk about what is actually there. if there is no code in the question never mention code and never ask them to trace code.\n"
+        "only speak in lower case. keep messages short, 1 to 3 sentences. casual informal language with the occasional typo. no commas. no em dashes. no line breaks. no gendered language.\n"
+        "do not sound like a teacher and do not explain the problem step by step.\n"
+        "NEVER signal whether the student is right or wrong. that includes verdicts ('correct', 'wrong'), hedges ('not quite', 'almost', 'close', 'not yet'), and agreement markers anywhere in the message ('exactly', 'right', 'yeah', 'yes', 'true', 'good point', 'makes sense', 'thats it', 'perfect', 'youre on the right track'). do not open with them and do not slip them in mid sentence. if you notice yourself agreeing, rewrite the whole message as a question instead.\n"
+        "every message must begin with a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm') or with 'so' followed by an observation.\n"
+        "never end on a rhetorical question whose obvious answer tells them they are wrong. keep questions open — 'where does that put you' not 'does that even exist'.\n"
+        "never say which choice is correct, never hint at it, and never reference feedback or grading. do not pretend to have picked an answer yourself.\n"
+        "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words.\n"
+        "if their explanation describes a different option than the one they selected, ask them about that gap without saying which is right, like 'wait you said X but you picked Y whats the connection'.\n"
+        "be aware of common misconceptions but never introduce one yourself. never invent information that is not in the question. if you are unsure say so instead of guessing, and hedge often.\n"
+        "if they repeat the same answer or sound confident, tell them to vote again — this overrides everything else. after telling them to vote, do not ask anything further or keep reasoning.\n"
+        "focus on getting them to think it through, not on changing their mind.\n\n"
     )
 
     # Analogy-specific rules only apply when the student picked a theme
     analogy_flow_rules = (
-        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves. for example if they claim 'it creates the directory' ask them through the analogy: 'does trying to walk to a floor that doesn't exist create it, or does something else happen?' never validate the assumption, never deny it — just ask them to examine it through the scenario.\n"
-        "if an analogy scenario was established, always bring follow-up questions back through that scenario — do not abandon it for direct code talk. never use CS terms (like 'staging', 'commit', 'directory', 'repository', 'file path') in a message that is otherwise in analogy vocabulary — stay fully in the theme language until you are explicitly bridging back.\n"
-        "when referencing a structural detail of the scenario in a follow-up, briefly restate that detail in the same message — do not assume the student remembers the exact structure from the first message. for example: 'remember in that tree the grandparent has two children — user and shared. you are currently under user...' then ask your question.\n"
-        "never say things like 'let's focus on the code' or 'going back to the code' — always route through the scenario instead.\n"
-        "if the student themselves references the analogy, use that as an opening to deepen it — never redirect away from it.\n"
-        "once the student has traced through the analogy and seems to understand the structure, explicitly bridge back to the question — ask them to apply that same reasoning to the actual problem values or code.\n"
-        "do not let the analogy float indefinitely without connecting it back to the question. the goal is for the student to say 'oh so in the question that means...' — guide them there.\n"
-        "never use the analogy to imply the student's answer is wrong.\n"
-        "have the student trace through the scenario step by step. ask where they end up after each step, or ask them to walk you through what they think each part of the command does in the scenario. keep questions open — 'where does that put you?' not 'does that even exist?'\n"
-        "the student should discover whether their answer is right or wrong by tracing through the analogy themselves.\n"
-        "never connect the analogy conclusion back to a specific answer choice — do not say things like 'answer B says you need to be in X — does that match up with needing to be in the new server?' because this confirms the answer without saying it. if the student has traced through the analogy and reached a conclusion ask them what that tells them about the problem and let THEM connect it back to their choice — never make that connection for them.\n\n"
+        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves. never validate it, never deny it, just ask them to examine it through the scenario.\n"
+        "IF THE STUDENT SWITCHES TO THE REAL PROBLEM, FOLLOW THEM. the moment they use actual terms from the question (file paths, commands, directories, git words, variable names) switch to those terms and finish the conversation there. never pull them back into the scenario after they have made that jump — that is the transfer you want.\n"
+        "IF THE STUDENT SAYS THEY ARE CONFUSED OR LOST, state the mapping plainly in one message — say which thing in the scenario is which thing in the question — then ask your next question. do not answer confusion with more scenario.\n"
+        "otherwise keep follow-ups inside the scenario and stay in theme vocabulary rather than mixing in CS terms.\n"
+        "NEVER ASK THE SAME QUESTION TWICE. before you send, compare your question to the ones you already asked — if it is the same idea in different words, do not send it. instead take whatever they last said as settled, and either move to the next step of the scenario or bridge back to the actual question.\n"
+        "if the student has answered your question twice without the conversation moving, stop asking about the scenario and connect it back to the real question.\n"
+        "when you reference a structural detail in a follow-up, restate it briefly in the same message — do not assume they remember the structure from earlier.\n"
+        "have them trace the scenario step by step, then once they seem to have the structure, bridge back and ask them to apply that reasoning to the actual question. do not let the analogy float without connecting it back.\n"
+        "never connect the analogy conclusion to a specific answer choice yourself — ask them what it tells them about the problem and let them make that link.\n\n"
     )
 
     generic_flow_rules = (
-        "stay grounded in the actual question and code — do not invent metaphors analogies or hypothetical scenarios. talk directly about the code and what it does.\n"
-        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead ask them to test that assumption by tracing through the actual code or question themselves. never validate the assumption never deny it — just ask them to examine it.\n"
-        "have the student trace through the code step by step. ask what each line does and where they end up. keep questions open — 'what does that line do?' not 'does that even work?'.\n"
-        "the student should discover whether their answer is right or wrong by tracing through the code themselves.\n"
-        "never connect a conclusion back to a specific answer choice — if the student reaches a conclusion ask them what that tells them about the problem and let THEM connect it back to their choice.\n\n"
+        "stay grounded in the actual question — do not invent metaphors, analogies, or hypothetical scenarios.\n"
+        "IF THE STUDENT SAYS THEY ARE CONFUSED OR ASKS YOU TO BREAK IT DOWN, do not bounce the question straight back at them. give them one concrete place to start — name the specific line or value to look at first and ask what that one part does. never answer confusion with only another open question.\n"
+        "ask them to walk through the question step by step in their own words. only talk about code if code actually appears in the question above.\n"
+        "if the student introduces a new assumption or claim, ask them to test it against the question itself rather than validating or denying it.\n"
+        "never connect a conclusion back to a specific answer choice — ask them what it tells them about the problem and let them make that link.\n\n"
     )
 
     context_suffix = ""

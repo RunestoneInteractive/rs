@@ -34,6 +34,10 @@
     #peer_async_root { margin-bottom: 0 !important; }
     body > .container-fluid { margin-bottom: 0 !important; }
     body { font-size: 16px; margin-bottom: 0 !important; padding-bottom: 0 !important; }
+    .row::after { content: ""; display: table; clear: both; }
+    #peer_async_page { display: flow-root; padding-bottom: 110px; }
+    footer { clear: both; }
+    footer .container { width: auto; max-width: 1170px; }
 
     :root {
       --pi-blue:      #2f7fd1;
@@ -74,7 +78,7 @@
       border-top-color:#333; pointer-events:none; z-index:999;
     }
 
-    .pi-panel { border:1px solid var(--pi-line); border-radius:6px; background:#fff; overflow:visible; }
+    .pi-panel { border:1px solid var(--pi-line); border-radius:6px; background:#fff; overflow:visible; margin-bottom:17px; }
     .pi-panel > :first-child { border-radius:6px 6px 0 0; }
     .pi-panel > :last-child { border-radius:0 0 6px 6px; }
 
@@ -105,7 +109,7 @@
 
     .pi-reasoning-prompt { font-size:14.5px; color:var(--pi-ink2); margin-bottom:10px; }
     #messageText {
-      width:100%; height:140px; resize:none;
+      width:100%; min-height:200px; resize:vertical;
       font-size:14.5px; background:#fafbfc;
       border:1px solid var(--pi-line2); border-radius:4px;
       padding:8px 10px; margin-bottom:10px;
@@ -135,14 +139,21 @@
     .pi-vote-bar {
       border-top:1px solid var(--pi-line);
       padding:10px 14px;
-      display:flex; align-items:center; gap:12px;
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
       background:#f9fafb;
       transition:background .3s;
+      /* the panel is rounded and does not clip, and the likert panel below is
+         hidden while this is showing, so match the panel's bottom corners */
+      border-radius:0 0 6px 6px;
+      margin-bottom:32px;
     }
+    .pi-vote-bar.no-gap { margin-bottom:0; }
     .pi-vote-bar.active {
       background:linear-gradient(135deg, var(--pi-blue-soft) 0%, #dbeeff 100%);
     }
-    .pi-vote-bar-inner { flex:1; display:flex; flex-direction:column; gap:5px; }
+    /* min-width:0 lets this column shrink so it can't push the button out */
+    .pi-vote-bar-inner { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:5px; }
+    #readyVote2Btn { margin-left:auto; flex-shrink:0; }
     .pi-vote-disclaimer { font-size:12px; color:var(--pi-ink3); display:none; }
 
     .pi-responses-count-row {
@@ -153,6 +164,11 @@
     .pi-response-card {
       border:1px solid var(--pi-line); border-radius:6px;
       padding:12px 14px; margin-bottom:8px; background:#fff;
+    }
+    .pi-response-answer {
+      margin-left:8px; padding:1px 7px; border-radius:3px;
+      background:var(--pi-blue-soft); color:var(--pi-blue-deep);
+      font-size:11.5px; font-weight:600;
     }
     .pi-response-card-meta {
       font-size:12px; font-weight:600; color:var(--pi-ink3); margin-bottom:6px;
@@ -181,10 +197,11 @@
     }
     .pi-show-more { margin:4px 0 8px 0; }
 
+    .pi-ai-note { font-size:14px; color:var(--pi-ink3); margin-top:4px !important; }
     .theme-picker{ padding:0 0 10px 0; }
-    .theme-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; gap:10px; }
-    .theme-label-text{ font-size:13px; font-weight:600; color:var(--pi-ink2); }
-    .theme-hint{ font-size:12px; color:var(--pi-ink3); }
+    .theme-head{ display:block; margin-bottom:8px; }
+    .theme-label-text{ display:block; font-size:13px; font-weight:600; color:var(--pi-ink2); }
+    .theme-hint{ display:block; font-size:12px; color:var(--pi-ink3); margin-top:2px; }
     .theme-select-wrap{ position:relative; }
     .theme-trigger{ width:100%; font:inherit; font-size:14px; background:#fff; border:1px solid var(--pi-line2); border-radius:5px; padding:9px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; color:var(--pi-ink); transition:border-color .12s, box-shadow .12s; outline:none; }
     .theme-trigger:hover{ border-color:var(--pi-blue); }
@@ -195,7 +212,10 @@
     .theme-menu{ position:absolute; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid var(--pi-line); border-radius:6px; box-shadow:0 8px 24px rgba(15,23,42,.12), 0 2px 6px rgba(15,23,42,.05); max-height:280px; overflow-y:auto; padding:4px; z-index:20; }
     .theme-menu::-webkit-scrollbar{ width:6px; }
     .theme-menu::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:3px; }
-    .tm-opt{ width:100%; font:inherit; font-size:13.5px; background:transparent; border:0; color:var(--pi-ink); padding:7px 10px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; border-radius:4px; }
+    .tm-opt{ width:100%; font:inherit; font-size:13.5px; background:transparent; border:0; color:var(--pi-ink); padding:7px 10px; cursor:pointer; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; text-align:left; border-radius:4px; }
+    .tm-opt-name{ font-weight:500; }
+    .tm-opt-desc{ font-size:12px; color:var(--pi-ink3); }
+    .tm-opt:hover .tm-opt-desc, .tm-opt.selected .tm-opt-desc{ color:var(--pi-blue-deep); }
     .tm-opt:hover{ background:var(--pi-blue-soft); color:var(--pi-blue-deep); }
     .tm-opt.selected{ background:var(--pi-blue-soft); color:var(--pi-blue-deep); font-weight:500; }
     .tm-opt.selected::after{ content:"\2713"; margin-left:auto; color:var(--pi-blue); font-weight:700; }
@@ -282,7 +302,7 @@
 {% endset %}
 
 {% block content %}
-<div style="max-width:1170px; margin:0 auto; padding:0 15px;">
+<div id="peer_async_page" style="max-width:1170px; margin:0 auto; padding:0 15px;">
 {% include 'common/static_assets.html' %}
 {% include 'common/ebook_config.html' %}
 
@@ -336,13 +356,22 @@
             <li>Answer the question as best you can.</li>
             <li>Then, in the space provided write a justification for your answer.</li>
             {% if llm_enabled %}
-            <li>Discuss the question with an LLM peer — explain your reasoning and respond to their questions.</li>
+            {% if async_mode == "analogies" %}
+            <li>Pick a setting you know well. You'll then discuss the question with an <strong>AI peer</strong> that explains things using examples from that setting.</li>
             {% else %}
-            <li>Read the justification or discussion.</li>
+            <li>Discuss the question with an <strong>AI peer</strong> — explain your reasoning and respond to its questions.</li>
+            {% endif %}
+            {% else %}
+            <li>Read what your classmates wrote about this question.</li>
             {% endif %}
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
     </p>
+    {% if llm_enabled %}
+    <p class="pi-ai-note">The peer is a chatbot, not a real classmate, and it can be wrong. It asks
+        questions rather than giving answers, so it will keep going as long as you do. Chat as
+        long as it is useful, then vote again whenever you are ready.</p>
+    {% endif %}
 </div>
 
 <div class="row">
@@ -382,8 +411,8 @@
           <div id="themePickerRow" style="display:none;">
             <div class="theme-picker">
               <div class="theme-head">
-                <span class="theme-label-text">Theme</span>
-                <span class="theme-hint">The LLM will frame examples around this.</span>
+                <span class="theme-label-text">Pick a familiar setting</span>
+                <span class="theme-hint">Your AI peer will explain this question using an example from whichever setting you pick. Choose one you know well.</span>
               </div>
               <div class="theme-select-wrap" id="themeSelectWrap">
                 <button class="theme-trigger placeholder" id="themeTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
@@ -740,6 +769,9 @@ function collapseJustification(text) {
   const themeRow = document.getElementById('themePickerRow');
   if (themeRow) themeRow.style.display = 'none';
 
+  const voteBar = document.getElementById('piVoteBar');
+  if (voteBar) voteBar.classList.add('no-gap');
+
   // The picker is gone now, so name the theme the peer is talking in
   if (window._selectedTheme) {
     const theme = (window.PI_THEMES || []).find(t => t.id === window._selectedTheme);
@@ -877,6 +909,7 @@ function collapseJustification(text) {
       }
       if (spec.mess) {
         let items = spec.items || [];
+        const answers = spec.answers || [];
         if (!items.length && spec.mess) {
           const tmp = document.createElement('div');
           tmp.innerHTML = spec.mess;
@@ -884,6 +917,8 @@ function collapseJustification(text) {
             li => li.textContent.replace(/^[^:]+said:\s*/i, '').trim()
           );
         }
+        //Keep each justification paired with the option they argued chose
+        items = items.map((text, i) => ({ text: text, answer: answers[i] || "" }));
 
         if (items.length > 0) {
           // Class responses are a reference section, not part of the conversation
@@ -923,15 +958,21 @@ function collapseJustification(text) {
           panel.appendChild(countRow);
 
           const renderCards = (list, startIdx) => {
-            list.forEach((text, i) => {
+            list.forEach((item, i) => {
               const card = document.createElement('div');
               card.className = 'pi-response-card';
               const meta = document.createElement('div');
               meta.className = 'pi-response-card-meta';
               meta.textContent = `Classmate ${startIdx + i + 1}`;
+              if (item.answer) {
+                const tag = document.createElement('span');
+                tag.className = 'pi-response-answer';
+                tag.textContent = `chose ${item.answer}`;
+                meta.appendChild(tag);
+              }
               const body = document.createElement('div');
               body.className = 'pi-response-card-text';
-              body.textContent = text;
+              body.textContent = item.text;
               card.appendChild(meta);
               card.appendChild(body);
               panel.appendChild(card);
@@ -1597,7 +1638,18 @@ function bindLikertSubmitHandler() {
         btn.type = "button";
         btn.setAttribute("role", "option");
         btn.setAttribute("data-theme-id", t.id);
-        btn.textContent = t.label;
+        if (t.description) {
+          const nameEl = document.createElement("span");
+          nameEl.className = "tm-opt-name";
+          nameEl.textContent = t.label;
+          const descEl = document.createElement("span");
+          descEl.className = "tm-opt-desc";
+          descEl.textContent = t.description;
+          btn.appendChild(nameEl);
+          btn.appendChild(descEl);
+        } else {
+          btn.textContent = t.label;
+        }
         btn.addEventListener("click", function() {
           document.querySelectorAll(".tm-opt").forEach(o => o.classList.remove("selected"));
           btn.classList.add("selected");
