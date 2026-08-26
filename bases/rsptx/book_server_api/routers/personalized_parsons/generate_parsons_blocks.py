@@ -492,15 +492,20 @@ def aggregate_code_to_Parsons_block_with_distractor(blocks):
 
 def aggregate_code_to_full_Parsons_block(blocks):
     """
-    Aggregate the code into full Parsons blocks. All code lines with the same indentation level are grouped together.
+    Aggregate the code into full Parsons blocks. Lines nested inside something
+    (indented deeper than the snippet's root level) are grouped together as a
+    single block per contiguous run, since only their placement under the
+    enclosing header matters. Lines at the root level always get their own
+    block, since each one is an independent, reorderable statement.
     1. Function definitions (def) and return statements are treated as separate blocks.
     2. Import statements are grouped together into a single block.
-    3. Other lines with the same indentation level are grouped together.
-    4. If the indentation level changes, a new block is started.
+    3. Root-level lines are never merged with each other.
+    4. Nested lines at the same indentation level are grouped together, until the indentation level changes.
     5. Blank lines are preserved within blocks.
     6. Each block ends with a newline character.
     """
-    current_indent = check_indentation_level(blocks[0])
+    base_indent = check_indentation_level(blocks[0])
+    current_indent = base_indent
     all_Parsons_blocks = []
     Parsons_block = ""
     import_block = ""
@@ -529,7 +534,10 @@ def aggregate_code_to_full_Parsons_block(blocks):
                 block
             )  # add the def or return statement as its own block
             current_indent = this_indent
-        elif this_indent == current_indent:
+        elif this_indent == current_indent and this_indent != base_indent:
+            # Only merge lines that are nested inside something (indented deeper
+            # than the snippet's root level) -- sibling statements at the root
+            # level each get their own block, same as def/return already do.
             Parsons_block += block
         else:
             if Parsons_block:  # append current block before resetting

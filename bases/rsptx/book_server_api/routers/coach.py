@@ -466,7 +466,13 @@ async def parsons_scaffolding(
             "Problem Name": problem_id,
             "Problem Description": problem_description,
             "Unittest_Code": internal_test_case,
-            "Example": parsonsexample_code,  # This is the html of the example Parsons problem
+            "Example": (
+                parsonsexample_code
+                if parsonsexample_code == "LLM-example"
+                else extract_parsons_solution(parsonsexample_code)
+            ),  # compilable solution code, not raw Parsons block markup --
+            # this can be returned verbatim as the fixed/example code when
+            # LLM personalization falls back (see end_to_end.generate_example_solution)
             "CF (Code)": student_code,
         }
         return get_parsons_help(api_token, language, input_dict, personalization_level)
