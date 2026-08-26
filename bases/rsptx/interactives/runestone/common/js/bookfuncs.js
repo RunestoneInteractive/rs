@@ -994,6 +994,7 @@ function shouldShowStudyCluesWidget() {
         "bc_cppds2_f26",
         "csawesome2_studyclues_test",
         "csawesome2-MOOC",
+        "DukeCS101-Fall26",
         "DukeCS101SP26",
         "F26-SI201-MW",
         "F26-SI201-TTh",
