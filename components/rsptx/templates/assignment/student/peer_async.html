@@ -34,7 +34,6 @@
     #peer_async_root { margin-bottom: 0 !important; }
     body > .container-fluid { margin-bottom: 0 !important; }
     body { font-size: 16px; margin-bottom: 0 !important; padding-bottom: 0 !important; }
-    .row::after { content: ""; display: table; clear: both; }
     #peer_async_page { display: flow-root; padding-bottom: 110px; }
     footer { clear: both; }
     footer .container { width: auto; max-width: 1170px; }
@@ -120,7 +119,7 @@
     #submitReflection:disabled { opacity:0.5; }
 
     #llmChat {
-      max-height:370px; overflow-y:auto;
+      max-height:min(420px, 45vh); overflow-y:auto;
       display:flex; flex-direction:column;
     }
     #llmChat:empty { display:none; }
@@ -146,6 +145,11 @@
          hidden while this is showing, so match the panel's bottom corners */
       border-radius:0 0 6px 6px;
       margin-bottom:32px;
+      /* the chrome above the panel doesn't scale with the window, so on a
+         short screen the panel can still run past the bottom. sticking to the
+         viewport keeps Vote again clickable at any size, then it settles back
+         into place once the panel bottom scrolls into view. */
+      position:sticky; bottom:0; z-index:5;
     }
     .pi-vote-bar.no-gap { margin-bottom:0; }
     .pi-vote-bar.active {
@@ -917,7 +921,7 @@ function collapseJustification(text) {
             li => li.textContent.replace(/^[^:]+said:\s*/i, '').trim()
           );
         }
-        //Keep each justification paired with the option they argued chose
+        //Keep each justification paired with the option it argued for
         items = items.map((text, i) => ({ text: text, answer: answers[i] || "" }));
 
         if (items.length > 0) {

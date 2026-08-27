@@ -1664,20 +1664,40 @@ async def get_async_explainer(
 
 
 def _html_to_text(html: str) -> str:
-    # Make the question HTML to plain text to keep code blocks readable.
+    """Convert question HTML to plain text for the LLM prompt.
+
+    Whitespace inside <pre> is preserved exactly. These questions draw
+    directory trees and code samples there, where indentation and alignment
+    carry meaning — collapsing it changes what the question says.
+    """
     if not html:
         return ""
     text = html
+
+    # Pull <pre> blocks out so the normalization below can't touch them
+    preserved: list[str] = []
+
+    def _stash(match: re.Match) -> str:
+        inner = re.sub(r"<[^>]+>", "", match.group(1))
+        preserved.append(html_module.unescape(inner))
+        return f"\x00PRE{len(preserved) - 1}\x00"
+
+    text = re.sub(r"<pre[^>]*>(.*?)</pre>", _stash, text, flags=re.I | re.S)
+
     text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
-    text = re.sub(r"</(p|div|li|pre|tr|h[1-6])>", "\n", text, flags=re.I)
+    text = re.sub(r"</(p|div|li|tr|h[1-6])>", "\n", text, flags=re.I)
     text = re.sub(r"<li[^>]*>", "- ", text, flags=re.I)
     text = re.sub(r"<[^>]+>", "", text)
     text = html_module.unescape(text)
+    # Collapse runs of spaces within a line of prose, keeping any indentation
     text = "\n".join(
         re.match(r"[ \t]*", line).group(0) + re.sub(r"[ \t]+", " ", line.strip())
         for line in text.split("\n")
     )
     text = re.sub(r"\n[ \t]*\n[ \t]*\n+", "\n\n", text)
+
+    for i, block in enumerate(preserved):
+        text = text.replace(f"\x00PRE{i}\x00", "\n" + block.strip("\n") + "\n")
     return text.strip()
 
 
