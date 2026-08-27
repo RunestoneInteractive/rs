@@ -990,6 +990,7 @@ function shouldShowStudyCluesWidget() {
         "cppds2",
     ];
     const enabledCourses = [
+        "bc_ai4all_f26",
         "bc_cppds_s26",
         "bc_cppds2_f26",
         "csawesome2_studyclues_test",

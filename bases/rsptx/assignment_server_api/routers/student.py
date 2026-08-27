@@ -463,6 +463,7 @@ def get_studyclues_book_id(course: CoursesValidator) -> str:
         "ac-single": 42,
         "py4eint": 43,
         "foppff": 44,
+        "ai4all": 62,
         # Add more mappings as needed
     }
     return course_to_book_id.get(course.base_course, 28)
