@@ -148,6 +148,12 @@ def extract_parsons_solution(parsonsexample_code):
     correct solution), and scaffolding tags ("#settled", "#tag:...;...;") are
     stripped from the remaining blocks. Mirrors the block-parsing logic in
     runestone/parsons/js/parsons.js::initializeLines.
+
+    extract_parsons_code() deliberately leaves HTML entities (e.g. "&lt;")
+    escaped, since its result is also re-embedded into a <pre> block for the
+    Parsons widget to re-render. This function's result instead goes straight
+    into a plain-text answer (clipboard copy, code_answer), so it must be
+    unescaped here or a "<" in the source shows up as literal "&lt;".
     """
     blocks = parsonsexample_code.split("---")
     clean_lines = []
@@ -160,7 +166,7 @@ def extract_parsons_solution(parsonsexample_code):
             line = re.sub(r"#tag:[^;]*;[^;]*;\s*$", "", line)
             line = line.rstrip()
             if line.strip() and line.strip() != "=====":
-                clean_lines.append(line)
+                clean_lines.append(html.unescape(line))
     return "\n".join(clean_lines)
 
 
@@ -466,7 +472,13 @@ async def parsons_scaffolding(
             "Problem Name": problem_id,
             "Problem Description": problem_description,
             "Unittest_Code": internal_test_case,
-            "Example": parsonsexample_code,  # This is the html of the example Parsons problem
+            "Example": (
+                parsonsexample_code
+                if parsonsexample_code == "LLM-example"
+                else extract_parsons_solution(parsonsexample_code)
+            ),  # compilable solution code, not raw Parsons block markup --
+            # this can be returned verbatim as the fixed/example code when
+            # LLM personalization falls back (see end_to_end.generate_example_solution)
             "CF (Code)": student_code,
         }
         return get_parsons_help(api_token, language, input_dict, personalization_level)
