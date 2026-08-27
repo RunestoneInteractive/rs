@@ -2836,21 +2836,6 @@ wheels = [
 ]
 
 [[package]]
-name = "plastex"
-version = "3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "jinja2" },
-    { name = "pillow" },
-    { name = "typing-extensions" },
-    { name = "unidecode" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/59/ce/219d3ad6ab3c821081e2045fcaf68c28a0c244c6275306b8bec5cdab6a28/plasTeX-3.1.tar.gz", hash = "sha256:6a2ee7fbca6561d3f4cbd79fe3f4918b9054757382c5422b9fda324d646ab77d", size = 625646, upload-time = "2024-01-30T20:04:37.323Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/a2/9de5ce466144b6c7ca7c7c67b936cbf3517f120e4acc78e4c099ca8ade70/plasTeX-3.1-py3-none-any.whl", hash = "sha256:b2494c43923fb58d30de0f2576e7b5d2c2f92e15538a4f5e5e1f36972a0b4871", size = 721993, upload-time = "2024-01-30T20:04:35.152Z" },
-]
-
-[[package]]
 name = "platformdirs"
 version = "4.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2943,7 +2928,7 @@ wheels = [
 
 [[package]]
 name = "prefig"
-version = "0.7.2"
+version = "0.7.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2954,9 +2939,9 @@ dependencies = [
     { name = "scipy" },
     { name = "shapely" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/80/2e913144944de9f1a5c01636f6c7261fe5b0614643449a2025e22aa11fdf/prefig-0.7.2.tar.gz", hash = "sha256:2f282fdfecf77383b74dee9e96dbf8aaa64695713840c52959c5f801e6fe85fc", size = 149175, upload-time = "2026-08-02T13:31:09.498Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/3f/2c2f303c7c4fbf221616dc0b03d4caa24b8b1741cff0ae29e542dd066b15/prefig-0.7.4.tar.gz", hash = "sha256:fd23cb3ab0f6d5a2809313830f37e2c50c09d4619efa3f54f2cdd0aaefeab9cb", size = 151235, upload-time = "2026-08-16T21:24:30.27Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/ca/992c6555fe1c4ae3ff0a04339161434ce0d595d961c050379090765a1c37/prefig-0.7.2-py3-none-any.whl", hash = "sha256:5c72a38458979bd16205418056ed833386f597ee72e068428ea2855114447494", size = 175783, upload-time = "2026-08-02T13:31:07.894Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/46/3bfc9f4f20c903200446d97d46b329ca4f47d82f089469c80d67c1824258/prefig-0.7.4-py3-none-any.whl", hash = "sha256:839eee3ea4654f0ad3511f2f6cd3d2fec8adc61f9f1d0c9128cbb7dabe9713ec", size = 177798, upload-time = "2026-08-16T21:24:28.887Z" },
 ]
 
 [package.optional-dependencies]
@@ -2966,7 +2951,7 @@ text = [
 
 [[package]]
 name = "pretext"
-version = "2.49.1"
+version = "2.50.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "citeproc-py" },
@@ -2978,7 +2963,6 @@ dependencies = [
     { name = "jinja2" },
     { name = "lxml" },
     { name = "pdfcropmargins" },
-    { name = "plastex" },
     { name = "playwright" },
     { name = "psutil" },
     { name = "pydantic-xml" },
@@ -2988,9 +2972,9 @@ dependencies = [
     { name = "requests" },
     { name = "single-version" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/55/6f/7b5001331e1b406a5ea01ce1a0e0ccc6ac81c5a4eb5176b500586c86eccc/pretext-2.49.1.tar.gz", hash = "sha256:35cfeca9044b3ca8f8ada13ffbacc2838390722f7b243da4ead0b216d995de70", size = 18263337, upload-time = "2026-08-13T19:39:51.762Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ab/71/8c851606fdd465ca791e21932484ce90f16240d29974012011b0e0442ec0/pretext-2.50.0.tar.gz", hash = "sha256:4059e55c9c43ef2329512715889e8c951616fa3b7df1f212460d3eb71cf680eb", size = 18288560, upload-time = "2026-08-24T21:36:13.345Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/51/ea1659493e1db6d52aead2d45c252a1b42608df4ec8794ec9e0331001e10/pretext-2.49.1-py3-none-any.whl", hash = "sha256:e559c4993323e8cb47b638a3d37508debd94ff9890cdc75d8de5256ebdcf268a", size = 17526191, upload-time = "2026-08-13T19:39:49.206Z" },
+    { url = "https://files.pythonhosted.org/packages/96/b7/015531993f3a18e641a61e5d97df1dd0e9ff7b009260d66646f38940d403/pretext-2.50.0-py3-none-any.whl", hash = "sha256:afd06410c9eb0bb5e4c489ee1698bbdb79bc995883e3d55c86aed70d2c146819", size = 17579062, upload-time = "2026-08-24T21:36:09.719Z" },
 ]
 
 [package.optional-dependencies]
@@ -3957,7 +3941,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "9.0.9"
+version = "9.0.11"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -4926,15 +4910,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/78/67/9a363818028526e2d4579334460df777115bdec1bb77c08f9db88f6389f2/uc_micro_py-2.0.0.tar.gz", hash = "sha256:c53691e495c8db60e16ffc4861a35469b0ba0821fe409a8a7a0a71864d33a811", size = 6611, upload-time = "2026-03-01T06:31:27.526Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/61/73/d21edf5b204d1467e06500080a50f79d49ef2b997c79123a536d4a17d97c/uc_micro_py-2.0.0-py3-none-any.whl", hash = "sha256:3603a3859af53e5a39bc7677713c78ea6589ff188d70f4fee165db88e22b242c", size = 6383, upload-time = "2026-03-01T06:31:26.257Z" },
-]
-
-[[package]]
-name = "unidecode"
-version = "1.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/94/7d/a8a765761bbc0c836e397a2e48d498305a865b70a8600fd7a942e85dcf63/Unidecode-1.4.0.tar.gz", hash = "sha256:ce35985008338b676573023acc382d62c264f307c8f7963733405add37ea2b23", size = 200149, upload-time = "2025-04-24T08:45:03.798Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/b7/559f59d57d18b44c6d1250d2eeaa676e028b9c527431f5d0736478a73ba1/Unidecode-1.4.0-py3-none-any.whl", hash = "sha256:c3c7606c27503ad8d501270406e345ddb480a7b5f38827eafe4fa82a137f0021", size = 235837, upload-time = "2025-04-24T08:45:01.609Z" },
 ]
 
 [[package]]
