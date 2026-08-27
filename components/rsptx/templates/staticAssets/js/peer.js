@@ -414,6 +414,9 @@ function getVoteNum() {
 
 function answerToString(currAnswer) {
     const ordA = 65;
+    // Single-answer mchoice questions store the choice index as a Number
+    // (multi-answer stores a comma-joined String), so normalize first.
+    currAnswer = String(currAnswer);
     if (currAnswer.indexOf(",") > -1) {
         let alist = currAnswer.split(",");
         let nlist = [];
