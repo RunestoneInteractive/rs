@@ -118,7 +118,7 @@ export default class ClickableArea extends RunestoneBase {
         this.instructions.id = `${this.divid}_instructions`;
         this.instructions.className = "clickable-sr-only";
         this.instructions.textContent =
-            "Select all that apply. Move between the choices with the Tab key and press Enter or the space bar to select or unselect a choice.";
+            "Select all that apply. Press Tab to enter or leave the choices. Use the arrow keys to move between choices, Home or End to move to the first or last choice, and press Enter or the space bar to select or unselect a choice.";
         this.containerDiv.appendChild(this.instructions);
         this.newDiv.setAttribute("role", "group");
         if (this.question && this.question.id) {
@@ -419,26 +419,78 @@ export default class ClickableArea extends RunestoneBase {
                 }
             }
         }
-        // Expose each clickable as a checkbox so that it can be reached with the
-        // Tab key and so that a screen reader announces its selected state.
+        // Expose each clickable as a checkbox so that a screen reader announces
+        // its selected state. Only one checkbox is in the page tab order; arrow
+        // keys move that tab stop through the group.
         clickable.setAttribute("role", "checkbox");
-        clickable.setAttribute("tabindex", "0");
+        clickable.setAttribute(
+            "tabindex",
+            this.clickableArray.length === 0 ? "0" : "-1",
+        );
         clickable.setAttribute(
             "aria-checked",
             clickable.classList.contains("clickable-clicked")
                 ? "true"
                 : "false",
         );
-        clickable.onclick = () => this.toggleClickable(clickable);
+        clickable.onclick = () => {
+            this.focusClickable(clickable);
+            this.toggleClickable(clickable);
+        };
+        clickable.addEventListener("focus", () => {
+            this.setActiveClickable(clickable);
+        });
         clickable.addEventListener("keydown", (ev) => {
-            // Enter and the space bar are the standard checkbox activation keys.
             if (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar") {
                 ev.preventDefault(); // keep the space bar from scrolling the page
                 this.toggleClickable(clickable);
+            } else if (ev.key === "ArrowRight" || ev.key === "ArrowDown") {
+                ev.preventDefault();
+                this.moveClickableFocus(clickable, 1);
+            } else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") {
+                ev.preventDefault();
+                this.moveClickableFocus(clickable, -1);
+            } else if (ev.key === "Home") {
+                ev.preventDefault();
+                this.focusClickable(this.clickableArray[0]);
+            } else if (ev.key === "End") {
+                ev.preventDefault();
+                this.focusClickable(
+                    this.clickableArray[this.clickableArray.length - 1],
+                );
             }
         });
         this.clickableArray.push(clickable);
         this.clickableCounter++;
+    }
+    setActiveClickable(clickable) {
+        if (
+            this.interactionDisabled ||
+            !this.clickableArray.includes(clickable)
+        ) {
+            return;
+        }
+        for (const choice of this.clickableArray) {
+            choice.setAttribute("tabindex", choice === clickable ? "0" : "-1");
+        }
+    }
+    focusClickable(clickable) {
+        if (this.interactionDisabled || !clickable) {
+            return;
+        }
+        this.setActiveClickable(clickable);
+        clickable.focus();
+    }
+    moveClickableFocus(clickable, offset) {
+        const currentIndex = this.clickableArray.indexOf(clickable);
+        if (currentIndex === -1) {
+            return;
+        }
+        const nextIndex = Math.min(
+            this.clickableArray.length - 1,
+            Math.max(0, currentIndex + offset),
+        );
+        this.focusClickable(this.clickableArray[nextIndex]);
     }
     toggleClickable(clickable) {
         if (this.interactionDisabled) {
