@@ -1296,12 +1296,14 @@ def _handle_datafile(el, course_name):
 
     filename = el.attrib.get("data-filename", el.attrib["id"])
     id = el.attrib["id"]
+    is_binary = el.attrib.get("data-isbinary") == "true"
 
     update_source_code_sync(
         acid=id,
         course_id=course_name,
         main_code=file_contents,
         filename=filename,
+        is_binary=is_binary,
     )
 
 

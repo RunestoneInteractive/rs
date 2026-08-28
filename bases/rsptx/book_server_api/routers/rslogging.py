@@ -694,13 +694,16 @@ async def get_source_code(
     if db_result:
         # Found data, unpack desired fields
         file_contents = db_result.main_code
+        is_binary = db_result.is_binary
         if db_result.filename:
             filename = db_result.filename
     else:
         file_contents = None
+        is_binary = None
 
     response_bundle = {
         "filename": filename,
         "file_contents": file_contents,
+        "is_binary": is_binary,
     }
     return make_json_response(detail=response_bundle)

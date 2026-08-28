@@ -277,7 +277,7 @@ export default class LiveCode extends ActiveCode {
         var files = [];
         for (let f of allFilesRaw) {
             // Need to determine content and filename for each datafile
-            let fileName, content;
+            let fileName, content, isBinary = false;
             // Check on page to see if we have the datafile.
             // Datafiles are looked up via data-filename attribute while additional_files are looked up via id
             let fileElement;
@@ -310,6 +310,9 @@ export default class LiveCode extends ActiveCode {
                 // If the file came from an item with a data-filename attribute, use that as the filename
                 // otherwise this must be an RST item with filename as the id
                 fileName = fileElement.dataset.filename || f.filename;
+                isBinary =
+                    fileElement.dataset.isbinary === "true" ||
+                    fileElement.dataset.isBinary === "true";
             } else {
                 // check to see if file is in db
                 let result = null;
@@ -356,10 +359,19 @@ export default class LiveCode extends ActiveCode {
                     // favor student code if it exists
                     content = studentCode || result.file_contents;
                     fileName = result.filename;
+                    // binary files (e.g. .jar) are stored base64; the is_binary
+                    // flag tells us to hand the content to the server verbatim
+                    isBinary = result.is_binary === true;
                 }
             }
 
-            if (fileName) {
+            if (fileName && isBinary) {
+                files.push({
+                    name: fileName,
+                    content: content,
+                    isBinary: true,
+                });
+            } else if (fileName) {
                 let fileExtension = fileName.substring(
                     fileName.lastIndexOf(".") + 1,
                 );
@@ -425,15 +437,82 @@ export default class LiveCode extends ActiveCode {
                 paramobj.compileargs = [sourcefilename];
             }
         }
+        // "compile-also" marks additional files as part of the build.  What
+        // that means is language-specific and depends on whether the file is
+        // text or binary.  The list carries filenames (PreTeXt emits
+        // @filename), so match them against the collected files to learn each
+        // one's type.  These files are also always part of the file_list, so
+        // they are delivered to the working directory regardless.
+        let buildFileNames = [];
         if (this.compileAlso) {
-            // a comma separated list of files that also need to be compiled
-            // they also all should be part of additional_files
-            // we will stick them onto the end of the compilerargs
-            // so that jobe builds them into the string sent to the compiler
-            // e.g. g++ [other_compile_args] [compileAlso] sourcefile -o executable
+            buildFileNames = this.compileAlso
+                .split(",")
+                .map((n) => n.trim())
+                .filter((n) => n !== "");
+        }
+        let classpathNames = [];
+        let linkFileNames = [];
+        for (let name of buildFileNames) {
+            let f = files.find((file) => file.name === name);
+            let extension = name.substring(name.lastIndexOf(".") + 1);
+            if (f && f.isBinary) {
+                if (
+                    (this.language === "java" ||
+                        this.language === "kotlin") &&
+                    ["jar", "zip"].indexOf(extension) > -1
+                ) {
+                    // A compiled archive (.jar/.zip) must be on the classpath
+                    // for the compiler and runtime to see the classes it holds.
+                    classpathNames.push(name);
+                } else if (
+                    (this.language === "c" || this.language === "cpp") &&
+                    ["o", "a"].indexOf(extension) > -1
+                ) {
+                    // Binary link inputs (.o/.a) must come AFTER the source
+                    // file on the command line, so they belong in linkargs,
+                    // not compileargs.  (.so is unsupported: the server cannot
+                    // arrange for the runtime linker to find it.)
+                    linkFileNames.push(name);
+                }
+                // Other languages or file types: nothing to wire; the file is
+                // in the working directory for the program to read.
+            } else {
+                // Text source: compile it together with the main program.
+                paramobj.compileargs = paramobj.compileargs || [];
+                if (paramobj.compileargs.indexOf(name) === -1) {
+                    paramobj.compileargs.push(name);
+                }
+            }
+        }
+        if (classpathNames.length > 0) {
+            let classpath =
+                "." + classpathNames.map((n) => ":" + n).join("");
+            // Jobe replaces interpreterargs wholesale rather than merging,
+            // and the client cannot discover Jobe's defaults, so reproduce
+            // the -X flags Jobe would otherwise supply (mirrors java_task.php).
+            // The -cp must precede the main class, so it rides in
+            // interpreterargs rather than runargs.
+            let interpreterArgs = ["-Xrs", "-Xss8m", "-Xmx200m"];
+            if (paramobj.interpreterargs) {
+                interpreterArgs = paramobj.interpreterargs;
+            }
+            interpreterArgs = interpreterArgs.concat(["-cp", classpath]);
+            paramobj.interpreterargs = interpreterArgs;
+            // The default compileargs for Java/Kotlin is empty, so appending
+            // is safe.
             paramobj.compileargs = paramobj.compileargs || [];
-            let compileList = this.compileAlso.split(",");
-            paramobj.compileargs = paramobj.compileargs.concat(compileList);
+            paramobj.compileargs = paramobj.compileargs.concat([
+                "-cp",
+                classpath,
+            ]);
+        }
+        if (linkFileNames.length > 0) {
+            paramobj.linkargs = paramobj.linkargs || [];
+            for (let name of linkFileNames) {
+                if (paramobj.linkargs.indexOf(name) === -1) {
+                    paramobj.linkargs.push(name);
+                }
+            }
         }
         let runspec = {
             language_id: this.language,
@@ -798,7 +877,9 @@ export default class LiveCode extends ActiveCode {
         // File types being uploaded that come in already in base64 format
         var extensions = ["jar", "zip", "png", "jpg", "jpeg"];
         var contentsb64;
-        if (extensions.indexOf(extension) === -1) {
+        if (file.isBinary) {
+            contentsb64 = contents;
+        } else if (extensions.indexOf(extension) === -1) {
             contentsb64 = base64encode(contents);
         } else {
             contentsb64 = contents;
