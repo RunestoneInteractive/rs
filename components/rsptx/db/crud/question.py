@@ -858,6 +858,10 @@ async def fetch_questions_for_chapter_subchapter(
                             "num": chapters[chapter]["sub_chapters"][subchapter][
                                 "sub_chapter_num"
                             ],
+                            "chapter_num": chapters[chapter]["chapter_num"],
+                            "sub_chapter_num": chapters[chapter]["sub_chapters"][
+                                subchapter
+                            ]["sub_chapter_num"],
                             "chapter": chapter,
                             "subchapter": subchapter,
                             "id": find_page_id(chapter, subchapter),
@@ -870,7 +874,16 @@ async def fetch_questions_for_chapter_subchapter(
                             ),
                         },
                         "children": [
-                            {"key": q.name, "data": q.dict()}
+                            {
+                                "key": q.name,
+                                "data": {
+                                    **q.dict(),
+                                    "chapter_num": chapters[chapter]["chapter_num"],
+                                    "sub_chapter_num": chapters[chapter][
+                                        "sub_chapters"
+                                    ][subchapter]["sub_chapter_num"],
+                                },
+                            }
                             for q in questions[chapter][subchapter]
                         ],
                     }
@@ -881,6 +894,7 @@ async def fetch_questions_for_chapter_subchapter(
                     "data": {
                         "title": chapters[chapter]["chapter_name"],
                         "num": chapters[chapter]["chapter_num"],
+                        "chapter_num": chapters[chapter]["chapter_num"],
                     },
                     "children": subs,
                 }

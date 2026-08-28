@@ -13,10 +13,29 @@ import { getLeafNodes } from "@/utils/exercise";
 
 import styles from "./ChooseReadingsButton.module.css";
 
+type NumberedNodeData = Partial<Exercise> & {
+  chapter_num?: number;
+  sub_chapter_num?: number;
+};
+
+const formatNumberedNodeLabel = (node: TreeNode): string => {
+  const data = node.data as NumberedNodeData | undefined;
+  const title = data?.title ?? String(node.key);
+  const numbers =
+    data?.sub_chapter_num !== null && data?.sub_chapter_num !== undefined
+      ? [data.chapter_num, data.sub_chapter_num]
+      : [data?.chapter_num ?? data?.num];
+  const prefix = numbers
+    .filter((value): value is number => value !== null && value !== undefined)
+    .join(".");
+
+  return prefix ? [prefix, title].filter(Boolean).join(" ") : title;
+};
+
 const READINGS_COLUMNS: TreeTableColumn[] = [
   {
     header: "Select readings",
-    render: (node) => <span>{(node.data as Exercise)?.title}</span>
+    render: (node) => <span>{formatNumberedNodeLabel(node)}</span>
   }
 ];
 
@@ -83,7 +102,7 @@ export const ChooseReadingsButton = () => {
             onSelect={onSelect}
             onUnselect={onUnselect}
             ariaLabel="Choose readings"
-            getNodeLabel={(node) => (node.data as Exercise)?.title ?? String(node.key)}
+            getNodeLabel={formatNumberedNodeLabel}
           />
         </div>
         <div className={styles.footer}>
