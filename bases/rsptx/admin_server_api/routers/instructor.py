@@ -64,7 +64,11 @@ from rsptx.db.crud import (
 from rsptx.auth.session import auth_manager
 from rsptx.auth.email import send_welcome_email
 from rsptx.templates import get_shared_templates
-from rsptx.validation.fields import clean_text, validate_text_field
+from rsptx.validation.fields import (
+    clean_text,
+    validate_password,
+    validate_text_field,
+)
 from rsptx.validation.schemas import AssignmentsSearchRequest
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import with_course, instructor_role_required
@@ -1047,7 +1051,9 @@ async def enroll_students(
         # Spreadsheet exports routinely carry stray whitespace -- most painfully a
         # newline inside a cell, which used to be stored verbatim and then break
         # eBookConfig (and therefore every component) on the student's pages.
-        row = [field.strip() for field in row]
+        row = [
+            field.strip() if index != 4 else field for index, field in enumerate(row)
+        ]
         if not any(row):
             # A blank line, e.g. the trailing newline at the end of the file.
             continue
@@ -1075,6 +1081,17 @@ async def enroll_students(
             row = row[:6]  # Only take the first 6 columns
             mess = "Row has more than 6 columns, truncating."
             rslogger.warning(f"Row has more than 6 columns, truncating: {row}")
+        password_error = validate_password(row[4])
+        if password_error:
+            results.append(
+                {
+                    "username": row[0],
+                    "status": f"error: {password_error}",
+                    "category": "error",
+                }
+            )
+            failed += 1
+            continue
         try:
             user_data = AuthUserValidator(
                 username=row[0],
