@@ -33,6 +33,7 @@ export default class ParsonsBlock {
         view.id = problem.counterId + "-block-" + problem.blockIndex;
         problem.blockIndex += 1;
         view.classList.add("block");
+        view.setAttribute("role", "button");
         var sharedIndent = lines[0].indent;
         for (let i = 1; i < lines.length; i++) {
             sharedIndent = Math.min(sharedIndent, lines[i].indent);

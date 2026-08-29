@@ -22,6 +22,10 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 import { t } from "../../common/js/rsi18n.js";
 import {
     getDataValue,
@@ -188,6 +192,53 @@ export default class Parsons extends RunestoneBase {
         }
         this.options = options;
     }
+    getBlockLabel(block) {
+        return getAccessibleElementText(block.view) || "block";
+    }
+
+    updateBlockAriaLabel(block) {
+        block.view.setAttribute("aria-label", this.getBlockLabel(block));
+    }
+
+    updateBlockAriaLabels() {
+        this.blocks.forEach((block) => this.updateBlockAriaLabel(block));
+    }
+
+    disableBlockMathTabStops() {
+        disableMathJaxTabStops(this.outerDiv, [".block"]);
+    }
+
+    observeMathJaxSpeech() {
+        if (
+            this.mathJaxSpeechObserver ||
+            typeof MutationObserver === "undefined"
+        ) {
+            return;
+        }
+
+        this.mathJaxSpeechObserver = new MutationObserver((mutations) => {
+            const changedBlocks = new Set();
+            for (const mutation of mutations) {
+                const block = mutation.target.closest?.(".block");
+                if (block) {
+                    changedBlocks.add(block);
+                }
+            }
+            if (changedBlocks.size === 0) return;
+
+            this.disableBlockMathTabStops();
+            changedBlocks.forEach((view) => {
+                const block = this.blocks.find((item) => item.view === view);
+                if (block) this.updateBlockAriaLabel(block);
+            });
+        });
+        this.mathJaxSpeechObserver.observe(this.outerDiv, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["data-semantic-speech-none"],
+        });
+    }
+
     // Based on what is specified in the original HTML, create the HTML view
     initializeView() {
         this.outerDiv = document.createElement("div");
@@ -675,6 +726,7 @@ export default class Parsons extends RunestoneBase {
             this.answerArea.appendChild(block.view);
         }
         this.blocks = blocks;
+        this.observeMathJaxSpeech();
         // If present, disable some blocks
         var disabled = options.disabled;
         if (disabled !== undefined) {
@@ -782,6 +834,8 @@ export default class Parsons extends RunestoneBase {
             }
             areaWidth = Math.max(areaWidth, item.getBoundingClientRect().width);
         }
+        this.disableBlockMathTabStops();
+        this.updateBlockAriaLabels();
         // Pass 2: apply uniform width to all blocks, then measure heights
         for (i = 0; i < blocks.length; i++) {
             const item = blocks[i].view;

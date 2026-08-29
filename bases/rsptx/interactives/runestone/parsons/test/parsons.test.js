@@ -141,6 +141,25 @@ describe("construction", () => {
         expect(cap.textContent).toContain("Parsons");
     });
 
+    it("uses MathJax speech for block labels and removes nested tab stops", async () => {
+        const p = await makeParsons({
+            blocks: '<span class="process-math">\(x^2\)</span>',
+            attrs: 'data-language="natural"',
+        });
+        const block = p.blocks[0];
+        const lines = block.view.querySelector(".lines");
+        const math = document.createElement("mjx-container");
+
+        lines.replaceChildren(math);
+        math.tabIndex = 0;
+        math.setAttribute("data-semantic-speech-none", "x squared");
+        await tick();
+
+        expect(block.view.getAttribute("role")).toBe("button");
+        expect(block.view.getAttribute("aria-label")).toBe("x squared");
+        expect(math.getAttribute("tabindex")).toBe("-1");
+    });
+
     it("makes exactly one block the keyboard entry point", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
         const tabZero = p.blocks.filter(
