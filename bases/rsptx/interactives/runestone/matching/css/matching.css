@@ -145,6 +145,8 @@
     height: 100%;
     pointer-events: none;
     z-index: 0;
+    /* fix for overzealous PTX image background color */
+    --ptx-image-bg: transparent;
 }
 
 .line {
