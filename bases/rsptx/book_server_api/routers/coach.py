@@ -397,6 +397,18 @@ async def parsons_scaffolding(
         basecourse = getattr(course, "base_course", None)
         question = await fetch_question(problem_id, basecourse=basecourse)
         if not question:
+            # A cloned course keeps the original book's base_course on its
+            # question rows, and selectquestion can pull an exercise from
+            # another book, so the base-course-scoped lookup misses even
+            # though the question exists. Fall back to a global name match --
+            # the same resolution get_question_source and /htmlsrc use.
+            question = await fetch_question(problem_id)
+            if question:
+                rslogger.warning(
+                    f"CodeTailor: '{problem_id}' not in base course '{basecourse}' "
+                    f"(likely a cloned course); resolved via global name match"
+                )
+        if not question:
             rslogger.error(
                 f"CodeTailor: no question found for problem_id '{problem_id}'"
             )
