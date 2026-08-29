@@ -3,7 +3,14 @@
 }
 
 .parsons .sortable-code-container {
+    position: relative;
     text-align: center;
+}
+
+.parsons .parsons-keyboard-application {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
 }
 .parsons .sortable-code-container:not(.block) {
     /* Remove text highlighting in widget */
@@ -253,12 +260,16 @@
 .parsons .block.down {
     border: 2px solid var(--boxBorderColor, #000);
     padding: 4px 9px;
+    outline: 3px solid #3498db;
+    outline-offset: 1px;
 }
 .parsons .block.up {
     border: 2px solid var(--boxBorderColor, #000);
     padding: 4px 9px;
     background-color: var(--background, #fff);
     box-shadow: 3px 3px 4px rgba(0, 0, 0, 0.6);
+    outline: 3px dashed #27ae60;
+    outline-offset: 1px;
 }
 .parsons {
     display: block;

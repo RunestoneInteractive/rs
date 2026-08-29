@@ -179,6 +179,20 @@ export default class ParsonsBlock {
             return this;
         }
         this.view.setAttribute("tabindex", "-1");
+        this.clickHandler = (event) => {
+            if (!this.enabled()) {
+                return;
+            }
+            if (
+                !this.problem.keyboardInputActive ||
+                this.problem.textFocus !== this
+            ) {
+                return;
+            }
+            event.preventDefault();
+            this.toggleMove();
+        };
+        this.view.addEventListener("click", this.clickHandler);
         this.hammer = new Hammer.Manager(this.view, {
             recognizers: [
                 [
@@ -342,7 +356,10 @@ export default class ParsonsBlock {
         return verticalOffset;
     }
     // This block just gained textual focus
-    newFocus() {
+    newFocus(event) {
+        if (!this.problem.keyboardInputActive) {
+            return;
+        }
         if (this.problem.textFocus == undefined) {
             this.problem.enterKeyboardMode();
             this.problem.textFocus = this;
@@ -361,12 +378,24 @@ export default class ParsonsBlock {
             this.view.classList.add("down");
         }
         this.problem.textMoving = false;
+        if (!this.problem.keyboardInputActive) {
+            this.problem.enterKeyboardNavigationMode(this);
+        }
     }
     // This block just lost textual focus
-    releaseFocus() {
-        this.view.classList.remove("down", "up");
+    releaseFocus(event) {
+        if (this.problem.keyboardInputActive) {
+            this.problem.cancelKeyboardMovement();
+            return;
+        }
+        if (!this.problem.keyboardMovementMode) {
+            this.view.classList.remove("down", "up");
+        }
         if (this.problem.textFocus == this) {
-            if (!this.problem.textMoving) {
+            if (
+                !this.problem.textMoving &&
+                !this.problem.keyboardMovementMode
+            ) {
                 // exit out of problem but stay way into problem
                 this.problem.textFocus = undefined;
                 if (this.problem.textMove) {
@@ -387,10 +416,10 @@ export default class ParsonsBlock {
     }
     // Make this block into the keyboard entry point
     makeTabIndex() {
-        this.view.setAttribute("tabindex", "0");
+        this.view.setAttribute("tabindex", "-1");
         if (this.focusHandler === undefined) {
-            this.focusHandler = () => this.newFocus();
-            this.blurHandler = () => this.releaseFocus();
+            this.focusHandler = (event) => this.newFocus(event);
+            this.blurHandler = (event) => this.releaseFocus(event);
             this.keydownHandler = (event) => this.keyDown(event);
         }
         // re-adding an identical listener is a no-op, so repeated calls are safe
@@ -403,6 +432,7 @@ export default class ParsonsBlock {
         if (this.hammer !== undefined) {
             this.hammer.set({ enable: false });
         }
+        this.view.removeEventListener("click", this.clickHandler);
         if (this.view.getAttribute("tabindex") == "0") {
             this.releaseFocus();
             this.view.removeAttribute("tabindex");
@@ -419,6 +449,7 @@ export default class ParsonsBlock {
         if (!this.view.hasAttribute("tabindex")) {
             this.view.setAttribute("tabindex", "-1");
         }
+        this.view.addEventListener("click", this.clickHandler);
         this.view.style.opacity = "";
     }
     // Called to destroy interaction for the future
@@ -427,6 +458,7 @@ export default class ParsonsBlock {
             this.hammer.destroy();
             delete this.hammer;
         }
+        this.view.removeEventListener("click", this.clickHandler);
         if (this.view.getAttribute("tabindex") == "0") {
             this.releaseFocus();
         }
@@ -530,7 +562,9 @@ export default class ParsonsBlock {
                     if (index == blocks.length) {
                         this.problem.textMoving = true;
                         this.problem.sourceArea.appendChild(this.view);
-                        this.view.focus();
+                        if (!this.problem.keyboardMovementMode) {
+                            this.view.focus();
+                        }
                         this.problem.state = undefined;
                         this.problem.updateView();
                         return this;
@@ -543,7 +577,9 @@ export default class ParsonsBlock {
                 }
                 this.problem.textMoving = true;
                 this.problem.sourceArea.insertBefore(this.view, block.view);
-                this.view.focus();
+                if (!this.problem.keyboardMovementMode) {
+                    this.view.focus();
+                }
             } else {
                 // reduce indent
                 this.indent = this.indent - 1;
@@ -569,7 +605,9 @@ export default class ParsonsBlock {
                             this.view,
                             block.view,
                         );
-                        this.view.focus();
+                        if (!this.problem.keyboardMovementMode) {
+                            this.view.focus();
+                        }
                         this.problem.state = undefined;
                         this.problem.updateView();
                         return this;
@@ -588,7 +626,9 @@ export default class ParsonsBlock {
                         this.view,
                         blocks[i - 1].view,
                     );
-                    this.view.focus();
+                    if (!this.problem.keyboardMovementMode) {
+                        this.view.focus();
+                    }
                     this.problem.state = undefined;
                     this.problem.updateView();
                 }
@@ -608,7 +648,9 @@ export default class ParsonsBlock {
                 if (itemOffset >= offset) {
                     this.problem.textMoving = true;
                     this.problem.answerArea.insertBefore(this.view, item.view);
-                    this.view.focus();
+                    if (!this.problem.keyboardMovementMode) {
+                        this.view.focus();
+                    }
                     this.problem.state = undefined;
                     this.problem.updateView();
                     return this;
@@ -616,7 +658,9 @@ export default class ParsonsBlock {
             }
             this.problem.textMoving = true;
             this.problem.answerArea.appendChild(this.view);
-            this.view.focus();
+            if (!this.problem.keyboardMovementMode) {
+                this.view.focus();
+            }
             this.problem.state = undefined;
             this.problem.updateView();
         } else {
@@ -643,7 +687,9 @@ export default class ParsonsBlock {
                 if (index == blocks.length) {
                     this.problem.textMoving = true;
                     this.problem.sourceArea.appendChild(this.view);
-                    this.view.focus();
+                    if (!this.problem.keyboardMovementMode) {
+                        this.view.focus();
+                    }
                     this.problem.state = undefined;
                     this.problem.updateView();
                     return this;
@@ -653,7 +699,9 @@ export default class ParsonsBlock {
                         this.view,
                         blocks[index].view,
                     );
-                    this.view.focus();
+                    if (!this.problem.keyboardMovementMode) {
+                        this.view.focus();
+                    }
                     this.problem.state = undefined;
                     this.problem.updateView();
                     return this;
@@ -675,7 +723,9 @@ export default class ParsonsBlock {
                             blocks[i + 2].view,
                         );
                     }
-                    this.view.focus();
+                    if (!this.problem.keyboardMovementMode) {
+                        this.view.focus();
+                    }
                     this.problem.state = undefined;
                     this.problem.updateView();
                 }
@@ -700,9 +750,7 @@ export default class ParsonsBlock {
                     chooseOffset = itemOffset;
                 }
             }
-            this.problem.textFocus = chooseNext;
-            chooseNext.makeTabIndex();
-            chooseNext.view.focus();
+            this.problem.selectKeyboardBlock(chooseNext);
         }
     }
     // Move selection up
@@ -717,9 +765,7 @@ export default class ParsonsBlock {
         for (var i = blocks.length - 1; i >= 0; i--) {
             var item = blocks[i];
             if (chooseNext) {
-                this.problem.textFocus = item;
-                item.makeTabIndex();
-                item.view.focus();
+                this.problem.selectKeyboardBlock(item);
                 return this;
             } else {
                 if (item.view.id == this.view.id) {
@@ -746,9 +792,7 @@ export default class ParsonsBlock {
                     chooseOffset = itemOffset;
                 }
             }
-            this.problem.textFocus = chooseNext;
-            chooseNext.makeTabIndex();
-            chooseNext.view.focus();
+            this.problem.selectKeyboardBlock(chooseNext);
         }
     }
     // Move selection down
@@ -763,9 +807,7 @@ export default class ParsonsBlock {
         for (var i = 0; i < blocks.length; i++) {
             var item = blocks[i];
             if (chooseNext) {
-                this.problem.textFocus = item;
-                item.makeTabIndex();
-                item.view.focus();
+                this.problem.selectKeyboardBlock(item);
                 return this;
             } else {
                 if (item.view.id == this.view.id) {
@@ -788,6 +830,7 @@ export default class ParsonsBlock {
             this.view.classList.remove("down");
             this.view.classList.add("up");
             this.problem.textMove = true;
+            this.problem.enterKeyboardMovementMode(this);
         }
     }
     // Answer a string that represents this codeblock for saving
