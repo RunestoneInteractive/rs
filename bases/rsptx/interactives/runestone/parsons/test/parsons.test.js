@@ -917,16 +917,55 @@ describe("adaptive problems", () => {
         expect(localStorage.getItem(p.adaptiveId + "Solved")).toBe("false");
     });
 
-    it("helpMe demands three distinct attempts first", async () => {
+    it("reports help eligibility through the live message instead of an alert", async () => {
         const p = await makeParsons({
             blocks: FLAT_BLOCKS,
             attrs: FLAT_ATTRS + ' data-adaptive="true"',
         });
         p.helpMe();
-        expect(alert).toHaveBeenCalledWith(
-            expect.stringContaining("three distinct full attempts"),
+
+        await tick(30);
+        expect(p.messageDiv.getAttribute("role")).toBe("status");
+        expect(p.messageDiv.style.visibility).toBe("visible");
+        expect(p.messageDiv.textContent).toContain(
+            "three distinct full attempts",
         );
         expect(p.gotHelp).toBe(false);
+    });
+
+    it("refreshes repeated Help Me announcements", async () => {
+        const p = await makeParsons({
+            blocks: FLAT_BLOCKS,
+            attrs: FLAT_ATTRS + ' data-adaptive="true"',
+        });
+        p.helpMe();
+        await tick(30);
+
+        p.helpMe();
+        expect(p.messageDiv.textContent).toBe("");
+
+        await tick(30);
+        expect(p.messageDiv.textContent).toContain(
+            "three distinct full attempts",
+        );
+    });
+
+    it("includes Help Me availability in the next feedback message", async () => {
+        const p = await makeParsons({
+            blocks: FLAT_BLOCKS,
+            attrs: FLAT_ATTRS + ' data-adaptive="true"',
+        });
+        p.numDistinct = 2;
+        p.lastAnswerHash = "different";
+        answer(p, [1, 0, 2]);
+
+        p.checkCurrentAnswer();
+        p.renderFeedback();
+
+        await tick(30);
+        expect(p.messageDiv.textContent).toContain(
+            "Click on the Help Me button",
+        );
     });
 
     it("removeDistractor disables the block and reveals its help text", async () => {

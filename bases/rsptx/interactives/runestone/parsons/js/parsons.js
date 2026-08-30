@@ -247,6 +247,19 @@ export default class Parsons extends RunestoneBase {
         this.blocks.forEach((block) => this.updateBlockAriaLabel(block));
     }
 
+    showMessage(message, className = "alert alert-info") {
+        this.messageDiv.style.visibility = "visible";
+        this.messageDiv.setAttribute("class", className);
+        this.messageDiv.replaceChildren();
+        const messageVersion = (this.messageVersion || 0) + 1;
+        this.messageVersion = messageVersion;
+        setTimeout(() => {
+            if (this.messageVersion === messageVersion) {
+                this.messageDiv.innerHTML = message;
+            }
+        }, 10);
+    }
+
     disableBlockMathTabStops() {
         disableMathJaxTabStops(this.outerDiv, [".block"]);
     }
@@ -2170,7 +2183,7 @@ export default class Parsons extends RunestoneBase {
                     }
                     // if time to offer help
                     if (this.numDistinct == 3 && !this.gotHelp) {
-                        alert(t("msg_parson_help_info"));
+                        this.pendingHelpMessage = t("msg_parson_help_info");
                     } // end if
                 } // end if can help
             } // end if not solved
@@ -2221,10 +2234,12 @@ export default class Parsons extends RunestoneBase {
         var feedbackArea = this.showfeedback === true ? this.messageDiv : null;
         var setFeedback = (className, message) => {
             if (feedbackArea) {
-                feedbackArea.setAttribute("class", className);
-                setTimeout(() => {
-                    feedbackArea.innerHTML = message;
-                }, 10);
+                const helpMessage = this.pendingHelpMessage;
+                this.pendingHelpMessage = undefined;
+                this.showMessage(
+                    helpMessage ? `${message} ${helpMessage}` : message,
+                    className,
+                );
             }
         };
 
@@ -2449,13 +2464,7 @@ export default class Parsons extends RunestoneBase {
     }
     // Remove this distractors to make the problem easier
     removeDistractor(block) {
-        // Alert the user to what is happening
-        var feedbackArea = this.messageDiv;
-        this.messageDiv.style.visibility = "visible";
-        feedbackArea.setAttribute("class", "alert alert-info");
-        setTimeout(() => {
-            feedbackArea.innerHTML = t("msg_parson_not_solution");
-        }, 10);
+        this.showMessage(t("msg_parson_not_solution"));
         // Stop ability to select
         if (block.lines[0].distractHelptext) {
             block.view.setAttribute("data-toggle", "tooltip");
@@ -2554,13 +2563,7 @@ export default class Parsons extends RunestoneBase {
     }
     // Give the user the indentation
     removeIndentation() {
-        // Alert the user to what is happening
-        var feedbackArea = this.messageDiv;
-        this.messageDiv.style.visibility = "visible";
-        feedbackArea.setAttribute("class", "alert alert-info");
-        setTimeout(() => {
-            feedbackArea.innerHTML = t("msg_parson_provided_indent");
-        }, 10);
+        this.showMessage(t("msg_parson_provided_indent"));
         // Move and resize blocks
         var blockWidth = 200;
         for (var i = 0; i < this.lines.length; i++) {
@@ -2740,8 +2743,6 @@ export default class Parsons extends RunestoneBase {
             if (indexSol > 0) {
                 prevBlock = solutionBlocks[indexSol - 1];
                 indexPrev = answerBlocks.indexOf(prevBlock);
-                //alert("my index " + i + " index prev " + indexPrev);
-
                 // calculate the distance in the answer
                 dist = Math.abs(i - indexPrev);
                 if (dist > maxDist) {
@@ -2759,13 +2760,7 @@ export default class Parsons extends RunestoneBase {
         var answerBlocks = this.answerBlocks();
         var sourceBlocks = this.sourceBlocks();
 
-        // Alert the user to what is happening
-        var feedbackArea = this.messageDiv;
-        this.messageDiv.style.visibility = "visible";
-        feedbackArea.setAttribute("class", "alert alert-info");
-        setTimeout(() => {
-            feedbackArea.innerHTML = t("msg_parson_combined_blocks");
-        }, 10);
+        this.showMessage(t("msg_parson_combined_blocks"));
         var block1 = null;
         var block2 = null;
 
@@ -2923,22 +2918,15 @@ export default class Parsons extends RunestoneBase {
             distractorToRemove !== undefined &&
             !distractorToRemove.inSourceArea()
         ) {
-            alert(t("msg_parson_remove_incorrect"));
             this.removeDistractor(distractorToRemove);
             this.logMove("removedDistractor-" + distractorToRemove.hash());
         } else {
             var numberOfBlocks = this.numberOfBlocks(false);
             if (numberOfBlocks > 3) {
-                alert(t("msg_parson_will_combine"));
                 this.combineBlocks();
                 this.logMove("combinedBlocks");
             } else {
-                /*else if(this.numberOfBlocks(true) > 3 && distractorToRemove !==  undefined) {
-                           alert("Will remove an incorrect code block from source area");
-                           this.removeDistractor(distractorToRemove);
-                           this.logMove("removedDistractor-" + distractorToRemove.hash());
-                       } */
-                alert(t("msg_parson_three_blocks_left"));
+                this.showMessage(t("msg_parson_three_blocks_left"));
                 this.canHelp = false;
             }
             //if (numberOfBlocks < 5) {
@@ -2957,7 +2945,7 @@ export default class Parsons extends RunestoneBase {
         //}
         // if less than 3 attempts
         if (this.numDistinct < 3) {
-            alert(t("msg_parson_atleast_three_attempts"));
+            this.showMessage(t("msg_parson_atleast_three_attempts"));
         }
         // otherwise give help
         else {
@@ -3180,6 +3168,7 @@ export default class Parsons extends RunestoneBase {
             );
         }
         this.messageDiv.style.visibility = "hidden";
+        this.pendingHelpMessage = undefined;
         this.hideBlockExplanations();
         this.updateBlockAriaLabels();
     }
