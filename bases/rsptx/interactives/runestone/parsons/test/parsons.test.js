@@ -922,6 +922,22 @@ describe("keyboard movement model", () => {
         ]);
     });
 
+    it("keeps initially disabled blocks out of keyboard rotation", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const disabled = p.sourceBlocks()[0];
+        const enabled = p.sourceBlocks()[1];
+
+        disabled.view.classList.add("disabled");
+        p.initializeTabIndex();
+
+        expect(disabled.enabled()).toBe(false);
+        expect(disabled.view.hasAttribute("tabindex")).toBe(false);
+        expect(p.enabledSourceBlocks()).not.toContain(disabled);
+
+        p.startKeyboardInteraction();
+        expect(p.textFocus).toBe(enabled);
+    });
+
     it("disable() removes a block from keyboard rotation", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
         const block = p.sourceBlocks()[0];

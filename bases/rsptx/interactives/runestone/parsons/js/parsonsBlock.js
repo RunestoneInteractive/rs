@@ -175,10 +175,7 @@ export default class ParsonsBlock {
     }
     // Initialize Interactivity
     initializeInteractivity() {
-        if (this.view.classList.contains("disabled")) {
-            return this;
-        }
-        this.view.setAttribute("tabindex", "-1");
+        // Always set up a click handler, even if not currently enabled, so that it can be re-enabled later
         this.clickHandler = (event) => {
             if (!this.enabled()) {
                 return;
@@ -192,6 +189,11 @@ export default class ParsonsBlock {
             event.preventDefault();
             this.toggleMove();
         };
+        // If the block is disabled, don't add the event listeners yet.
+        if (this.view.classList.contains("disabled")) {
+            return this;
+        }
+        this.view.setAttribute("tabindex", "-1");
         this.view.addEventListener("click", this.clickHandler);
         this.hammer = new Hammer.Manager(this.view, {
             recognizers: [
@@ -218,7 +220,10 @@ export default class ParsonsBlock {
     }
     // Return a boolean as to whether this block is able to be selected
     enabled() {
-        return this.view.getAttribute("tabindex") !== null;
+        return (
+            !this.view.classList.contains("disabled") &&
+            this.view.getAttribute("tabindex") !== null
+        );
     }
     // Return a boolean as to whether this block is a distractor
     isDistractor() {

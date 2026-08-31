@@ -1234,7 +1234,11 @@ export default class Parsons extends RunestoneBase {
     initializeTabIndex() {
         this.sortContainerDiv.tabIndex = 0;
         for (const block of this.blocks) {
-            block.view.setAttribute("tabindex", "-1");
+            if (block.view.classList.contains("disabled")) {
+                block.view.removeAttribute("tabindex");
+            } else {
+                block.view.setAttribute("tabindex", "-1");
+            }
         }
         return this;
     }
