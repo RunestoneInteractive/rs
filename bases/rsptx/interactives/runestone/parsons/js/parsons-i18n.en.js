@@ -8,6 +8,7 @@ load({
         msg_parson_too_short: "Your answer is too short. Add more blocks.",
         msg_parson_drag_from_here: "Drag from here",
         msg_parson_drag_to_here: "Drop blocks here",
+        msg_parson_enter_activate: "Enter to activate",
         msg_parson_correct_first_try:
             "Perfect!  It took you only one try to solve this.  Great job!",
         msg_parson_correct:

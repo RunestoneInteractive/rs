@@ -260,6 +260,20 @@ export default class Parsons extends RunestoneBase {
         }, 10);
     }
 
+    showKeyboardEntryHint() {
+        this.keyboardTip.innerHTML = t("msg_parson_enter_activate");
+        this.keyboardTip.style.display = "";
+        this.sourceLabel.style.display = "none";
+        this.answerLabel.style.display = "none";
+    }
+
+    hideKeyboardEntryHint() {
+        this.keyboardTip.innerHTML = t("msg_parson_arrow_navigate");
+        this.keyboardTip.style.display = "none";
+        this.sourceLabel.style.display = "";
+        this.answerLabel.style.display = "";
+    }
+
     disableBlockMathTabStops() {
         disableMathJaxTabStops(this.outerDiv, [".block"]);
     }
@@ -330,6 +344,14 @@ export default class Parsons extends RunestoneBase {
             "aria-label",
             "Parsons problem. Press Enter or Space to arrange blocks.",
         );
+        this.sortContainerDiv.addEventListener("focus", () => {
+            if (
+                !this.keyboardInputActive &&
+                this.sortContainerDiv.matches(":focus-visible")
+            ) {
+                this.showKeyboardEntryHint();
+            }
+        });
         this.sortContainerDiv.addEventListener("keydown", (event) => {
             if (
                 event.target === this.sortContainerDiv &&
@@ -360,6 +382,8 @@ export default class Parsons extends RunestoneBase {
                 event.relatedTarget !== this.keyboardApplication
             ) {
                 this.cancelKeyboardMovement();
+            } else if (!this.keyboardInputActive) {
+                this.hideKeyboardEntryHint();
             }
         });
         this.sortContainerDiv.appendChild(this.keyboardApplication);
@@ -2987,6 +3011,7 @@ export default class Parsons extends RunestoneBase {
     ===================================================================== */
     // When the user has entered the Parsons problem via keyboard mode
     enterKeyboardMode() {
+        this.keyboardTip.innerHTML = t("msg_parson_arrow_navigate");
         this.keyboardTip.style.display = "";
         this.sourceLabel.style.display = "none";
         this.answerLabel.style.display = "none";
@@ -3148,9 +3173,7 @@ export default class Parsons extends RunestoneBase {
             "aria-label",
             "Parsons problem. Press Enter or Space to arrange blocks.",
         );
-        this.keyboardTip.style.display = "none";
-        this.sourceLabel.style.display = "";
-        this.answerLabel.style.display = "";
+        this.hideKeyboardEntryHint();
     }
     /* =====================================================================
     ==== VIEW ==============================================================

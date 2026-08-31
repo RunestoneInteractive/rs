@@ -8,6 +8,7 @@ load({
         msg_parson_too_short: "Искористи све блокове у решењу",
         msg_parson_drag_from_here: "Превуци одавде",
         msg_parson_drag_to_here: "Превуци овде",
+        msg_parson_enter_activate: "Притисни Enter да активираш",
         msg_parson_correct_first_try: "Одлично! Успео си из првог покушаја!",
         msg_parson_correct:
             "Одлично! Решио си у само $1 покушаја. Одабери Поништи ако желиш да решиш из првог покушаја.",

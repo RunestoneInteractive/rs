@@ -108,6 +108,35 @@ describe("construction", () => {
         expect(p.keyboardTip.style.display).toBe("none");
     });
 
+    it("shows the keyboard entry hint only for focus-visible focus", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        vi.spyOn(p.sortContainerDiv, "matches").mockImplementation(
+            (selector) => selector === ":focus-visible",
+        );
+
+        p.sortContainerDiv.focus();
+        expect(p.sourceLabel.style.display).toBe("none");
+        expect(p.answerLabel.style.display).toBe("none");
+        expect(p.keyboardTip.textContent).toBe("Enter to activate");
+        expect(p.keyboardTip.style.display).not.toBe("none");
+
+        p.sortContainerDiv.blur();
+        expect(p.sourceLabel.style.display).not.toBe("none");
+        expect(p.answerLabel.style.display).not.toBe("none");
+        expect(p.keyboardTip.textContent).toContain("Arrow keys to navigate");
+        expect(p.keyboardTip.style.display).toBe("none");
+    });
+
+    it("does not show the keyboard entry hint for mouse focus", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        vi.spyOn(p.sortContainerDiv, "matches").mockReturnValue(false);
+
+        p.sortContainerDiv.focus();
+        expect(p.sourceLabel.style.display).not.toBe("none");
+        expect(p.answerLabel.style.display).not.toBe("none");
+        expect(p.keyboardTip.style.display).toBe("none");
+    });
+
     it("moves the question above the problem; drops a blank question", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
         expect(p.outerDiv.firstElementChild).toBe(p.question);
@@ -593,6 +622,7 @@ describe("keyboard movement model", () => {
             `Use arrow keys to navigate blocks, then Enter or Space to move it. Selected ${p.getBlockLabel(block)}. In the unplaced list, position 1 of 3.`,
         );
         expect(block.view.classList.contains("down")).toBe(true);
+        expect(p.keyboardTip.textContent).toContain("Arrow keys to navigate");
         expect(p.keyboardTip.style.display).not.toBe("none");
         expect(p.sourceLabel.style.display).toBe("none");
         p.keyboardApplication.blur();

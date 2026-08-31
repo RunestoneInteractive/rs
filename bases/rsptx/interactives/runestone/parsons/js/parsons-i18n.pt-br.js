@@ -8,6 +8,7 @@ load({
         msg_parson_too_short: "Seu programa é muito curto. Adicione mais blocos.",
         msg_parson_drag_from_here: "Arraste daqui",
         msg_parson_drag_to_here: "Largue os blocos aqui",
+        msg_parson_enter_activate: "Pressione Enter para ativar",
         msg_parson_correct_first_try:
             "Perfeito! Você levou apenas uma tentativa para resolver. Bom trabalho!",
         msg_parson_correct:
