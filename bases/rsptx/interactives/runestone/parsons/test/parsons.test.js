@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import Parsons from "../js/parsons.js";
 import "../js/timedparsons.js";
+import { setLocale } from "../../common/js/rsi18n.js";
 
 // Build the same DOM a book page provides (see parsonsPreview.tsx and the
 // Sphinx/PreTeXt templates): div.runestone > [data-component=parsons] with a
@@ -59,6 +60,7 @@ function answer(parsons, sourceIndexes) {
 }
 
 beforeEach(() => {
+    setLocale("en");
     document.body.innerHTML = "";
     window.componentMap = {};
     window.allComponents = [];
@@ -108,6 +110,35 @@ describe("construction", () => {
         expect(p.keyboardTip.style.display).toBe("none");
     });
 
+    it("shows the keyboard entry hint only for focus-visible focus", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        vi.spyOn(p.sortContainerDiv, "matches").mockImplementation(
+            (selector) => selector === ":focus-visible",
+        );
+
+        p.sortContainerDiv.focus();
+        expect(p.sourceLabel.style.display).toBe("none");
+        expect(p.answerLabel.style.display).toBe("none");
+        expect(p.keyboardTip.textContent).toBe("Enter to activate");
+        expect(p.keyboardTip.style.display).not.toBe("none");
+
+        p.sortContainerDiv.blur();
+        expect(p.sourceLabel.style.display).not.toBe("none");
+        expect(p.answerLabel.style.display).not.toBe("none");
+        expect(p.keyboardTip.textContent).toContain("Arrow keys to navigate");
+        expect(p.keyboardTip.style.display).toBe("none");
+    });
+
+    it("does not show the keyboard entry hint for mouse focus", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        vi.spyOn(p.sortContainerDiv, "matches").mockReturnValue(false);
+
+        p.sortContainerDiv.focus();
+        expect(p.sourceLabel.style.display).not.toBe("none");
+        expect(p.answerLabel.style.display).not.toBe("none");
+        expect(p.keyboardTip.style.display).toBe("none");
+    });
+
     it("moves the question above the problem; drops a blank question", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
         expect(p.outerDiv.firstElementChild).toBe(p.question);
@@ -141,15 +172,33 @@ describe("construction", () => {
         expect(cap.textContent).toContain("Parsons");
     });
 
-    it("makes exactly one block the keyboard entry point", async () => {
+    it("uses MathJax speech for block labels and removes nested tab stops", async () => {
+        const p = await makeParsons({
+            blocks: '<span class="process-math">\(x^2\)</span>',
+            attrs: 'data-language="natural"',
+        });
+        const block = p.blocks[0];
+        const lines = block.view.querySelector(".lines");
+        const math = document.createElement("mjx-container");
+
+        lines.replaceChildren(math);
+        math.tabIndex = 0;
+        math.setAttribute("data-semantic-speech-none", "x squared");
+        await tick();
+
+        expect(block.view.getAttribute("role")).toBe("button");
+        expect(block.view.getAttribute("aria-label")).toBe("x squared");
+        expect(math.getAttribute("tabindex")).toBe("-1");
+    });
+
+    it("makes the sortable container the keyboard entry point", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
-        const tabZero = p.blocks.filter(
-            (b) => b.view.getAttribute("tabindex") === "0",
-        );
-        expect(tabZero).toHaveLength(1);
-        for (const block of p.blocks) {
-            expect(block.enabled()).toBe(true);
-        }
+
+        expect(p.sortContainerDiv.getAttribute("tabindex")).toBe("0");
+        expect(p.sortContainerDiv.getAttribute("role")).toBe("button");
+        expect(
+            p.blocks.map((block) => block.view.getAttribute("tabindex")),
+        ).toEqual(["-1", "-1", "-1"]);
     });
 });
 
@@ -557,34 +606,352 @@ describe("keyboard movement model", () => {
         expect(p.answerBlocks()).toEqual([a, b, c]);
     });
 
-    it("focusing a block enters keyboard mode; blur leaves it", async () => {
+    it("Enter on the container begins keyboard mode; blur leaves it", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
-        const block = p.blocks.find(
-            (b) => b.view.getAttribute("tabindex") === "0",
+        const block = p.sourceBlocks()[0];
+
+        p.sortContainerDiv.focus();
+        p.sortContainerDiv.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Enter",
+            }),
         );
-        block.view.focus();
+
         expect(p.textFocus).toBe(block);
+        expect(p.keyboardApplication.getAttribute("aria-label")).toBe(
+            `Use arrow keys to navigate blocks, then Enter or Space to move it. Selected ${p.getBlockLabel(block)}. In the unplaced list, position 1 of 3.`,
+        );
         expect(block.view.classList.contains("down")).toBe(true);
+        expect(p.keyboardTip.textContent).toContain("Arrow keys to navigate");
         expect(p.keyboardTip.style.display).not.toBe("none");
         expect(p.sourceLabel.style.display).toBe("none");
-        block.view.blur();
+        p.keyboardApplication.blur();
         expect(p.textFocus).toBeUndefined();
         expect(p.keyboardTip.style.display).toBe("none");
         expect(p.sourceLabel.style.display).not.toBe("none");
     });
 
-    it("space toggles a focused block between select and move", async () => {
+    it("space toggles a selected block between select and move", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
-        const block = p.blocks.find(
-            (b) => b.view.getAttribute("tabindex") === "0",
-        );
-        block.view.focus();
-        block.keyDown({ keyCode: 32, preventDefault() {} });
+        p.startKeyboardInteraction();
+        const block = p.textFocus;
+
+        p.handleKeyboardMovementKeydown({
+            key: " ",
+            preventDefault() {},
+        });
         expect(p.textMove).toBe(true);
         expect(block.view.classList.contains("up")).toBe(true);
-        block.keyDown({ keyCode: 32, preventDefault() {} });
+        p.handleKeyboardMovementKeydown({
+            key: " ",
+            preventDefault() {},
+        });
         expect(p.textMove).toBe(false);
         expect(block.view.classList.contains("down")).toBe(true);
+    });
+
+    it("returns focus to the entry button when Escape leaves keyboard navigation", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+
+        p.startKeyboardInteraction();
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Escape",
+            }),
+        );
+
+        expect(p.textFocus).toBeUndefined();
+        expect(document.activeElement).toBe(p.sortContainerDiv);
+    });
+
+    it("lets Tab leave native keyboard navigation", async () => {
+        const p = await makeParsons({
+            blocks: FLAT_BLOCKS,
+            attrs: FLAT_ATTRS,
+        });
+        p.startKeyboardInteraction();
+        const tabEvent = new KeyboardEvent("keydown", {
+            bubbles: true,
+            cancelable: true,
+            key: "Tab",
+        });
+        p.keyboardApplication.dispatchEvent(tabEvent);
+
+        expect(tabEvent.defaultPrevented).toBe(false);
+        expect(p.textFocus).toBeUndefined();
+        expect(p.sortContainerDiv.getAttribute("tabindex")).toBe("0");
+        expect(
+            p.blocks.map((block) => block.view.getAttribute("tabindex")),
+        ).toEqual(["-1", "-1", "-1"]);
+    });
+
+    it("uses the application container to navigate yellow selections", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const [first, second] = p.sourceBlocks();
+
+        p.startKeyboardInteraction();
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "ArrowDown",
+            }),
+        );
+
+        expect(p.textFocus).toBe(second);
+        expect(p.keyboardApplication.getAttribute("aria-label")).toBe(
+            `Selected ${p.getBlockLabel(second)}. In the unplaced list, position 2 of 3.`,
+        );
+        expect(document.activeElement).toBe(p.keyboardApplication);
+        expect(first.view.classList.contains("down")).toBe(false);
+        expect(second.view.classList.contains("down")).toBe(true);
+    });
+
+    it("retains and announces incorrect feedback until a keyboard move", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        answer(p, [1, 0, 2]);
+        p.checkCurrentAnswer();
+        p.renderFeedback();
+
+        const incorrect = p
+            .answerBlocks()
+            .find((block) => p.isIncorrectBlock(block));
+        expect(incorrect).toBeDefined();
+        expect(incorrect.view.getAttribute("aria-label")).toBe(
+            `${p.getBlockLabel(incorrect)}. Incorrect`,
+        );
+
+        p.startKeyboardInteraction();
+
+        expect(p.textFocus).toBe(incorrect);
+        expect(incorrect.view.classList.contains("incorrectPosition")).toBe(
+            true,
+        );
+        expect(p.keyboardApplication.getAttribute("aria-label")).toBe(
+            `Use arrow keys to navigate blocks, then Enter or Space to move it. Selected ${p.getBlockLabel(incorrect)}. Incorrect. ${p.getKeyboardBlockLocation(incorrect)}`,
+        );
+
+        const movable = p.answerBlocks()[0];
+        p.selectKeyboardBlock(movable);
+        p.handleKeyboardMovementKeydown({
+            key: " ",
+            preventDefault() {},
+        });
+        p.handleKeyboardMovementKeydown({
+            key: "ArrowDown",
+            preventDefault() {},
+        });
+
+        expect(p.answerBlocks()[1]).toBe(movable);
+        expect(incorrect.view.classList.contains("incorrectPosition")).toBe(
+            false,
+        );
+        expect(incorrect.view.getAttribute("aria-label")).toBe(
+            p.getBlockLabel(incorrect),
+        );
+    });
+
+    it("localizes keyboard announcements", async () => {
+        setLocale("pt-br");
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+
+        p.startKeyboardInteraction();
+
+        expect(p.sortContainerDiv.getAttribute("aria-label")).toBe(
+            "Problema Parsons. Pressione Enter ou Espaço para organizar os blocos.",
+        );
+        expect(p.keyboardApplication.getAttribute("aria-label")).toBe(
+            "Use as teclas de seta para navegar pelos blocos e pressione Enter ou Espaço para movê-los. Selecionado line_a = 1. Na lista não posicionada, posição 1 de 3.",
+        );
+    });
+
+    it("uses the application proxy only during keyboard interaction", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+
+        p.startKeyboardInteraction();
+
+        expect(p.sortContainerDiv.getAttribute("role")).toBe("button");
+        expect(p.keyboardApplication.getAttribute("role")).toBe("application");
+        expect(document.activeElement).toBe(p.keyboardApplication);
+
+        p.cancelKeyboardMovement();
+
+        expect(p.sortContainerDiv.getAttribute("role")).toBe("button");
+    });
+
+    it("announces a block's current position, indentation, and alternate group", async () => {
+        const p = await makeParsons({
+            blocks: `root
+---
+    choice_a
+---
+    choice_b #paired
+---
+    finish`,
+            attrs: 'data-language="python" data-order="0,1,2,3"',
+        });
+        const first = p.sourceBlocks()[0];
+        const alternate = p.sourceBlocks()[1];
+
+        expect(p.getKeyboardBlockLocation(first)).toBe(
+            "In the unplaced list, position 1 of 4.",
+        );
+        expect(p.getKeyboardBlockLocation(alternate)).toBe(
+            "In the unplaced list, position 2 of 4. 1 of 2 options.",
+        );
+
+        alternate.moveRight();
+        alternate.indent = 1;
+
+        expect(p.getKeyboardBlockLocation(alternate)).toBe(
+            "In the answer area, position 1 of 1. 1 tab in. 1 of 2 options.",
+        );
+    });
+
+    it("uses a click to pick up a block", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const block = p.sourceBlocks()[0];
+        p.startKeyboardInteraction();
+        block.view.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, detail: 1 }),
+        );
+
+        expect(p.textFocus).toBe(block);
+        expect(p.textMove).toBe(true);
+        expect(document.activeElement).toBe(p.keyboardApplication);
+    });
+
+    it("ignores a click before a block enters keyboard mode", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const block = p.sourceBlocks()[0];
+
+        block.view.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, detail: 0 }),
+        );
+
+        expect(p.textFocus).toBeUndefined();
+        expect(p.textMove).toBeUndefined();
+        expect(block.view.classList.contains("up")).toBe(false);
+    });
+
+    it("moves a picked-up block from the component's keydown capture", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const block = p.sourceBlocks()[0];
+
+        p.startKeyboardInteraction();
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: " ",
+            }),
+        );
+        const moveEvent = new KeyboardEvent("keydown", {
+            bubbles: true,
+            cancelable: true,
+            key: "ArrowRight",
+        });
+        block.view.dispatchEvent(moveEvent);
+
+        expect(moveEvent.defaultPrevented).toBe(true);
+        expect(block.inSourceArea()).toBe(false);
+        expect(p.keyboardApplication.getAttribute("aria-label")).toBe(
+            "In the answer area, position 1 of 1.",
+        );
+        expect(document.activeElement).toBe(p.keyboardApplication);
+
+        const dropEvent = new KeyboardEvent("keydown", {
+            bubbles: true,
+            cancelable: true,
+            key: "Enter",
+        });
+        p.keyboardApplication.dispatchEvent(dropEvent);
+
+        expect(dropEvent.defaultPrevented).toBe(true);
+        expect(p.textMove).toBe(false);
+        expect(document.activeElement).toBe(p.keyboardApplication);
+    });
+
+    it("cleans up the first block before moving a second block", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const [first, second] = p.sourceBlocks();
+
+        p.startKeyboardInteraction();
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: " ",
+            }),
+        );
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Enter",
+            }),
+        );
+
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "ArrowDown",
+            }),
+        );
+        expect(p.textFocus).toBe(second);
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: " ",
+            }),
+        );
+        second.view.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "ArrowRight",
+            }),
+        );
+
+        expect([...p.outerDiv.querySelectorAll(".block.up")]).toEqual([
+            second.view,
+        ]);
+        expect(p.outerDiv.querySelectorAll(".block.down")).toHaveLength(0);
+
+        p.keyboardApplication.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                bubbles: true,
+                cancelable: true,
+                key: "Enter",
+            }),
+        );
+
+        expect(p.outerDiv.querySelectorAll(".block.up")).toHaveLength(0);
+        expect([...p.outerDiv.querySelectorAll(".block.down")]).toEqual([
+            second.view,
+        ]);
+    });
+
+    it("keeps initially disabled blocks out of keyboard rotation", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const disabled = p.sourceBlocks()[0];
+        const enabled = p.sourceBlocks()[1];
+
+        disabled.view.classList.add("disabled");
+        p.initializeTabIndex();
+
+        expect(disabled.enabled()).toBe(false);
+        expect(disabled.view.hasAttribute("tabindex")).toBe(false);
+        expect(p.enabledSourceBlocks()).not.toContain(disabled);
+
+        p.startKeyboardInteraction();
+        expect(p.textFocus).toBe(enabled);
     });
 
     it("disable() removes a block from keyboard rotation", async () => {
@@ -592,12 +959,11 @@ describe("keyboard movement model", () => {
         const block = p.sourceBlocks()[0];
         block.disable();
         expect(block.enabled()).toBe(false);
-        // Another block takes over as the keyboard entry point.
-        const tabZero = p.blocks.filter(
-            (b) => b.view.getAttribute("tabindex") === "0",
-        );
-        expect(tabZero).toHaveLength(1);
-        expect(tabZero[0]).not.toBe(block);
+        expect(p.sortContainerDiv.getAttribute("tabindex")).toBe("0");
+        expect(block.view.hasAttribute("tabindex")).toBe(false);
+        expect(
+            p.blocks.slice(1).map((item) => item.view.getAttribute("tabindex")),
+        ).toEqual(["-1", "-1"]);
     });
 });
 
@@ -613,16 +979,55 @@ describe("adaptive problems", () => {
         expect(localStorage.getItem(p.adaptiveId + "Solved")).toBe("false");
     });
 
-    it("helpMe demands three distinct attempts first", async () => {
+    it("reports help eligibility through the live message instead of an alert", async () => {
         const p = await makeParsons({
             blocks: FLAT_BLOCKS,
             attrs: FLAT_ATTRS + ' data-adaptive="true"',
         });
         p.helpMe();
-        expect(alert).toHaveBeenCalledWith(
-            expect.stringContaining("three distinct full attempts"),
+
+        await tick(30);
+        expect(p.messageDiv.getAttribute("role")).toBe("status");
+        expect(p.messageDiv.style.visibility).toBe("visible");
+        expect(p.messageDiv.textContent).toContain(
+            "three distinct full attempts",
         );
         expect(p.gotHelp).toBe(false);
+    });
+
+    it("refreshes repeated Help Me announcements", async () => {
+        const p = await makeParsons({
+            blocks: FLAT_BLOCKS,
+            attrs: FLAT_ATTRS + ' data-adaptive="true"',
+        });
+        p.helpMe();
+        await tick(30);
+
+        p.helpMe();
+        expect(p.messageDiv.textContent).toBe("");
+
+        await tick(30);
+        expect(p.messageDiv.textContent).toContain(
+            "three distinct full attempts",
+        );
+    });
+
+    it("includes Help Me availability in the next feedback message", async () => {
+        const p = await makeParsons({
+            blocks: FLAT_BLOCKS,
+            attrs: FLAT_ATTRS + ' data-adaptive="true"',
+        });
+        p.numDistinct = 2;
+        p.lastAnswerHash = "different";
+        answer(p, [1, 0, 2]);
+
+        p.checkCurrentAnswer();
+        p.renderFeedback();
+
+        await tick(30);
+        expect(p.messageDiv.textContent).toContain(
+            "Click on the Help Me button",
+        );
     });
 
     it("removeDistractor disables the block and reveals its help text", async () => {

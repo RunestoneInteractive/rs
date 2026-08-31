@@ -8,6 +8,21 @@ load({
         msg_parson_too_short: "Seu programa é muito curto. Adicione mais blocos.",
         msg_parson_drag_from_here: "Arraste daqui",
         msg_parson_drag_to_here: "Largue os blocos aqui",
+        msg_parson_enter_activate: "Pressione Enter para ativar",
+        msg_parson_keyboard_entry_label:
+            "Problema Parsons. Pressione Enter ou Espaço para organizar os blocos.",
+        msg_parson_keyboard_instructions:
+            "Use as teclas de seta para navegar pelos blocos e pressione Enter ou Espaço para movê-los.",
+        msg_parson_keyboard_selected: "Selecionado $1",
+        msg_parson_incorrect: "Incorreto",
+        msg_parson_block: "bloco",
+        msg_parson_keyboard_unplaced_position:
+            "Na lista não posicionada, posição $1 de $2",
+        msg_parson_keyboard_answer_position:
+            "Na área de resposta, posição $1 de $2",
+        msg_parson_keyboard_tab_in: "$1 nível de indentação",
+        msg_parson_keyboard_tabs_in: "$1 níveis de indentação",
+        msg_parson_keyboard_options: "$1 de $2 opções",
         msg_parson_correct_first_try:
             "Perfeito! Você levou apenas uma tentativa para resolver. Bom trabalho!",
         msg_parson_correct:
