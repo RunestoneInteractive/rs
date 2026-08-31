@@ -193,7 +193,7 @@ export default class Parsons extends RunestoneBase {
         this.options = options;
     }
     getBlockLabel(block) {
-        return getAccessibleElementText(block.view) || "block";
+        return getAccessibleElementText(block.view) || t("msg_parson_block");
     }
 
     isIncorrectBlock(block) {
@@ -211,12 +211,23 @@ export default class Parsons extends RunestoneBase {
             : this.enabledAnswerBlocks();
         const position = blocks.indexOf(block) + 1;
         const location = [
-            `In the ${inSource ? "unplaced list" : "answer area"}, position ${position} of ${blocks.length}`,
+            t(
+                inSource
+                    ? "msg_parson_keyboard_unplaced_position"
+                    : "msg_parson_keyboard_answer_position",
+                position,
+                blocks.length,
+            ),
         ];
 
         if (!inSource && this.usesIndentation()) {
             location.push(
-                `${block.indent} ${block.indent === 1 ? "tab" : "tabs"} in`,
+                t(
+                    block.indent === 1
+                        ? "msg_parson_keyboard_tab_in"
+                        : "msg_parson_keyboard_tabs_in",
+                    block.indent,
+                ),
             );
         }
 
@@ -228,7 +239,11 @@ export default class Parsons extends RunestoneBase {
             );
             if (options.length > 1) {
                 location.push(
-                    `${options.indexOf(block) + 1} of ${options.length} options`,
+                    t(
+                        "msg_parson_keyboard_options",
+                        options.indexOf(block) + 1,
+                        options.length,
+                    ),
                 );
             }
         }
@@ -237,10 +252,11 @@ export default class Parsons extends RunestoneBase {
     }
 
     updateBlockAriaLabel(block) {
-        const label = this.isIncorrectBlock(block)
-            ? `${this.getBlockLabel(block)}. Incorrect`
-            : this.getBlockLabel(block);
-        block.view.setAttribute("aria-label", label);
+        const label = [this.getBlockLabel(block)];
+        if (this.isIncorrectBlock(block)) {
+            label.push(t("msg_parson_incorrect"));
+        }
+        block.view.setAttribute("aria-label", label.join(". "));
     }
 
     updateBlockAriaLabels() {
@@ -342,7 +358,7 @@ export default class Parsons extends RunestoneBase {
         this.sortContainerDiv.setAttribute("role", "button");
         this.sortContainerDiv.setAttribute(
             "aria-label",
-            "Parsons problem. Press Enter or Space to arrange blocks.",
+            t("msg_parson_keyboard_entry_label"),
         );
         this.sortContainerDiv.addEventListener("focus", () => {
             if (
@@ -3043,13 +3059,18 @@ export default class Parsons extends RunestoneBase {
 
     enterKeyboardNavigationMode(block, includeInstructions = false) {
         this.keyboardInputActive = true;
-        const status = this.isIncorrectBlock(block) ? " Incorrect." : "";
-        const label = `Selected ${this.getBlockLabel(block)}.${status} ${this.getKeyboardBlockLocation(block)}`;
+        const label = [
+            t("msg_parson_keyboard_selected", this.getBlockLabel(block)),
+        ];
+        if (this.isIncorrectBlock(block)) {
+            label.push(t("msg_parson_incorrect"));
+        }
+        label.push(this.getKeyboardBlockLocation(block));
         this.keyboardApplication.setAttribute(
             "aria-label",
             includeInstructions
-                ? `Use arrow keys to navigate blocks, then Enter or Space to move it. ${label}`
-                : label,
+                ? t("msg_parson_keyboard_instructions") + " " + label.join(". ")
+                : label.join(". "),
         );
         this.keyboardApplication.focus();
     }
@@ -3175,7 +3196,7 @@ export default class Parsons extends RunestoneBase {
         this.keyboardApplication.removeAttribute("aria-label");
         this.sortContainerDiv.setAttribute(
             "aria-label",
-            "Parsons problem. Press Enter or Space to arrange blocks.",
+            t("msg_parson_keyboard_entry_label"),
         );
         this.hideKeyboardEntryHint();
     }

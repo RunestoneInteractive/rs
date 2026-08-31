@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import Parsons from "../js/parsons.js";
 import "../js/timedparsons.js";
+import { setLocale } from "../../common/js/rsi18n.js";
 
 // Build the same DOM a book page provides (see parsonsPreview.tsx and the
 // Sphinx/PreTeXt templates): div.runestone > [data-component=parsons] with a
@@ -59,6 +60,7 @@ function answer(parsons, sourceIndexes) {
 }
 
 beforeEach(() => {
+    setLocale("en");
     document.body.innerHTML = "";
     window.componentMap = {};
     window.allComponents = [];
@@ -750,6 +752,20 @@ describe("keyboard movement model", () => {
         );
         expect(incorrect.view.getAttribute("aria-label")).toBe(
             p.getBlockLabel(incorrect),
+        );
+    });
+
+    it("localizes keyboard announcements", async () => {
+        setLocale("pt-br");
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+
+        p.startKeyboardInteraction();
+
+        expect(p.sortContainerDiv.getAttribute("aria-label")).toBe(
+            "Problema Parsons. Pressione Enter ou Espaço para organizar os blocos.",
+        );
+        expect(p.keyboardApplication.getAttribute("aria-label")).toBe(
+            "Use as teclas de seta para navegar pelos blocos e pressione Enter ou Espaço para movê-los. Selecionado line_a = 1. Na lista não posicionada, posição 1 de 3.",
         );
     });
 

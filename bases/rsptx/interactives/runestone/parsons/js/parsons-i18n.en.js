@@ -9,6 +9,20 @@ load({
         msg_parson_drag_from_here: "Drag from here",
         msg_parson_drag_to_here: "Drop blocks here",
         msg_parson_enter_activate: "Enter to activate",
+        msg_parson_keyboard_entry_label:
+            "Parsons problem. Press Enter or Space to arrange blocks.",
+        msg_parson_keyboard_instructions:
+            "Use arrow keys to navigate blocks, then Enter or Space to move it.",
+        msg_parson_keyboard_selected: "Selected $1",
+        msg_parson_incorrect: "Incorrect",
+        msg_parson_block: "block",
+        msg_parson_keyboard_unplaced_position:
+            "In the unplaced list, position $1 of $2",
+        msg_parson_keyboard_answer_position:
+            "In the answer area, position $1 of $2",
+        msg_parson_keyboard_tab_in: "$1 tab in",
+        msg_parson_keyboard_tabs_in: "$1 tabs in",
+        msg_parson_keyboard_options: "$1 of $2 options",
         msg_parson_correct_first_try:
             "Perfect!  It took you only one try to solve this.  Great job!",
         msg_parson_correct:

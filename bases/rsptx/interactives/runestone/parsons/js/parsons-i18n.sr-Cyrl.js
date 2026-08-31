@@ -9,6 +9,20 @@ load({
         msg_parson_drag_from_here: "Превуци одавде",
         msg_parson_drag_to_here: "Превуци овде",
         msg_parson_enter_activate: "Притисни Enter да активираш",
+        msg_parson_keyboard_entry_label:
+            "Парсонов задатак. Притисни Enter или размак да распоредиш блокове.",
+        msg_parson_keyboard_instructions:
+            "Користи стрелице за кретање по блоковима, а затим Enter или размак да помериш блок.",
+        msg_parson_keyboard_selected: "Изабран је $1",
+        msg_parson_incorrect: "Нетачно",
+        msg_parson_block: "блок",
+        msg_parson_keyboard_unplaced_position:
+            "На листи непостављених, позиција $1 од $2",
+        msg_parson_keyboard_answer_position:
+            "У области одговора, позиција $1 од $2",
+        msg_parson_keyboard_tab_in: "$1 ниво увлачења",
+        msg_parson_keyboard_tabs_in: "$1 нивоа увлачења",
+        msg_parson_keyboard_options: "$1 од $2 опције",
         msg_parson_correct_first_try: "Одлично! Успео си из првог покушаја!",
         msg_parson_correct:
             "Одлично! Решио си у само $1 покушаја. Одабери Поништи ако желиш да решиш из првог покушаја.",
