@@ -1,4 +1,6 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { disableMathJaxTabStops } from "../../common/js/mathjax-a11y.js";
+
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
 import SQLFeedback from "./SQLFeedback.js";
@@ -193,25 +195,54 @@ export default class HParsons extends RunestoneBase {
         return textarea.value;
     }
 
-    renderMathInBlocks() {
-        if (this.language !== "math") return;
-        setTimeout(() => {
-            const blocks = document.querySelectorAll(
-                `#${this.divid}-container .parsons-block`,
+    observeMathJaxTabStops() {
+        if (this.mathTabStopObserver || typeof MutationObserver === "undefined") {
+            return;
+        }
+        this.mathTabStopObserver = new MutationObserver((mutations) => {
+            const needsCleanup = mutations.some(
+                (mutation) =>
+                    mutation.type === "childList" ||
+                    mutation.target.getAttribute("tabindex") !== "-1",
             );
-            blocks.forEach((block) => {
-                block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
-                if (block.innerHTML.indexOf("process-math") !== -1) {
-                    // remove the span tag with process-math class
-                    block.innerHTML = block.innerHTML.replace(
-                        /<span class="process-math">|<\/span>/g,
-                        "",
-                    );
-                }
+            if (needsCleanup) {
+                disableMathJaxTabStops(this.hparsonsInput, [
+                    ".parsons-block",
+                ]);
+            }
+        });
+        this.mathTabStopObserver.observe(this.hparsonsInput, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ["tabindex"],
+        });
+    }
 
-                this.queueMathJax(block);
-            });
-        }, 10);
+    renderMathInBlocks() {
+        if (this.language !== "math") return Promise.resolve();
+        this.observeMathJaxTabStops();
+        return new Promise((resolve) => {
+            // MathJax may load just after the component; preserve the
+            // established deferral before submitting these block renders.
+            setTimeout(() => {
+                const blocks = this.hparsonsInput.querySelectorAll(
+                    ".parsons-block",
+                );
+                blocks.forEach((block) => {
+                    block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                    if (block.innerHTML.indexOf("process-math") !== -1) {
+                        block.innerHTML = block.innerHTML.replace(
+                            /<span class="process-math">|<\/span>/g,
+                            "",
+                        );
+                    }
+                    this.queueMathJax(block);
+                });
+                disableMathJaxTabStops(this.hparsonsInput, [".parsons-block"]);
+                resolve();
+            }, 10);
+        });
     }
 
     // Return previous answers in local storage
