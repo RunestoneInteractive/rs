@@ -1008,6 +1008,11 @@ async def doAssignment(
         del course_attrs["ptx_js_version"]
     else:
         ptx_js_version = "0.2"
+    # A book built without WeBWorK does not load pretext-webwork.js in its
+    # generated _base.html, but an assignment may include WeBWorK questions
+    # borrowed from another book.  Let the template know it must load the
+    # WeBWorK support itself in that case.
+    needs_webwork = any(q["question_type"] == "webwork" for q in questionslist)
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
         request=request,
@@ -1036,6 +1041,7 @@ async def doAssignment(
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=ptx_js_version,
         webwork_js_version=webwork_js_version,
+        needs_webwork=needs_webwork,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,

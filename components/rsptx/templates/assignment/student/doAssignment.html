@@ -14,6 +14,37 @@ Do Assignment
     {% if origin == "PreTeXt" and using_ptx_base != "true" %}
     <link href="/ns/books/published/{{ course.base_course }}/_static/pretext/css/theme.css" rel="stylesheet" />
     {% endif %}
+
+    {# A book built without WeBWorK does not load pretext-webwork.js in its
+       generated _base.html, so an assignment that borrows WeBWorK questions
+       from another book has no handleWW() to activate them.  Load the support
+       here when the assignment needs it and nothing upstream supplied it.
+       handleWW() is only reached from the Activate button's onclick, so the
+       injected scripts have until the first click to arrive. #}
+    {% if needs_webwork %}
+    <script>
+        (function () {
+            // A dynamically inserted script defaults to async, so two of them
+            // execute in whatever order they finish downloading.  Setting
+            // async = false puts them on the in-order list instead, which is
+            // what keeps the pair below in dependency order.
+            var load = function (src) {
+                var s = document.createElement("script");
+                s.async = false;
+                s.src = src;
+                document.head.appendChild(s);
+            };
+            // The resizer goes first: handleWW() calls iFrameResize() on the
+            // iframe it builds for the problem.
+            if (typeof iFrameResize === "undefined") {
+                load("https://webwork.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js");
+            }
+            if (typeof handleWW === "undefined") {
+                load("/ns/books/published/{{ course.course_name }}/_static/pretext/js/dist/pretext-webwork.js");
+            }
+        })();
+    </script>
+    {% endif %}
 {% endblock %}
 
 
