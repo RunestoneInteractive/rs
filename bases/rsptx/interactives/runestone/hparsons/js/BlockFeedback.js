@@ -169,9 +169,13 @@ export default class BlockFeedback extends HParsonsFeedback {
     }
 
     announceFeedback(message = this.messageDiv.textContent.trim()) {
+        if (this.feedbackAnnouncementTimeout) {
+            clearTimeout(this.feedbackAnnouncementTimeout);
+        }
         this.feedbackLiveRegion.textContent = "";
-        setTimeout(() => {
+        this.feedbackAnnouncementTimeout = setTimeout(() => {
             this.feedbackLiveRegion.textContent = message;
+            this.feedbackAnnouncementTimeout = null;
         }, 10);
     }
 
@@ -186,6 +190,10 @@ export default class BlockFeedback extends HParsonsFeedback {
             );
         }
         this.messageDiv.style.display = "none";
+        if (this.feedbackAnnouncementTimeout) {
+            clearTimeout(this.feedbackAnnouncementTimeout);
+            this.feedbackAnnouncementTimeout = null;
+        }
         this.feedbackLiveRegion.textContent = "";
         this.hparsons.hparsonsInput.refreshBlockAria();
     }

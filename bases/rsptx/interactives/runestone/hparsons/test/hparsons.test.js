@@ -201,6 +201,19 @@ describe("HParsons block grading", () => {
         );
     });
 
+    it("cancels feedback that is cleared before it can be announced", async () => {
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+        });
+
+        hp.feedbackController.announceFeedback("Incorrect order.");
+        hp.feedbackController.clearFeedback();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        expect(hp.feedbackController.feedbackLiveRegion.textContent).toBe("");
+    });
+
     it("announces when the block arrangement is reset", async () => {
         const hp = makeComponent({
             blocks: ["first", "second"].join("\n"),
