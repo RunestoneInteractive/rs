@@ -180,6 +180,33 @@ describe("HParsons block grading", () => {
         expect(lateMath.tabIndex).toBe(-1);
     });
 
+    it("waits for queued MathJax block renders", async () => {
+        const hp = makeComponent({
+            blocks: MATH_BLOCKS,
+            blockAnswer: "0 1 2",
+        });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        let completeRender;
+        hp.queueMathJax.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    completeRender = resolve;
+                }),
+        );
+        const render = hp.renderMathInBlocks();
+        let resolved = false;
+        render.then(() => {
+            resolved = true;
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(resolved).toBe(false);
+        completeRender();
+        await render;
+        expect(resolved).toBe(true);
+    });
+
     it("announces block-grading feedback through a persistent status region", async () => {
         const hp = makeComponent({
             blocks: ["first", "second"].join("\n"),
