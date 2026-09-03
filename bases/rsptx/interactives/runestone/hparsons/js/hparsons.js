@@ -222,25 +222,35 @@ export default class HParsons extends RunestoneBase {
     renderMathInBlocks() {
         if (this.language !== "math") return Promise.resolve();
         this.observeMathJaxTabStops();
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             // MathJax may load just after the component; preserve the
             // established deferral before submitting these block renders.
             setTimeout(() => {
-                const blocks = this.hparsonsInput.querySelectorAll(
-                    ".parsons-block",
-                );
-                blocks.forEach((block) => {
-                    block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
-                    if (block.innerHTML.indexOf("process-math") !== -1) {
-                        block.innerHTML = block.innerHTML.replace(
-                            /<span class="process-math">|<\/span>/g,
-                            "",
-                        );
-                    }
-                    this.queueMathJax(block);
-                });
-                disableMathJaxTabStops(this.hparsonsInput, [".parsons-block"]);
-                resolve();
+                try {
+                    const blocks = this.hparsonsInput.querySelectorAll(
+                        ".parsons-block",
+                    );
+                    const renderPromises = Array.from(blocks, (block) => {
+                        block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                        if (block.innerHTML.indexOf("process-math") !== -1) {
+                            block.innerHTML = block.innerHTML.replace(
+                                /<span class="process-math">|<\/span>/g,
+                                "",
+                            );
+                        }
+                        return this.queueMathJax(block);
+                    });
+                    Promise.all(renderPromises).then(
+                        () => {
+                            disableMathJaxTabStops(this.hparsonsInput, [".parsons-block"]);
+                            this.hparsonsInput.refreshBlockAria();
+                            resolve();
+                        },
+                        reject,
+                    );
+                } catch (err) {
+                    reject(err);
+                }
             }, 10);
         });
     }
