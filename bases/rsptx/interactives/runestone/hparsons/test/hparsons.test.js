@@ -150,6 +150,111 @@ describe("HParsons block grading", () => {
         expect(hp.feedbackController.grade).toBe("correct");
     });
 
+    it("pre-renders math blocks without MathJax tab stops", async () => {
+        const hp = makeComponent({
+            blocks: MATH_BLOCKS,
+            blockAnswer: "0 1 2",
+        });
+        // Allow the initial deferred MathJax render to finish first.
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        const block = hp.hparsonsInput.querySelector(".parsons-block");
+        hp.queueMathJax.mockImplementationOnce((mathBlock) => {
+            mathBlock.innerHTML = `
+            <mjx-container aria-label="x squared" tabindex="0">
+                <span tabindex="0">visual math internals</span>
+            </mjx-container>`;
+            return Promise.resolve();
+        });
+
+        await hp.renderMathInBlocks();
+
+        const math = block.querySelector("mjx-container");
+        expect(math.tabIndex).toBe(-1);
+        expect(math.querySelector("span").tabIndex).toBe(-1);
+
+        const lateMath = document.createElement("mjx-container");
+        lateMath.tabIndex = 0;
+        block.appendChild(lateMath);
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(lateMath.tabIndex).toBe(-1);
+    });
+
+    it("waits for queued MathJax block renders", async () => {
+        const hp = makeComponent({
+            blocks: MATH_BLOCKS,
+            blockAnswer: "0 1 2",
+        });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        let completeRender;
+        hp.queueMathJax.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    completeRender = resolve;
+                }),
+        );
+        const render = hp.renderMathInBlocks();
+        let resolved = false;
+        render.then(() => {
+            resolved = true;
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(resolved).toBe(false);
+        completeRender();
+        await render;
+        expect(resolved).toBe(true);
+    });
+
+    it("announces block-grading feedback through a persistent status region", async () => {
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+        });
+
+        const liveRegion = hp.feedbackController.feedbackLiveRegion;
+        expect(liveRegion.getAttribute("role")).toBe(
+            "status",
+        );
+        expect(liveRegion.getAttribute("aria-live")).toBe("polite");
+        expect(liveRegion.getAttribute("aria-atomic")).toBe("true");
+
+        await hp.feedbackController.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        expect(liveRegion.textContent).toBe(
+            hp.feedbackController.messageDiv.textContent,
+        );
+    });
+
+    it("cancels feedback that is cleared before it can be announced", async () => {
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+        });
+
+        hp.feedbackController.announceFeedback("Incorrect order.");
+        hp.feedbackController.clearFeedback();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        expect(hp.feedbackController.feedbackLiveRegion.textContent).toBe("");
+    });
+
+    it("announces when the block arrangement is reset", async () => {
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+        });
+
+        hp.feedbackController.reset();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        expect(hp.feedbackController.feedbackLiveRegion.textContent).toBe(
+            "Blocks reset.",
+        );
+    });
+
     it("ignores stray whitespace in data-blockanswer", () => {
         const hp = makeComponent({
             blocks: ["a", "b", "c"].join("\n"),
@@ -160,6 +265,100 @@ describe("HParsons block grading", () => {
     });
 });
 
+describe("HParsons keyboard movement surface", () => {
+    beforeEach(() => {
+        document.body.innerHTML = "";
+        vi.spyOn(HParsons.prototype, "queueMathJax").mockResolvedValue({});
+        vi.spyOn(HParsons.prototype, "logBookEvent").mockResolvedValue({});
+        vi.spyOn(HParsons.prototype, "checkServer").mockImplementation(
+            () => {},
+        );
+    });
+
+    it("uses one Tab stop and moves blocks only after activation", () => {
+        const hp = makeComponent({
+            blocks: ["first", "second", "third"].join("\n"),
+            blockAnswer: "0 1 2",
+        });
+        const input = hp.hparsonsInput.querySelector(".hparsons-input");
+        const blocks = input.querySelectorAll(".parsons-block");
+
+        expect(input.tabIndex).toBe(0);
+        expect(input.getAttribute("role")).toBe("button");
+        expect(input.getAttribute("aria-pressed")).toBe("false");
+        expect(Array.from(blocks).every((block) => block.tabIndex === -1)).toBe(
+            true,
+        );
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(input.getAttribute("role")).toBe("application");
+        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[0].id);
+        expect(document.activeElement).toBe(blocks[0]);
+
+        blocks[0].dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+        );
+        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[1].id);
+        expect(document.activeElement).toBe(blocks[1]);
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+        );
+        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[1].id);
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+        );
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(hp.hparsonsInput.getBlockIndices()).toEqual([0]);
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
+        );
+        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[1].id);
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+        );
+        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[2].id);
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
+        );
+        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[0].id);
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        expect(input.getAttribute("role")).toBe("button");
+        expect(input.getAttribute("aria-pressed")).toBe("false");
+        expect(input.hasAttribute("aria-activedescendant")).toBe(false);
+    });
+
+    it("refocuses the movement surface on the block clicked in movement mode", () => {
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+        });
+        const input = hp.hparsonsInput.querySelector(".hparsons-input");
+        const firstBlock = input.querySelector(".parsons-block");
+
+        input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        firstBlock.click();
+
+        expect(document.activeElement).toBe(firstBlock);
+        expect(input.getAttribute("aria-activedescendant")).toBe(firstBlock.id);
+        expect(firstBlock.parentElement.classList.contains("drop-area")).toBe(
+            true,
+        );
+    });
+});
 describe("HParsons wrong-order feedback", () => {
     beforeEach(() => {
         document.body.innerHTML = "";
@@ -190,5 +389,10 @@ describe("HParsons wrong-order feedback", () => {
             ),
         ).map((block) => block.dataset.index);
         expect(flagged).toEqual(["0"]);
+        expect(
+            hp.hparsonsInput.querySelector(
+                ".drop-area .parsons-block.incorrectPosition",
+            ).getAttribute("aria-label"),
+        ).toContain("incorrect");
     });
 });
