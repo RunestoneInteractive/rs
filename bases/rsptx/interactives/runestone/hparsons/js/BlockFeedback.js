@@ -9,7 +9,13 @@ export default class BlockFeedback extends HParsonsFeedback {
     createOutput() {
         // Block based grading output
         this.messageDiv = document.createElement("div");
+        this.feedbackLiveRegion = document.createElement("div");
+        this.feedbackLiveRegion.setAttribute("role", "status");
+        this.feedbackLiveRegion.setAttribute("aria-live", "polite");
+        this.feedbackLiveRegion.setAttribute("aria-atomic", "true");
+        this.feedbackLiveRegion.classList.add("sr-only");
         this.hparsons.outerDiv.appendChild(this.messageDiv);
+        this.hparsons.outerDiv.appendChild(this.feedbackLiveRegion);
     }
 
     customizeUI() {
@@ -158,6 +164,15 @@ export default class BlockFeedback extends HParsonsFeedback {
             }
             feedbackArea.innerHTML = t("msg_parson_wrong_order");
         }
+        this.announceFeedback();
+        this.hparsons.hparsonsInput.refreshBlockAria();
+    }
+
+    announceFeedback(message = this.messageDiv.textContent.trim()) {
+        this.feedbackLiveRegion.textContent = "";
+        setTimeout(() => {
+            this.feedbackLiveRegion.textContent = message;
+        }, 10);
     }
 
     // Feedback UI for Block-based Feedback
@@ -171,6 +186,8 @@ export default class BlockFeedback extends HParsonsFeedback {
             );
         }
         this.messageDiv.style.display = "none";
+        this.feedbackLiveRegion.textContent = "";
+        this.hparsons.hparsonsInput.refreshBlockAria();
     }
 
     reset() {
@@ -180,5 +197,6 @@ export default class BlockFeedback extends HParsonsFeedback {
             this.solved = false;
         }
         this.clearFeedback();
+        this.announceFeedback("Blocks reset.");
     }
 }
