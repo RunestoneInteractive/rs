@@ -442,10 +442,12 @@ export class ParsonsInput implements IParsonsInput {
     };
     applyToArea(this._dragArea, "available blocks");
     applyToArea(this._dropArea, "answer area");
-    if (
-      this.el.getAttribute("role") === "application" &&
-      this._activeBlock
-    ) {
+    if (this.el.getAttribute("role") === "application") {
+        if (this._activeBlock) {
+         this.el.setAttribute("aria-activedescendant", this._activeBlock.id);
+       } else {
+         this.el.removeAttribute("aria-activedescendant");
+       }
       this.el.setAttribute("aria-activedescendant", this._activeBlock.id);
     }
   };
@@ -550,6 +552,15 @@ export class ParsonsInput implements IParsonsInput {
         return;
       }
       const activeBlock = this._activeBlock as HTMLDivElement;
+      if (!activeBlock) {
+        const blocks = this._allBlocks();
+        if (blocks.length === 0) {
+          this._exitKeyboardMovement();
+          return;
+        }
+        this._setActiveBlock(blocks[0]);
+        return;
+      }
       const currentArea =
         activeBlock.parentElement === this._dragArea
           ? this._dragArea
