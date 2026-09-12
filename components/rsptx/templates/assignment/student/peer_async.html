@@ -1192,7 +1192,13 @@ function enableChat(reflection, selected) {
     var user = "{{ user.username }}";
     var currentQuestion = "{{ current_question.name if current_question else '' }}";
     document.addEventListener("DOMContentLoaded", function (event) {
-        setTimeout(connect, 1000);
+        // No connect() here on purpose.  Async peer instruction has no live
+        // session to follow: the socket only ever carried an instructor's
+        // broadcasts, which this page ignores (peer.js skips the catch-up
+        // fetch whenever PI_ASYNC_MODE is set) and which would misfire here if
+        // a synchronous session happened to be running in the same course.
+        // Opening it anyway just meant a student working alone -- at any hour --
+        // held a socket that had nothing to deliver.
         const ta = document.getElementById("messageText");
         if (ta) ta.value = "";
     });

@@ -28,9 +28,12 @@
 # If the message is a broadcast message then all instances of the consumer forward that
 # message to all connected parties.
 
+import datetime
 import json
 import os
 import time
+
+import jwt
 
 #
 # Third-party imports
@@ -141,6 +144,26 @@ async def get_cookie_or_token(
     return access_token or user
 
 
+def _describe_token_failure(token: str) -> str:
+    """Explain why an access token was refused, for the log only.
+
+    fastapi-login raises a bare ``NotAuthenticatedException`` that stringifies
+    to nothing, which hid the actual PyJWT error.  Decoding the token again
+    here without verifying it recovers that detail.  Nothing read out of the
+    token is trusted or acted on -- it only builds a log message.
+    """
+    try:
+        claims = jwt.decode(token, options={"verify_signature": False})
+    except Exception as e:
+        return f"token is not a readable JWT ({type(e).__name__})"
+    sub = claims.get("sub")
+    exp = claims.get("exp")
+    if exp is not None and exp < time.time():
+        when = datetime.datetime.fromtimestamp(exp, datetime.timezone.utc).isoformat()
+        return f"token for sub={sub!r} expired at {when}"
+    return f"token for sub={sub!r} is unexpired; signature or claims rejected"
+
+
 # It seems that ``@router.websocket`` is much better than the documented
 # ``websocket_route``
 @router.websocket("/chat/{uname}/ws")
@@ -161,14 +184,19 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
     # client cannot subscribe to another user's messages by changing the URL.
     token = websocket.cookies.get(auth_manager.cookie_name)
     authed_user = None
+    # One warning carries the reason, rather than a blank "auth failed" line
+    # followed by a second line that only repeats the rejection.
+    reason = "no access_token cookie was sent"
     if token:
+        reason = "the access_token cookie was refused"
         try:
             authed_user = await auth_manager.get_current_user(token)
         except Exception as e:
-            rslogger.warning(f"PEERCOM {os.getpid()}: websocket auth failed: {e}")
+            reason = f"{type(e).__name__}: {_describe_token_failure(token)}"
     if authed_user is None:
         rslogger.warning(
-            f"PEERCOM {os.getpid()}: rejecting unauthenticated websocket for {uname=}"
+            f"PEERCOM {os.getpid()}: rejecting unauthenticated websocket for "
+            f"{uname=}: {reason}"
         )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return

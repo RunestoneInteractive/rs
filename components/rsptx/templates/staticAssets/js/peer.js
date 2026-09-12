@@ -149,19 +149,111 @@ function renderMessage({ from, text, direction }) {
 
 var ws = null;
 var alertSet = false;
+
+// Websocket reconnect state.  The server closes the handshake before accepting
+// it when the access_token cookie is missing or its JWT has expired, so such a
+// connection never fires onopen.  That is what tells an expired session apart
+// from a network drop: retrying an expired session can never succeed, so after
+// a few tries we stop and ask the student to log in again.  Retrying it
+// forever is what filled the book server log with "rejecting unauthenticated
+// websocket" warnings -- an abandoned tab reconnected in a tight loop.
+var wsRetryCount = 0;
+var wsAuthFailures = 0;
+var wsGaveUp = false;
+var wsClosingForUnload = false;
+const WS_MAX_AUTH_FAILURES = 3;
+const WS_MAX_BACKOFF_MS = 30000;
+// How long a connection has to survive before it counts as healthy.  Backing
+// off is reset only after that, so a connection that opens and immediately
+// drops still backs off instead of retrying once a second forever.
+const WS_STABLE_MS = 10000;
+
+function wsBackoffDelay() {
+    return Math.min(1000 * Math.pow(2, wsRetryCount - 1), WS_MAX_BACKOFF_MS);
+}
+
+// Connection notices go in the page rather than through alert(): alert blocks
+// the tab it fires in and browsers suppress it outright in a background tab,
+// so it could neither be seen nor slow the reconnect loop down.
+function setConnectionNotice(kind, buildBody) {
+    let notice = document.getElementById("pi-connection-notice");
+    if (!notice) {
+        notice = document.createElement("div");
+        notice.id = "pi-connection-notice";
+        notice.setAttribute("role", "alert");
+        document.body.prepend(notice);
+    }
+    notice.className = "pi-connection-notice pi-connection-" + kind;
+    notice.textContent = "";
+    buildBody(notice);
+}
+
+function clearConnectionNotice() {
+    const notice = document.getElementById("pi-connection-notice");
+    if (notice) notice.remove();
+}
+
+function showReconnecting() {
+    setConnectionNotice("retrying", function (notice) {
+        notice.textContent =
+            "Lost the connection to the peer instruction server. Reconnecting\u2026";
+    });
+}
+
+function showSessionExpired() {
+    setConnectionNotice("expired", function (notice) {
+        notice.appendChild(document.createTextNode(
+            "Your session has expired, so this page is no longer connected to " +
+            "the peer instruction server. Log in again to continue. "
+        ));
+        const link = document.createElement("a");
+        link.href = "/admin/auth/login?next=" + encodeURIComponent(
+            window.location.pathname + window.location.search
+        );
+        link.textContent = "Log in";
+        notice.appendChild(link);
+    });
+}
+
 function connect(event) {
+    if (wsGaveUp) {
+        return;
+    }
+    // Scoped to this attempt so a stale socket's onclose cannot report on the
+    // one that replaced it.
+    let everOpened = false;
+    let openedAt = 0;
     ws = new WebSocket(`/ns/chat/${user}/ws`);
     messageTrail = {};
-    if (ws) {
-        console.log(`Websocket Connected: ${ws}`);
-    }
 
-    ws.onclose = function () {
-        console.log("Websocket Closed")
-        alert(
-            "You have been disconnected from the peer instruction server. Will reconnect."
+    ws.onclose = function (closeEvent) {
+        if (wsClosingForUnload) {
+            return;
+        }
+        if (everOpened && Date.now() - openedAt >= WS_STABLE_MS) {
+            wsRetryCount = 0; // the connection was healthy; start over at 1s
+        }
+        wsRetryCount += 1;
+        if (everOpened) {
+            wsAuthFailures = 0;
+            showReconnecting();
+        } else {
+            // Never opened: the handshake itself was refused, which for this
+            // endpoint means the session is no longer authenticated.
+            wsAuthFailures += 1;
+            if (wsAuthFailures >= WS_MAX_AUTH_FAILURES) {
+                wsGaveUp = true;
+                console.log("Websocket handshake refused repeatedly; giving up");
+                showSessionExpired();
+                return;
+            }
+        }
+        const delay = wsBackoffDelay();
+        console.log(
+            `Websocket closed (code ${closeEvent ? closeEvent.code : "unknown"}); ` +
+            `reconnecting in ${delay}ms`
         );
-        connect();
+        setTimeout(connect, delay);
     };
 
     // On connect/reconnect fetch the current session phase and re-apply it so a 
@@ -169,6 +261,11 @@ function connect(event) {
     // _catchup flag tells the handlers to skip side effects that should
     // only happen on a live message (vote counting, page navigation).
     ws.onopen = async function () {
+        everOpened = true;
+        openedAt = Date.now();
+        wsAuthFailures = 0;
+        clearConnectionNotice();
+        console.log("Websocket connected");
         if (typeof window.PI_ASYNC_MODE !== "undefined") return;
         try {
             let urlParams = new URLSearchParams(window.location.search);
@@ -397,6 +494,7 @@ function connect(event) {
     };
 
     window.onbeforeunload = function () {
+        wsClosingForUnload = true; // suppress the reconnect scheduled by onclose
         ws.onclose = function () { }; // disable onclose handler first
         ws.close();
     };

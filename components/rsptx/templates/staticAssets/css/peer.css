@@ -352,3 +352,35 @@
     pointer-events: none;
     opacity: 0.5;
 }
+
+/* Websocket connection notices (see connect() in peer.js).  Fixed to the top
+   of the viewport so a student who has scrolled down still sees that the page
+   has stopped receiving the instructor's messages. */
+#pi-connection-notice {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    padding: 10px 16px;
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 1px solid transparent;
+}
+
+#pi-connection-notice.pi-connection-retrying {
+    background: var(--rs-color-warning-background);
+    color: var(--rs-color-warning-text);
+    border-bottom-color: var(--rs-color-warning);
+}
+
+#pi-connection-notice.pi-connection-expired {
+    background: var(--rs-color-danger-background);
+    color: var(--rs-color-danger-text);
+    border-bottom-color: var(--rs-color-danger-border);
+}
+
+#pi-connection-notice a {
+    color: inherit;
+    text-decoration: underline;
+}
