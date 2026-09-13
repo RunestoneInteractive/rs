@@ -26,6 +26,9 @@ import "jquery-ui/themes/base/jquery.ui.all.css";
 
 // common styles come from here
 import "./ptxrs-bootstrap.less";
+// Self-hosted icon font for the ``material-symbols-outlined`` spans that
+// components render; without it the icon names show up as literal text.
+import "./runestone/common/css/material-symbols.css";
 //import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
 
 // Misc
