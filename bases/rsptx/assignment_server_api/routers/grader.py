@@ -1115,7 +1115,7 @@ def _gradebook_to_csv(data: dict) -> str:
         return f"{assignment['name']} (%)"
 
     writer.writerow(
-        ["Student"]
+        ["Username", "Student"]
         + [column_name(a) for a in assignments]
         + ["Total" if show_points else "Total (%)"]
     )
@@ -1123,7 +1123,9 @@ def _gradebook_to_csv(data: dict) -> str:
         (cell["sid"], cell["assignment_id"]): cell["score"] for cell in data["cells"]
     }
     for student in data["students"]:
-        row = [student["name"]]
+        # The username leads the row: instructors key their own grading scripts off
+        # it, and display names are neither unique nor stable. See issue #1477.
+        row = [student["sid"], student["name"]]
         earned = 0.0
         possible = 0.0
         graded = False

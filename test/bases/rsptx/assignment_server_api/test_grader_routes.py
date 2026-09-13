@@ -120,7 +120,7 @@ async def test_gradebook_csv_is_text_csv(auth_instructor_client):
     assert "text/csv" in resp.headers["content-type"]
     assert "attachment" in resp.headers.get("content-disposition", "")
     first_line = resp.text.splitlines()[0]
-    assert first_line.startswith("Student")
+    assert first_line.startswith("Username,Student")
     # Percentages are the default, and the header says so.
     assert first_line.rstrip().endswith("Total (%)")
     assert "gradebook_csv_test (%)" in first_line
@@ -1040,12 +1040,12 @@ async def test_gradebook_csv_writes_percentages_by_default():
 
     rows = _gradebook_to_csv(_csv_fixture(False)).splitlines()
 
-    assert rows[0] == "Student,Quiz 1 (%),Homework 2 (%),Total (%)"
-    assert rows[1] == "Ada Lovelace,80,100,86.67"
+    assert rows[0] == "Username,Student,Quiz 1 (%),Homework 2 (%),Total (%)"
+    assert rows[1] == "ada,Ada Lovelace,80,100,86.67"
     # Alan's ungraded homework is left out of the denominator, not scored as zero.
-    assert rows[2] == "Alan Turing,60,,60"
+    assert rows[2] == "alan,Alan Turing,60,,60"
     # A student with nothing graded has no total at all.
-    assert rows[3] == "Grace Hopper,,,"
+    assert rows[3] == "grace,Grace Hopper,,,"
 
 
 async def test_gradebook_csv_writes_points_when_course_asks():
@@ -1055,9 +1055,9 @@ async def test_gradebook_csv_writes_points_when_course_asks():
 
     rows = _gradebook_to_csv(_csv_fixture(True)).splitlines()
 
-    assert rows[0] == "Student,Quiz 1 (10 pts),Homework 2 (5 pts),Total"
-    assert rows[1] == "Ada Lovelace,8,5,13"
-    assert rows[2] == "Alan Turing,6,,6"
+    assert rows[0] == "Username,Student,Quiz 1 (10 pts),Homework 2 (5 pts),Total"
+    assert rows[1] == "ada,Ada Lovelace,8,5,13"
+    assert rows[2] == "alan,Alan Turing,6,,6"
 
 
 async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score():
@@ -1071,4 +1071,4 @@ async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score
 
     rows = _gradebook_to_csv(data).splitlines()
 
-    assert rows[1] == "Ada Lovelace,3,3"
+    assert rows[1] == "ada,Ada Lovelace,3,3"
