@@ -187,7 +187,10 @@ export interface GradebookAssignment {
 
 export interface GradebookStudent {
   sid: string;
+  /** "First Last" -- how the student is addressed in prose and aria labels. */
   name: string;
+  /** "Last, First" -- the order the gradebook rows already arrive in. */
+  sort_name?: string;
 }
 
 export interface GradebookCell {

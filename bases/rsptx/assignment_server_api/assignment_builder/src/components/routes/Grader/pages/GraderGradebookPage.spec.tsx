@@ -83,6 +83,29 @@ describe("GraderGradebookPage", () => {
     expect(table.getByText("Class average")).toBeInTheDocument();
   });
 
+  it("labels each row \"Last, First\" so the last-name order the rows arrive in reads as an order", () => {
+    mockUseGetGradebookQuery.mockReturnValue({
+      data: {
+        ...matrix,
+        students: [
+          { sid: "s1", name: "Ada Lovelace", sort_name: "Lovelace, Ada" },
+          { sid: "s2", name: "Alan Turing", sort_name: "Turing, Alan" }
+        ]
+      },
+      isLoading: false
+    });
+    renderWithMantine(<GraderGradebookPage />);
+
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
+
+    expect(table.getByText("Lovelace, Ada")).toBeInTheDocument();
+    expect(table.getByText("Turing, Alan")).toBeInTheDocument();
+    // The natural name still drives the per-cell label, which reads as prose.
+    expect(
+      table.getByRole("button", { name: "Show details for Ada Lovelace on Quiz 1" })
+    ).toBeInTheDocument();
+  });
+
   it("shows each score as a percent of the assignment unless the course wants points", () => {
     mockUseGetGradebookQuery.mockReturnValue({
       data: { ...matrix, show_points: false },

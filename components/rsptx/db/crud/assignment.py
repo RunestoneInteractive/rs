@@ -1260,6 +1260,10 @@ async def fetch_gradebook(course_name: str) -> dict:
         {
             "sid": s.username,
             "name": f"{s.first_name} {s.last_name}".strip() or s.username,
+            # Rows come back ordered by last name, which reads as no order at all
+            # when the cell shows "First Last". ``sort_name`` gives the gradebook a
+            # label that matches the order it is already in. See issue #1463.
+            "sort_name": f"{s.last_name}, {s.first_name}".strip(", ") or s.username,
         }
         for s in students
     ]

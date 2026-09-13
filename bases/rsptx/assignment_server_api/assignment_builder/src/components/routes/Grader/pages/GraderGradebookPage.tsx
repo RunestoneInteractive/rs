@@ -179,7 +179,9 @@ export const GraderGradebookPage: React.FC = () => {
             <Table.Tbody>
               {students.map((student) => (
                 <Table.Tr key={student.sid}>
-                  <Table.Td className={styles.gradebookStudentCell}>{student.name}</Table.Td>
+                  <Table.Td className={styles.gradebookStudentCell}>
+                    {student.sort_name ?? student.name}
+                  </Table.Td>
                   {assignments.map((a) => {
                     const cell = getCell(lookup, student.sid, a.id);
 
