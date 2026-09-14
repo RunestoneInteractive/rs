@@ -27,6 +27,9 @@ export class ParsonsInput implements IParsonsInput {
   private hljsLanguage: string | undefined;
   private _liveRegion: HTMLDivElement;
 
+  private _activeBlock: HTMLDivElement | null;
+  private _keyboardInstructions: HTMLSpanElement;
+  private _nextBlockId: number;
   // if the input has been initialized once
   private initialized: boolean;
   constructor(
@@ -72,6 +75,20 @@ export class ParsonsInput implements IParsonsInput {
     this._liveRegion.classList.add("sr-only");
     this.el.appendChild(this._liveRegion);
 
+
+    this._activeBlock = null;
+    this._nextBlockId = 0;
+    this._keyboardInstructions = document.createElement("span");
+    this._keyboardInstructions.id = `${this.el.id}-keyboard-instructions`;
+    this._keyboardInstructions.classList.add("sr-only");
+    this._keyboardInstructions.textContent =
+      "Press Enter to move blocks with the keyboard.";
+    this.el.appendChild(this._keyboardInstructions);
+    this.el.tabIndex = 0;
+    this.el.setAttribute("role", "button");
+    this.el.setAttribute("aria-pressed", "false");
+    this.el.setAttribute("aria-label", "Parsons block arrangement");
+    this.el.setAttribute("aria-describedby", this._keyboardInstructions.id);
     this.storedSourceBlocks = [];
     this.blockOrder = [];
     this.storedSourceBlockExplanations = null;
@@ -214,6 +231,7 @@ export class ParsonsInput implements IParsonsInput {
 
   private _onBlockClicked = (block: Node, ev: Event): void => {
     const blockText = this._getTextFromBlock(block as HTMLDivElement).trim();
+    let focusedBlock = block as HTMLDivElement;
     if (block.parentElement == this._dragArea) {
       let endPosition;
       if (this.reusable) {
@@ -221,6 +239,7 @@ export class ParsonsInput implements IParsonsInput {
         blockCopy.onclick = (ev) => this._onBlockClicked(blockCopy, ev);
         this._dropArea.appendChild(blockCopy);
         endPosition = this._getBlockPosition(blockCopy);
+        focusedBlock = blockCopy;
       } else {
         this._dropArea.appendChild(block);
         endPosition = this._getBlockPosition(block);
@@ -236,6 +255,7 @@ export class ParsonsInput implements IParsonsInput {
         this.parentElement.logEvent(inputEvent);
       }
       this._updateBlockAria();
+      this._refocusMovedBlock(focusedBlock);
       this._announce(`${blockText} moved to answer area`);
     } else {
       const startPosition = this._getBlockPosition(block);
@@ -243,6 +263,11 @@ export class ParsonsInput implements IParsonsInput {
         this._dropArea.removeChild(block);
       } else {
         this._dragArea.appendChild(block);
+      }
+      if (this.reusable) {
+        focusedBlock = this._allBlocks().find(
+          (sourceBlock) => sourceBlock.dataset.index === block.dataset.index,
+        ) as HTMLDivElement;
       }
       const inputEvent: MicroParsonsEvent.Input = {
         type: "input",
@@ -252,6 +277,7 @@ export class ParsonsInput implements IParsonsInput {
       };
       this.parentElement.logEvent(inputEvent);
       this._updateBlockAria();
+      this._refocusMovedBlock(focusedBlock);
       this._announce(`${blockText} moved to available blocks`);
     }
   };
@@ -388,27 +414,100 @@ export class ParsonsInput implements IParsonsInput {
   // Accessibility helpers
   // -----------------------------------------------------------------------
 
-  /** Sync role, aria-selected, and roving tabindex for all blocks. */
+  /** Sync block semantics while the combined keyboard surface owns focus. */
   private _updateBlockAria = (): void => {
-    const applyToArea = (area: HTMLDivElement, isAnswer: boolean) => {
-      const blocks = area.querySelectorAll<HTMLDivElement>(".parsons-block");
+    if (this._activeBlock && !this.el.contains(this._activeBlock)) {
+      this._activeBlock = null;
+    }
+    const applyToArea = (area: HTMLDivElement, areaName: string) => {
+      const blocks = Array.from(
+        area.querySelectorAll<HTMLDivElement>(".parsons-block"),
+      );
       blocks.forEach((block, i) => {
+        if (!block.id) {
+          this._nextBlockId += 1;
+          block.id = `${this.el.id}-block-${this._nextBlockId}`;
+        }
         block.setAttribute("role", "option");
-        block.setAttribute("aria-selected", isAnswer ? "true" : "false");
-        block.setAttribute("tabindex", i === 0 ? "0" : "-1");
+        block.setAttribute(
+          "aria-label",
+          `${this._getTextFromBlock(block).trim()}, ${areaName}, item ${i + 1} of ${blocks.length}${block.classList.contains("incorrectPosition") ? ", incorrect" : ""}`,
+        );
+        block.setAttribute(
+          "aria-selected",
+          String(block === this._activeBlock),
+        );
+        block.setAttribute("tabindex", "-1");
       });
     };
-    applyToArea(this._dragArea, false);
-    applyToArea(this._dropArea, true);
+    applyToArea(this._dragArea, "available blocks");
+    applyToArea(this._dropArea, "answer area");
+    if (
+      this.el.getAttribute("role") === "application" &&
+      this._activeBlock
+    ) {
+      this.el.setAttribute("aria-activedescendant", this._activeBlock.id);
+    }
   };
 
-  /** Move focus to a specific block, updating roving tabindex within its area. */
-  private _focusBlock = (block: HTMLDivElement, area: HTMLDivElement): void => {
-    area.querySelectorAll<HTMLDivElement>(".parsons-block").forEach((b) => {
-      b.setAttribute("tabindex", "-1");
-    });
-    block.setAttribute("tabindex", "0");
+  private _allBlocks = (): HTMLDivElement[] => [
+    ...this._dragArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+    ...this._dropArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+  ];
+
+  public refreshBlockAria = (): void => {
+    this._updateBlockAria();
+  };
+
+  private _setActiveBlock = (block: HTMLDivElement): void => {
+    this._activeBlock = block;
+    this._updateBlockAria();
+    if (this.el.getAttribute("role") === "application") {
+      block.focus();
+    }
+  };
+
+  /** Restore the keyboard surface after a pointer click moves a block. */
+  private _refocusMovedBlock = (block: HTMLDivElement): void => {
+    if (this.el.getAttribute("role") !== "application") return;
+    this._setActiveBlock(block);
     block.focus();
+  };
+
+  private _enterKeyboardMovement = (): void => {
+    const blocks = this._allBlocks();
+    if (blocks.length === 0) return;
+    this.el.setAttribute("role", "application");
+    this.el.removeAttribute("aria-pressed");
+    this.el.setAttribute("aria-label", "Parsons block movement");
+    this._keyboardInstructions.textContent =
+      "Use Left and Right Arrow to choose a block in this area. Use Up and Down Arrow to switch between available blocks and the answer area. Press Enter to move the current block. Press Escape or Tab to finish.";
+    this._setActiveBlock(blocks[0]);
+    this._announce(`Moving ${this._getTextFromBlock(blocks[0]).trim()}`);
+  };
+
+  private _exitKeyboardMovement = (): void => {
+    this._activeBlock = null;
+    this.el.setAttribute("role", "button");
+    this.el.setAttribute("aria-pressed", "false");
+    this.el.setAttribute("aria-label", "Parsons block arrangement");
+    this.el.removeAttribute("aria-activedescendant");
+    this._keyboardInstructions.textContent =
+      "Press Enter to move blocks with the keyboard.";
+    this._updateBlockAria();
+    this._announce("Keyboard block movement finished.");
+  };
+
+  private _moveActiveBlock = (ev: KeyboardEvent): void => {
+    const block = this._activeBlock;
+    if (!block) return;
+    const wasInDragArea = block.parentElement === this._dragArea;
+    this._onBlockClicked(block, ev);
+    const movedBlock =
+      wasInDragArea && this.reusable
+        ? (this._dropArea.lastElementChild as HTMLDivElement)
+        : block;
+    this._setActiveBlock(movedBlock);
   };
 
   /** Announce a message to screen readers via the live region. */
@@ -420,64 +519,65 @@ export class ParsonsInput implements IParsonsInput {
     }, 10);
   };
 
-  /** Wire up keyboard navigation for both block areas. */
+  /** Use one Tab stop for both block areas and scope arrows to movement mode. */
   private _setupKeyboardNav = (): void => {
+    this.el.addEventListener("click", (ev: MouseEvent) => {
+      if (
+        ev.target === this.el &&
+        this.el.getAttribute("role") === "button"
+      ) {
+        this._enterKeyboardMovement();
+      }
+    });
+
     this.el.addEventListener("keydown", (ev: KeyboardEvent) => {
-      const block = (ev.target as HTMLElement).closest<HTMLDivElement>(
-        ".parsons-block",
-      );
-      if (!block) return;
-
-      const area = block.parentElement as HTMLDivElement;
-      if (area !== this._dragArea && area !== this._dropArea) return;
-
-      const blocks = Array.from(
-        area.querySelectorAll<HTMLDivElement>(".parsons-block"),
-      );
-      const idx = blocks.indexOf(block);
-
-      switch (ev.key) {
-        case "ArrowRight":
-        case "ArrowDown":
+      if (this.el.getAttribute("role") !== "application") {
+        if (ev.target !== this.el) return;
+        if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
-          if (idx < blocks.length - 1) {
-            this._focusBlock(blocks[idx + 1], area);
-          }
-          break;
-        case "ArrowLeft":
-        case "ArrowUp":
-          ev.preventDefault();
-          if (idx > 0) {
-            this._focusBlock(blocks[idx - 1], area);
-          }
-          break;
-        case " ":
-        case "Enter": {
-          ev.preventDefault();
-          const wasInDragArea = area === this._dragArea;
-          this._onBlockClicked(block, ev);
-          // Focus the moved block in its new location
-          let focusTarget: HTMLDivElement | null = null;
-          if (wasInDragArea) {
-            // Block (or its clone) is now in drop-area
-            focusTarget = this.reusable
-              ? (this._dropArea.lastElementChild as HTMLDivElement)
-              : block;
-          } else {
-            // Block was removed from drop-area
-            focusTarget = this.reusable
-              ? ((this._dropArea.firstElementChild ||
-                  this._dragArea.firstElementChild) as HTMLDivElement | null)
-              : block;
-          }
-          if (focusTarget) {
-            this._focusBlock(
-              focusTarget,
-              focusTarget.parentElement as HTMLDivElement,
-            );
-          }
-          break;
+          this._enterKeyboardMovement();
         }
+        return;
+      }
+      if (!this.el.contains(ev.target as Node)) return;
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        this._exitKeyboardMovement();
+        return;
+      }
+      if (ev.key === "Tab") {
+        this._exitKeyboardMovement();
+        return;
+      }
+      const activeBlock = this._activeBlock as HTMLDivElement;
+      const currentArea =
+        activeBlock.parentElement === this._dragArea
+          ? this._dragArea
+          : this._dropArea;
+      const otherArea =
+        currentArea === this._dragArea ? this._dropArea : this._dragArea;
+      const currentBlocks = Array.from(
+        currentArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+      );
+      const index = currentBlocks.indexOf(activeBlock);
+      if (ev.key === "ArrowRight") {
+        ev.preventDefault();
+        if (index < currentBlocks.length - 1)
+          this._setActiveBlock(currentBlocks[index + 1]);
+      } else if (ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        if (index > 0) this._setActiveBlock(currentBlocks[index - 1]);
+      } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+        ev.preventDefault();
+        const otherBlocks = Array.from(
+          otherArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+        );
+        if (otherBlocks.length > 0) {
+          this._setActiveBlock(otherBlocks[Math.min(index, otherBlocks.length - 1)]);
+        }
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        this._moveActiveBlock(ev);
       }
     });
   };
