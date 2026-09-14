@@ -201,6 +201,7 @@ async def get_assignments(
         lti1p1=is_lti1p1_course,
         now=now,
         visibility_map=visibility_map,
+        term_start_date=course.term_start_date,
         settings=settings,
         base_url=construct_course_url(course),
         activity_info="{}",
@@ -1020,6 +1021,7 @@ async def doAssignment(
         questions_score=questions_score,
         readings_score=readings_score,
         user=user,
+        term_start_date=course.term_start_date,
         user_id=user.username,  # _base.html for ptx student pages needs user_id
         base_course=course.base_course,
         # gradeRecordingUrl=URL('assignments', 'record_grade'),
