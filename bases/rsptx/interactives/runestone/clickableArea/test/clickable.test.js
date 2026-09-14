@@ -54,9 +54,13 @@ async function makeClickable(fixture = makeFixture) {
 }
 
 function press(el, key) {
-    el.dispatchEvent(
-        new window.KeyboardEvent("keydown", { key: key, bubbles: true }),
-    );
+    const event = new window.KeyboardEvent("keydown", {
+        key: key,
+        bubbles: true,
+        cancelable: true,
+    });
+    el.dispatchEvent(event);
+    return event;
 }
 
 describe("ClickableArea accessibility", () => {
@@ -68,14 +72,16 @@ describe("ClickableArea accessibility", () => {
         vi.restoreAllMocks();
     });
 
-    it("exposes every clickable as a focusable checkbox", async () => {
+    it("exposes the clickables as checkboxes with one group tab stop", async () => {
         const ca = await makeClickable();
         expect(ca.clickableArray).toHaveLength(4);
         for (const el of ca.clickableArray) {
             expect(el.getAttribute("role")).toBe("checkbox");
-            expect(el.getAttribute("tabindex")).toBe("0");
             expect(el.getAttribute("aria-checked")).toBe("false");
         }
+        expect(
+            ca.clickableArray.map((el) => el.getAttribute("tabindex")),
+        ).toEqual(["0", "-1", "-1", "-1"]);
     });
 
     it("names the group of choices with the question", async () => {
@@ -85,7 +91,7 @@ describe("ClickableArea accessibility", () => {
         expect(
             document.getElementById(ca.newDiv.getAttribute("aria-describedby"))
                 .textContent,
-        ).toMatch(/Tab key/);
+        ).toMatch(/arrow keys/);
     });
 
     it.each(["Enter", " "])("toggles a choice with the %s key", async (key) => {
@@ -106,8 +112,57 @@ describe("ClickableArea accessibility", () => {
         const ca = await makeClickable();
         const first = ca.clickableArray[0];
         press(first, "a");
-        press(first, "Tab");
+        const tabEvent = press(first, "Tab");
         expect(first.getAttribute("aria-checked")).toBe("false");
+        expect(tabEvent.defaultPrevented).toBe(false);
+    });
+
+    it.each([
+        ["ArrowRight", 1],
+        ["ArrowDown", 1],
+        ["ArrowLeft", -1],
+        ["ArrowUp", -1],
+    ])("moves focus with %s", async (key, offset) => {
+        const ca = await makeClickable();
+        const startIndex = offset > 0 ? 1 : 2;
+        ca.clickableArray[startIndex].focus();
+        const targetIndex = startIndex + offset;
+        const event = press(ca.clickableArray[startIndex], key);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(ca.clickableArray[targetIndex]);
+        expect(ca.clickableArray[targetIndex].getAttribute("tabindex")).toBe(
+            "0",
+        );
+        expect(ca.clickableArray[startIndex].getAttribute("tabindex")).toBe(
+            "-1",
+        );
+    });
+
+    it("keeps arrow focus at the ends of the group", async () => {
+        const ca = await makeClickable();
+        const first = ca.clickableArray[0];
+        const last = ca.clickableArray[ca.clickableArray.length - 1];
+
+        first.focus();
+        press(first, "ArrowLeft");
+        expect(document.activeElement).toBe(first);
+
+        last.focus();
+        press(last, "ArrowRight");
+        expect(document.activeElement).toBe(last);
+    });
+
+    it("moves focus to the first or last choice with Home and End", async () => {
+        const ca = await makeClickable();
+        const middle = ca.clickableArray[1];
+        middle.focus();
+
+        press(middle, "End");
+        expect(document.activeElement).toBe(ca.clickableArray[3]);
+
+        press(ca.clickableArray[3], "Home");
+        expect(document.activeElement).toBe(ca.clickableArray[0]);
     });
 
     it("keeps the space bar from scrolling the page", async () => {
@@ -123,11 +178,14 @@ describe("ClickableArea accessibility", () => {
 
     it("keeps aria-checked in sync when toggled by mouse", async () => {
         const ca = await makeClickable();
-        const first = ca.clickableArray[0];
-        first.click();
-        expect(first.getAttribute("aria-checked")).toBe("true");
-        first.click();
-        expect(first.getAttribute("aria-checked")).toBe("false");
+        const second = ca.clickableArray[1];
+        second.click();
+        expect(second.getAttribute("aria-checked")).toBe("true");
+        expect(document.activeElement).toBe(second);
+        expect(second.getAttribute("tabindex")).toBe("0");
+        expect(ca.clickableArray[0].getAttribute("tabindex")).toBe("-1");
+        second.click();
+        expect(second.getAttribute("aria-checked")).toBe("false");
     });
 
     it("announces the running selection count", async () => {
@@ -203,8 +261,12 @@ describe("ClickableArea accessibility", () => {
         expect(ca.clickableArray.map((el) => el.nodeName)).toContain("TR");
         for (const el of ca.clickableArray) {
             expect(el.getAttribute("role")).toBe("checkbox");
-            expect(el.getAttribute("tabindex")).toBe("0");
         }
+        expect(
+            ca.clickableArray.filter(
+                (el) => el.getAttribute("tabindex") === "0",
+            ),
+        ).toHaveLength(1);
         press(ca.clickableArray[0], " ");
         expect(ca.clickableArray[0].getAttribute("aria-checked")).toBe("true");
     });
