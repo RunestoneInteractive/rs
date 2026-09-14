@@ -3,17 +3,16 @@ name = "rsmanage"
 version = "2.0.1"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.11,<4"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "asyncclick==8.1.3.4",
+    "asyncclick>=8.3.0,<9",
     "redis>=4.5.4,<5",
     "pgcli>=4.0.0,<5",
     "sqlalchemy>=2.0.0,<3",
