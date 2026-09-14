@@ -446,6 +446,7 @@ async def courses_page(request: Request, institution: str = ""):
             "open_books": open_books,
             "institution_courses": institution_courses,
             "institution": institution,
+            "direct_course": "",
             "error": None,
             **(await _navbar_context(user)),
         },
@@ -455,15 +456,25 @@ async def courses_page(request: Request, institution: str = ""):
 @router.post("/courses", response_class=HTMLResponse)
 async def courses_post(
     request: Request,
-    course_name: str = Form(...),
+    course_name: str = Form(default=""),
+    direct_course: str = Form(default=""),
     institution: str = Form(default=""),
 ):
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
 
-    course = await fetch_course(course_name)
-    if not course or not course.id:
+    # A typed course name is the one an instructor handed out, so it wins over
+    # any book or institution course the student also clicked. Letting the radio
+    # win enrolled them in the open base course instead, where the work they did
+    # counted for nothing and looked identical to the real course. See #1489.
+    # The rule lives here rather than only in the page's JavaScript so that it
+    # holds however the form is submitted.
+    typed = direct_course.strip()
+    chosen = typed or course_name.strip()
+
+    async def reenter(error: str):
+        """Re-render the form, keeping what the student typed."""
         open_books = await fetch_library_books()
         institution_courses = (
             await fetch_courses_by_institution(institution) if institution else []
@@ -476,9 +487,19 @@ async def courses_post(
                 "open_books": open_books,
                 "institution_courses": institution_courses,
                 "institution": institution,
-                "error": f"Course '{course_name}' not found. Please check the name and try again.",
+                "direct_course": typed,
+                "error": error,
                 **(await _navbar_context(user)),
             },
+        )
+
+    if not chosen:
+        return await reenter("Please enter a course name or choose a book.")
+
+    course = await fetch_course(chosen)
+    if not course or not course.id:
+        return await reenter(
+            f"Course '{chosen}' not found. Please check the name and try again."
         )
 
     already_enrolled = await user_in_course(user.id, course.id)
