@@ -22,9 +22,11 @@ import {
 /** The markup a book emits for the progress bar. */
 function progressMarkup() {
     return `
-<div id="scprogresscontainer">You have attempted
-<span id="scprogresstotal"></span> of <span id="scprogressposs"></span>
-activities on this page.
+<div id="scprogresscontainer">
+<div id="scprogress-activity-count">
+    You have attempted <span id="scprogresstotal"></span> of
+    <span id="scprogressposs"></span> activities on this page.
+</div>
 <div id="subchapterprogress" aria-label="Page progress"></div>
 </div>`;
 }
