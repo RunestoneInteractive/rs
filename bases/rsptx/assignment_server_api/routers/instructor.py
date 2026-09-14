@@ -1514,22 +1514,25 @@ async def do_download_assignment(
             detail=f"Assignment questions for {assignment_id} not found",
         )
 
+    # ``tz_offset`` is UTC minus local time in hours (Date.getTimezoneOffset() / 60),
+    # and useinfo timestamps are stored as naive UTC, so local time is the stored
+    # timestamp *minus* the offset -- as in analytics.py and rsptx.practice.core.
+    tz_offset_hours = 0.0
     if RS_info:
         rslogger.debug(f"RS_info Cookie {RS_info}")
         # Note that to get to the value of the cookie you must use ``.value``
         try:
-            parsed_js = json.loads(RS_info)
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
         except Exception:
-            parsed_js = {}
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    tzoffset = parsed_js.get("tz_offset", None)
-    dd = datetime.timedelta(hours=int(tzoffset) if tzoffset is not None else 0)
+    dd = datetime.timedelta(hours=tz_offset_hours)
 
     csv_buffer = io.StringIO()
     csv_writer = csv.writer(csv_buffer)
     csv_writer.writerow(["Timestamp", "SID", "Div ID", "Event", "Act"])
     for row in res:
-        csv_row = [row.ts + dd, row.sid, row.name, row.event, row.act]
+        csv_row = [row.ts - dd, row.sid, row.name, row.event, row.act]
         csv_writer.writerow(csv_row)
     csv_buffer.seek(0)
 

@@ -107,7 +107,10 @@ async def test_course_roster_rejects_non_instructor(auth_student_client):
 # GET /instructor/assignments/{id}/late_students
 # ---------------------------------------------------------------------------
 
+import csv  # noqa: E402
 import datetime  # noqa: E402
+import io  # noqa: E402
+import json  # noqa: E402
 
 from rsptx.db.crud import (  # noqa: E402
     create_assignment,
@@ -792,3 +795,77 @@ async def test_a_private_assignment_on_a_book_is_still_importable(
         f"/instructor/assignments/{base_course_private_assignment.id}/import"
     )
     assert resp.status_code == 201
+
+
+# ---------------------------------------------------------------------------
+# GET /instructor/download_assignment/{id}
+# ---------------------------------------------------------------------------
+
+# useinfo timestamps are naive UTC (canonical_utcnow), and the RS_info cookie's
+# ``tz_offset`` is UTC minus local time in hours, the way bookfuncs.js sends it
+# (Date.getTimezoneOffset() / 60: +5 for US Eastern, -5.5 for India). So the
+# instructor's local time is the stored timestamp minus the offset.
+DOWNLOAD_UTC_TS = datetime.datetime(2026, 3, 10, 2, 0, 0)
+
+
+@pytest.fixture(scope="session")
+async def download_assignment(instructor_user):
+    """An assignment with a single submission logged at a known UTC time."""
+    course = await fetch_course(LATE_COURSE)
+    q = await _add_question("download_route_q1")
+    assignment = await _add_assignment(course.id, "download_route_assignment", False)
+    await _link_question(assignment.id, q.id)
+    await _add_useinfo("download_student", "download_route_q1", DOWNLOAD_UTC_TS)
+    return assignment
+
+
+async def _download_rows(client, assignment_id, rs_info=None):
+    headers = {"Cookie": f"RS_info={rs_info}"} if rs_info is not None else {}
+    resp = await client.get(
+        f"/instructor/download_assignment/{assignment_id}", headers=headers
+    )
+    assert resp.status_code == 200
+    rows = list(csv.DictReader(io.StringIO(resp.text)))
+    return [r for r in rows if r["SID"] == "download_student"]
+
+
+@pytest.mark.parametrize(
+    "tz_offset,expected_local",
+    [
+        # US Eastern, UTC-5: 02:00 UTC is 21:00 the previous day.
+        (5.0, "2026-03-09 21:00:00"),
+        # India, UTC+5:30: 02:00 UTC is 07:30 the same day. Half-hour zones only
+        # come out right if the offset keeps its fractional part.
+        (-5.5, "2026-03-10 07:30:00"),
+        # UTC instructor: unchanged.
+        (0, "2026-03-10 02:00:00"),
+    ],
+)
+async def test_download_assignment_reports_the_instructors_local_time(
+    auth_instructor_client, download_assignment, tz_offset, expected_local
+):
+    """The CSV shows local time, matching what the analytics reports show.
+
+    Reported by instructors as downloaded logfiles disagreeing with the
+    on-screen reports for the same submissions.
+    """
+    rows = await _download_rows(
+        auth_instructor_client,
+        download_assignment.id,
+        json.dumps({"tz_offset": tz_offset, "timezone": "test"}),
+    )
+    assert len(rows) == 1
+    assert rows[0]["Timestamp"] == expected_local
+
+
+async def test_download_assignment_without_an_rs_info_cookie(
+    auth_instructor_client, download_assignment
+):
+    """An instructor who never loaded a book page has no RS_info cookie.
+
+    The offset is then unknown, so the stored UTC timestamp is reported as-is
+    rather than the request failing.
+    """
+    rows = await _download_rows(auth_instructor_client, download_assignment.id)
+    assert len(rows) == 1
+    assert rows[0]["Timestamp"] == "2026-03-10 02:00:00"
