@@ -1,22 +1,37 @@
 /* Material Symbols (Outlined) -- self-hosted subset
  *
  * Components render icons as ligature text, e.g.
- * ``<span class="material-symbols-outlined">check_circle</span>``. Without the
- * font, the browser shows the literal word "check_circle" instead of a glyph.
- * Nothing else in this repo ever loaded the font; book pages only looked right
- * because PreTeXt's own CSS happens to supply it, so assignment pages and
- * non-PreTeXt books showed the raw words. See issue #1475.
+ * ``<span class="material-symbols-outlined">check_circle</span>``, and
+ * ``runestone.css`` draws the exercise status markers from the same font by raw
+ * codepoint. Without the font the browser shows the literal word
+ * "check_circle" instead of a glyph. Nothing else in this repo ever loaded it;
+ * book pages only looked right because PreTeXt's own CSS happens to supply it,
+ * so assignment pages and non-PreTeXt books showed the raw words. See #1475.
  *
  * The font is vendored rather than pulled from fonts.googleapis.com so that the
  * icons work offline, in local development, and without a third-party request.
  * ``material-symbols-subset.woff2`` holds only the glyphs listed below (3 KB),
  * small enough that webpack inlines it as a data URI.
  *
- * ``runestone.css`` also draws the exercise status markers from this font by raw
- * codepoint rather than by name -- check_circle (\e86c), x_circle (\e349) and
- * list_alt_check (\f3de) -- so those three have to stay in the subset even
- * though no markup names them. Google's subsetter keeps the original
- * codepoints, so the escapes over there keep working.
+ * Two things here are deliberate, and #1510 is what happens without them:
+ *
+ * 1. The family is named "Runestone Material Symbols", not "Material Symbols
+ *    Outlined". PreTeXt loads the real, complete family from Google Fonts under
+ *    that second name, and our CSS loads after theirs -- so declaring a
+ *    same-named @font-face replaced the real font for the whole page. Our subset
+ *    has no ``chevron_left``, and a ligature only forms when the whole word is
+ *    shaped in one font, so PreTeXt's own icons came out as the words
+ *    "chevron_left", "add", "remove".
+ * 2. Every rule is scoped to a Runestone container, and lists the real family
+ *    first. On a PreTeXt page the real font wins and nothing changes; anywhere
+ *    it is absent the browser falls through to our subset. PreTeXt's own icons
+ *    live outside these containers and are left alone -- including by the
+ *    font-size and text-transform below, which are not ours to set page-wide.
+ *
+ * ``runestone.css`` names both families in the same order for the status
+ * markers, which it sets by codepoint (\e86c, \e349, \f3de) rather than by name.
+ * Those three have to stay in the subset even though no markup names them;
+ * Google's subsetter keeps the original codepoints, so the escapes keep working.
  *
  * To add an icon, add its name to this URL, download the woff2 it points at,
  * and replace the file (keep this list in sync):
@@ -27,15 +42,19 @@
  */
 
 @font-face {
-    font-family: "Material Symbols Outlined";
+    font-family: "Runestone Material Symbols";
     font-style: normal;
     font-weight: 400;
     font-display: block;
     src: url("./material-symbols-subset.woff2") format("woff2");
 }
 
-.material-symbols-outlined {
-    font-family: "Material Symbols Outlined";
+/* The account menu is the one Runestone icon that renders outside a component
+   container; PreTeXt supplies the element it is built into. */
+.ptx-runestone-container .material-symbols-outlined,
+.runestone-sphinx .material-symbols-outlined,
+#ptx-user-dropdown_rs-content .material-symbols-outlined {
+    font-family: "Material Symbols Outlined", "Runestone Material Symbols";
     font-weight: normal;
     font-style: normal;
     /* Inherit the surrounding text size rather than forcing Google's 24px, so an
@@ -43,16 +62,15 @@
     font-size: 1.25em;
     line-height: 1;
     letter-spacing: normal;
+    /* An inherited text-transform would uppercase the ligature name and stop it
+       forming, which is how #1510 showed up as a giant "CHEVRON_LEFT". */
     text-transform: none;
-    display: inline-block;
     white-space: nowrap;
     word-wrap: normal;
     direction: ltr;
     -webkit-font-feature-settings: "liga";
     -webkit-font-smoothing: antialiased;
-    font-variation-settings:
-        "FILL" 0,
-        "wght" 400,
-        "GRAD" 0,
-        "opsz" 24;
+    /* No ``display`` here on purpose: components set their own (mchoice stacks
+       the feedback icon above the feedback with ``display: block``), and this
+       selector is specific enough to override them. */
 }

@@ -1359,7 +1359,7 @@ margin-right: 3px;
 
 .isCorrect:before {
   /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
-    font-family: "Material Symbols Outlined";
+    font-family: "Material Symbols Outlined", "Runestone Material Symbols";
   content: "\e86c ";
   float:right;
   padding-left: 4px;
@@ -1367,7 +1367,7 @@ margin-right: 3px;
 
 .isInCorrect:before {
   /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined", "Runestone Material Symbols";
   content: "\e349 ";
   float:right;
   padding-left: 4px;
@@ -1375,7 +1375,7 @@ margin-right: 3px;
 
 .isAssigned:before {
   /*content: url(https://em-content.zobj.net/thumbs/240/apple/325/check-mark_2714-fe0f.png);*/
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined", "Runestone Material Symbols";
   content: "\f3de ";
   float:right;
   padding-left: 4px;
@@ -1383,7 +1383,7 @@ margin-right: 3px;
 
 /* When both isCorrect and isAssigned are present, show both icons */
 .isCorrect.isAssigned:before {
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined", "Runestone Material Symbols";
   content: "\e86c \f3de ";
   /*content: "✅ 📋 ";*/
   float:right;
@@ -1392,7 +1392,7 @@ margin-right: 3px;
 
 /* When both isInCorrect and isAssigned are present, show both icons */
 .isInCorrect.isAssigned:before {
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined", "Runestone Material Symbols";
   content: "\e349 \f3de ";
   float:right;
   padding-left: 4px;
