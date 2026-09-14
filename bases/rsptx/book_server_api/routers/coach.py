@@ -170,6 +170,25 @@ def extract_parsons_solution(parsonsexample_code):
     return "\n".join(clean_lines)
 
 
+def _escape_parsons_block_markup(block_markup):
+    """
+    The generated "---"-separated block markup is about to be embedded into a
+    <pre class="parsonsblocks"> element and re-parsed from innerHTML by
+    parsons.js, so a bare "<" in the code (e.g. "if hours <= 1:") would be
+    misread as the start of an HTML tag. HTML-escape it -- the Parsons widget
+    renders entities back to their literal characters, the same way it already
+    handles the escaped DB-authored markup (see extract_parsons_code).
+
+    "<" is the only character that actually breaks parsing here -- ">" is plain
+    data in element content and "&" only matters before a valid entity name --
+    but html.escape covers "&"/">" too, which round-trip harmlessly through the
+    widget. A previous version instead inserted a space after "<", which turned
+    every "<="/"<" in the code into "< ="/"< ". The generated code never
+    contains pre-existing entities, so escaping is safe to apply unconditionally.
+    """
+    return html.escape(block_markup, quote=False)
+
+
 def _extract_suffix_code_from_htmlsrc(htmlsrc):
     """
     Book-authored activecode questions never get question_json.suffix_code
@@ -518,7 +537,7 @@ async def parsons_scaffolding(
                 [],
                 {},
             )
-            example_block = re.sub(r"<(?=\S)", "< ", example_block)
+            example_block = _escape_parsons_block_markup(example_block)
             parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
 {example_block}
@@ -570,8 +589,8 @@ async def parsons_scaffolding(
                 + personalized_generation_result_type
             )
         else:
-            personalized_Parsons_block = re.sub(
-                r"<(?=\S)", "< ", personalized_Parsons_block
+            personalized_Parsons_block = _escape_parsons_block_markup(
+                personalized_Parsons_block
             )
             personalized_Parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
