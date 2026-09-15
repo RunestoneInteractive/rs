@@ -60,11 +60,21 @@ def test_password_rejects_whitespace_only(password):
     assert validate_password(password) == "Password is required."
 
 
-def test_password_rejects_short():
-    assert validate_password("abc") == "Password must be at least 6 characters."
+@pytest.mark.parametrize("password", ["a", "abcdefghi"])
+def test_password_rejects_short(password):
+    assert validate_password(password) == "Password must be at least 10 characters."
 
 
-@pytest.mark.parametrize("password", ["correct horse", "abcdef", "  pad  d  "])
+@pytest.mark.parametrize(
+    "password",
+    [
+        "abcdefghij",
+        "correct horse",
+        "abcdef1234",
+        "  pad  d  ",
+        "P@ssw0rd!x",
+    ],
+)
 def test_password_accepts_valid(password):
     """Passwords are not stripped -- internal and edge spaces are legitimate."""
     assert validate_password(password) is None
