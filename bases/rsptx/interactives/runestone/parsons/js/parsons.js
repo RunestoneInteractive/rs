@@ -285,6 +285,11 @@ export default class Parsons extends RunestoneBase {
     showKeyboardEntryHint() {
         this.keyboardTip.innerHTML = t("msg_parson_enter_activate");
         this.keyboardTip.style.display = "";
+        // Drop and re-add the class (with a reflow in between) so the attention
+        // animation replays every time the user tabs back onto the problem.
+        this.keyboardTip.classList.remove("parsons-entry-hint");
+        void this.keyboardTip.offsetWidth;
+        this.keyboardTip.classList.add("parsons-entry-hint");
         this.sourceLabel.style.display = "none";
         this.answerLabel.style.display = "none";
     }
@@ -292,6 +297,7 @@ export default class Parsons extends RunestoneBase {
     hideKeyboardEntryHint() {
         this.keyboardTip.innerHTML = t("msg_parson_arrow_navigate");
         this.keyboardTip.style.display = "none";
+        this.keyboardTip.classList.remove("parsons-entry-hint");
         this.sourceLabel.style.display = "";
         this.answerLabel.style.display = "";
     }
@@ -3039,6 +3045,8 @@ export default class Parsons extends RunestoneBase {
     enterKeyboardMode() {
         this.keyboardTip.innerHTML = t("msg_parson_arrow_navigate");
         this.keyboardTip.style.display = "";
+        // The ongoing navigation tip is a quiet instruction, not a call to act.
+        this.keyboardTip.classList.remove("parsons-entry-hint");
         this.sourceLabel.style.display = "none";
         this.answerLabel.style.display = "none";
     }

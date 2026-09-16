@@ -121,12 +121,18 @@ describe("construction", () => {
         expect(p.answerLabel.style.display).toBe("none");
         expect(p.keyboardTip.textContent).toBe("Enter to activate");
         expect(p.keyboardTip.style.display).not.toBe("none");
+        expect(p.keyboardTip.classList.contains("parsons-entry-hint")).toBe(
+            true,
+        );
 
         p.sortContainerDiv.blur();
         expect(p.sourceLabel.style.display).not.toBe("none");
         expect(p.answerLabel.style.display).not.toBe("none");
         expect(p.keyboardTip.textContent).toContain("Arrow keys to navigate");
         expect(p.keyboardTip.style.display).toBe("none");
+        expect(p.keyboardTip.classList.contains("parsons-entry-hint")).toBe(
+            false,
+        );
     });
 
     it("does not show the keyboard entry hint for mouse focus", async () => {
@@ -626,6 +632,10 @@ describe("keyboard movement model", () => {
         expect(block.view.classList.contains("down")).toBe(true);
         expect(p.keyboardTip.textContent).toContain("Arrow keys to navigate");
         expect(p.keyboardTip.style.display).not.toBe("none");
+        // The ongoing navigation tip must not carry the attention animation.
+        expect(p.keyboardTip.classList.contains("parsons-entry-hint")).toBe(
+            false,
+        );
         expect(p.sourceLabel.style.display).toBe("none");
         p.keyboardApplication.blur();
         expect(p.textFocus).toBeUndefined();
