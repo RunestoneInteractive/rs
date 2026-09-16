@@ -152,6 +152,13 @@ services:
       # of postgresql
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
+      # Connection pool sizing; see sample.env for what these mean.
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-10}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-1800}
+      - DB_SYNC_POOL_SIZE=${DB_SYNC_POOL_SIZE:-5}
+      - DB_SYNC_MAX_OVERFLOW=${DB_SYNC_MAX_OVERFLOW:-10}
       - DOCKER_COMPOSE=1
       - JWT_SECRET=${JWT_SECRET}
       - FERNET_SECRET=${FERNET_SECRET}
@@ -219,6 +226,13 @@ services:
       # of postgresql
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
+      # Connection pool sizing; see sample.env for what these mean.
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-10}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-1800}
+      - DB_SYNC_POOL_SIZE=${DB_SYNC_POOL_SIZE:-5}
+      - DB_SYNC_MAX_OVERFLOW=${DB_SYNC_MAX_OVERFLOW:-10}
       - DOCKER_COMPOSE=1
       - JWT_SECRET=${JWT_SECRET}
       - FERNET_SECRET=${FERNET_SECRET}
@@ -413,6 +427,13 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
+      # Connection pool sizing; see sample.env for what these mean.
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-10}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-1800}
+      - DB_SYNC_POOL_SIZE=${DB_SYNC_POOL_SIZE:-5}
+      - DB_SYNC_MAX_OVERFLOW=${DB_SYNC_MAX_OVERFLOW:-10}
       - RUNESTONE_PATH=/usr/src/app
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
@@ -449,6 +470,13 @@ services:
       - RUNESTONE_PATH=/usr/src/app
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
+      # Connection pool sizing; see sample.env for what these mean.
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-10}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-1800}
+      - DB_SYNC_POOL_SIZE=${DB_SYNC_POOL_SIZE:-5}
+      - DB_SYNC_MAX_OVERFLOW=${DB_SYNC_MAX_OVERFLOW:-10}
       - JWT_SECRET=${JWT_SECRET}
       - SSH_AUTH_SOCK=/ssh-agent
       - NUM_SERVERS=${NUM_SERVERS:-1}
@@ -499,6 +527,13 @@ services:
       # of postgresql
       - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
       - DBURL=${DC_DBURL:-$DBURL}
+      # Connection pool sizing; see sample.env for what these mean.
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-20}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-10}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-1800}
+      - DB_SYNC_POOL_SIZE=${DB_SYNC_POOL_SIZE:-5}
+      - DB_SYNC_MAX_OVERFLOW=${DB_SYNC_MAX_OVERFLOW:-10}
       - DOCKER_COMPOSE=1
       - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}

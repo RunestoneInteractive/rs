@@ -1,14 +1,20 @@
 # %%
 import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine
+
+from rsptx.db.sync_session import engine as eng
 
 
-def create_assignment_summary(assignment_id, course, dburl):
+def create_assignment_summary(assignment_id, course):
+    """Build the instructor assignment-summary tables for one assignment.
+
+    Blocking: this runs a series of large pandas/psycopg2 queries. Async callers
+    must dispatch it with ``asyncio.to_thread`` so it does not stall the event
+    loop -- see ``do_assignment_summary_data``.
+    """
     COURSE_NAME = course.course_name
     COURSE_ID = course.id
     ASSIGNMENT_ID = assignment_id
-    eng = create_engine(dburl)
 
     df = pd.read_sql(
         f"""

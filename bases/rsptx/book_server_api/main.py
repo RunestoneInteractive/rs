@@ -51,6 +51,7 @@ from fastapi.staticfiles import StaticFiles
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.async_session import term_models
+from rsptx.db.pool_monitor import start_pool_monitor
 
 try:
     from rsptx.lp_sim_builder.feedback import init_graders
@@ -95,10 +96,14 @@ async def lifespan(app: FastAPI):
     init_graders()
     # Start the anonymous, opt-out usage telemetry background task.
     telemetry_task = asyncio.create_task(telemetry_loop())
+    # Watch the connection pools and the event loop; see rsptx.db.pool_monitor.
+    pool_monitor_task = start_pool_monitor()
     yield
     # Clean up the ML models and release the resources
     rslogger.info("Book Server is Shutting Down")
     telemetry_task.cancel()
+    if pool_monitor_task:
+        pool_monitor_task.cancel()
     await term_models()
 
 

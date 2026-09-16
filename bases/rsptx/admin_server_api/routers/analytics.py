@@ -6,6 +6,7 @@ Reports are generated as background tasks; results are stored in Redis
 so any server in the cluster can serve the polling responses.
 """
 
+import asyncio
 import json
 import uuid
 from typing import Optional
@@ -22,9 +23,9 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
-from sqlalchemy import create_engine
 
 from rsptx.auth.session import auth_manager
+from rsptx.db.sync_session import engine
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import instructor_role_required, with_course
 from rsptx.logging import rslogger
@@ -126,8 +127,6 @@ def _build_report(
     """Run in a BackgroundTask. Writes result JSON to Redis."""
     r = _get_redis()
     try:
-        engine = create_engine(settings.dburl)
-
         if tablekind == "correctcount":
             data = _make_correct_count(engine, course_name, base_course, chapter)
         else:
@@ -645,6 +644,24 @@ def _build_student_detail(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_chapters(base_course: str) -> list:
+    """Return the chapter list for ``base_course``.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+    """
+    chapters_df = pd.read_sql_query(
+        """
+        select chapter_name, chapter_label
+        from chapters
+        where course_id = %(base_course)s
+        order by chapter_num
+        """,
+        engine,
+        params={"base_course": base_course},
+    )
+    return chapters_df.to_dict(orient="records")
+
+
 @router.get("/subchapoverview", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
@@ -654,18 +671,7 @@ async def get_subchapoverview(
     course=None,
 ):
     """Serve the chapter overview report shell page."""
-    engine = create_engine(settings.dburl)
-    chapters_df = pd.read_sql_query(
-        """
-        select chapter_name, chapter_label
-        from chapters
-        where course_id = %(base_course)s
-        order by chapter_num
-        """,
-        engine,
-        params={"base_course": course.base_course},
-    )
-    chapters = chapters_df.to_dict(orient="records")
+    chapters = await asyncio.to_thread(_fetch_chapters, course.base_course)
 
     context = {
         "request": request,
@@ -816,7 +822,6 @@ def _build_assignment_report(
     """Run in a BackgroundTask. Builds per-question stats for an assignment."""
     r = _get_redis()
     try:
-        engine = create_engine(settings.dburl)
         data = _make_assignment_table(
             engine, assignment_id, course_name, tz_offset_hours
         )
@@ -1202,6 +1207,25 @@ def _build_assignment_student_detail(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_assignments(course_name: str) -> list:
+    """Return the non-peer assignments for ``course_name``, newest due first.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+    """
+    assignments_df = pd.read_sql_query(
+        """
+        SELECT a.id, a.name, a.duedate, a.points
+        FROM assignments a
+        JOIN courses c ON c.id = a.course
+        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
+        ORDER BY a.duedate DESC NULLS LAST
+        """,
+        engine,
+        params={"course_name": course_name},
+    )
+    return assignments_df.to_dict(orient="records")
+
+
 @router.get("/assignmentoverview", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
@@ -1216,19 +1240,7 @@ async def get_assignmentoverview(
     If ``assignment_id`` is supplied as a query parameter the template will
     pre-select that assignment and auto-generate the report on page load.
     """
-    engine = create_engine(settings.dburl)
-    assignments_df = pd.read_sql_query(
-        """
-        SELECT a.id, a.name, a.duedate, a.points
-        FROM assignments a
-        JOIN courses c ON c.id = a.course
-        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
-        ORDER BY a.duedate DESC NULLS LAST
-        """,
-        engine,
-        params={"course_name": course.course_name},
-    )
-    assignments = assignments_df.to_dict(orient="records")
+    assignments = await asyncio.to_thread(_fetch_assignments, course.course_name)
     # Convert Timestamps to strings for template rendering. duedate is stored
     # as naive UTC, so it has to be shifted into the course timezone before the
     # date is taken -- a late-evening deadline lands on the following day in
@@ -1343,27 +1355,18 @@ async def download_assignmentoverview_csv(
     )
 
 
-@router.get("/assignmentoverview/student", response_class=HTMLResponse)
-@instructor_role_required()
-@with_course()
-async def get_assignment_student_detail(
-    request: Request,
-    sid: str,
-    assignment_id: int,
-    user=Depends(auth_manager),
-    course=None,
-    RS_info: Optional[str] = Cookie(None),
-):
-    """Render the per-student drilldown for an assignment."""
-    tz_offset_hours = 0.0
-    if RS_info:
-        try:
-            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
-        except Exception:
-            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+def _load_assignment_student_detail(
+    sid: str, assignment_id: int, course_name: str, tz_offset_hours: float
+) -> tuple:
+    """Gather everything the per-student assignment drilldown renders.
 
-    engine = create_engine(settings.dburl)
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``. ``duedate`` is
+    returned raw -- the caller formats it, since that needs the course timezone.
 
+    :return: ``(student, assignment, detail, total_score)``
+    :rtype: tuple
+    :raises HTTPException: if the student or the assignment does not exist.
+    """
     student_row = pd.read_sql_query(
         """
         SELECT username, first_name, last_name, email
@@ -1393,10 +1396,9 @@ async def get_assignment_student_detail(
             detail=f"Assignment {assignment_id} not found",
         )
     assignment = assignment_row.iloc[0].to_dict()
-    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
 
     detail = _build_assignment_student_detail(
-        engine, assignment_id, course.course_name, sid, tz_offset_hours
+        engine, assignment_id, course_name, sid, tz_offset_hours
     )
 
     # Total assignment grade from grades table
@@ -1417,6 +1419,37 @@ async def get_assignment_student_detail(
         if raw is not None and pd.notna(raw):
             total_score = round(float(raw), 2)
 
+    return student, assignment, detail, total_score
+
+
+@router.get("/assignmentoverview/student", response_class=HTMLResponse)
+@instructor_role_required()
+@with_course()
+async def get_assignment_student_detail(
+    request: Request,
+    sid: str,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+    RS_info: Optional[str] = Cookie(None),
+):
+    """Render the per-student drilldown for an assignment."""
+    tz_offset_hours = 0.0
+    if RS_info:
+        try:
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
+        except Exception:
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+
+    student, assignment, detail, total_score = await asyncio.to_thread(
+        _load_assignment_student_detail,
+        sid,
+        assignment_id,
+        course.course_name,
+        tz_offset_hours,
+    )
+    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
+
     context = {
         "request": request,
         "user": user,
@@ -1432,6 +1465,45 @@ async def get_assignment_student_detail(
     return templates.TemplateResponse(
         "admin/analytics/assignment_student_detail.html", context
     )
+
+
+def _load_student_detail(
+    sid: str, course_name: str, base_course: str, tz_offset_hours: float
+) -> tuple:
+    """Gather everything the student drilldown page renders.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+
+    :return: ``(student, data)``
+    :rtype: tuple
+    :raises HTTPException: if the student does not exist.
+    """
+    # Basic student info
+    student_row = pd.read_sql_query(
+        """
+        select username, first_name, last_name, email
+        from auth_user
+        where username = %(sid)s
+        limit 1
+        """,
+        engine,
+        params={"sid": sid},
+    )
+    if student_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student '{sid}' not found",
+        )
+    student = student_row.iloc[0].to_dict()
+
+    data = _build_student_detail(
+        engine,
+        course_name=course_name,
+        base_course=base_course,
+        sid=sid,
+        tz_offset_hours=tz_offset_hours,
+    )
+    return student, data
 
 
 @router.get("/student_detail", response_class=HTMLResponse)
@@ -1458,32 +1530,12 @@ async def get_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    engine = create_engine(settings.dburl)
-
-    # Basic student info
-    student_row = pd.read_sql_query(
-        """
-        select username, first_name, last_name, email
-        from auth_user
-        where username = %(sid)s
-        limit 1
-        """,
-        engine,
-        params={"sid": sid},
-    )
-    if student_row.empty:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{sid}' not found",
-        )
-    student = student_row.iloc[0].to_dict()
-
-    data = _build_student_detail(
-        engine,
-        course_name=course.course_name,
-        base_course=course.base_course,
-        sid=sid,
-        tz_offset_hours=tz_offset_hours,
+    student, data = await asyncio.to_thread(
+        _load_student_detail,
+        sid,
+        course.course_name,
+        course.base_course,
+        tz_offset_hours,
     )
 
     context = {
