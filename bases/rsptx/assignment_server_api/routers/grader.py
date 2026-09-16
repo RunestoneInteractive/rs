@@ -17,9 +17,11 @@ from rsptx.db.crud import (
     fetch_grade,
     fetch_interaction_useinfo,
     fetch_one_assignment,
+    fetch_page_readers,
     fetch_question_grade,
     fetch_user,
     fetch_users_for_course,
+    get_course_origin,
     create_question_grade_entry,
     is_interaction_event,
     set_manual_total,
@@ -48,6 +50,7 @@ from rsptx.grading_helpers.answer_tables import (
 )
 from rsptx.grading_helpers.regrade import (
     RegradeOptions,
+    page_url_suffix,
     regrade_batch,
     recompute_totals_for,
 )
@@ -139,6 +142,9 @@ async def list_assignment_questions(
     }
 
     rows = await fetch_assignment_questions(assignment_id)
+    # Which shape a page view has in useinfo depends on the book's markup
+    # system, and every reading on the assignment is in the same book.
+    origin = await get_course_origin(course.base_course)
 
     row_list = [r for r in rows]
     questions: List[GraderQuestionStats] = []
@@ -192,6 +198,17 @@ async def list_assignment_questions(
                             continue
                         if is_interaction_event(u.event, u.act):
                             answered_sids.add(u.sid)
+
+                if q.question_type == "page":
+                    # A reading has no answers. What it has is readers: count
+                    # the students who opened the page, so the row reports what
+                    # happened instead of a flat 0. See issue #1493.
+                    for reader in await fetch_page_readers(
+                        course.course_name,
+                        page_url_suffix(origin, q.chapter, q.subchapter),
+                    ):
+                        if reader not in instructor_ids:
+                            answered_sids.add(reader)
 
                 if q.question_type in CODE_TABLE_TYPES:
                     code_clauses = [

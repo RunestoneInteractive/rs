@@ -30,12 +30,15 @@ const friendlyType = (t: string) => {
     dragndrop: "Drag & drop",
     codelens: "Codelens",
     matching: "Matching",
-    webwork: "WeBWorK"
+    webwork: "WeBWorK",
+    page: "Reading"
   };
   return map[t] || t;
 };
 
-const MANUALLY_SCORED_TYPES = new Set(["shortanswer"]);
+// Types with no notion of a correct answer: what counts is the score on the
+// grade, whether a human put it there (short answer) or the reading rule did.
+const SCORE_BASED_CORRECT_TYPES = new Set(["shortanswer", "page"]);
 
 const PARTIAL_CREDIT_TYPES = new Set([
   "dragndrop",
@@ -64,7 +67,7 @@ interface QuestionStats {
 }
 
 const computeStats = (q: QuestionRow): QuestionStats => {
-  const isManual = MANUALLY_SCORED_TYPES.has(q.question_type);
+  const isManual = SCORE_BASED_CORRECT_TYPES.has(q.question_type);
   const usePartial = PARTIAL_CREDIT_TYPES.has(q.question_type) && q.avg_percent != null;
 
   const correctPct = usePartial

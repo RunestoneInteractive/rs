@@ -1072,3 +1072,236 @@ async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score
     rows = _gradebook_to_csv(data).splitlines()
 
     assert rows[1] == "ada,Ada Lovelace,3,3"
+
+
+async def _add_reading_question(
+    assignment_id,
+    chapter,
+    subchapter,
+    points=5,
+    activities_required=2,
+    activity_names=(),
+):
+    """Seed a reading: the page's own question row, the activities on that page,
+    and the assignment_question that assigns it. Returns the page question id."""
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import AssignmentQuestion, Question
+
+    page_name = f"{chapter}/{subchapter}"
+    async with async_session.begin() as session:
+        page = Question(
+            base_course=COURSE_NAME,
+            name=page_name,
+            chapter=chapter,
+            subchapter=subchapter,
+            question_type="page",
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=True,
+        )
+        session.add(page)
+        for name in activity_names:
+            session.add(
+                Question(
+                    base_course=COURSE_NAME,
+                    name=name,
+                    chapter=chapter,
+                    subchapter=subchapter,
+                    question_type="mchoice",
+                    timestamp=datetime.datetime(2024, 1, 1),
+                    from_source=True,
+                    optional=False,
+                )
+            )
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment_id,
+                question_id=page.id,
+                points=points,
+                autograde="interaction",
+                which_to_grade="best_answer",
+                reading_assignment=True,
+                activities_required=activities_required,
+                sorting_priority=1,
+            )
+        )
+        return page.id
+
+
+async def _set_duedate(assignment_id, duedate):
+    from sqlalchemy import update as sa_update
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import Assignment
+
+    async with async_session.begin() as session:
+        await session.execute(
+            sa_update(Assignment)
+            .where(Assignment.id == assignment_id)
+            .values(duedate=duedate)
+        )
+
+
+async def test_regrade_scores_a_reading_from_the_pages_activity(
+    auth_instructor_client,
+):
+    """Issue #1493: a reading is a page, not a question, so the re-grader used
+    to skip it with "no_table" and offer to set the whole class back to no
+    score. It now scores the page the way the progress bar does."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "regrade_reading")
+    question_id = await _add_reading_question(
+        assignment_id,
+        "read_ch",
+        "read_sub",
+        points=5,
+        activities_required=2,
+        activity_names=["read_q1", "read_q2"],
+    )
+
+    # Opening the page is one activity; answering a question on it is another.
+    await _log_useinfo("testuser1", "read_ch/read_sub.html", "page", "view")
+    await _log_useinfo("testuser1", "read_q1", "mChoice", "answer:1:correct")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["detail"]["items"][0]["new_score"] == 5
+    grade = await _grade_for("testuser1", "read_ch/read_sub")
+    assert grade is not None
+    assert grade.score == 5
+
+
+async def test_regrade_reading_scores_zero_without_enough_activities(
+    auth_instructor_client,
+):
+    """Opening the page is one activity; a reading that asks for three is not
+    earned by opening it alone."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_reading_short"
+    )
+    question_id = await _add_reading_question(
+        assignment_id,
+        "short_ch",
+        "short_sub",
+        points=5,
+        activities_required=3,
+        activity_names=["short_q1", "short_q2", "short_q3"],
+    )
+    await _log_useinfo("testuser1", "short_ch/short_sub.html", "page", "view")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.json()["detail"]["items"][0]["new_score"] == 0
+    assert (await _grade_for("testuser1", "short_ch/short_sub")).score == 0
+
+
+async def test_regrade_reading_leaves_a_student_who_never_opened_it_alone(
+    auth_instructor_client,
+):
+    """No activity at all is "no submission", not a zero: the re-grade must not
+    manufacture a grade for a student who was never there."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_reading_absent"
+    )
+    question_id = await _add_reading_question(
+        assignment_id, "absent_ch", "absent_sub", activity_names=["absent_q1"]
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.json()["detail"]["items"][0]["skipped"] == "no_submission"
+    assert await _grade_for("testuser1", "absent_ch/absent_sub") is None
+
+
+async def test_regrade_reading_can_award_late_work(auth_instructor_client):
+    """The case from issue #1493: the browser refuses to score a reading done
+    after the deadline, so the instructor needs the re-grade to give the points
+    -- which only works with the deadline enforcement turned off."""
+    import datetime
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "regrade_late")
+    question_id = await _add_reading_question(
+        assignment_id,
+        "late_ch",
+        "late_sub",
+        points=5,
+        activities_required=1,
+        activity_names=["late_q1"],
+    )
+    await _set_duedate(assignment_id, datetime.datetime(2024, 5, 1, 0, 0, 0))
+    # ...and the student read it a month after that.
+    await _log_useinfo(
+        "testuser1",
+        "late_ch/late_sub.html",
+        "page",
+        "view",
+        when=datetime.datetime(2024, 6, 1, 12, 0, 0),
+    )
+
+    on_time = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert on_time.json()["detail"]["items"][0]["skipped"] == "no_submission"
+
+    late = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+            "enforce_deadline": False,
+        },
+    )
+    assert late.json()["detail"]["items"][0]["new_score"] == 5
+    assert (await _grade_for("testuser1", "late_ch/late_sub")).score == 5
+
+
+async def test_question_stats_count_readers_of_a_reading(auth_instructor_client):
+    """A reading has no answers, so the question list counts the students who
+    opened the page instead of reporting 0 for every reading."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_reading")
+    await _add_reading_question(
+        assignment_id, "stats_ch", "stats_sub", activity_names=["stats_q1"]
+    )
+    await _log_useinfo("testuser1", "stats_ch/stats_sub.html", "page", "view")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    stat = [
+        q
+        for q in resp.json()["detail"]["questions"]
+        if q["name"] == "stats_ch/stats_sub"
+    ][0]
+    assert stat["answered_count"] == 1
