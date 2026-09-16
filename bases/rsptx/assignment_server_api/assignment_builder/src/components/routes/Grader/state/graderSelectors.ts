@@ -30,12 +30,14 @@ export const getStudentStatus = (
   if (s.attempts === 0 && s.score == null) return "no_submission";
 
   if (isAutogradeManual(q?.autograde)) {
-    if (s.score != null || (s.comment && s.comment.length > 0)) return "graded";
+    if (s.score != null || s.hand_graded || (s.comment && s.comment.length > 0)) return "graded";
     return "pending";
   }
 
   if (s.score != null) {
-    if (s.comment && s.comment.length > 0) return "graded";
+    // hand_graded covers the instructor who changed a score without typing a
+    // comment: the server marks that row, so it still counts as graded here.
+    if (s.hand_graded || (s.comment && s.comment.length > 0)) return "graded";
     return "autograded";
   }
   return "pending";

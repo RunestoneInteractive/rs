@@ -92,6 +92,7 @@ from rsptx.db.crud.assignment import (
     is_assignment_visible_to_students,
 )
 from rsptx.auth.session import auth_manager, is_instructor
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.templates import format_course_datetime, get_shared_templates
 from rsptx.configuration import settings
 from rsptx.response_helpers import construct_course_url
@@ -658,6 +659,10 @@ async def get_student_assignment_scores(
     questions = await fetch_student_assignment_scores(
         assignment_id, username, course.course_name
     )
+    # "autograded" and the hand-graded marker are bookkeeping, not feedback --
+    # the drill-down should only show words an instructor actually wrote.
+    for q in questions:
+        q["comment"] = display_comment(q["comment"])
     grade = await fetch_grade(student.id, assignment_id)
 
     first = (student.first_name or "").strip()

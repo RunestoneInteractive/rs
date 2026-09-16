@@ -61,6 +61,7 @@ from rsptx.db.crud import (
     get_book_subchapters,
 )
 from .course_guard import assignment_course_redirect
+from rsptx.grading_helpers.comments import UNGRADED_COMMENT, display_comment
 from rsptx.grading_helpers.core import check_for_exceptions
 from rsptx.grading_helpers.regrade import RegradeOptions, regrade_batch
 
@@ -815,12 +816,12 @@ async def doAssignment(
         if grade:
             score, comment = grade.score, grade.comment
         else:
-            score, comment = 0, "ungraded"
+            score, comment = 0, UNGRADED_COMMENT
 
         if score is None:
             score = 0
 
-        is_incorrect = score == 0 and comment != "ungraded"
+        is_incorrect = score == 0 and comment != UNGRADED_COMMENT
 
         chap_label = q.Question.chapter
         subchap_label = q.Question.subchapter
@@ -851,7 +852,11 @@ async def doAssignment(
             score=score,
             is_incorrect=is_incorrect,
             points=q.AssignmentQuestion.points,
-            comment=comment,
+            # Only the instructor's own words; "autograded" and friends are
+            # bookkeeping and the page shows the scoring method instead.
+            comment=display_comment(comment),
+            # There is a question_grades row for this question, whatever it says.
+            has_grade=comment != UNGRADED_COMMENT,
             name=q.Question.name,
             qnumber=q.Question.qnumber,
             question_type=q.Question.question_type,
@@ -1141,8 +1146,11 @@ async def getassignmentgrade(
 
         ret["max"] = a_q.points if (a_q and a_q.released) else ""
 
-        if result.comment:
-            ret["comment"] = result.comment
+        # Only words an instructor wrote; the graders' own bookkeeping is not
+        # feedback and has no business in the student's grade popup.
+        feedback = display_comment(result.comment)
+        if feedback:
+            ret["comment"] = feedback
 
     return JSONResponse(content=ret)
 

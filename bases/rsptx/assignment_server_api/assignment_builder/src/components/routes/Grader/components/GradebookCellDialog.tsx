@@ -224,9 +224,9 @@ export const GradebookCellDialog: React.FC<GradebookCellDialogProps> = ({
                       >
                         {label}
                       </Anchor>
-                      {/* "autograded" is the placeholder the autograder writes;
-                          only a real instructor comment is worth showing. */}
-                      {q.comment && q.comment !== "autograded" && (
+                      {/* The server strips the graders' own bookkeeping
+                          comments, so anything left is the instructor's. */}
+                      {q.comment && (
                         <Text size="xs" fs="italic" c="dimmed">
                           {q.comment}
                         </Text>

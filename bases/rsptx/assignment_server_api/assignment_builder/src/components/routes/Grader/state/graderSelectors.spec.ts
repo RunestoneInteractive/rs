@@ -127,6 +127,13 @@ describe("getStudentStatus", () => {
       const s = makeAnswer({ attempts: 1, score: 0 });
       expect(getStudentStatus(s, autoQ)).toBe("autograded");
     });
+
+    it("returns 'graded' for a hand-entered score with no comment", () => {
+      // The instructor changed the score and typed nothing; the server marks
+      // the row so it no longer counts as auto-graded.
+      const s = makeAnswer({ attempts: 1, score: 7, hand_graded: true });
+      expect(getStudentStatus(s, autoQ)).toBe("graded");
+    });
   });
 });
 

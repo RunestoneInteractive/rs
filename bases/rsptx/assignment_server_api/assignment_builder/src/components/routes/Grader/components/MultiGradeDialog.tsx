@@ -33,8 +33,6 @@ interface MultiGradeDialogProps {
   questions: GraderQuestionStats[];
 }
 
-const PROTECT_COMMENT = "manual";
-
 const studentLabel = (a: GraderStudentAnswer) => {
   const name = `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim();
   return name ? `${name} (${a.sid})` : a.sid;
@@ -88,7 +86,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
       const e = edits[sid];
       const row = rows.find((r) => r.sid === sid);
       const score = e.score ?? row?.score ?? 0;
-      const comment = (e.comment ?? "").trim() || PROTECT_COMMENT;
+      const comment = (e.comment ?? "").trim();
       try {
         await save({
           sid,
@@ -163,7 +161,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
                     <TextInput
                       value={edits[r.sid]?.comment ?? r.comment ?? ""}
                       onChange={(e) => setComment(r.sid, e.currentTarget.value)}
-                      placeholder={PROTECT_COMMENT}
+                      placeholder="optional"
                       size="xs"
                     />
                   </Table.Td>
@@ -220,7 +218,7 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
       selectedSids.length > 0 ? selectedSids : (roster ?? []).map((s) => s.username);
     if (targetSids.length === 0) return;
 
-    const comment = sameComment.trim() || PROTECT_COMMENT;
+    const comment = sameComment.trim();
     const total = targetSids.length * questions.length;
     let done = 0;
     setProgress({ done, total });
@@ -301,9 +299,7 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
                 />
               </div>
               <div className={styles.grow}>
-                <label className={styles.fieldHint}>
-                  Comment (blank = &quot;{PROTECT_COMMENT}&quot;)
-                </label>
+                <label className={styles.fieldHint}>Comment (optional)</label>
                 <Textarea
                   value={sameComment}
                   onChange={(e) => setSameComment(e.currentTarget.value)}

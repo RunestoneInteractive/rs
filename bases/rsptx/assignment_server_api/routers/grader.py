@@ -40,6 +40,11 @@ from rsptx.db.models import (
 )
 from rsptx.endpoint_validators import instructor_role_required
 from rsptx.logging import rslogger
+from rsptx.grading_helpers.comments import (
+    display_comment,
+    instructor_comment,
+    is_hand_graded,
+)
 from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.response_helpers.core import make_json_response
 from rsptx.grading_helpers.answer_tables import (
@@ -98,6 +103,9 @@ class GraderStudentAnswer(BaseModel):
     attempts: int = 0
     score: Optional[float] = None
     comment: Optional[str] = None
+    #: True when a human set this score, so the student list can tell a hand
+    #: grade apart from an auto-graded one even with no comment to show.
+    hand_graded: bool = False
     max_points: int = 0
 
 
@@ -500,7 +508,11 @@ async def list_question_answers(
                 # 0 attempts is what marks a student as never having submitted.
                 attempts=attempt_counts.get(sid, 0),
                 score=float(grade.score) if grade and grade.score is not None else None,
-                comment=grade.comment if grade else None,
+                # The bookkeeping words the graders write among themselves are
+                # not a comment; the grading page would otherwise open with
+                # "autograded" sitting in the instructor's comment box.
+                comment=display_comment(grade.comment) if grade else None,
+                hand_graded=bool(grade and is_hand_graded(grade.comment)),
                 max_points=max_points,
             )
         )
@@ -725,6 +737,11 @@ async def upsert_grade(
     existing = await fetch_question_grade(
         payload.sid, course.course_name, payload.div_id
     )
+    # Whatever the instructor typed -- or, when they typed nothing, the marker
+    # that says a human set this score. Saving the autograder's own placeholder
+    # back would leave the row looking auto-graded, and the next submission or
+    # re-grade would throw the grade away.
+    comment = instructor_comment(payload.comment)
 
     if existing is None:
         await create_question_grade_entry(
@@ -751,7 +768,7 @@ async def upsert_grade(
         row = res.scalars().first()
         if row is not None:
             row.score = payload.score
-            row.comment = payload.comment or ""
+            row.comment = comment
             await session.commit()
 
     # Roll the new question grade up into the assignment total (and push the new
@@ -779,7 +796,7 @@ async def upsert_grade(
         status=status.HTTP_200_OK,
         detail={
             "score": payload.score,
-            "comment": payload.comment or "",
+            "comment": display_comment(comment) or "",
             "sid": payload.sid,
             "div_id": payload.div_id,
             "recomputed_assignments": recomputed,
