@@ -1072,3 +1072,86 @@ async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score
     rows = _gradebook_to_csv(data).splitlines()
 
     assert rows[1] == "ada,Ada Lovelace,3,3"
+
+
+async def test_saving_a_grade_without_a_comment_marks_it_hand_graded(
+    auth_instructor_client,
+):
+    """Issue #1515: the grading page saved the autograder's own "autograded"
+    placeholder back, so a hand-entered score was not protected from the next
+    re-grade. A save now stamps the row as hand graded whatever was typed."""
+    from rsptx.grading_helpers.comments import MANUAL_COMMENT
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client, "hand_grade_marker", "hand_grade_marker_q"
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/grade",
+        json={
+            "sid": "testuser1",
+            "div_id": "hand_grade_marker_q",
+            "score": 7,
+            "comment": "autograded",
+            "assignment_id": assignment_id,
+        },
+    )
+    assert resp.status_code == 200
+    # Nothing worth showing a reader, so the response carries no comment...
+    assert resp.json()["detail"]["comment"] == ""
+
+    # ...but the row itself is marked, which is what protects the score.
+    grade = await _grade_for("testuser1", "hand_grade_marker_q")
+    assert grade.comment == MANUAL_COMMENT
+    assert grade.score == 7
+
+    # The grading page sees a hand grade with no comment to put in its box.
+    answers = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+    mine = [a for a in answers.json()["detail"]["answers"] if a["sid"] == "testuser1"][
+        0
+    ]
+    assert mine["comment"] is None
+    assert mine["hand_graded"] is True
+
+    # And a re-grade leaves it alone instead of scoring the question again.
+    regrade = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question.id],
+            "sids": ["testuser1"],
+            "enforce_deadline": False,
+        },
+    )
+    assert regrade.json()["detail"]["items"][0]["skipped"] == "manual"
+    assert (await _grade_for("testuser1", "hand_grade_marker_q")).score == 7
+
+
+async def test_an_autograded_row_is_not_reported_as_hand_graded(
+    auth_instructor_client,
+):
+    """A score the autograder wrote stays available for re-grading, and its
+    bookkeeping comment never reaches the instructor's comment box."""
+    from rsptx.db.crud import create_question_grade_entry
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client, "auto_grade_marker", "auto_grade_marker_q"
+    )
+    await create_question_grade_entry(
+        "testuser1", COURSE_NAME, "auto_grade_marker_q", 4
+    )
+
+    answers = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+    mine = [a for a in answers.json()["detail"]["answers"] if a["sid"] == "testuser1"][
+        0
+    ]
+    assert mine["comment"] is None
+    assert mine["hand_graded"] is False

@@ -43,7 +43,11 @@ export interface GraderStudentAnswer {
   timestamp?: string;
   attempts: number;
   score?: number | null;
+  /** Only an instructor's own words; the graders' bookkeeping comments
+   * ("autograded" and friends) are stripped server side. */
   comment?: string | null;
+  /** True when a human set this score, with or without a comment. */
+  hand_graded?: boolean;
   max_points: number;
 }
 
@@ -342,6 +346,10 @@ export const graderApi = createApi({
                 if (row) {
                   row.score = score;
                   if (comment !== undefined) row.comment = comment;
+                  // The server marks every saved row as hand graded; mirror
+                  // that so the student list stops calling it auto-graded
+                  // before the refetch lands.
+                  row.hand_graded = true;
                 }
               }
             )

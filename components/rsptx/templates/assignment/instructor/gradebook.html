@@ -363,9 +363,9 @@ Click any grade to see that student's score on each question in the assignment.<
                 if (label !== q.name) {
                     nameCell.title = q.name;
                 }
-                // "autograded" is the placeholder the autograder writes; only
-                // a real instructor comment is worth showing here.
-                if (q.comment && q.comment !== "autograded") {
+                // The server strips the graders' own bookkeeping comments, so
+                // anything left here is the instructor's.
+                if (q.comment) {
                     var comment = document.createElement("div");
                     comment.className = "score-comment";
                     comment.textContent = q.comment;

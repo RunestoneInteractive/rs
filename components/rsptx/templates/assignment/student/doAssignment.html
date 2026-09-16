@@ -122,7 +122,7 @@ Do Assignment
                         <li class="{{ r['status']}}"><a href="/ns/books/published/{{course.course_name}}/{{r['sub_chapter_label']}}.html">{{ r['chapter_num']  }}.{{ r['chapter_chapter_num']  }} {{ r['chapter_chapter_name']  }}</a>
                         {% endif %}
                         {% if r['points'] > 0 %}
-                            {% if r['comment'] != 'ungraded' %}
+                            {% if r['has_grade'] %}
                                 <br>{{ r['score']}} of {{ r['points']}} points earned; minimum {{ r['activities_required']   }} activities required
                             {% else %}
                                 <br>not graded yet: {{ r['points']}} points; minimum {{ r['activities_required']  }} activities required
@@ -191,7 +191,7 @@ Do Assignment
                                 <div id="{{ q['name']}}_score" aria-live="polite">
                                     <strong>Score:</strong> <span class="qscore">{{ q['score']}}</span> / <span class="qmaxscore">{{ q['points']  }}</span>
                                 </div>
-                                {% if q['comment'] != 'autograded' and q['comment'] != 'ungraded' %}
+                                {% if q['comment'] %}
                                     <div><strong>Comment:</strong> {{ q['comment'] }}</div>
                                 {% else %}
                                     <div><strong>Scoring Method:</strong> {{q['how_graded']}}</div>

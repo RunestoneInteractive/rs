@@ -21,6 +21,10 @@ from rsptx.db.models import (
     QuestionValidator,
     SelectedQuestion,
 )
+from rsptx.grading_helpers.comments import (
+    AUTOGRADE_COMMENT,
+    is_autograder_comment,
+)
 from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.logging import rslogger
 from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
@@ -35,8 +39,6 @@ from rsptx.grading_helpers.scoring import (
     score_peer_values,
     PEER_SCORE_SENTINEL,
 )
-
-MANUAL_COMMENT = "autograded"
 
 
 class RegradeOptions(BaseModel):
@@ -228,7 +230,7 @@ async def regrade_one(
         if (
             existing is not None
             and existing.score is not None
-            and existing.comment != MANUAL_COMMENT
+            and not is_autograder_comment(existing.comment)
             and not options.overwrite_manual
         ):
             item.skipped = "manual"
@@ -345,12 +347,12 @@ async def _upsert_autograde(
                     course_name=course_name,
                     div_id=div_id,
                     score=score,
-                    comment=MANUAL_COMMENT,
+                    comment=AUTOGRADE_COMMENT,
                 )
             )
         else:
             row.score = score
-            row.comment = MANUAL_COMMENT
+            row.comment = AUTOGRADE_COMMENT
 
 
 def apply_threshold_score(
