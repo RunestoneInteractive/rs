@@ -87,6 +87,11 @@
     --codeBlockBg: #fafafa;
     --codeHighlightBg: #eeffcc; // Sphinx pygments' code-block fill
     --parsonsLabelColor: #5858e0;
+    // "Enter to activate" pill: #11488a on #e8f0fe is 8.2:1.
+    --parsonsHintBgColor: #e8f0fe;
+    --parsonsHintBorderColor: #216fcc;
+    --parsonsHintColor: #11488a;
+    --parsonsHintGlowColor: rgba(33, 111, 204, 0.4);
 }
 
 :root.dark-mode {
@@ -162,6 +167,11 @@
     --codeBlockBg: var(--background);
     --codeHighlightBg: #22242a; // pygments' #eeffcc stays light otherwise
     --parsonsLabelColor: #8e8eea;
+    // #cfe0fb on #1f3350 is 8.9:1; the light pill would have been 1.2:1 here.
+    --parsonsHintBgColor: #1f3350;
+    --parsonsHintBorderColor: #8ab4f8;
+    --parsonsHintColor: #cfe0fb;
+    --parsonsHintGlowColor: rgba(138, 180, 248, 0.45);
 }
 
 [data-theme="dark"] {
@@ -232,4 +242,9 @@
     --codeBlockBg: var(--background);
     --codeHighlightBg: #22242a; // pygments' #eeffcc stays light otherwise
     --parsonsLabelColor: #8e8eea;
+    // #cfe0fb on #1f3350 is 8.9:1; the light pill would have been 1.2:1 here.
+    --parsonsHintBgColor: #1f3350;
+    --parsonsHintBorderColor: #8ab4f8;
+    --parsonsHintColor: #cfe0fb;
+    --parsonsHintGlowColor: rgba(138, 180, 248, 0.45);
 }
