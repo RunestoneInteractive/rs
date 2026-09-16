@@ -20,6 +20,8 @@ import {
 vi.mock("@components/ui/notify", () => ({
   notify: {
     show: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
     info: vi.fn(),
     update: vi.fn(),
     hide: vi.fn(),

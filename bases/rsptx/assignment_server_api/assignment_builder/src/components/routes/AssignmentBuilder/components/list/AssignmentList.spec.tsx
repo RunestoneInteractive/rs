@@ -108,7 +108,6 @@ describe("AssignmentList", () => {
     const bravoRow = screen.getByRole("button", { name: "Bravo" }).closest("tr")!;
     const cells = bravoRow.querySelectorAll("td");
 
-    fireEvent.click(cells[1]);
     fireEvent.click(cells[2]);
     fireEvent.click(cells[3]);
     fireEvent.click(cells[4]);
@@ -226,6 +225,22 @@ describe("AssignmentList", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Select all assignments" }));
 
     expect(screen.getByText("3 selected")).toBeInTheDocument();
+  });
+
+  it("clears selected assignments when the filter changes", () => {
+    const props = baseProps();
+    const { rerender } = renderWithMantine(<AssignmentList {...props} />);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Alpha" }));
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+
+    rerender(<AssignmentList {...props} globalFilter="bravo" />);
+
+    expect(screen.queryByRole("toolbar", { name: "Bulk actions" })).not.toBeInTheDocument();
+
+    rerender(<AssignmentList {...props} />);
+
+    expect(screen.getByRole("checkbox", { name: "Select Alpha" })).not.toBeChecked();
   });
 
   it("clears the selection from the bulk actions bar", () => {

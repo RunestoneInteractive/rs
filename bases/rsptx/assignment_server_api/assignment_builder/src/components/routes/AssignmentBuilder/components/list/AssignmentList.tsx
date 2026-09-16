@@ -14,7 +14,7 @@ import {
 import { modals } from "@mantine/modals";
 import { ColumnDef, OnChangeFn, RowSelectionState, SortingState } from "@tanstack/react-table";
 import classNames from "classnames";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Assignment } from "@/types/assignment";
 import { formatUTCDateForDisplay } from "@/utils/date";
@@ -133,11 +133,15 @@ export const AssignmentList = ({
   }, [assignments, globalFilter]);
 
   const selectedAssignments = useMemo(
-    () => assignments.filter((assignment) => rowSelection[String(assignment.id)]),
-    [assignments, rowSelection]
+    () => filteredAssignments.filter((assignment) => rowSelection[String(assignment.id)]),
+    [filteredAssignments, rowSelection]
   );
 
   const clearSelection = useCallback(() => setRowSelection({}), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [globalFilter, clearSelection]);
 
   const handleBulkVisibilityApply = useCallback(
     (values: VisibilityValues) => {
