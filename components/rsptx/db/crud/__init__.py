@@ -104,12 +104,14 @@ from .course_attrs import (
 )
 
 from .book import (
+    count_reading_activities,
     create_user_chapter_progress_entry,
     create_user_state_entry,
     create_user_sub_chapter_progress_entry,
     fetch_chapter_for_subchapter,
     fetch_last_page,
     fetch_page_activity_counts,
+    fetch_page_readers,
     fetch_subchapters,
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
@@ -409,12 +411,14 @@ __all__ += [
 
 # from .book
 __all__ += [
+    "count_reading_activities",
     "create_user_chapter_progress_entry",
     "create_user_state_entry",
     "create_user_sub_chapter_progress_entry",
     "fetch_chapter_for_subchapter",
     "fetch_last_page",
     "fetch_page_activity_counts",
+    "fetch_page_readers",
     "fetch_subchapters",
     "fetch_user_chapter_progress",
     "fetch_user_sub_chapter_progress",
