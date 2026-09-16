@@ -11,6 +11,7 @@
 # Standard library
 # ----------------
 import os
+from contextlib import asynccontextmanager
 import pathlib
 
 # Third-party imports
@@ -23,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.templates import template_folder
 from rsptx.auth.session import auth_manager
+from rsptx.db.pool_monitor import start_pool_monitor
 
 from .routers import lti1p3
 from .routers import lti1p1
@@ -42,7 +44,19 @@ from .routers import root
 kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
-app = FastAPI(**kwargs)  # type: ignore
+
+
+# Start and stop the connection pool / event-loop monitor with the app. See
+# rsptx.db.pool_monitor for what it records and how to read it.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    pool_monitor_task = start_pool_monitor()
+    yield
+    if pool_monitor_task:
+        pool_monitor_task.cancel()
+
+
+app = FastAPI(lifespan=lifespan, **kwargs)  # type: ignore
 
 # Anything that gets to this server with /staticAssets gets served from the staticAssets folder
 template_dir = pathlib.Path(template_folder)

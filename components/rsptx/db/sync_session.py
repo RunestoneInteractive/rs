@@ -33,8 +33,20 @@ extra_settings = (
     if settings.book_server_config == BookServerConfig.test
     else dict(echo=settings.db_echo)
 )
+# The single, process-wide synchronous engine. Import this rather than calling
+# ``create_engine`` yourself: every call builds a *new* connection pool, and an
+# engine created inside a request handler is never disposed, so its connections
+# are released only when the engine is garbage collected. A handful of those per
+# request is enough to exhaust pgbouncer's pool and PostgreSQL's
+# ``max_connections``.
+#
+# ``sync_pool_settings`` is empty for SQLite, whose default pool does not accept
+# these arguments.
 engine = create_engine(
-    settings._sync_database_url, connect_args=connect_args, **extra_settings
+    settings._sync_database_url,
+    connect_args=connect_args,
+    **settings.sync_pool_settings,
+    **extra_settings,
 )
 # This creates the SessionLocal class.  An actual session is an instance of this class.
 sync_session = sessionmaker(engine, class_=Session, expire_on_commit=False)

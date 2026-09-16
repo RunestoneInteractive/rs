@@ -13,6 +13,7 @@
 #
 # Standard library
 # ----------------
+import asyncio
 import csv
 import io
 from typing import Optional
@@ -499,7 +500,19 @@ async def studyclues_query(
     rslogger.debug(
         f"Logging in to StudyClues with params: {params} and url: {runestone_login_url}"
     )
-    response = requests.get(runestone_login_url, params=params)
+    # requests is blocking, so hand both StudyClues round trips to a thread:
+    # this is a third-party service and a slow reply must not stall the event
+    # loop (and with it every other request this process is serving).
+    try:
+        response = await asyncio.to_thread(
+            requests.get, runestone_login_url, params=params, timeout=30
+        )
+    except requests.RequestException as err:
+        rslogger.error(f"StudyClues login request failed: {err}")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "StudyClues login request failed"},
+        )
     if response.status_code != 200:
         rslogger.error(
             f"StudyClues login request failed with status {response.status_code}: {response.text}"
@@ -528,7 +541,7 @@ async def studyclues_query(
         "source_priorities": {"GITHUB_FILE": "prioritize"},
     }
 
-    try:
+    def _post_query():
         with requests.Session() as session:
             upstream_response = session.post(
                 query_studyclues_post_url,
@@ -536,7 +549,10 @@ async def studyclues_query(
                 timeout=30,
             )
             upstream_response.raise_for_status()
-            studyclues_response = upstream_response.json()
+            return upstream_response.json()
+
+    try:
+        studyclues_response = await asyncio.to_thread(_post_query)
     except requests.RequestException as err:
         rslogger.error(f"StudyClues request failed: {err}")
         return make_json_response(
