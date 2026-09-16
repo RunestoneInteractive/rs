@@ -60,6 +60,7 @@ from rsptx.db.crud import (
     get_book_chapters,
     get_book_subchapters,
 )
+from .course_guard import assignment_course_redirect
 from rsptx.grading_helpers.core import check_for_exceptions
 from rsptx.grading_helpers.regrade import RegradeOptions, regrade_batch
 
@@ -676,6 +677,19 @@ async def doAssignment(
         )
 
         return RedirectResponse("/assignment/student/chooseAssignment")
+
+    # The link only carries an assignment id, so a student whose active course
+    # is a different one would otherwise work this assignment against the wrong
+    # course and be scored zero in the course it belongs to (issue #1494).
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/student/doAssignment?assignment_id={assignment_id}",
+    )
+    if wrong_course:
+        return wrong_course
+
     user_is_instructor = await is_instructor(request, user=user)
 
     if assignment.is_peer or assignment.kind == "Peer":

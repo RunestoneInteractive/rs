@@ -2,10 +2,11 @@
 
 {% block title %}My Courses — Runestone Academy{% endblock %}
 
-{% macro course_row(course) %}
+{% macro course_row(course, next) %}
 <div class="course-row" data-course-name="{{ course.course_name|lower }}">
     <form method="post" action="/admin/auth/my_courses/switch" class="course-switch-form">
         <input type="hidden" name="course_name" value="{{ course.course_name }}">
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
         {% if course.is_active %}
         <span class="course-name">
             {% if course.recently_used %}<span title="Active in the last 30 days">⏱️</span>{% endif %}
@@ -64,6 +65,30 @@
             <a href="/ns/course/index">your course home page</a> to find the
             current table of contents.</p>
     </div>
+    {% elif requested_assignment %}
+    <div class="alert alert-warning">
+        <p><strong>That assignment belongs to <code>{{ requested_course }}</code>,
+            but your active course is <code>{{ current_course }}</code>.</strong>
+            Runestone saves your work to whichever course is active, so doing
+            <code>{{ requested_assignment }}</code> right now would score it in
+            <code>{{ current_course }}</code> and leave it ungraded in
+            <code>{{ requested_course }}</code>.</p>
+        {% if enrolled_in_requested %}
+        <p>Switch courses and we'll take you straight to the assignment.</p>
+        <form method="post" action="/admin/auth/my_courses/switch" style="margin-bottom:0">
+            <input type="hidden" name="course_name" value="{{ requested_course }}">
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+            <button class="btn-rs-primary" type="submit">
+                Switch to {{ requested_course }} and open the assignment
+            </button>
+        </form>
+        {% else %}
+        <p style="margin-bottom:0">You are not enrolled in
+            <code>{{ requested_course }}</code>. Ask your instructor for an
+            enrollment link — don't start the assignment until you are, or your
+            work won't count.</p>
+        {% endif %}
+    </div>
     {% elif requested_course %}
     <div class="alert alert-warning">
         <p><strong>You asked for <code>{{ requested_course }}</code>, but your
@@ -99,7 +124,7 @@
         <div class="section-title">Instructor-Created Courses</div>
         {% if class_courses %}
         {% for course in class_courses %}
-        {{ course_row(course) }}
+        {{ course_row(course, next) }}
         {% endfor %}
         {% else %}
         <p class="empty-notice">You are not enrolled in any instructor-created courses.</p>
@@ -110,7 +135,7 @@
         <div class="section-title">Open Books (Self-Study)</div>
         {% if open_books %}
         {% for course in open_books %}
-        {{ course_row(course) }}
+        {{ course_row(course, next) }}
         {% endfor %}
         {% else %}
         <p class="empty-notice">You have no open books enrolled.</p>
