@@ -1,17 +1,14 @@
+import { Icon, PrimeIconName } from "@components/ui/Icon";
 import { Group, Popover, Radio, Stack, Text, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
-
-import { Icon, PrimeIconName } from "@components/ui/Icon";
 
 import { Assignment } from "@/types/assignment";
 import { convertDateToISO, parseUTCDate } from "@/utils/date";
 
+import { DateTimePicker } from "../../../../ui/DateTimePicker";
 import { getVisibilityMode, getVisibilityValues, VisibilityMode } from "../edit/visibilityMode";
 
-import { DateTimePicker } from "../../../../ui/DateTimePicker";
-
 import { getVisibilityStatus, VisibilityChip } from "./VisibilityStatusBadge";
-
 import styles from "./VisibilityStatusBadge.module.css";
 
 interface VisibilityDropdownProps {
@@ -87,11 +84,13 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
 
     if ((newMode === "scheduled_visible" || newMode === "scheduled_period") && !newVisibleOn) {
       const startOfDay = new Date();
+
       startOfDay.setHours(0, 0, 0, 0);
       newVisibleOn = convertDateToISO(startOfDay);
     }
     if ((newMode === "scheduled_hidden" || newMode === "scheduled_period") && !newHiddenOn) {
       const endOfDay = new Date();
+
       endOfDay.setHours(23, 59, 0, 0);
       newHiddenOn = convertDateToISO(endOfDay);
     }
@@ -108,6 +107,7 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
     if (mode === "scheduled_period" && newHiddenOn) {
       const newVisibleDate = parseUTCDate(val);
       const currentHiddenDate = parseUTCDate(newHiddenOn);
+
       if (newVisibleDate >= currentHiddenDate) {
         newHiddenOn = convertDateToISO(new Date(newVisibleDate.getTime() + DAY_MS));
         setHiddenOn(newHiddenOn);
@@ -123,6 +123,7 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
     if (mode === "scheduled_period" && newVisibleOn) {
       const newHiddenDate = parseUTCDate(val);
       const currentVisibleDate = parseUTCDate(newVisibleOn);
+
       if (newHiddenDate <= currentVisibleDate) {
         newVisibleOn = convertDateToISO(new Date(newHiddenDate.getTime() - DAY_MS));
         setVisibleOn(newVisibleOn);
