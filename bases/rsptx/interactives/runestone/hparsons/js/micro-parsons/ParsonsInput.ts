@@ -662,7 +662,7 @@ export class ParsonsInput implements IParsonsInput {
         if (otherBlocks.length > 0) {
           this._setActiveBlock(otherBlocks[Math.min(index, otherBlocks.length - 1)]);
         }
-      } else if (ev.key === "Enter") {
+      } else if (ev.key === "Enter" || ev.key === " ") {
         ev.preventDefault();
         this._moveActiveBlock(ev);
       }
