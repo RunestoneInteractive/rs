@@ -1,15 +1,15 @@
 import {
+  defaultDropAnimation,
   DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragEndEvent,
-  DragStartEvent,
   DragMoveEvent,
   DragOverlay,
-  defaultDropAnimation,
-  MeasuringStrategy
+  DragStartEvent,
+  KeyboardSensor,
+  MeasuringStrategy,
+  PointerSensor,
+  useSensor,
+  useSensors
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { Button, UnstyledButton } from "@mantine/core";
-import React, { FC, useState, useCallback, useRef, useMemo } from "react";
+import { FC, useCallback, useMemo, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
@@ -527,9 +527,7 @@ export const ParsonsBlocksManager: FC<ParsonsBlocksManagerProps> = ({
     (id: string, isCorrect: boolean) => {
       if (!isCorrect) return;
 
-      // TODO(eslint): Rename the callback parameter without obscuring the surrounding block value.
-      // eslint-disable-next-line @typescript-eslint/no-shadow
-      const block = blocks.find((block) => block.id === id);
+      const block = blocks.find((blockItem) => blockItem.id === id);
 
       if (!block || !block.groupId) return;
 

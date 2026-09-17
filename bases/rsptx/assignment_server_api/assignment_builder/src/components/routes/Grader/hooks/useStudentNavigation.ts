@@ -76,12 +76,10 @@ export const useStudentNavigation = (opts: Options): StudentNavigation => {
   );
 
   const goToQuestion = useCallback(
-    // TODO(eslint): Rename the local options parameter without changing this public callback shape.
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    (targetQid: number, opts?: { selectLast?: boolean }) => {
+    (targetQid: number, options?: { selectLast?: boolean }) => {
       if (isDemo) return;
       navigate(`/grader/${aid}/questions/${targetQid}`, {
-        state: opts?.selectLast ? { selectLast: true } : undefined
+        state: options?.selectLast ? { selectLast: true } : undefined
       });
     },
     [aid, isDemo, navigate]
