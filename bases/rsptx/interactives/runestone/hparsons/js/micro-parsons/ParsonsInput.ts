@@ -448,15 +448,17 @@ export class ParsonsInput implements IParsonsInput {
     if (this._activeBlock && !this.el.contains(this._activeBlock)) {
       this._activeBlock = null;
     }
+    const seenIds = new Set<string>();
     const applyToArea = (area: HTMLDivElement, areaName: string) => {
       const blocks = Array.from(
         area.querySelectorAll<HTMLDivElement>(".parsons-block"),
       );
       blocks.forEach((block, i) => {
-        if (!block.id) {
+        if (!block.id || seenIds.has(block.id)) {
           this._nextBlockId += 1;
           block.id = `${this.el.id}-block-${this._nextBlockId}`;
         }
+        seenIds.add(block.id);
         block.setAttribute("role", "option");
         block.setAttribute(
           "aria-label",

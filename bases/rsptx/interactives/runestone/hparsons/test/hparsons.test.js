@@ -364,6 +364,27 @@ describe("HParsons keyboard movement surface", () => {
             true,
         );
     });
+
+    it("assigns unique IDs to reusable block clones", () => {
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+            attrs: 'data-reuse="true"',
+        });
+        const input = hp.hparsonsInput.querySelector(".hparsons-input");
+        const sourceBlock = input.querySelector(
+            ".drag-area .parsons-block",
+        );
+
+        sourceBlock.click();
+        sourceBlock.click();
+
+        const ids = Array.from(input.querySelectorAll(".parsons-block")).map(
+            (block) => block.id,
+        );
+        expect(ids.every(Boolean)).toBe(true);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
 });
 describe("HParsons wrong-order feedback", () => {
     beforeEach(() => {
