@@ -1,5 +1,11 @@
 .hparsons-input {
   padding: 15px;
+  position: relative;
+}
+.hparsons-keyboard-application {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 .hparsons-tip {
   font-style: italic;
@@ -42,6 +48,10 @@
 }
 .parsons-block:focus-visible {
   outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+.parsons-block[aria-selected="true"] {
+  outline: 3px solid #3498db;
   outline-offset: 2px;
 }
 /* Screen-reader-only live region */
