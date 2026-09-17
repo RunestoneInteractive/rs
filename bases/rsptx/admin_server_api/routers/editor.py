@@ -17,13 +17,13 @@ from pydantic import BaseModel
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.crud import (
-    delete_question_by_name,
     fetch_all_course_attributes,
     fetch_course,
     fetch_editor_basecourses,
     fetch_flagged_questions,
     fetch_question,
     get_book_chapters,
+    retire_question_by_name,
     update_question,
 )
 from rsptx.endpoint_validators import editor_role_required
@@ -139,25 +139,33 @@ async def _editable_question(user, body: QuestionRequest):
     return question, None
 
 
-@router.post("/delete_question", response_class=JSONResponse)
+@router.post("/retire_question", response_class=JSONResponse)
 @editor_role_required()
-async def delete_question(
+async def retire_question(
     request: Request,
     body: QuestionRequest,
     user=Depends(auth_manager),
 ):
-    """Permanently remove a flagged question from the questions table."""
+    """Take a flagged question out of circulation.
+
+    The row is kept on purpose. Courses that already assign the exercise carry
+    on unchanged -- deleting it would cascade through ``assignment_questions``
+    and pull the exercise out from under a course that may be mid-term. What
+    changes is that the exercise stops appearing in exercise search, so nobody
+    can build a *new* assignment around it. ``rsmanage questions purge``
+    deletes retired exercises later, once it can prove nothing depends on them.
+    """
     question, err = await _editable_question(user, body)
     if err:
         return err
 
     try:
-        await delete_question_by_name(body.name, body.base_course)
+        await retire_question_by_name(body.name, body.base_course, user.username)
     except Exception as e:
-        rslogger.error(f"Error deleting question {body.name}: {e}")
+        rslogger.error(f"Error retiring question {body.name}: {e}")
         return make_json_response(
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"status": "Error", "message": f"Failed to delete: {e}"},
+            detail={"status": "Error", "message": f"Failed to retire: {e}"},
         )
 
     return make_json_response(detail={"status": "Success"})

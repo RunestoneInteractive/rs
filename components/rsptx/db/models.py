@@ -615,6 +615,12 @@ class Question(Base, IdMixin):
         String(512)
     )  # username of the owner of the question (Author could be any name)
     tags = Column(String(512))  # comma separated list of tags
+    # When an editor pulls this exercise out of circulation. NULL means it is
+    # live. A retired exercise disappears from every exercise-search path but
+    # keeps working for the courses that already assign it -- deleting the row
+    # would cascade into assignment_questions and break those courses mid-term.
+    retired_on = Column(DateTime)
+    retired_by = Column(String(512))  # username of the editor who retired it
 
 
 QuestionValidator: TypeAlias = sqlalchemy_to_pydantic(Question)  # type: ignore

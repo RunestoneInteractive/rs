@@ -3,14 +3,19 @@ Functional tests for the editorial page routes on the admin server.
 
 These cover the port of the web2py ``admin/manage_exercises`` endpoint: listing
 the questions readers have flagged in the books an editor edits, clearing a
-flag, and deleting a question.
+flag, and retiring a question.
 """
 
 import pytest
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
-from rsptx.db.crud import create_question, fetch_question  # noqa: E402
+from rsptx.db.crud import (  # noqa: E402
+    create_question,
+    fetch_question,
+    search_exercises,
+)
+from rsptx.validation import schemas  # noqa: E402
 from rsptx.db.models import QuestionValidator  # noqa: E402
 from rsptx.response_helpers.core import canonical_utcnow  # noqa: E402
 
@@ -123,46 +128,71 @@ async def test_clear_flag_requires_editor(auth_noneditor_client):
 
 
 # ---------------------------------------------------------------------------
-# POST /editor/delete_question
+# POST /editor/retire_question
 # ---------------------------------------------------------------------------
 
 
-async def test_delete_question(auth_editor_client):
-    """Deleting removes the question row."""
-    await _make_question("editor_test_delete_me")
+async def test_retire_question(auth_editor_client):
+    """Retiring keeps the row but stamps retired_on and clears the review flag."""
+    await _make_question("editor_test_retire_me")
 
     resp = await auth_editor_client.post(
-        "/editor/delete_question",
-        json={"name": "editor_test_delete_me", "base_course": EDITED_BASE_COURSE},
+        "/editor/retire_question",
+        json={"name": "editor_test_retire_me", "base_course": EDITED_BASE_COURSE},
     )
 
     assert resp.status_code == 200
     assert resp.json()["detail"]["status"] == "Success"
-    assert not await fetch_question(
-        "editor_test_delete_me", basecourse=EDITED_BASE_COURSE
+
+    q = await fetch_question("editor_test_retire_me", basecourse=EDITED_BASE_COURSE)
+    # The row survives on purpose -- courses already assigning it keep working.
+    assert q is not None
+    assert q.retired_on is not None
+    assert not q.review_flag
+
+
+async def test_retired_question_drops_out_of_search(auth_editor_client):
+    """The point of retiring: it stops showing up when instructors look for
+    exercises to assign, even though the row is still there."""
+    await _make_question("editor_test_retire_search")
+
+    criteria = schemas.ExercisesSearchRequest(
+        use_base_course=False,
+        base_course=EDITED_BASE_COURSE,
+        limit=1000,
+        filters={"name": {"value": "editor_test_retire_search", "matchMode": "equals"}},
+    )
+    before = await search_exercises(criteria, owner="test_editor")
+    assert [e.name for e in before["exercises"]] == ["editor_test_retire_search"]
+
+    await auth_editor_client.post(
+        "/editor/retire_question",
+        json={"name": "editor_test_retire_search", "base_course": EDITED_BASE_COURSE},
     )
 
+    after = await search_exercises(criteria, owner="test_editor")
+    assert after["exercises"] == []
 
-async def test_delete_unknown_question(auth_editor_client):
+
+async def test_retire_unknown_question(auth_editor_client):
     """A question that does not exist is a 404, not a silent success."""
     resp = await auth_editor_client.post(
-        "/editor/delete_question",
+        "/editor/retire_question",
         json={"name": "editor_test_no_such_q", "base_course": EDITED_BASE_COURSE},
     )
 
     assert resp.status_code == 404
 
 
-async def test_delete_rejects_unedited_base_course(auth_editor_client):
-    """An editor cannot delete out of a book they do not edit."""
-    await _make_question("editor_test_other_delete", base_course=OTHER_BASE_COURSE)
+async def test_retire_rejects_unedited_base_course(auth_editor_client):
+    """An editor cannot retire out of a book they do not edit."""
+    await _make_question("editor_test_other_retire", base_course=OTHER_BASE_COURSE)
 
     resp = await auth_editor_client.post(
-        "/editor/delete_question",
-        json={"name": "editor_test_other_delete", "base_course": OTHER_BASE_COURSE},
+        "/editor/retire_question",
+        json={"name": "editor_test_other_retire", "base_course": OTHER_BASE_COURSE},
     )
 
     assert resp.status_code == 403
-    assert await fetch_question(
-        "editor_test_other_delete", basecourse=OTHER_BASE_COURSE
-    )
+    q = await fetch_question("editor_test_other_retire", basecourse=OTHER_BASE_COURSE)
+    assert q is not None and q.retired_on is None
