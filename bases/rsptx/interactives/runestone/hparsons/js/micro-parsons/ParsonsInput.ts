@@ -30,6 +30,7 @@ export class ParsonsInput implements IParsonsInput {
   private _liveRegion: HTMLDivElement;
 
   private _activeBlock: HTMLDivElement | null;
+  private _keyboardEntryHint: HTMLDivElement;
   private _keyboardApplication: HTMLDivElement;
   private _keyboardInputActive: boolean;
   private _keyboardInstructions: HTMLSpanElement;
@@ -48,6 +49,12 @@ export class ParsonsInput implements IParsonsInput {
 
     this.el.id =
       "hparsonstool-" + this.parentElement.toolNumber + "-parsons-input";
+
+    this._keyboardEntryHint = document.createElement("div");
+    this._keyboardEntryHint.setAttribute("role", "tooltip");
+    this._keyboardEntryHint.classList.add("hparsons-tip");
+    this._keyboardEntryHint.style.display = "none";
+    this.el.appendChild(this._keyboardEntryHint);
 
     const dragTip = document.createElement("div");
     dragTip.innerText = "Drag or click the blocks below to form your code:";
@@ -530,6 +537,7 @@ export class ParsonsInput implements IParsonsInput {
     const blocks = this._allBlocks();
     if (blocks.length === 0) return;
     this._keyboardInputActive = true;
+    this._hideKeyboardEntryHint();
     this._keyboardInstructions.textContent =
       "Use Left and Right Arrow to choose a block in this area. Use Up and Down Arrow to switch between available blocks and the answer area. Press Enter to move the current block. Press Escape or Tab to finish.";
     this._setActiveBlock(blocks[0], true);
@@ -573,6 +581,24 @@ export class ParsonsInput implements IParsonsInput {
 
   /** Use one Tab stop for both block areas and scope arrows to movement mode. */
   private _setupKeyboardNav = (): void => {
+    this.el.addEventListener("focus", () => {
+      if (
+        !this._keyboardInputActive &&
+        this.el.matches(":focus-visible")
+      ) {
+        this._showKeyboardEntryHint();
+      }
+    });
+    this.el.addEventListener("blur", (ev: FocusEvent) => {
+      if (
+        this._keyboardInputActive &&
+        ev.relatedTarget !== this._keyboardApplication
+      ) {
+        this._exitKeyboardMovement();
+      } else if (!this._keyboardInputActive) {
+        this._hideKeyboardEntryHint();
+      }
+    });
     this.el.addEventListener("click", (ev: MouseEvent) => {
       if (
         ev.target === this.el &&
@@ -641,6 +667,19 @@ export class ParsonsInput implements IParsonsInput {
         this._moveActiveBlock(ev);
       }
     });
+  };
+
+  private _showKeyboardEntryHint = (): void => {
+    this._keyboardEntryHint.textContent = t("msg_parson_enter_activate");
+    this._keyboardEntryHint.style.display = "";
+    this._keyboardEntryHint.classList.remove("parsons-entry-hint");
+    void this._keyboardEntryHint.offsetWidth;
+    this._keyboardEntryHint.classList.add("parsons-entry-hint");
+  };
+
+  private _hideKeyboardEntryHint = (): void => {
+    this._keyboardEntryHint.style.display = "none";
+    this._keyboardEntryHint.classList.remove("parsons-entry-hint");
   };
 
   private _getBlockPosition = (block: Node): number => {
