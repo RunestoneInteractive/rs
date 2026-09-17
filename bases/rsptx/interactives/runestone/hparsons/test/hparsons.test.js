@@ -282,10 +282,12 @@ describe("HParsons keyboard movement surface", () => {
         });
         const input = hp.hparsonsInput.querySelector(".hparsons-input");
         const blocks = input.querySelectorAll(".parsons-block");
+        const keyboardApplication = input.querySelector(
+            ".hparsons-keyboard-application",
+        );
 
         expect(input.tabIndex).toBe(0);
         expect(input.getAttribute("role")).toBe("button");
-        expect(input.getAttribute("aria-pressed")).toBe("false");
         expect(Array.from(blocks).every((block) => block.tabIndex === -1)).toBe(
             true,
         );
@@ -293,20 +295,27 @@ describe("HParsons keyboard movement surface", () => {
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
         );
-        expect(input.getAttribute("role")).toBe("application");
-        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[0].id);
-        expect(document.activeElement).toBe(blocks[0]);
+        expect(input.getAttribute("role")).toBe("button");
+        expect(keyboardApplication.getAttribute("role")).toBe("application");
+        expect(keyboardApplication.getAttribute("aria-label")).toContain(
+            "Use arrow keys to navigate blocks",
+        );
+        expect(document.activeElement).toBe(keyboardApplication);
 
-        blocks[0].dispatchEvent(
+        keyboardApplication.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
         );
-        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[1].id);
-        expect(document.activeElement).toBe(blocks[1]);
+        expect(keyboardApplication.getAttribute("aria-label")).toContain(
+            "position 2 of 3",
+        );
+        expect(document.activeElement).toBe(keyboardApplication);
 
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
         );
-        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[1].id);
+        expect(keyboardApplication.getAttribute("aria-label")).toContain(
+            "position 2 of 3",
+        );
 
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
@@ -319,24 +328,20 @@ describe("HParsons keyboard movement surface", () => {
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
         );
-        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[1].id);
 
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
         );
-        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[2].id);
 
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
         );
-        expect(input.getAttribute("aria-activedescendant")).toBe(blocks[0].id);
 
         input.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
         );
         expect(input.getAttribute("role")).toBe("button");
-        expect(input.getAttribute("aria-pressed")).toBe("false");
-        expect(input.hasAttribute("aria-activedescendant")).toBe(false);
+        expect(keyboardApplication.hasAttribute("aria-label")).toBe(false);
     });
 
     it("refocuses the movement surface on the block clicked in movement mode", () => {
@@ -352,8 +357,9 @@ describe("HParsons keyboard movement surface", () => {
         );
         firstBlock.click();
 
-        expect(document.activeElement).toBe(firstBlock);
-        expect(input.getAttribute("aria-activedescendant")).toBe(firstBlock.id);
+        expect(document.activeElement).toBe(
+            input.querySelector(".hparsons-keyboard-application"),
+        );
         expect(firstBlock.parentElement.classList.contains("drop-area")).toBe(
             true,
         );

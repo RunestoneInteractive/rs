@@ -1,6 +1,8 @@
 import Sortable from "sortablejs";
 import { MicroParsonsEvent } from "./LoggingEvents";
 import hljs from "highlight.js/lib/core";
+import { t } from "../../../common/js/rsi18n.js";
+import { getAccessibleElementText } from "../../../common/js/mathjax-a11y.js";
 
 declare class MicroParsons {
   logEvent(event: any): void;
@@ -28,6 +30,8 @@ export class ParsonsInput implements IParsonsInput {
   private _liveRegion: HTMLDivElement;
 
   private _activeBlock: HTMLDivElement | null;
+  private _keyboardApplication: HTMLDivElement;
+  private _keyboardInputActive: boolean;
   private _keyboardInstructions: HTMLSpanElement;
   private _nextBlockId: number;
   // if the input has been initialized once
@@ -77,6 +81,7 @@ export class ParsonsInput implements IParsonsInput {
 
 
     this._activeBlock = null;
+    this._keyboardInputActive = false;
     this._nextBlockId = 0;
     this._keyboardInstructions = document.createElement("span");
     this._keyboardInstructions.id = `${this.el.id}-keyboard-instructions`;
@@ -84,10 +89,19 @@ export class ParsonsInput implements IParsonsInput {
     this._keyboardInstructions.textContent =
       "Press Enter to move blocks with the keyboard.";
     this.el.appendChild(this._keyboardInstructions);
+    this._keyboardApplication = document.createElement("div");
+    this._keyboardApplication.classList.add("hparsons-keyboard-application");
+    this._keyboardApplication.setAttribute("role", "application");
+    this._keyboardApplication.tabIndex = -1;
+    this._keyboardApplication.addEventListener("blur", () => {
+      if (this._keyboardInputActive) {
+        this._exitKeyboardMovement();
+      }
+    });
+    this.el.appendChild(this._keyboardApplication);
     this.el.tabIndex = 0;
     this.el.setAttribute("role", "button");
-    this.el.setAttribute("aria-pressed", "false");
-    this.el.setAttribute("aria-label", "Parsons block arrangement");
+    this.el.setAttribute("aria-label", t("msg_parson_keyboard_entry_label"));
     this.el.setAttribute("aria-describedby", this._keyboardInstructions.id);
     this.storedSourceBlocks = [];
     this.blockOrder = [];
@@ -144,6 +158,14 @@ export class ParsonsInput implements IParsonsInput {
       return (block.textContent || "").slice(0, -tooltipLength);
     }
     return block.textContent || "";
+  };
+
+  private _getAccessibleBlockText = (block: HTMLDivElement): string => {
+    const accessibleBlock = block.cloneNode(true) as HTMLDivElement;
+    accessibleBlock
+      .querySelectorAll(".parsons-tooltip")
+      .forEach((tooltip) => tooltip.remove());
+    return getAccessibleElementText(accessibleBlock);
   };
 
   // Durstenfeld shuffle
@@ -431,7 +453,7 @@ export class ParsonsInput implements IParsonsInput {
         block.setAttribute("role", "option");
         block.setAttribute(
           "aria-label",
-          `${this._getTextFromBlock(block).trim()}, ${areaName}, item ${i + 1} of ${blocks.length}${block.classList.contains("incorrectPosition") ? ", incorrect" : ""}`,
+          `${this._getAccessibleBlockText(block)}, ${areaName}, item ${i + 1} of ${blocks.length}${block.classList.contains("incorrectPosition") ? ", incorrect" : ""}`,
         );
         block.setAttribute(
           "aria-selected",
@@ -442,14 +464,6 @@ export class ParsonsInput implements IParsonsInput {
     };
     applyToArea(this._dragArea, "available blocks");
     applyToArea(this._dropArea, "answer area");
-    if (this.el.getAttribute("role") === "application") {
-        if (this._activeBlock) {
-         this.el.setAttribute("aria-activedescendant", this._activeBlock.id);
-       } else {
-         this.el.removeAttribute("aria-activedescendant");
-       }
-      this.el.setAttribute("aria-activedescendant", this._activeBlock.id);
-    }
   };
 
   private _allBlocks = (): HTMLDivElement[] => [
@@ -461,43 +475,79 @@ export class ParsonsInput implements IParsonsInput {
     this._updateBlockAria();
   };
 
-  private _setActiveBlock = (block: HTMLDivElement): void => {
+  private _getKeyboardBlockLocation = (block: HTMLDivElement): string => {
+    const area =
+      block.parentElement === this._dragArea
+        ? this._dragArea
+        : this._dropArea;
+    const blocks = Array.from(
+      area.querySelectorAll<HTMLDivElement>(".parsons-block"),
+    );
+    const position = blocks.indexOf(block) + 1;
+    return area === this._dragArea
+      ? t("msg_parson_keyboard_unplaced_position", position, blocks.length)
+      : t("msg_parson_keyboard_answer_position", position, blocks.length);
+  };
+
+  private _enterKeyboardNavigationMode = (
+    block: HTMLDivElement,
+    includeInstructions = false,
+  ): void => {
+    const label = [
+      t("msg_parson_keyboard_selected", this._getAccessibleBlockText(block)),
+    ];
+    if (block.classList.contains("incorrectPosition")) {
+      label.push(t("msg_parson_incorrect"));
+    }
+    label.push(this._getKeyboardBlockLocation(block));
+    this._keyboardApplication.setAttribute(
+      "aria-label",
+      includeInstructions
+        ? `${t("msg_parson_keyboard_instructions")} ${label.join(". ")}`
+        : label.join(". "),
+    );
+    this._keyboardApplication.focus();
+  };
+
+  private _setActiveBlock = (
+    block: HTMLDivElement,
+    includeInstructions = false,
+  ): void => {
     this._activeBlock = block;
     this._updateBlockAria();
-    if (this.el.getAttribute("role") === "application") {
-      block.focus();
+    if (this._keyboardInputActive) {
+      this._enterKeyboardNavigationMode(block, includeInstructions);
     }
   };
 
   /** Restore the keyboard surface after a pointer click moves a block. */
   private _refocusMovedBlock = (block: HTMLDivElement): void => {
-    if (this.el.getAttribute("role") !== "application") return;
+    if (!this._keyboardInputActive) return;
     this._setActiveBlock(block);
-    block.focus();
   };
 
   private _enterKeyboardMovement = (): void => {
     const blocks = this._allBlocks();
     if (blocks.length === 0) return;
-    this.el.setAttribute("role", "application");
-    this.el.removeAttribute("aria-pressed");
-    this.el.setAttribute("aria-label", "Parsons block movement");
+    this._keyboardInputActive = true;
     this._keyboardInstructions.textContent =
       "Use Left and Right Arrow to choose a block in this area. Use Up and Down Arrow to switch between available blocks and the answer area. Press Enter to move the current block. Press Escape or Tab to finish.";
-    this._setActiveBlock(blocks[0]);
-    this._announce(`Moving ${this._getTextFromBlock(blocks[0]).trim()}`);
+    this._setActiveBlock(blocks[0], true);
+    this._announce(`Moving ${this._getAccessibleBlockText(blocks[0])}`);
   };
 
-  private _exitKeyboardMovement = (): void => {
+  private _exitKeyboardMovement = (returnFocusToEntry = false): void => {
+    this._keyboardInputActive = false;
     this._activeBlock = null;
-    this.el.setAttribute("role", "button");
-    this.el.setAttribute("aria-pressed", "false");
-    this.el.setAttribute("aria-label", "Parsons block arrangement");
-    this.el.removeAttribute("aria-activedescendant");
+    this._keyboardApplication.removeAttribute("aria-label");
+    this.el.setAttribute("aria-label", t("msg_parson_keyboard_entry_label"));
     this._keyboardInstructions.textContent =
       "Press Enter to move blocks with the keyboard.";
     this._updateBlockAria();
     this._announce("Keyboard block movement finished.");
+    if (returnFocusToEntry) {
+      this.el.focus();
+    }
   };
 
   private _moveActiveBlock = (ev: KeyboardEvent): void => {
@@ -526,14 +576,14 @@ export class ParsonsInput implements IParsonsInput {
     this.el.addEventListener("click", (ev: MouseEvent) => {
       if (
         ev.target === this.el &&
-        this.el.getAttribute("role") === "button"
+        !this._keyboardInputActive
       ) {
         this._enterKeyboardMovement();
       }
     });
 
     this.el.addEventListener("keydown", (ev: KeyboardEvent) => {
-      if (this.el.getAttribute("role") !== "application") {
+      if (!this._keyboardInputActive) {
         if (ev.target !== this.el) return;
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
@@ -544,7 +594,7 @@ export class ParsonsInput implements IParsonsInput {
       if (!this.el.contains(ev.target as Node)) return;
       if (ev.key === "Escape") {
         ev.preventDefault();
-        this._exitKeyboardMovement();
+        this._exitKeyboardMovement(true);
         return;
       }
       if (ev.key === "Tab") {
