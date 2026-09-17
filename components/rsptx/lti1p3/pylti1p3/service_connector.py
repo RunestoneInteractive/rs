@@ -11,6 +11,7 @@ import aiohttp
 import typing_extensions as te
 from .exception import LtiServiceException, LtiException
 from .registration import Registration
+from rsptx.logging import rslogger
 
 TServiceConnectorResponse = te.TypedDict(
     "TServiceConnectorResponse",
@@ -113,9 +114,15 @@ class ServiceConnector:
         try:
             r = await self._requests_session.post(auth_url, data=auth_request)
             if not r.ok:
+                rslogger.error(
+                    f"get_access_token post failed: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+                )
                 raise LtiServiceException(r)
         except Exception:
             raw_body = await r.text()
+            rslogger.error(
+                f"get_access_token exception caught: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+            )
             raise LtiServiceException(r)
         if r.content_type == "application/json":
             response = await r.json()
@@ -127,6 +134,9 @@ class ServiceConnector:
                 response = json.loads(raw_body)
             except json.JSONDecodeError:
                 r.reason = "JSON decode error"
+                rslogger.error(
+                    f"get_access_token json decode error: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+                )
                 raise LtiServiceException(r)
 
         self._access_tokens[scope_key] = response["access_token"]
@@ -182,6 +192,9 @@ class ServiceConnector:
             raise LtiException("Unsupported HTTP method: " + method)
 
         if not r.ok:
+            rslogger.error(
+                f"Service request failed: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+            )
             raise LtiServiceException(r)
 
         next_page_url = None
