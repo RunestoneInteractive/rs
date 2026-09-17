@@ -539,6 +539,8 @@ services:
       - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
       - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
       - FORWARDED_ALLOW_IPS=*
+      - CADDY_SITE_ADDRESS=${CADDY_SITE_ADDRESS}
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
 
     depends_on:
       <<: *needs-preflight
