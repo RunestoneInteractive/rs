@@ -1,7 +1,6 @@
+import { Icon } from "@components/ui/Icon";
 import { Button, Menu } from "@mantine/core";
 import { Fragment } from "react";
-
-import { Icon } from "@components/ui/Icon";
 
 import { isNavItemActive, NavItem } from "@/navUtils";
 

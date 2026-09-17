@@ -2,8 +2,8 @@ import styles from "@components/routes/AssignmentBuilder/AssignmentBuilder.modul
 import { ChooseExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/ChooseExercises/ChooseExercises";
 import { SmartSearchExercises } from "@components/routes/AssignmentBuilder/components/exercises/components/SearchExercises/SmartSearchExercises";
 import { Loader } from "@components/ui/Loader";
-import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { notify } from "@components/ui/notify";
+import { exercisesActions, exercisesSelectors } from "@store/exercises/exercises.logic";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 

@@ -1,8 +1,8 @@
 import { Badge, Button, Group, NumberInput, Stack, Text } from "@mantine/core";
+import { useSetManualTotalMutation } from "@store/grader/grader.logic.api";
 import React, { useEffect, useState } from "react";
 
 import { notify } from "@/components/ui/notify";
-import { useSetManualTotalMutation } from "@store/grader/grader.logic.api";
 
 import styles from "../Grader.module.css";
 import { formatScore } from "../state/gradebookSelectors";

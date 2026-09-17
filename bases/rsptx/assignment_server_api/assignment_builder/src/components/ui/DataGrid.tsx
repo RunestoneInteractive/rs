@@ -29,9 +29,8 @@ import {
 } from "@tanstack/react-table";
 import React, { RefCallback, useMemo, useState } from "react";
 
-import { Icon } from "./Icon";
-
 import styles from "./DataGrid.module.css";
+import { Icon } from "./Icon";
 
 export type DataGridFilter<TData extends RowData, TValue> =
   | { variant: "text"; placeholder?: string }
@@ -114,6 +113,7 @@ function getColumnFilterLabel<T>(column: Column<T, unknown>): string {
 
 function ColumnFilterControl<T>({ column }: { column: Column<T, unknown> }) {
   const filter = column.columnDef.meta?.filter;
+
   if (!filter) return null;
 
   if (filter.variant === "custom") {
@@ -302,6 +302,7 @@ export function DataGrid<T>({
             <Table.Tr key={`filter-${hg.id}`}>
               {hg.headers.map((header) => {
                 const meta = header.column.columnDef.meta;
+
                 return (
                   <Table.Th
                     key={header.id}
@@ -342,6 +343,7 @@ export function DataGrid<T>({
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta;
                 const onCellClick = meta?.onCellClick;
+
                 return (
                   <Table.Td
                     key={cell.id}

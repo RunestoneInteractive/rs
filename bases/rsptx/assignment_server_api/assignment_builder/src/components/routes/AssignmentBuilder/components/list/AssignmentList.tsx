@@ -360,15 +360,7 @@ export const AssignmentList = ({
         )
       }
     ],
-    [
-      filteredAssignments.length,
-      selectColumn,
-      onEdit,
-      onEnforceDueChange,
-      onVisibilityChange,
-      onDuplicate,
-      confirmRemove
-    ]
+    [confirmRemove, onDuplicate, onEdit, onEnforceDueChange, onVisibilityChange]
   );
 
   const showEmptyState = !loading && assignments.length === 0;

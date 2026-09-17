@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { readingsApi, useGetAvailableReadingsQuery } from "./readings.logic.api";
 import { readingsSlice } from "@store/readings/readings.logic";
+
 import type { DetailResponse } from "@/types/api";
 import type { GetAvailableReadingsPayload } from "@/types/readings";
 import type { TreeNode } from "@/types/treeNode";
+
+import { readingsApi, useGetAvailableReadingsQuery } from "./readings.logic.api";
 
 vi.mock("@components/ui/notify", () => ({
   notify: {
@@ -59,18 +61,21 @@ describe("readingsApi store integration", () => {
   it("initial readingsApi state has a queries key", () => {
     const store = buildStore();
     const apiState = store.getState()[readingsApi.reducerPath];
+
     expect(apiState).toHaveProperty("queries");
   });
 
   it("initial readingsApi state has a mutations key", () => {
     const store = buildStore();
     const apiState = store.getState()[readingsApi.reducerPath];
+
     expect(apiState).toHaveProperty("mutations");
   });
 
   it("readings slice starts with empty arrays alongside readingsApi", () => {
     const store = buildStore();
     const readingsState = store.getState().readings;
+
     expect(readingsState.availableReadings).toEqual([]);
     expect(readingsState.selectedReadings).toEqual([]);
   });
@@ -79,6 +84,7 @@ describe("readingsApi store integration", () => {
 describe("getAvailableReadings endpoint", () => {
   it("endpoint has a select method", () => {
     const endpoint = readingsApi.endpoints.getAvailableReadings;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 
@@ -96,6 +102,7 @@ describe("getAvailableReadings endpoint", () => {
     };
 
     const result = queryFn(payload);
+
     expect(result.method).toBe("POST");
     expect(result.url).toBe("/assignment/instructor/fetch_chooser_data");
     expect(result.body).toBe(payload);
@@ -113,6 +120,7 @@ describe("getAvailableReadings transformResponse", () => {
     };
 
     const result = response.detail.questions;
+
     expect(result).toHaveLength(3);
     expect(result).toBe(nodes);
   });
@@ -123,6 +131,7 @@ describe("getAvailableReadings transformResponse", () => {
     };
 
     const result = response.detail.questions;
+
     expect(result).toEqual([]);
   });
 
@@ -135,6 +144,7 @@ describe("getAvailableReadings transformResponse", () => {
     };
 
     const result = response.detail.questions;
+
     expect(result[0].key).toBe("ch1");
     expect(result[0].label).toBe("Chapter 1");
     expect(result[0].children).toHaveLength(1);

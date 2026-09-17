@@ -139,8 +139,10 @@ export const mergeQuestionJsonWithDefaults = (
       questionJson?.parsonspersonalize ??
       (defaultQuestionJson.parsonspersonalize as "" | "movable" | "partial"),
     parsonsexample: questionJson?.parsonsexample ?? defaultQuestionJson.parsonsexample,
-    parsonsPersonalized: questionJson?.parsonsPersonalized ?? defaultQuestionJson.parsonsPersonalized,
+    parsonsPersonalized:
+      questionJson?.parsonsPersonalized ?? defaultQuestionJson.parsonsPersonalized,
     questionLabels: questionJson?.questionLabels ?? {}
   };
+
   return merged;
 };

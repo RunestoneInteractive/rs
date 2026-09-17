@@ -1,12 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 
+import { Exercise } from "@/types/exercises";
+
 import {
   assignmentExerciseActions,
   assignmentExerciseSelectors,
   assignmentExerciseSlice,
   AssignmentExerciseState
 } from "./assignmentExercise.logic";
-import { Exercise } from "@/types/exercises";
 
 const makeExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
   id: 1,
@@ -56,6 +57,7 @@ const buildStore = (preloadedExercises: Exercise[] = []) =>
 describe("assignmentExerciseSlice reducer", () => {
   it("returns initial state with empty assignmentExercises when no action dispatched", () => {
     const store = buildStore();
+
     expect(store.getState().assignmentExercise.assignmentExercises).toEqual([]);
   });
 
@@ -91,6 +93,7 @@ describe("getAssignmentExercises selector", () => {
   it("returns empty array when no exercises are in state", () => {
     const store = buildStore();
     const result = assignmentExerciseSelectors.getAssignmentExercises(store.getState() as any);
+
     expect(result).toEqual([]);
   });
 
@@ -132,6 +135,7 @@ describe("getAssignmentReadings selector", () => {
   it("returns empty array when no exercises are in state", () => {
     const store = buildStore();
     const result = assignmentExerciseSelectors.getAssignmentReadings(store.getState() as any);
+
     expect(result).toEqual([]);
   });
 
@@ -186,9 +190,9 @@ describe("setAssignmentExercisesForAssignment", () => {
     );
 
     expect(store.getState().assignmentExercise.assignmentExercises).toEqual(exercises);
-    expect(
-      assignmentExerciseSelectors.getExercisesForAssignmentId(store.getState() as any)
-    ).toBe(6);
+    expect(assignmentExerciseSelectors.getExercisesForAssignmentId(store.getState() as any)).toBe(
+      6
+    );
   });
 
   it("reports the data as belonging to the new assignment after a switch", () => {
@@ -208,8 +212,8 @@ describe("setAssignmentExercisesForAssignment", () => {
     );
 
     expect(store.getState().assignmentExercise.assignmentExercises).toEqual([]);
-    expect(
-      assignmentExerciseSelectors.getExercisesForAssignmentId(store.getState() as any)
-    ).toBe(7);
+    expect(assignmentExerciseSelectors.getExercisesForAssignmentId(store.getState() as any)).toBe(
+      7
+    );
   });
 });

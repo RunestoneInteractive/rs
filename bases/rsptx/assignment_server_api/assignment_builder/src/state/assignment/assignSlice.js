@@ -18,8 +18,8 @@
  * - `searchForQuestions` is used to search for questions in the question bank
  * @memberof AssignmentEditor
  */
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { notify } from "@components/ui/notify";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 import { setSelectedNodes } from "../epicker/ePickerSlice";
 

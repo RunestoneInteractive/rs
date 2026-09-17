@@ -35,13 +35,15 @@ export const generateActiveCodePreview = (
 
   // CodeTailor attributes
   let codeTailorAttrs = "";
+
   if (codeTailorOptions?.enableCodeTailor && codeTailorOptions?.parsonspersonalize) {
     codeTailorAttrs += ` data-parsonspersonalize="${codeTailorOptions.parsonspersonalize}"`;
     // If parsonsexample is provided, use it; otherwise default to LLM-example
     const parsonsExampleValue = codeTailorOptions.parsonsexample?.trim() || "LLM-example";
+
     codeTailorAttrs += ` data-parsonsexample="${parsonsExampleValue}"`;
     if (codeTailorOptions.parsonsPersonalized === false) {
-      codeTailorAttrs += ` data-parsons-personalized="false"`;
+      codeTailorAttrs += ' data-parsons-personalized="false"';
     }
   }
 

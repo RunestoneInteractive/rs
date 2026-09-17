@@ -106,6 +106,7 @@ export const BlockItem: FC<BlockItemProps> = ({
   const calculateEditorHeight = useCallback((content: string) => {
     if (!content) return MIN_EDITOR_HEIGHT;
     const lineCount = content.split("\n").length;
+
     return Math.max(lineCount * LINE_HEIGHT + EDITOR_PADDING + LINE_HEIGHT / 2, MIN_EDITOR_HEIGHT);
   }, []);
 
@@ -116,6 +117,7 @@ export const BlockItem: FC<BlockItemProps> = ({
   const handleContentChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement> | string) => {
       const newContent = typeof e === "string" ? e : e.target.value;
+
       onContentChange(block.id, newContent);
     },
     [block.id, onContentChange]
@@ -159,8 +161,10 @@ export const BlockItem: FC<BlockItemProps> = ({
     (y: number, monacoEditor: Element | null): { lineIndex: number; offsetY: number } | null => {
       if (!monacoEditor) return null;
       const lines = block.content.split("\n");
+
       if (lines.length <= 1) return null;
       const lineElements = monacoEditor.querySelectorAll(".view-line");
+
       if (!lineElements || lineElements.length <= 1) return null;
 
       let closestLine = 0;
@@ -169,10 +173,12 @@ export const BlockItem: FC<BlockItemProps> = ({
 
       for (let i = 0; i < lineElements.length; i++) {
         const lineRect = (lineElements[i] as HTMLElement).getBoundingClientRect();
+
         if (i < lineElements.length - 1) {
           const nextRect = (lineElements[i + 1] as HTMLElement).getBoundingClientRect();
           const boundary = (lineRect.bottom + nextRect.top) / 2;
           const distance = Math.abs(y - boundary);
+
           if (distance < closestDistance) {
             closestDistance = distance;
             closestLine = i + 1;
@@ -191,9 +197,11 @@ export const BlockItem: FC<BlockItemProps> = ({
       setCursorPosition({ x: e.clientX, y: e.clientY });
       const container = editorContainerRef.current;
       const monacoEditor = container.querySelector(".monaco-editor");
+
       if (monacoEditor) {
         const containerRect = container.getBoundingClientRect();
         const boundary = findNearestLineBoundary(e.clientY, monacoEditor);
+
         if (boundary) {
           setHoveredLine(boundary.lineIndex);
           setHoveredLineOffset(boundary.offsetY - containerRect.top);
@@ -213,14 +221,17 @@ export const BlockItem: FC<BlockItemProps> = ({
       if (cursorPosition && dividerRef.current && editorContainerRef.current) {
         const container = editorContainerRef.current;
         const monacoEditor = container.querySelector(".monaco-editor");
+
         if (monacoEditor) {
           const boundary = findNearestLineBoundary(cursorPosition.y, monacoEditor);
+
           if (boundary) {
             setHoveredLineOffset(boundary.offsetY - container.getBoundingClientRect().top);
           }
         }
       }
     };
+
     window.addEventListener("scroll", handleScroll, true);
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [hoveredLine, cursorPosition, findNearestLineBoundary]);
@@ -239,6 +250,7 @@ export const BlockItem: FC<BlockItemProps> = ({
 
   const getDividerStyle = useCallback((): CSSProperties => {
     const base: CSSProperties = { top: `${hoveredLineOffset}px` };
+
     return cursorPosition ? { ...base, pointerEvents: "none" as const } : base;
   }, [hoveredLineOffset, cursorPosition]);
 
@@ -370,6 +382,7 @@ export const BlockItem: FC<BlockItemProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 const newIsDistractor = !block.isDistractor;
+
                 onDistractorChange!(block.id, newIsDistractor);
               }}
               onMouseDown={(e) => e.stopPropagation()}
@@ -380,6 +393,7 @@ export const BlockItem: FC<BlockItemProps> = ({
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   const newIsDistractor = !block.isDistractor;
+
                   onDistractorChange!(block.id, newIsDistractor);
                 }
               }}
@@ -410,6 +424,7 @@ export const BlockItem: FC<BlockItemProps> = ({
                 checked={block.isDistractor === true && block.pairedWithBlockAbove === true}
                 onChange={(e) => {
                   const paired = e.currentTarget.checked;
+
                   if (paired && !block.isDistractor) {
                     onDistractorChange!(block.id, true);
                   }
@@ -466,6 +481,7 @@ export const BlockItem: FC<BlockItemProps> = ({
                       .split(",")
                       .map((d) => d.trim())
                       .filter((d) => d !== "");
+
                     onDependsChange(block.id, deps);
                   }}
                   className={styles.optionsPanelInput}
@@ -495,6 +511,7 @@ export const BlockItem: FC<BlockItemProps> = ({
                 value={block.displayOrder !== undefined ? String(block.displayOrder) : ""}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
+
                   onOrderChange(block.id, isNaN(val) ? 0 : val);
                 }}
                 className={styles.optionsPanelInput}
@@ -625,6 +642,7 @@ export const BlockItem: FC<BlockItemProps> = ({
                     checked={block.isDistractor === true && block.pairedWithBlockAbove === true}
                     onChange={(e) => {
                       const paired = e.currentTarget.checked;
+
                       if (paired && !block.isDistractor) {
                         onDistractorChange!(block.id, true);
                       }

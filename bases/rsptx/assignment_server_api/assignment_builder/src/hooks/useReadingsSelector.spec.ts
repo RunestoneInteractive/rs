@@ -1,18 +1,21 @@
-import { renderHook } from "@testing-library/react";
 import { configureStore } from "@reduxjs/toolkit";
-import { Provider } from "react-redux";
-import React from "react";
 import { assignmentSlice } from "@store/assignment/assignment.logic";
 import { assignmentExerciseSlice } from "@store/assignmentExercise/assignmentExercise.logic";
-import { readingsSlice } from "@store/readings/readings.logic";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
-import { useReadingsSelector } from "./useReadingsSelector";
-import { TreeNode } from "@/types/treeNode";
+import { readingsSlice } from "@store/readings/readings.logic";
+import { renderHook } from "@testing-library/react";
+import React from "react";
+import { Provider } from "react-redux";
+
 import { Exercise } from "@/types/exercises";
+import { TreeNode } from "@/types/treeNode";
+
+import { useReadingsSelector } from "./useReadingsSelector";
 
 vi.mock("@store/assignmentExercise/assignmentExercise.logic.api", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@store/assignmentExercise/assignmentExercise.logic.api")>();
+
   return {
     ...actual,
     useGetExercisesQuery: vi.fn()
@@ -110,6 +113,7 @@ describe("useReadingsSelector", () => {
   describe("error state", () => {
     it("returns error true and refetch when query errors", () => {
       const mockRefetch = vi.fn();
+
       vi.mocked(useGetExercisesQuery).mockReturnValue({
         isLoading: false,
         isError: true,
@@ -126,6 +130,7 @@ describe("useReadingsSelector", () => {
 
     it("returns error true when data is undefined and not loading", () => {
       const mockRefetch = vi.fn();
+
       vi.mocked(useGetExercisesQuery).mockReturnValue({
         isLoading: false,
         isError: false,
@@ -141,6 +146,7 @@ describe("useReadingsSelector", () => {
 
     it("refetch calls the underlying refetch function", () => {
       const mockRefetch = vi.fn();
+
       vi.mocked(useGetExercisesQuery).mockReturnValue({
         isLoading: false,
         isError: true,
@@ -159,6 +165,7 @@ describe("useReadingsSelector", () => {
   describe("success state with no readings", () => {
     it("returns empty selectedKeys when no readings are assigned", () => {
       const exercises: Exercise[] = [makeExercise()];
+
       vi.mocked(useGetExercisesQuery).mockReturnValue({
         isLoading: false,
         isError: false,
@@ -170,6 +177,7 @@ describe("useReadingsSelector", () => {
       const { result } = renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       const output = result.current as any;
+
       expect(output.readingExercises).toEqual([]);
       expect(output.selectedKeys).toEqual({});
     });
@@ -202,9 +210,10 @@ describe("useReadingsSelector", () => {
       const { result } = renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       const output = result.current as any;
+
       expect(output.readingExercises).toHaveLength(1);
-      expect(output.selectedKeys["sub1"]).toEqual({ checked: true, partialChecked: false });
-      expect(output.selectedKeys["ch1"]).toEqual({ checked: false, partialChecked: true });
+      expect(output.selectedKeys.sub1).toEqual({ checked: true, partialChecked: false });
+      expect(output.selectedKeys.ch1).toEqual({ checked: false, partialChecked: true });
     });
 
     it("returns chapter fully checked when all children are assigned", () => {
@@ -234,9 +243,10 @@ describe("useReadingsSelector", () => {
       const { result } = renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       const output = result.current as any;
-      expect(output.selectedKeys["ch1"]).toEqual({ checked: true, partialChecked: true });
-      expect(output.selectedKeys["sub1"]).toEqual({ checked: true, partialChecked: false });
-      expect(output.selectedKeys["sub2"]).toEqual({ checked: true, partialChecked: false });
+
+      expect(output.selectedKeys.ch1).toEqual({ checked: true, partialChecked: true });
+      expect(output.selectedKeys.sub1).toEqual({ checked: true, partialChecked: false });
+      expect(output.selectedKeys.sub2).toEqual({ checked: true, partialChecked: false });
     });
 
     it("returns chapter not checked when no children are assigned", () => {
@@ -261,7 +271,8 @@ describe("useReadingsSelector", () => {
       const { result } = renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       const output = result.current as any;
-      expect(output.selectedKeys["ch2"]).toEqual({ checked: false, partialChecked: false });
+
+      expect(output.selectedKeys.ch2).toEqual({ checked: false, partialChecked: false });
     });
 
     it("skips query when selectedAssignmentId is null", () => {
@@ -273,6 +284,7 @@ describe("useReadingsSelector", () => {
       } as any);
 
       const store = buildStore(null, [], []);
+
       renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       expect(useGetExercisesQuery).toHaveBeenCalledWith(0, {
@@ -290,6 +302,7 @@ describe("useReadingsSelector", () => {
       } as any);
 
       const store = buildStore(42, [], []);
+
       renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       expect(useGetExercisesQuery).toHaveBeenCalledWith(42, {
@@ -365,6 +378,7 @@ describe("useReadingsSelector", () => {
       const { result } = renderHook(() => useReadingsSelector(), { wrapper: wrapper(store) });
 
       const output = result.current as any;
+
       expect(output.readingExercises[0].sorting_priority).toBe(1);
       expect(output.readingExercises[1].sorting_priority).toBe(2);
     });

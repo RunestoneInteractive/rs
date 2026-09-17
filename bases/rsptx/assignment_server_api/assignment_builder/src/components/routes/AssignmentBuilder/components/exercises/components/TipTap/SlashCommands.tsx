@@ -569,6 +569,7 @@ export const renderItems = () => {
 
       const getAppendTarget = () => {
         const exerciseLayout = document.getElementById("exercise-layout");
+
         return exerciseLayout || document.body;
       };
 

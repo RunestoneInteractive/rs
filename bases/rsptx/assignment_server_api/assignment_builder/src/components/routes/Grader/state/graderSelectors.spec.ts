@@ -1,4 +1,5 @@
 import type { GraderStudentAnswer } from "@store/grader/grader.logic.api";
+
 import {
   isAutogradeable,
   getStudentStatus,
@@ -47,11 +48,13 @@ describe("getStudentStatus", () => {
   describe("in_progress — dirty sid takes priority", () => {
     it("returns 'in_progress' when sid is in dirtySids regardless of other fields", () => {
       const s = makeAnswer({ sid: "s1", score: 5 });
+
       expect(getStudentStatus(s, undefined, { dirtySids: new Set(["s1"]) })).toBe("in_progress");
     });
 
     it("returns normal status when sid is NOT in dirtySids", () => {
       const s = makeAnswer({ sid: "s2", attempts: 0, score: null });
+
       expect(getStudentStatus(s, undefined, { dirtySids: new Set(["s1"]) })).toBe("no_submission");
     });
   });
@@ -59,16 +62,19 @@ describe("getStudentStatus", () => {
   describe("no_submission", () => {
     it("returns 'no_submission' when attempts is 0 and score is null", () => {
       const s = makeAnswer({ attempts: 0, score: null });
+
       expect(getStudentStatus(s)).toBe("no_submission");
     });
 
     it("does NOT return 'no_submission' when attempts is 0 but score is set", () => {
       const s = makeAnswer({ attempts: 0, score: 0 });
+
       expect(getStudentStatus(s)).not.toBe("no_submission");
     });
 
     it("does NOT return 'no_submission' when attempts > 0", () => {
       const s = makeAnswer({ attempts: 1, score: null });
+
       expect(getStudentStatus(s)).not.toBe("no_submission");
     });
   });
@@ -76,31 +82,37 @@ describe("getStudentStatus", () => {
   describe("manual grading path (no autograde or autograde='manual')", () => {
     it("returns 'graded' when score is not null", () => {
       const s = makeAnswer({ attempts: 1, score: 8 });
+
       expect(getStudentStatus(s, { autograde: "manual" })).toBe("graded");
     });
 
     it("returns 'graded' when score is 0", () => {
       const s = makeAnswer({ attempts: 1, score: 0 });
+
       expect(getStudentStatus(s)).toBe("graded");
     });
 
     it("returns 'graded' when comment is non-empty and score is null", () => {
       const s = makeAnswer({ attempts: 1, score: null, comment: "good job" });
+
       expect(getStudentStatus(s)).toBe("graded");
     });
 
     it("returns 'pending' when score is null and comment is empty string", () => {
       const s = makeAnswer({ attempts: 1, score: null, comment: "" });
+
       expect(getStudentStatus(s)).toBe("pending");
     });
 
     it("returns 'pending' when score is null and comment is null", () => {
       const s = makeAnswer({ attempts: 1, score: null, comment: null });
+
       expect(getStudentStatus(s)).toBe("pending");
     });
 
     it("returns 'pending' when q is undefined and no score or comment", () => {
       const s = makeAnswer({ attempts: 1, score: null });
+
       expect(getStudentStatus(s, undefined)).toBe("pending");
     });
   });
@@ -110,21 +122,25 @@ describe("getStudentStatus", () => {
 
     it("returns 'autograded' when score is set and no comment", () => {
       const s = makeAnswer({ attempts: 1, score: 7 });
+
       expect(getStudentStatus(s, autoQ)).toBe("autograded");
     });
 
     it("returns 'graded' when score is set and comment is non-empty", () => {
       const s = makeAnswer({ attempts: 1, score: 7, comment: "nice" });
+
       expect(getStudentStatus(s, autoQ)).toBe("graded");
     });
 
     it("returns 'pending' when score is null", () => {
       const s = makeAnswer({ attempts: 1, score: null });
+
       expect(getStudentStatus(s, autoQ)).toBe("pending");
     });
 
     it("returns 'autograded' when score is 0 and no comment", () => {
       const s = makeAnswer({ attempts: 1, score: 0 });
+
       expect(getStudentStatus(s, autoQ)).toBe("autograded");
     });
 
@@ -140,6 +156,7 @@ describe("getStudentStatus", () => {
 describe("getQuestionProgress", () => {
   it("returns all-zero progress for empty answers array", () => {
     const result = getQuestionProgress([]);
+
     expect(result).toEqual({
       total: 0,
       graded: 0,
@@ -159,6 +176,7 @@ describe("getQuestionProgress", () => {
       makeAnswer({ sid: "s4", attempts: 1, score: null })
     ];
     const result = getQuestionProgress(answers, { autograde: "manual" });
+
     expect(result.total).toBe(4);
     expect(result.graded).toBe(1);
     expect(result.pending).toBe(2);
@@ -175,6 +193,7 @@ describe("getQuestionProgress", () => {
       makeAnswer({ sid: "s3", attempts: 1, score: null })
     ];
     const result = getQuestionProgress(answers, autoQ);
+
     expect(result.autograded).toBe(1);
     expect(result.graded).toBe(1);
     expect(result.pending).toBe(1);
@@ -186,6 +205,7 @@ describe("getQuestionProgress", () => {
       makeAnswer({ sid: "s2", attempts: 1, score: null })
     ];
     const result = getQuestionProgress(answers, undefined, { dirtySids: new Set(["s1"]) });
+
     expect(result.inProgress).toBe(1);
     expect(result.pending).toBe(1);
   });
@@ -199,11 +219,13 @@ describe("getQuestionProgress", () => {
       makeAnswer({ sid: "s4", attempts: 1, score: null })
     ];
     const result = getQuestionProgress(answers, autoQ);
+
     expect(result.donePct).toBe(50);
   });
 
   it("donePct is 0 when total is 0", () => {
     const result = getQuestionProgress([]);
+
     expect(result.donePct).toBe(0);
   });
 
@@ -213,6 +235,7 @@ describe("getQuestionProgress", () => {
       makeAnswer({ sid: "s2", attempts: 1, score: 6, comment: "ok" })
     ];
     const result = getQuestionProgress(answers, { autograde: "manual" });
+
     expect(result.donePct).toBe(100);
   });
 });
@@ -228,6 +251,7 @@ describe("findNextUngradedSid", () => {
       makeAnswer({ sid: "s2", attempts: 1, score: 5 }),
       makeAnswer({ sid: "s3", attempts: 1, score: 7 })
     ];
+
     expect(findNextUngradedSid(answers, 0, { autograde: "manual" })).toBeNull();
   });
 
@@ -237,6 +261,7 @@ describe("findNextUngradedSid", () => {
       makeAnswer({ sid: "s2", attempts: 1, score: null }),
       makeAnswer({ sid: "s3", attempts: 1, score: null })
     ];
+
     expect(findNextUngradedSid(answers, 0, { autograde: "manual" })).toBe("s2");
   });
 
@@ -246,6 +271,7 @@ describe("findNextUngradedSid", () => {
       makeAnswer({ sid: "s2", attempts: 1, score: 7 }),
       makeAnswer({ sid: "s3", attempts: 1, score: null })
     ];
+
     expect(findNextUngradedSid(answers, 0, { autograde: "manual" })).toBe("s3");
   });
 
@@ -256,11 +282,13 @@ describe("findNextUngradedSid", () => {
       makeAnswer({ sid: "s3", attempts: 1, score: null })
     ];
     const dirtySids = new Set(["s3"]);
+
     expect(findNextUngradedSid(answers, 0, { autograde: "manual" }, { dirtySids })).toBe("s3");
   });
 
   it("returns null when fromIndex is the last element", () => {
     const answers: GraderStudentAnswer[] = [makeAnswer({ sid: "s1", attempts: 1, score: null })];
+
     expect(findNextUngradedSid(answers, 0)).toBeNull();
   });
 });
@@ -271,6 +299,7 @@ describe("findFirstUngradedSid", () => {
       makeAnswer({ sid: "s1", attempts: 1, score: 5 }),
       makeAnswer({ sid: "s2", attempts: 1, score: 7 })
     ];
+
     expect(findFirstUngradedSid(answers, { autograde: "manual" })).toBeNull();
   });
 
@@ -280,6 +309,7 @@ describe("findFirstUngradedSid", () => {
       makeAnswer({ sid: "s2", attempts: 1, score: null }),
       makeAnswer({ sid: "s3", attempts: 1, score: null })
     ];
+
     expect(findFirstUngradedSid(answers, { autograde: "manual" })).toBe("s2");
   });
 
@@ -288,6 +318,7 @@ describe("findFirstUngradedSid", () => {
       makeAnswer({ sid: "s1", attempts: 1, score: null }),
       makeAnswer({ sid: "s2", attempts: 1, score: 5 })
     ];
+
     expect(findFirstUngradedSid(answers, { autograde: "manual" })).toBe("s1");
   });
 
@@ -317,6 +348,7 @@ describe("statusIcon glyph mapping", () => {
 
   it("uses a distinct glyph per status so color is never the only cue", () => {
     const glyphs = Object.values(statusIcon);
+
     expect(new Set(glyphs).size).toBe(glyphs.length);
   });
 });

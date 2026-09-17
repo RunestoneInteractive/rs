@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { SelectedKey, TreeNode } from "@/types/treeNode";
 
 import { TreeTable, TreeTableColumn } from "./TreeTable";

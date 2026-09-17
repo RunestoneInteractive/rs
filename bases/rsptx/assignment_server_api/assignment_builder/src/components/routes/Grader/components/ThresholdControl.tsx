@@ -1,11 +1,11 @@
 import { Badge, Button, Group, NumberInput, Popover, Stack, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
+import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
+import { useSetAssignmentThresholdMutation } from "@store/grader/grader.logic.api";
 import React, { useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { notify } from "@/components/ui/notify";
-import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
-import { useSetAssignmentThresholdMutation } from "@store/grader/grader.logic.api";
 
 import styles from "../Grader.module.css";
 
@@ -50,6 +50,7 @@ export const ThresholdControl: React.FC<ThresholdControlProps> = ({
 
   const confirmSet = () => {
     const pct = typeof value === "number" ? value : Number(value);
+
     if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
       notify.error("Enter a percentage between 0 and 100.");
       return;

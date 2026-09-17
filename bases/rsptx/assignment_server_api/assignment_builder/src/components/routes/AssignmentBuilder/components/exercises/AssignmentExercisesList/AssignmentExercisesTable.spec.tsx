@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentExercisesTable } from "./AssignmentExercisesTable";

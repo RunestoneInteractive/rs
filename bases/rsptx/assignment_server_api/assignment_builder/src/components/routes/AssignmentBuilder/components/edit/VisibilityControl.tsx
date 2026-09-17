@@ -6,9 +6,8 @@ import { convertDateToISO, formatUTCDateLocaleString, parseUTCDate } from "@/uti
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
-import { getVisibilityMode, VisibilityMode } from "./visibilityMode";
-
 import styles from "./VisibilityControl.module.css";
+import { getVisibilityMode, VisibilityMode } from "./visibilityMode";
 
 interface VisibilityControlProps {
   control: Control<Assignment>;

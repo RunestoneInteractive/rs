@@ -1,5 +1,5 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { notify } from "@components/ui/notify";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 export const fetchClassRoster = createAsyncThunk(
   "student/fetchClassRoster",
@@ -97,6 +97,7 @@ export const deleteAccommodations = createAsyncThunk(
       headers: jsheaders,
       method: "DELETE"
     };
+
     for (let id of idList) {
       let resp = await fetch(`/assignment/instructor/accommodation/${id}`, data);
 

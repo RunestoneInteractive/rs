@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
-
 import type { GraderStudentAnswer } from "@store/grader/grader.logic.api";
+import React, { createContext, useContext, useMemo, useState } from "react";
 
 interface GraderTourContextValue {
   isDemo: boolean;
@@ -11,12 +10,9 @@ interface GraderTourContextValue {
 
 const Ctx = createContext<GraderTourContextValue | null>(null);
 
-export const GraderTourProvider: React.FC<{ children: React.ReactNode }> = ({
-  children
-}) => {
+export const GraderTourProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDemo, setIsDemo] = useState(false);
-  const [demoSelected, setDemoSelected] =
-    useState<GraderStudentAnswer | null>(null);
+  const [demoSelected, setDemoSelected] = useState<GraderStudentAnswer | null>(null);
 
   const value = useMemo<GraderTourContextValue>(
     () => ({ isDemo, setIsDemo, demoSelected, setDemoSelected }),
@@ -28,6 +24,7 @@ export const GraderTourProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useGraderTourContext = (): GraderTourContextValue => {
   const v = useContext(Ctx);
+
   if (!v) {
     return {
       isDemo: false,
@@ -38,4 +35,3 @@ export const useGraderTourContext = (): GraderTourContextValue => {
   }
   return v;
 };
-

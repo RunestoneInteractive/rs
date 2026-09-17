@@ -97,6 +97,7 @@ describe("readingsActions.setAvailableReadings", () => {
     store.dispatch(readingsActions.setAvailableReadings(nodes));
 
     const stored = store.getState().readings.availableReadings;
+
     expect(stored).toHaveLength(2);
     expect(stored[0].key).toBe("n1");
     expect(stored[1].key).toBe("n2");
@@ -109,6 +110,7 @@ describe("readingsActions.setAvailableReadings", () => {
     store.dispatch(readingsActions.setAvailableReadings(nodes));
 
     const stored = store.getState().readings.availableReadings;
+
     expect(stored).toHaveLength(1);
     expect(stored[0].key).toBe("n1");
   });
@@ -122,6 +124,7 @@ describe("readingsActions.setAvailableReadings", () => {
     store.dispatch(readingsActions.setAvailableReadings([parent]));
 
     const stored = store.getState().readings.availableReadings;
+
     expect(stored).toHaveLength(1);
     expect(stored[0].children).toHaveLength(1);
     expect(stored[0].children![0].key).toBe("c1");
@@ -136,6 +139,7 @@ describe("readingsActions.setAvailableReadings", () => {
     store.dispatch(readingsActions.setAvailableReadings([parent]));
 
     const stored = store.getState().readings.availableReadings;
+
     expect(stored).toHaveLength(1);
     expect(stored[0].key).toBe("p1");
     expect(stored[0].children).toBeUndefined();
@@ -152,9 +156,11 @@ describe("readingsActions.setAvailableReadings", () => {
     });
 
     const newNodes: TreeNode[] = [makeNode("new", "New Node")];
+
     store.dispatch(readingsActions.setAvailableReadings(newNodes));
 
     const stored = store.getState().readings.availableReadings;
+
     expect(stored).toHaveLength(1);
     expect(stored[0].key).toBe("new");
   });

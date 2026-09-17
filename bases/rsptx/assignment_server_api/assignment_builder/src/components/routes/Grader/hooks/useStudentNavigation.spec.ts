@@ -1,4 +1,6 @@
+import type { GraderStudentAnswer, GraderQuestionStats } from "@store/grader/grader.logic.api";
 import { renderHook, act } from "@testing-library/react";
+import { useParams, useNavigate } from "react-router-dom";
 
 vi.mock("react-router-dom", () => ({
   useParams: vi.fn(),
@@ -9,10 +11,9 @@ vi.mock("../tour/GraderTourContext", () => ({
   useGraderTourContext: vi.fn()
 }));
 
-import { useParams, useNavigate } from "react-router-dom";
 import { useGraderTourContext } from "../tour/GraderTourContext";
+
 import { useStudentNavigation } from "./useStudentNavigation";
-import type { GraderStudentAnswer, GraderQuestionStats } from "@store/grader/grader.logic.api";
 
 const mockNavigate = vi.fn();
 const mockSetDemoSelected = vi.fn();
@@ -67,6 +68,7 @@ function setupMocks(
   vi.mocked(useNavigate).mockReturnValue(mockNavigate);
 
   const demoAnswer = demoSid ? makeAnswer(demoSid) : null;
+
   vi.mocked(useGraderTourContext).mockReturnValue({
     isDemo,
     demoSelected: demoAnswer,
@@ -280,6 +282,7 @@ describe("useStudentNavigation", () => {
 
     it("navigates to previous question with selectLast when on first student", () => {
       const questions = [makeQuestion(10), makeQuestion(20)];
+
       setupMocks({ assignmentId: 1, questionId: 20, sid: "alice" });
 
       const { result } = renderHook(() => useStudentNavigation({ answers, questions }));
@@ -322,6 +325,7 @@ describe("useStudentNavigation", () => {
 
     it("navigates to next question when on last student", () => {
       const questions = [makeQuestion(10), makeQuestion(20)];
+
       setupMocks({ assignmentId: 1, questionId: 10, sid: "charlie" });
 
       const { result } = renderHook(() => useStudentNavigation({ answers, questions }));
@@ -354,6 +358,7 @@ describe("useStudentNavigation", () => {
         makeAnswer("bob", { score: null }),
         makeAnswer("charlie", { score: null })
       ];
+
       setupMocks({ sid: "alice", assignmentId: 1, questionId: 2 });
 
       const { result } = renderHook(() =>
@@ -361,6 +366,7 @@ describe("useStudentNavigation", () => {
       );
 
       let returned: boolean;
+
       act(() => {
         returned = result.current.goNextUngraded();
       });
@@ -375,6 +381,7 @@ describe("useStudentNavigation", () => {
         makeAnswer("bob", { score: 7 }),
         makeAnswer("charlie", { score: 6 })
       ];
+
       setupMocks({ sid: "charlie", assignmentId: 1, questionId: 20 });
       const questions = [makeQuestion(20)];
 
@@ -387,6 +394,7 @@ describe("useStudentNavigation", () => {
       );
 
       let returned: boolean;
+
       act(() => {
         returned = result.current.goNextUngraded();
       });
@@ -401,6 +409,7 @@ describe("useStudentNavigation", () => {
         makeAnswer("bob", { score: 8 }),
         makeAnswer("charlie", { score: 7 })
       ];
+
       setupMocks({ sid: "alice", assignmentId: 1, questionId: 2 });
 
       const { result } = renderHook(() =>
@@ -408,6 +417,7 @@ describe("useStudentNavigation", () => {
       );
 
       let returned: boolean;
+
       act(() => {
         returned = result.current.goNextUngraded();
       });
@@ -422,6 +432,7 @@ describe("useStudentNavigation", () => {
         makeAnswer("charlie", { score: 7 })
       ];
       const questions = [makeQuestion(10), makeQuestion(20)];
+
       setupMocks({ sid: "charlie", assignmentId: 1, questionId: 10 });
 
       const { result } = renderHook(() =>
@@ -433,6 +444,7 @@ describe("useStudentNavigation", () => {
       );
 
       let returned: boolean;
+
       act(() => {
         returned = result.current.goNextUngraded();
       });
@@ -448,6 +460,7 @@ describe("useStudentNavigation", () => {
         makeAnswer("charlie", { score: null })
       ];
       const dirtySids = new Set(["bob"]);
+
       setupMocks({ sid: "alice", assignmentId: 1, questionId: 2 });
 
       const { result } = renderHook(() =>
@@ -473,6 +486,7 @@ describe("useStudentNavigation", () => {
         makeAnswer("bob", { score: null }),
         makeAnswer("charlie", { score: null })
       ];
+
       setupMocks({ sid: "alice" });
 
       const { result } = renderHook(() =>
@@ -484,6 +498,7 @@ describe("useStudentNavigation", () => {
 
     it("returns undefined when all students are graded", () => {
       const allGraded = [makeAnswer("alice", { score: 9 }), makeAnswer("bob", { score: 7 })];
+
       setupMocks({ sid: "alice" });
 
       const { result } = renderHook(() =>

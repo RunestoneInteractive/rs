@@ -15,7 +15,6 @@ import { Icon } from "@/components/ui/Icon";
 import { Exercise } from "@/types/exercises";
 
 import { Editor } from "../../TipTap/Editor";
-
 import { BaseExerciseProps, ExerciseValidation } from "../types/ExerciseTypes";
 
 export const BaseExerciseForm = ({

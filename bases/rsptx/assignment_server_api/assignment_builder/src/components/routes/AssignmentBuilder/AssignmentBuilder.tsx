@@ -24,6 +24,7 @@ import { useDispatch } from "react-redux";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Assignment, CreateAssignmentPayload } from "@/types/assignment";
 
+import styles from "./AssignmentBuilder.module.css";
 import {
   saveBulkEnforceDue,
   saveBulkVisibility,
@@ -40,8 +41,6 @@ import { useAssignmentForm } from "./hooks/useAssignmentForm";
 import { useAssignmentRouting } from "./hooks/useAssignmentRouting";
 import { useAssignmentState } from "./hooks/useAssignmentState";
 import { useNameValidation } from "./hooks/useNameValidation";
-
-import styles from "./AssignmentBuilder.module.css";
 
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();

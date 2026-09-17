@@ -1,4 +1,6 @@
+import { ViewModeSetter } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesList/types";
 import { Icon } from "@components/ui/Icon";
+import { notify } from "@components/ui/notify";
 import { Alert, Button, Group, Modal, Stack, TextInput } from "@mantine/core";
 import {
   useCopyQuestionMutation,
@@ -7,12 +9,9 @@ import {
 } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { useEffect, useState } from "react";
 
-import { ViewModeSetter } from "@components/routes/AssignmentBuilder/components/exercises/AssignmentExercisesList/types";
-
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
 import { regenerateHtmlSrc } from "@/utils/htmlRegeneration";
-import { notify } from "@components/ui/notify";
 
 export const COPY_EXERCISE_TOAST_COPY = {
   copiedAndEditing: "Copy added to this assignment. Opening editor…",

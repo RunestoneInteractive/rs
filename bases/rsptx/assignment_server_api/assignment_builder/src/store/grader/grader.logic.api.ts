@@ -278,6 +278,7 @@ export const studentScoresTag = (assignmentId: number, sid: string): string =>
 export const gradebookCsvFilename = (courseName: string, date: Date = new Date()): string => {
   const safe = (courseName || "course").replace(/[^a-zA-Z0-9_-]+/g, "-");
   const stamp = date.toISOString().slice(0, 10);
+
   return `gradebook-${safe}-${stamp}.csv`;
 };
 
@@ -349,6 +350,7 @@ export const graderApi = createApi({
               entry.originalArgs as { assignmentId: number; questionId: number },
               (draft) => {
                 const row = draft.answers.find((a) => a.sid === sid);
+
                 if (row) {
                   row.score = score;
                   if (comment !== undefined) row.comment = comment;
@@ -361,6 +363,7 @@ export const graderApi = createApi({
             )
           )
         );
+
         try {
           await queryFulfilled;
 
@@ -466,9 +469,11 @@ export const graderApi = createApi({
         const patch = dispatch(
           assignmentApi.util.updateQueryData("getAssignments", undefined, (draft) => {
             const target = draft.find((a) => a.id === assignment_id);
+
             if (target) target.released = released;
           })
         );
+
         try {
           await queryFulfilled;
           dispatch(assignmentApi.util.invalidateTags([{ type: "Assignments" }]));
@@ -488,9 +493,11 @@ export const graderApi = createApi({
         const patch = dispatch(
           assignmentApi.util.updateQueryData("getAssignments", undefined, (draft) => {
             const target = draft.find((a) => a.id === assignment_id);
+
             if (target) target.threshold_pct = threshold_pct;
           })
         );
+
         try {
           await queryFulfilled;
           dispatch(assignmentApi.util.invalidateTags([{ type: "Assignments" }]));

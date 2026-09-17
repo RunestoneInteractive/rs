@@ -1,7 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
+
 import { assignmentApi } from "@/store/assignment/assignment.logic.api";
 import { baseQuery } from "@/store/baseQuery";
+import type { DetailResponse } from "@/types/api";
 import type { Assignment } from "@/types/assignment";
+
 import {
   graderApi,
   useGetGraderQuestionsQuery,
@@ -35,7 +38,6 @@ import type {
   SetManualTotalRequest,
   SetManualTotalResponse
 } from "./grader.logic.api";
-import type { DetailResponse } from "@/types/api";
 
 vi.mock("@/store/baseQuery", () => ({
   baseQuery: vi.fn()
@@ -78,6 +80,7 @@ describe("graderApi module exports", () => {
 
   it("exposes the expected endpoint names", () => {
     const endpointNames = Object.keys(graderApi.endpoints);
+
     expect(endpointNames).toContain("getGraderQuestions");
     expect(endpointNames).toContain("getGraderAnswers");
     expect(endpointNames).toContain("getGraderHistory");
@@ -93,6 +96,7 @@ describe("graderApi module exports", () => {
 
   it("reducer returns a defined initial state", () => {
     const state = graderApi.reducer(undefined, { type: "@@INIT" });
+
     expect(state).toBeDefined();
     expect(typeof state).toBe("object");
   });
@@ -106,18 +110,21 @@ describe("graderApi store integration", () => {
   it("initial graderApi state has a queries key", () => {
     const store = buildStore();
     const apiState = store.getState()[graderApi.reducerPath];
+
     expect(apiState).toHaveProperty("queries");
   });
 
   it("initial graderApi state has a mutations key", () => {
     const store = buildStore();
     const apiState = store.getState()[graderApi.reducerPath];
+
     expect(apiState).toHaveProperty("mutations");
   });
 
   it("initial queries state is an empty object", () => {
     const store = buildStore();
     const apiState = store.getState()[graderApi.reducerPath];
+
     expect(apiState.queries).toEqual({});
   });
 });
@@ -125,26 +132,31 @@ describe("graderApi store integration", () => {
 describe("graderApi endpoint definitions", () => {
   it("getGraderQuestions endpoint has a select method", () => {
     const endpoint = graderApi.endpoints.getGraderQuestions;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 
   it("getGraderAnswers endpoint has a select method", () => {
     const endpoint = graderApi.endpoints.getGraderAnswers;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 
   it("getGraderHistory endpoint has a select method", () => {
     const endpoint = graderApi.endpoints.getGraderHistory;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 
   it("saveGrade endpoint has a select method", () => {
     const endpoint = graderApi.endpoints.saveGrade;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 
   it("regrade endpoint has a select method", () => {
     const endpoint = graderApi.endpoints.regrade;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 });
@@ -161,12 +173,14 @@ describe("saveGrade request body", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let sent: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (baseQuery as any).mockImplementation((args: any) => {
       sent = args;
       return { data: { detail: { sid: "s1", div_id: "q1", score: 5, comment: "" } } };
     });
 
     const store = buildFullStore();
+
     await store
       .dispatch(
         graderApi.endpoints.saveGrade.initiate({
@@ -214,6 +228,7 @@ describe("getGraderQuestions transformResponse", () => {
       detail: { assignment: mockAssignment, questions: mockQuestions }
     };
     const result = response.detail;
+
     expect(result.assignment).toEqual(mockAssignment);
     expect(result.questions).toHaveLength(1);
     expect(result.questions[0].id).toBe(10);
@@ -224,6 +239,7 @@ describe("getGraderQuestions transformResponse", () => {
       detail: { assignment: mockAssignment, questions: mockQuestions }
     };
     const q = response.detail.questions[0];
+
     expect(q.answered_count).toBe(20);
     expect(q.correct_count).toBe(15);
     expect(q.average_score).toBe(3.5);
@@ -263,6 +279,7 @@ describe("getGraderAnswers transformResponse", () => {
       detail: mockAnswersResponse
     };
     const result = response.detail;
+
     expect(result.answers).toHaveLength(2);
     expect(result.answers[0].sid).toBe("student1");
   });
@@ -272,6 +289,7 @@ describe("getGraderAnswers transformResponse", () => {
       detail: mockAnswersResponse
     };
     const ungraded = response.detail.answers.find((a) => a.sid === "student2");
+
     expect(ungraded?.score).toBeNull();
   });
 
@@ -279,6 +297,7 @@ describe("getGraderAnswers transformResponse", () => {
     const response: DetailResponse<GraderAnswersResponse> = {
       detail: mockAnswersResponse
     };
+
     expect(response.detail.question.max_points).toBe(5);
     expect(response.detail.question.question_type).toBe("mchoice");
   });
@@ -293,6 +312,7 @@ describe("getGraderHistory transformResponse", () => {
       }
     };
     const result = response.detail;
+
     expect(result.history).toHaveLength(1);
     expect(result.useinfo).toHaveLength(1);
     expect(result.history[0].answer).toBe("A");
@@ -306,6 +326,7 @@ describe("getGraderHistory transformResponse", () => {
       }
     };
     const historyItem = response.detail.history[0];
+
     expect(historyItem.answer).toEqual({ key: "value" });
     expect(historyItem.correct).toBeNull();
   });
@@ -317,6 +338,7 @@ describe("getGraderHistory transformResponse", () => {
         useinfo: []
       }
     };
+
     expect(response.detail.history[0].answer).toBeNull();
   });
 });
@@ -331,6 +353,7 @@ describe("getCourseRoster transformResponse", () => {
       detail: { students }
     };
     const result = response.detail.students ?? [];
+
     expect(result).toHaveLength(2);
     expect(result[0].username).toBe("alice");
   });
@@ -340,6 +363,7 @@ describe("getCourseRoster transformResponse", () => {
       detail: { students: [] }
     };
     const result = response.detail.students ?? [];
+
     expect(result).toEqual([]);
   });
 });
@@ -361,6 +385,7 @@ describe("getAccommodations transformResponse", () => {
       detail: { accommodations: [mockAccommodation] }
     };
     const result = response.detail;
+
     expect(result.accommodations).toHaveLength(1);
     expect(result.accommodations[0].sid).toBe("student1");
   });
@@ -369,6 +394,7 @@ describe("getAccommodations transformResponse", () => {
     const response: DetailResponse<{ accommodations: Accommodation[] }> = {
       detail: { accommodations: [] }
     };
+
     expect(response.detail.accommodations).toEqual([]);
   });
 });
@@ -396,6 +422,7 @@ describe("regradePreview and regrade transformResponse", () => {
   it("extracts RegradeReport from detail wrapper", () => {
     const response: DetailResponse<RegradeReport> = { detail: mockReport };
     const result = response.detail;
+
     expect(result.total).toBe(10);
     expect(result.changed).toBe(3);
     expect(result.skipped_manual).toBe(2);
@@ -406,6 +433,7 @@ describe("regradePreview and regrade transformResponse", () => {
   it("preserves items array with diff details", () => {
     const response: DetailResponse<RegradeReport> = { detail: mockReport };
     const item = response.detail.items[0];
+
     expect(item.sid).toBe("student1");
     expect(item.old_score).toBe(3);
     expect(item.new_score).toBe(5);
@@ -423,6 +451,7 @@ describe("regradePreview and regrade transformResponse", () => {
       items: []
     };
     const response: DetailResponse<RegradeReport> = { detail: emptyReport };
+
     expect(response.detail.items).toEqual([]);
   });
 });
@@ -439,6 +468,7 @@ describe("regrade invalidatesTags logic", () => {
       ...r.question_ids.map((id) => ({ type: "GraderAnswers" as const, id }))
     ];
     const tags = invalidatesTags({}, null, req);
+
     expect(tags).toContainEqual({ type: "GraderQuestions", id: 5 });
   });
 
@@ -453,6 +483,7 @@ describe("regrade invalidatesTags logic", () => {
       ...r.question_ids.map((id) => ({ type: "GraderAnswers" as const, id }))
     ];
     const tags = invalidatesTags({}, null, req);
+
     expect(tags).toContainEqual({ type: "GraderAnswers", id: 10 });
     expect(tags).toContainEqual({ type: "GraderAnswers", id: 20 });
     expect(tags).toHaveLength(3);
@@ -469,6 +500,7 @@ describe("regrade invalidatesTags logic", () => {
       ...r.question_ids.map((id) => ({ type: "GraderAnswers" as const, id }))
     ];
     const tags = invalidatesTags({}, null, req);
+
     expect(tags).toHaveLength(1);
     expect(tags[0]).toEqual({ type: "GraderQuestions", id: 7 });
   });
@@ -480,6 +512,7 @@ describe("recomputeTotals transformResponse and invalidatesTags", () => {
       detail: { assignment_id: 3, students: 25 }
     };
     const result = response.detail;
+
     expect(result.assignment_id).toBe(3);
     expect(result.students).toBe(25);
   });
@@ -490,6 +523,7 @@ describe("recomputeTotals transformResponse and invalidatesTags", () => {
       { type: "GraderQuestions" as const, id: r.assignment_id }
     ];
     const tags = invalidatesTags({}, null, req);
+
     expect(tags).toEqual([{ type: "GraderQuestions", id: 3 }]);
   });
 });
@@ -507,6 +541,7 @@ describe("getGraderAnswers query builder", () => {
       url: `/assignment/instructor/grader/questions/answers?assignment_id=${assignmentId}&question_id=${questionId}`
     });
     const result = queryFn({ assignmentId: 1, questionId: 10 });
+
     expect(result.url).toBe(
       "/assignment/instructor/grader/questions/answers?assignment_id=1&question_id=10"
     );
@@ -520,16 +555,17 @@ describe("getGraderHistory query builder", () => {
     const queryFn = ({
       assignmentId,
       questionId,
-      sid
+      sid: studentSid
     }: {
       assignmentId: number;
       questionId: number;
       sid: string;
     }) => ({
       method: "GET",
-      url: `/assignment/instructor/grader/questions/history?assignment_id=${assignmentId}&question_id=${questionId}&sid=${encodeURIComponent(sid)}`
+      url: `/assignment/instructor/grader/questions/history?assignment_id=${assignmentId}&question_id=${questionId}&sid=${encodeURIComponent(studentSid)}`
     });
     const result = queryFn({ assignmentId: 1, questionId: 10, sid });
+
     expect(result.url).toContain("sid=user%40example.com");
   });
 
@@ -547,6 +583,7 @@ describe("getGraderHistory query builder", () => {
       url: `/assignment/instructor/grader/questions/history?assignment_id=${assignmentId}&question_id=${questionId}&sid=${encodeURIComponent(sid)}`
     });
     const result = queryFn({ assignmentId: 2, questionId: 20, sid: "student1" });
+
     expect(result.url).toContain("sid=student1");
   });
 });
@@ -558,6 +595,7 @@ describe("deleteAccommodation query builder", () => {
       url: `/assignment/instructor/accommodation/${id}`
     });
     const result = queryFn(42);
+
     expect(result.method).toBe("DELETE");
     expect(result.url).toBe("/assignment/instructor/accommodation/42");
   });
@@ -575,6 +613,7 @@ describe("GraderStudentAnswer optional fields", () => {
       percent: null,
       comment: null
     };
+
     expect(answer.score).toBeNull();
     expect(answer.correct).toBeNull();
     expect(answer.percent).toBeNull();
@@ -589,6 +628,7 @@ describe("RegradeRequest optional fields", () => {
       question_ids: [10],
       sids: ["s1"]
     };
+
     expect(req.overwrite_manual).toBeUndefined();
     expect(req.enforce_deadline).toBeUndefined();
     expect(req.recompute_totals).toBeUndefined();
@@ -605,6 +645,7 @@ describe("RegradeRequest optional fields", () => {
       recompute_totals: true,
       which_to_grade_override: "best_answer"
     };
+
     expect(req.overwrite_manual).toBe(true);
     expect(req.enforce_deadline).toBe(false);
     expect(req.recompute_totals).toBe(true);
@@ -628,6 +669,7 @@ describe("setAssignmentReleased", () => {
       body
     });
     const result = queryFn({ assignment_id: 7, released: true });
+
     expect(result.method).toBe("POST");
     expect(result.url).toBe("/assignment/instructor/grader/release");
     expect(result.body).toEqual({ assignment_id: 7, released: true });
@@ -637,6 +679,7 @@ describe("setAssignmentReleased", () => {
     const response: DetailResponse<{ assignment_id: number; released: boolean }> = {
       detail: { assignment_id: 7, released: true }
     };
+
     expect(response.detail).toEqual({ assignment_id: 7, released: true });
   });
 
@@ -663,12 +706,14 @@ describe("setAssignmentReleased", () => {
     const list = entries.find((e) => e.endpointName === "getAssignments")?.data as
       | Assignment[]
       | undefined;
+
     return list?.find((a) => a.id === 42)?.released;
   }
 
   it("optimistically flips released in the getAssignments cache and persists on success", async () => {
     let released = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (baseQuery as any).mockImplementation((args: any) => {
       if (typeof args === "object" && args.url?.endsWith("/grader/release")) {
         released = args.body.released;
@@ -682,6 +727,7 @@ describe("setAssignmentReleased", () => {
     });
 
     const store = buildFullStore();
+
     await primeAssignments(store);
     expect(releasedInCache(store)).toBe(false);
 
@@ -704,6 +750,7 @@ describe("setAssignmentReleased", () => {
     });
 
     const store = buildFullStore();
+
     await primeAssignments(store);
     expect(releasedInCache(store)).toBe(false);
 
@@ -735,6 +782,7 @@ describe("setAssignmentThreshold", () => {
       body
     });
     const result = queryFn({ assignment_id: 7, threshold_pct: 0.9 });
+
     expect(result.method).toBe("POST");
     expect(result.url).toBe("/assignment/instructor/grader/threshold");
     expect(result.body).toEqual({ assignment_id: 7, threshold_pct: 0.9 });
@@ -744,6 +792,7 @@ describe("setAssignmentThreshold", () => {
     const response: DetailResponse<{ assignment_id: number; threshold_pct: number | null }> = {
       detail: { assignment_id: 7, threshold_pct: 0.9 }
     };
+
     expect(response.detail).toEqual({ assignment_id: 7, threshold_pct: 0.9 });
   });
 
@@ -766,12 +815,14 @@ describe("setAssignmentThreshold", () => {
     const list = entries.find((e) => e.endpointName === "getAssignments")?.data as
       | Assignment[]
       | undefined;
+
     return list?.find((a) => a.id === 42)?.threshold_pct;
   }
 
   it("optimistically patches threshold_pct in the getAssignments cache and persists on success", async () => {
     let threshold: number | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (baseQuery as any).mockImplementation((args: any) => {
       if (typeof args === "object" && args.url?.endsWith("/grader/threshold")) {
         threshold = args.body.threshold_pct;
@@ -790,6 +841,7 @@ describe("setAssignmentThreshold", () => {
     });
 
     const store = buildFullStore();
+
     await store.dispatch(assignmentApi.endpoints.getAssignments.initiate());
     expect(thresholdInCache(store)).toBeNull();
 
@@ -817,6 +869,7 @@ describe("setAssignmentThreshold", () => {
     });
 
     const store = buildFullStore();
+
     await store.dispatch(assignmentApi.endpoints.getAssignments.initiate());
     expect(thresholdInCache(store)).toBeNull();
 
@@ -850,6 +903,7 @@ describe("getGradebook", () => {
       url: "/assignment/instructor/grader/gradebook/data"
     });
     const result = queryFn();
+
     expect(result.url).toBe("/assignment/instructor/grader/gradebook/data");
     expect(result.method).toBe("GET");
   });
@@ -865,6 +919,7 @@ describe("getGradebook", () => {
       }
     };
     const result = response.detail;
+
     expect(result.assignments[0].name).toBe("A1");
     expect(result.students[0].sid).toBe("s1");
     expect(result.cells[0].score).toBe(8);
@@ -880,11 +935,13 @@ describe("gradebook CSV helpers", () => {
 
   it("builds a dated, sanitized filename", () => {
     const name = gradebookCsvFilename("My Course!", new Date("2026-06-13T12:00:00Z"));
+
     expect(name).toBe("gradebook-My-Course--2026-06-13.csv");
   });
 
   it("falls back to a default course slug", () => {
     const name = gradebookCsvFilename("", new Date("2026-01-02T00:00:00Z"));
+
     expect(name).toBe("gradebook-course-2026-01-02.csv");
   });
 });
@@ -906,6 +963,7 @@ describe("setManualTotal", () => {
       body
     });
     const result = queryFn({ assignment_id: 7, sid: "s1", score: 9, manual: true });
+
     expect(result.url).toBe("/assignment/instructor/grader/manual_total");
     expect(result.method).toBe("POST");
     expect(result.body).toEqual({ assignment_id: 7, sid: "s1", score: 9, manual: true });
@@ -914,6 +972,7 @@ describe("setManualTotal", () => {
   it("builds a revert request without a score", () => {
     const queryFn = (body: SetManualTotalRequest) => ({ body });
     const result = queryFn({ assignment_id: 7, sid: "s1", manual: false });
+
     expect(result.body.manual).toBe(false);
     expect(result.body.score).toBeUndefined();
   });
@@ -923,6 +982,7 @@ describe("setManualTotal", () => {
       detail: { assignment_id: 7, sid: "s1", score: 9, manual_total: true }
     };
     const result = response.detail;
+
     expect(result.manual_total).toBe(true);
     expect(result.score).toBe(9);
   });
@@ -934,6 +994,7 @@ describe("setManualTotal", () => {
       "Gradebook" as const
     ];
     const tags = invalidatesTags({}, null, req);
+
     expect(tags).toEqual([{ type: "GraderQuestions", id: 7 }, "Gradebook"]);
   });
 });

@@ -1,6 +1,6 @@
-import { sanitizeId } from "../sanitize";
-
 import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
+import { sanitizeId } from "../sanitize";
 
 interface ItemWithLabel {
   id: string;

@@ -31,6 +31,7 @@ export const useFullscreen = (elementRef?: RefObject<HTMLElement>): UseFullscree
 
     try {
       const element = elementRef?.current || document.documentElement;
+
       await screenfull.request(element);
     } catch (error) {
       console.error("Failed to enter fullscreen:", error);

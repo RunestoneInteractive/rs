@@ -43,6 +43,6 @@ export function Preview(props) {
 
 Preview.propTypes = {
   code: PropTypes.string,
-  exercise: PropTypes.object,
+  exercise: PropTypes.object
 };
 export default Preview;

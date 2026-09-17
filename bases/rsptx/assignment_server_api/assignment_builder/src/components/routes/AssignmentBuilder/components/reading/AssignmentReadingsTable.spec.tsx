@@ -1,5 +1,4 @@
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentReadingsTable } from "./AssignmentReadingsTable";
