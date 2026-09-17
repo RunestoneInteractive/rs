@@ -29,6 +29,7 @@ from rsptx.db.crud import (
     fetch_question,
     fetch_question_by_id,
     get_book_chapters,
+    retire_question_by_name,
     update_question,
 )
 from rsptx.endpoint_validators import editor_role_required
@@ -72,7 +73,7 @@ async def manage_exercises(
 ):
     """
     Display every question flagged for review in the base courses this user
-    edits, with controls to edit or delete a question, or clear its flag.
+    edits, with controls to edit, delete or retire a question, or clear its flag.
     """
     course = await fetch_course(user.course_name)
     base_courses = await fetch_editor_basecourses(user.id)
@@ -295,6 +296,64 @@ async def delete_question(
                 "status": "Error",
                 "message": "The question was assigned or changed before deletion.",
             },
+        )
+
+    return make_json_response(detail={"status": "Success"})
+
+
+async def _retire_refusal(question):
+    """Decide whether ``question`` may be retired.
+
+    Return an error response to refuse, or ``None`` to let the retirement go
+    ahead. Only assigned questions are retired; an unassigned one can simply be
+    deleted. The editorial page already offers the right button for each, but
+    the page is not the only way to reach this route: a stale tab, or a
+    question whose last assignment was removed after the page loaded, can still
+    post an unassigned question here.
+    """
+    if question.id in await fetch_assigned_question_ids([question.id]):
+        return None
+    return make_json_response(
+        status=status.HTTP_409_CONFLICT,
+        detail={
+            "status": "Error",
+            "message": "Only assigned questions are retired. "
+            "Nothing assigns this one, so it can be deleted instead.",
+        },
+    )
+
+
+@router.post("/retire_question", response_class=JSONResponse)
+@editor_role_required()
+async def retire_question(
+    request: Request,
+    body: QuestionRequest,
+    user=Depends(auth_manager),
+):
+    """Take a flagged question out of circulation.
+
+    The row is kept on purpose. Courses that already assign the exercise carry
+    on unchanged -- deleting it would cascade through ``assignment_questions``
+    and pull the exercise out from under a course that may be mid-term. What
+    changes is that the exercise stops appearing in exercise search, so nobody
+    can build a *new* assignment around it. ``rsmanage questions purge``
+    deletes retired exercises later, once it can prove nothing depends on them.
+    """
+    question, err = await _editable_question(user, body)
+    if err:
+        return err
+
+    refusal = await _retire_refusal(question)
+    if refusal:
+        return refusal
+
+    try:
+        await retire_question_by_name(body.name, body.base_course, user.username)
+    except Exception as e:
+        rslogger.error(f"Error retiring question {body.name}: {e}")
+        return make_json_response(
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"status": "Error", "message": f"Failed to retire: {e}"},
         )
 
     return make_json_response(detail={"status": "Success"})

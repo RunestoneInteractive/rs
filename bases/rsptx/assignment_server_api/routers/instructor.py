@@ -27,6 +27,7 @@ from typing import List, Optional, Annotated
 # -------------------------
 
 from rsptx.db.crud import (
+    count_retired_exercises,
     create_invoice_request,
     delete_lti_course,
     duplicate_assignment,
@@ -773,6 +774,10 @@ async def get_assignment_questions(
         aq["author"] = q["author"]
         aq["difficulty"] = q["difficulty"]
         aq["is_private"] = q["is_private"]
+        # Set when the book's editors have retired the exercise. It keeps
+        # working in this assignment; the builder marks the row so the
+        # instructor knows it is no longer offered for new ones.
+        aq["retired_on"] = q["retired_on"]
         qlist.append(aq)
 
     rslogger.debug(f"qlist: {qlist}")
@@ -1856,7 +1861,13 @@ async def duplicate_assignment_endpoint(
 
         return make_json_response(
             status=status.HTTP_201_CREATED,
-            detail={"status": "success", "id": new_assignment.id, "name": new_name},
+            detail={
+                "status": "success",
+                "id": new_assignment.id,
+                "name": new_name,
+                # The copy links the same exercises, retired ones included.
+                "retired_exercises": await count_retired_exercises(new_assignment.id),
+            },
         )
 
     except Exception as e:
@@ -1961,7 +1972,9 @@ async def import_assignment_endpoint(
     The exercises are linked, not copied -- the same thing adding an exercise
     from another course already does. Readings are left behind when the books
     differ, since they name a subchapter of a book the caller's students are
-    not reading; ``skipped_readings`` says how many.
+    not reading; ``skipped_readings`` says how many. ``retired_exercises`` says
+    how many of the exercises that did come across the book's editors have
+    retired, which the caller may want to replace.
     """
     try:
         result = await import_assignment(
@@ -1986,6 +1999,7 @@ async def import_assignment_endpoint(
             "name": result.name,
             "skipped_readings": result.skipped_readings,
             "duedate_warning": result.duedate_warning,
+            "retired_exercises": result.retired_exercises,
         },
     )
 
@@ -2126,6 +2140,7 @@ async def import_course_assignments_endpoint(
             "skipped_readings": result.skipped_readings,
             "failed": result.failed,
             "duedate_not_shifted": result.duedate_not_shifted,
+            "retired_exercises": result.retired_exercises,
         },
     )
 

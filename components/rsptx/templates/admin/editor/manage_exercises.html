@@ -70,7 +70,9 @@ Page {% endblock %} {% block page_css %} {% include 'common/static_assets.html'
   <p>
     Please edit questions with minor issues, delete questions that are clearly
     inappropriate or experimental, or clear the flag when a question is fine as
-    it stands. Assigned questions cannot be deleted.
+    it stands. Assigned questions cannot be deleted. Retire them instead:
+    retiring keeps the question working for courses that already assign it, but
+    takes it out of exercise search so it cannot be added to anything new.
   </p>
 
   {% if questions %}
@@ -94,21 +96,24 @@ Page {% endblock %} {% block page_css %} {% include 'common/static_assets.html'
       </div>
 
       <div class="question-actions">
+        {% if q.assigned %}
         <button
           type="button"
           class="btn btn-danger"
-          {%
-          if
-          q.assigned
-          %}disabled
-          title="Assigned questions cannot be deleted"
-          {%
-          endif
-          %}
+          title="Assigned questions cannot be deleted, only retired"
+          onclick="retireQuestion('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')"
+        >
+          Retire
+        </button>
+        {% else %}
+        <button
+          type="button"
+          class="btn btn-danger"
           onclick="deleteQuestion('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')"
         >
           Delete
         </button>
+        {% endif %}
         {% if q.has_question_json %}
         <a
           class="btn btn-primary"

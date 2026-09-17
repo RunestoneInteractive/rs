@@ -17,6 +17,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 from zoneinfo import ZoneInfo  # noqa: E402
 
 from rsptx.db.crud import (  # noqa: E402
+    count_retired_exercises,
     create_assignment,
     create_assignment_question,
     create_course,
@@ -26,6 +27,7 @@ from rsptx.db.crud import (  # noqa: E402
     fetch_course,
     import_assignment,
     import_course_assignments,
+    retire_question_by_name,
     search_assignments,
     search_shareable_courses,
     fetch_assignment_for_preview,
@@ -871,6 +873,83 @@ async def test_a_same_book_import_keeps_readings(sharing_world):
     )
     assert len(preview["questions"]) == 2
     assert result.assignment.points == 7
+
+
+# Retired exercises
+# -----------------
+
+
+async def _assignment_with_a_retired_exercise(sharing_world, name, course=None):
+    """A source assignment holding one live exercise and one retired one."""
+    course = course or sharing_world["src"]
+    assignment = await _make_assignment(course.id, name, is_private=False)
+    live = await _make_question(SRC_BOOK, f"{name} live")
+    retired = await _make_question(SRC_BOOK, f"{name} retired")
+    await _attach(assignment.id, live.id, points=2, priority=0)
+    await _attach(assignment.id, retired.id, points=3, priority=1)
+    await retire_question_by_name(f"{name} retired", SRC_BOOK, "sharing_owner")
+    return assignment
+
+
+async def test_an_import_brings_retired_exercises_and_says_so(sharing_world):
+    """Retiring hides an exercise from search; it does not break what uses it.
+
+    So a retired exercise still rides along with an imported assignment, and
+    the importer is told how many there are in case they want to replace them.
+    """
+    source = await _assignment_with_a_retired_exercise(sharing_world, "Aging Homework")
+
+    preview = await fetch_assignment_for_preview(
+        source.id,
+        user_id=sharing_world["importer"].id,
+        target_course=sharing_world["dst"],
+    )
+    assert preview["retired_exercises"] == 1
+    assert {q["name"]: q["retired"] for q in preview["questions"]} == {
+        "Aging Homework live": False,
+        "Aging Homework retired": True,
+    }
+
+    result = await import_assignment(
+        source_assignment_id=source.id,
+        target_course=sharing_world["dst"],
+        importing_user=sharing_world["importer"],
+    )
+    assert result.retired_exercises == 1
+    # Both exercises came across: the warning is advice, not a filter.
+    assert result.assignment.points == 5
+    assert await count_retired_exercises(result.assignment.id) == 1
+
+
+async def test_an_import_with_nothing_retired_reports_none(sharing_world):
+    result = await import_assignment(
+        source_assignment_id=sharing_world["shared"].id,
+        target_course=sharing_world["dst"],
+        importing_user=sharing_world["importer"],
+    )
+    assert result.retired_exercises == 0
+    assert await count_retired_exercises(result.assignment.id) == 0
+
+
+async def test_bulk_import_adds_up_retired_exercises(sharing_world):
+    source = await _make_course(
+        "sharing_retired_source", SRC_BOOK, datetime.date(2026, 1, 12), CHICAGO
+    )
+    target = await _make_course(
+        "sharing_retired_target", SRC_BOOK, datetime.date(2026, 8, 24), CHICAGO
+    )
+    await _share_assignments(source.id)
+    await create_instructor_course_entry(sharing_world["importer"].id, target.id)
+    for name in ("Aging One", "Aging Two"):
+        await _assignment_with_a_retired_exercise(sharing_world, name, course=source)
+
+    result = await import_course_assignments(
+        source_course_id=source.id,
+        target_course=target,
+        importing_user=sharing_world["importer"],
+    )
+    assert sorted(result.imported) == ["Aging One", "Aging Two"]
+    assert result.retired_exercises == 2
 
 
 # search_shareable_courses

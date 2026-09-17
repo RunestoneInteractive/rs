@@ -88,6 +88,21 @@ export const ImportPreviewPanel = ({ assignmentId, onClose }: ImportPreviewPanel
             </Alert>
           ) : null}
 
+          {preview.retired_exercises > 0 ? (
+            <Alert
+              variant="light"
+              color="yellow"
+              title={`${preview.retired_exercises} retired exercise${
+                preview.retired_exercises === 1 ? "" : "s"
+              }`}
+            >
+              The editors of {preview.book_title} have retired{" "}
+              {preview.retired_exercises === 1 ? "an exercise" : "exercises"} in this assignment.
+              Retired exercises still import and still work, but you may want to replace{" "}
+              {preview.retired_exercises === 1 ? "it" : "them"} afterwards.
+            </Alert>
+          ) : null}
+
           <div className={styles.questionList}>
             {preview.questions.map((question) => (
               <div key={question.id} className={styles.questionRow}>
@@ -104,6 +119,11 @@ export const ImportPreviewPanel = ({ assignmentId, onClose }: ImportPreviewPanel
                       not imported
                     </Badge>
                   )}
+                  {question.retired && question.will_import ? (
+                    <Badge size="sm" variant="light" color="orange">
+                      retired
+                    </Badge>
+                  ) : null}
                   {question.question_type ? (
                     <Badge size="sm" variant="light">
                       {question.question_type}

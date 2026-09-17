@@ -114,6 +114,17 @@ describe("ASSIGNMENT_TOAST_COPY", () => {
     }
   });
 
+  it("tells the instructor about retired exercises in what they copied", () => {
+    expect(ASSIGNMENT_TOAST_COPY.retiredExercises(1)).toBe(
+      "1 exercise in what you copied has been retired by the book's editors. " +
+        "Retired exercises still work, but you may want to replace it."
+    );
+    expect(ASSIGNMENT_TOAST_COPY.retiredExercises(3)).toBe(
+      "3 exercises in what you copied have been retired by the book's editors. " +
+        "Retired exercises still work, but you may want to replace them."
+    );
+  });
+
   it("surfaces the validation message without input internals", () => {
     expect(ASSIGNMENT_TOAST_COPY.createValidationError("name must not be empty")).toBe(
       "Couldn't create assignment: name must not be empty"

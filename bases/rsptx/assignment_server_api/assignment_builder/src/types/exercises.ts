@@ -83,6 +83,8 @@ export type Exercise = {
   description: string;
   is_private: boolean;
   from_source: boolean;
+  /** UTC timestamp, set once the book's editors have retired the exercise. */
+  retired_on?: string | null;
 };
 
 export type QuestionJSON = Partial<{

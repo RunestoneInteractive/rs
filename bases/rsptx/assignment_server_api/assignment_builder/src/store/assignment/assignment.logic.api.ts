@@ -47,6 +47,14 @@ export const ASSIGNMENT_TOAST_COPY = {
   // Shown separately from the success toast so it doesn't get lost inside a
   // longer message -- the instructor needs to notice and go fix the timezone.
   duedateWarning: (duedateWarning: string) => duedateWarning,
+  // Also its own toast. Retired exercises still work, so this is advice
+  // rather than an error, and it should not be buried in the success message.
+  retiredExercises: (count: number) =>
+    `${count === 1 ? "1 exercise" : `${count} exercises`} in what you copied ${
+      count === 1 ? "has" : "have"
+    } been retired by the book's editors. Retired exercises still work, but you may want to replace ${
+      count === 1 ? "it" : "them"
+    }.`,
   loadTreeError: "Couldn't load shared assignments. Try again.",
   // Partial success is a normal outcome for a multi-import, so the toast counts
   // rather than claiming everything worked.
@@ -215,7 +223,10 @@ export const assignmentApi = createApi({
           });
       }
     }),
-    duplicateAssignment: build.mutation<DetailResponse<{ id: number; name: string }>, number>({
+    duplicateAssignment: build.mutation<
+      DetailResponse<{ id: number; name: string; retired_exercises?: number }>,
+      number
+    >({
       query: (assignmentId) => ({
         method: "POST",
         url: `/assignment/instructor/assignments/${assignmentId}/duplicate`
@@ -230,6 +241,9 @@ export const assignmentApi = createApi({
         queryFulfilled
           .then(({ data }) => {
             notify.success(ASSIGNMENT_TOAST_COPY.duplicated(data.detail.name));
+            if (data.detail.retired_exercises) {
+              notify.info(ASSIGNMENT_TOAST_COPY.retiredExercises(data.detail.retired_exercises));
+            }
           })
           .catch(() => {
             notify.error(ASSIGNMENT_TOAST_COPY.duplicateError);
@@ -284,6 +298,9 @@ export const assignmentApi = createApi({
                 )
               );
             }
+            if (data.detail.retired_exercises) {
+              notify.info(ASSIGNMENT_TOAST_COPY.retiredExercises(data.detail.retired_exercises));
+            }
           })
           .catch(() => {
             notify.error(ASSIGNMENT_TOAST_COPY.importError);
@@ -305,6 +322,9 @@ export const assignmentApi = createApi({
             );
             if (data.detail.duedate_warning) {
               notify.info(ASSIGNMENT_TOAST_COPY.duedateWarning(data.detail.duedate_warning));
+            }
+            if (data.detail.retired_exercises) {
+              notify.info(ASSIGNMENT_TOAST_COPY.retiredExercises(data.detail.retired_exercises));
             }
           })
           .catch(() => {

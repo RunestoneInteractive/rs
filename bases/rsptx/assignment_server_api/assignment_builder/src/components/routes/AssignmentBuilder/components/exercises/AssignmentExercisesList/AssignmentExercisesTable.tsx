@@ -7,7 +7,17 @@ import {
 import { ExerciseTypeTag } from "@components/ui/ExerciseTypeTag";
 import { Icon } from "@components/ui/Icon";
 import { notify } from "@components/ui/notify";
-import { ActionIcon, Button, Group, Popover, Select, Stack, Text, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Group,
+  Popover,
+  Select,
+  Stack,
+  Text,
+  Tooltip
+} from "@mantine/core";
 import {
   useHasApiKeyQuery,
   useReorderAssignmentExercisesMutation,
@@ -21,6 +31,7 @@ import { useJwtUser } from "@/hooks/useJwtUser";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
+import { formatUTCDateForDisplay } from "@/utils/date";
 import { isExerciseEditable } from "@/utils/exercise";
 
 import { CopyExerciseModal } from "../components/CopyExercise/CopyExerciseModal";
@@ -308,8 +319,27 @@ export const AssignmentExercisesTable = ({
         width: "20rem",
         render: (row) => (
           <div>
-            <div className={styles.name} title={row.name || row.title}>
-              {row.name || row.title}
+            <div className={styles.nameRow}>
+              <div className={styles.name} title={row.name || row.title}>
+                {row.name || row.title}
+              </div>
+              {row.retired_on ? (
+                <Tooltip
+                  label={
+                    `The editors of this book retired this exercise on ` +
+                    `${formatUTCDateForDisplay(row.retired_on)}. It still works in this ` +
+                    `assignment, but it can no longer be added to new ones.`
+                  }
+                  multiline
+                  w={260}
+                  position="top"
+                  events={{ hover: true, focus: true, touch: true }}
+                >
+                  <Badge size="sm" variant="light" color="orange" tabIndex={0}>
+                    Retired
+                  </Badge>
+                </Tooltip>
+              ) : null}
             </div>
             <div className={styles.sub} title={row.qnumber}>
               {row.qnumber}

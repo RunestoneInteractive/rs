@@ -138,6 +138,20 @@ describe("AssignmentExercisesTable", () => {
     expect(screen.getAllByRole("button", { name: "Copy exercise" })).toHaveLength(1);
   });
 
+  it("marks an exercise the book's editors have retired", () => {
+    const exercises = [
+      EXERCISES[0],
+      { ...EXERCISES[1], retired_on: "2026-11-02T15:00:00" }
+    ] as Exercise[];
+
+    renderWithMantine(<AssignmentExercisesTable {...baseProps} assignmentExercises={exercises} />);
+
+    const badges = screen.getAllByText("Retired");
+
+    expect(badges).toHaveLength(1);
+    expect(badges[0].closest("tr")).toHaveTextContent("exercise_two");
+  });
+
   it("opens the editor when the edit button is activated", async () => {
     const setCurrentEditExercise = vi.fn();
     const setViewMode = vi.fn();

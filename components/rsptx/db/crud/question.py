@@ -1,6 +1,7 @@
 import asyncio
 import re
 import inspect
+from datetime import datetime
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -13,6 +14,7 @@ from ..models import (
     Chapter,
     ChapterValidator,
     Competency,
+    Courses,
     Question,
     QuestionGrade,
     QuestionGradeValidator,
@@ -23,6 +25,7 @@ from ..models import (
     Useinfo,
     UserExperiment,
     UserExperimentValidator,
+    runestone_component_dict,
 )
 from ..async_session import async_session
 from rsptx.validation import schemas
@@ -153,10 +156,80 @@ async def fetch_assigned_question_ids(question_ids: Iterable[int]) -> Set[int]:
         return set(res.scalars().all())
 
 
+# Every instructor-facing exercise search hangs this on its where clause.
+# Retired exercises stay readable by name/id -- the courses that already assign
+# them keep working -- they simply stop being discoverable in new assignments.
+NOT_RETIRED = Question.retired_on.is_(None)
+
+
+async def retire_question_by_name(
+    name: str, base_course: str, retired_by: Optional[str] = None
+) -> int:
+    """
+    Retire a question: take it out of the searchable exercise pool without
+    removing the row. ``(base_course, name)`` is unique, so at most one row is
+    touched.
+
+    Retiring is idempotent -- a question already retired keeps its original
+    ``retired_on`` and ``retired_by``, so the purge grace period is measured
+    from the first editorial decision rather than being reset by a second
+    click.
+
+    The review flag is cleared in the same statement, and on every call: an
+    instructor whose course still assigns a retired question can flag it
+    again, and retiring it a second time has to take it back off the review
+    list. Doing it here rather than through ``update_question`` keeps it
+    atomic, and ``update_question`` deliberately leaves the retirement columns
+    alone.
+
+    :param name: str, the name (div_id) of the question
+    :param base_course: str, the base course the question belongs to
+    :param retired_by: Optional[str], username of the editor making the call
+    :return: int, the number of rows matched (0 if there is no such question)
+    """
+    stmt = (
+        update(Question)
+        .where((Question.name == name) & (Question.base_course == base_course))
+        .values(
+            retired_on=func.coalesce(Question.retired_on, canonical_utcnow()),
+            retired_by=func.coalesce(Question.retired_by, retired_by),
+            review_flag=False,
+        )
+    )
+
+    async with async_session.begin() as session:
+        res = await session.execute(stmt)
+        return res.rowcount
+
+
+async def unretire_question_by_name(name: str, base_course: str) -> int:
+    """
+    Put a retired question back into circulation.
+
+    :param name: str, the name (div_id) of the question
+    :param base_course: str, the base course the question belongs to
+    :return: int, the number of rows restored
+    """
+    stmt = (
+        update(Question)
+        .where((Question.name == name) & (Question.base_course == base_course))
+        .values(retired_on=None, retired_by=None)
+    )
+
+    async with async_session.begin() as session:
+        res = await session.execute(stmt)
+        return res.rowcount
+
+
 async def delete_question_by_name(name: str, base_course: str) -> int:
     """
     Delete an unassigned question identified by its name (div_id) within a base
     course. ``(base_course, name)`` is unique, so at most one row is removed.
+
+    A question that any assignment references is left alone (0 is returned):
+    ``assignment_questions`` references ``questions.id`` with ``ON DELETE
+    CASCADE``, so deleting it would pull the exercise out of every course that
+    assigns it. Use :func:`retire_question_by_name` for those.
 
     :param name: str, the name (div_id) of the question
     :param base_course: str, the base course the question belongs to
@@ -171,6 +244,159 @@ async def delete_question_by_name(name: str, base_course: str) -> int:
         (Question.name == name) & (Question.base_course == base_course) & ~assigned
     )
 
+    async with async_session.begin() as session:
+        res = await session.execute(stmt)
+        return res.rowcount
+
+
+async def fetch_retired_questions(
+    retired_before: datetime, base_course: Optional[str] = None
+) -> List[QuestionValidator]:
+    """
+    Fetch every question retired on or before ``retired_before``.
+
+    The purge script uses this to build its candidate list: a question has to
+    have been out of circulation for the full grace period before it is even
+    considered for deletion.
+
+    :param retired_before: datetime, the newest ``retired_on`` to include
+    :param base_course: Optional[str], restrict to a single base course
+    :return: List[QuestionValidator], oldest retirement first
+    """
+    query = (
+        select(Question)
+        .where(
+            Question.retired_on.isnot(None) & (Question.retired_on <= retired_before)
+        )
+        .order_by(Question.retired_on, Question.base_course, Question.name)
+    )
+    if base_course:
+        query = query.where(Question.base_course == base_course)
+
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [QuestionValidator.from_orm(q) for q in res.scalars().fetchall()]
+
+
+# The reasons a retired question is still worth keeping. The purge script prints
+# these verbatim, so they read as explanations rather than as codes.
+IN_USE_FROM_SOURCE = "still in the book source"
+IN_USE_ASSIGNED = "assigned in an active course"
+IN_USE_ACTIVITY = "recent student activity"
+IN_USE_ANSWERS = "recent graded answers"
+
+
+async def find_questions_in_use(
+    question_ids: List[int], active_since: datetime
+) -> Dict[int, List[str]]:
+    """
+    Work out which of ``question_ids`` are still in use, and why.
+
+    Four independent signals, matching the four ways an exercise can still
+    matter to somebody:
+
+    * ``from_source`` -- the exercise is still compiled into the book, so a
+      rebuild would simply recreate the row.
+    * an ``assignment_questions`` row belonging to a course whose term started
+      on or after ``active_since``.
+    * a ``useinfo`` row for the question's ``div_id`` since ``active_since``.
+      This catches reading-page exercises that were never formally assigned.
+    * a row in any registered answer table since ``active_since``. Narrower
+      than ``useinfo``, but it points at real graded work.
+
+    Every check is batched over the whole candidate list rather than run per
+    question -- ``useinfo`` in particular is far too large to probe one row at
+    a time.
+
+    :param question_ids: List[int], the candidate question ids
+    :param active_since: datetime, the start of the "still in use" window
+    :return: Dict[int, List[str]], candidate id -> reasons it is in use.
+        A question with no reasons is absent from the dict.
+    """
+    if not question_ids:
+        return {}
+
+    in_use: Dict[int, List[str]] = {}
+
+    def mark(ids, reason: str) -> None:
+        for qid in ids:
+            in_use.setdefault(qid, []).append(reason)
+
+    async with async_session() as session:
+        # div_id is the join key for useinfo and the answer tables, which store
+        # the question's name rather than its id.
+        name_rows = await session.execute(
+            select(Question.id, Question.name, Question.from_source).where(
+                Question.id.in_(question_ids)
+            )
+        )
+        ids_by_name: Dict[str, Set[int]] = {}
+        from_source_ids = []
+        for qid, name, from_source in name_rows:
+            ids_by_name.setdefault(name, set()).add(qid)
+            if from_source:
+                from_source_ids.append(qid)
+        mark(from_source_ids, IN_USE_FROM_SOURCE)
+
+        names = list(ids_by_name)
+
+        assigned = await session.execute(
+            select(AssignmentQuestion.question_id)
+            .join(Assignment, Assignment.id == AssignmentQuestion.assignment_id)
+            .join(Courses, Courses.id == Assignment.course)
+            .where(
+                AssignmentQuestion.question_id.in_(question_ids)
+                & (Courses.term_start_date >= active_since.date())
+            )
+            .distinct()
+        )
+        mark(assigned.scalars().fetchall(), IN_USE_ASSIGNED)
+
+        active_names = await session.execute(
+            select(Useinfo.div_id)
+            .where(Useinfo.div_id.in_(names) & (Useinfo.timestamp >= active_since))
+            .distinct()
+        )
+        for name in active_names.scalars().fetchall():
+            mark(ids_by_name.get(name, ()), IN_USE_ACTIVITY)
+
+        # runestone_component_dict is the registry every @register_answer_table
+        # model joins; iterating it means a new question type's answers are
+        # honoured here without anyone remembering to update this list.
+        answered_names: Set[str] = set()
+        for component in runestone_component_dict.values():
+            model = component.model
+            rows = await session.execute(
+                select(model.div_id)
+                .where(model.div_id.in_(names) & (model.timestamp >= active_since))
+                .distinct()
+            )
+            answered_names.update(rows.scalars().fetchall())
+        for name in answered_names:
+            mark(ids_by_name.get(name, ()), IN_USE_ANSWERS)
+
+    return in_use
+
+
+async def delete_questions_by_id(question_ids: List[int]) -> int:
+    """
+    Delete questions by primary key. Used by the purge script once
+    :func:`find_questions_in_use` has cleared them.
+
+    .. warning::
+       Unlike :func:`delete_question_by_name` this does not skip assigned
+       questions. ``assignment_questions``, ``question_tags`` and
+       ``competency`` all reference ``questions.id`` with ``ON DELETE
+       CASCADE``, so the exercise is removed from every assignment that
+       still lists it.
+
+    :param question_ids: List[int], the questions to remove
+    :return: int, the number of rows deleted
+    """
+    if not question_ids:
+        return 0
+
+    stmt = delete(Question).where(Question.id.in_(question_ids))
     async with async_session.begin() as session:
         res = await session.execute(stmt)
         return res.rowcount
@@ -281,7 +507,7 @@ async def fetch_questions_by_search_criteria(
         raise ValueError("No search criteria provided")
 
     # todo: add support for tags
-    query = select(Question).where(and_(*where_criteria))
+    query = select(Question).where(and_(NOT_RETIRED, *where_criteria))
     rslogger.debug(f"{query=}")
     async with async_session() as session:
         res = await session.execute(query)
@@ -300,7 +526,7 @@ async def search_exercises(
     :return: Dictionary with search results and pagination metadata
     """
     # Base query
-    query = select(Question).where(Question.question_type != "page")
+    query = select(Question).where((Question.question_type != "page") & NOT_RETIRED)
 
     # If base_course is provided, filter by base_course
     if criteria.base_course:
@@ -869,15 +1095,20 @@ async def create_question(question: QuestionValidator) -> QuestionValidator:
 async def update_question(question: QuestionValidator) -> QuestionValidator:
     """Update a row in the ``question`` table.
 
+    Every column is written from ``question`` except ``retired_on`` and
+    ``retired_by``. Callers build the validator from a request or from a row
+    they read a moment ago, so writing those two would let an ordinary edit
+    put a retired exercise back into search. Retirement changes only through
+    :func:`retire_question_by_name` and :func:`unretire_question_by_name`.
+
     :param question: A question object
     :type question: QuestionValidator
     :return: A representation of the row updated.
     :rtype: QuestionValidator
     """
+    values = question.dict(exclude={"retired_on", "retired_by"})
     async with async_session.begin() as session:
-        stmt = (
-            update(Question).where(Question.id == question.id).values(**question.dict())
-        )
+        stmt = update(Question).where(Question.id == question.id).values(**values)
         await session.execute(stmt)
     return question
 
@@ -961,6 +1192,7 @@ async def fetch_questions_for_chapter_subchapter(
                         Question.owner == None,  # noqa: E711
                     )
                 ),  # noqa: E712
+                NOT_RETIRED,
                 skipr_clause,
                 froms_clause,
                 page_clause,
