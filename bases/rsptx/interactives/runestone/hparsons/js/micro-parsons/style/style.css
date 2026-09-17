@@ -51,6 +51,7 @@
   outline-offset: 2px;
 }
 .parsons-block[aria-selected="true"] {
+  margin-inline: 4px;
   outline: 3px solid #3498db;
   outline-offset: 2px;
 }
