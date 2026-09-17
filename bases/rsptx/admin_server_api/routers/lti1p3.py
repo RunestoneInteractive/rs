@@ -964,7 +964,7 @@ async def dynamic_link_entry(request: Request):
         rslogger.error(f"LTI1p3 - Error accessing course line items: {e}")
         raise HTTPException(
             status_code=422,
-            detail="This course appears to be closed in your Learning Management System.",
+            detail=f"Error accessing your course's assignments. Your course may be closed in your Learning Management System. Debugging information: {e}",
         )
 
     l_items.sort(key=lambda li: li.get("label"))
