@@ -46,7 +46,12 @@ from rsptx.db.crud import (
     create_library_book,
     create_user_course_entry,
     delete_course_completely,
+    delete_questions_by_id,
     delete_user,
+    fetch_retired_questions,
+    find_questions_in_use,
+    retire_question_by_name,
+    unretire_question_by_name,
     fetch_all_course_attributes,
     fetch_assignments,
     fetch_course,
@@ -1918,6 +1923,160 @@ async def telemetry(config, send):
             click.echo(f"\nServer responded HTTP {status_code}; not recorded.")
     finally:
         await term_models()
+
+
+# command group for managing the questions (exercise) table
+
+
+@cli.group()
+@click.pass_context
+def questions(ctx):
+    """subcommands for managing retired exercises"""
+    pass
+
+
+@questions.command("listretired")
+@click.pass_context
+@click.option("--base-course", default=None, help="Limit to one base course")
+async def questions_listretired(ctx, base_course):
+    """
+    List exercises editors have retired, newest retirement last.
+    """
+    retired = await fetch_retired_questions(canonical_utcnow(), base_course)
+    if not retired:
+        click.echo("No exercises are retired.")
+        return
+
+    for q in retired:
+        click.echo(
+            f"{q.retired_on:%Y-%m-%d}  {q.base_course:30} {q.name:40} "
+            f"retired by {q.retired_by or 'unknown'}"
+        )
+    click.echo(f"\n{len(retired)} retired exercise(s).")
+
+
+@questions.command("retire")
+@click.pass_context
+@click.argument("name")
+@click.argument("base_course")
+async def questions_retire(ctx, name, base_course):
+    """
+    Retire exercise NAME in BASE_COURSE: take it out of exercise search while
+    leaving every course that already assigns it untouched.
+    """
+    count = await retire_question_by_name(name, base_course, "rsmanage")
+    if count:
+        click.echo(f"Retired {name}. Courses already using it are unaffected.")
+    else:
+        click.echo(f"No searchable exercise named {name} in {base_course}.")
+        sys.exit(-1)
+
+
+@questions.command("unretire")
+@click.pass_context
+@click.argument("name")
+@click.argument("base_course")
+async def questions_unretire(ctx, name, base_course):
+    """
+    Put retired exercise NAME in BASE_COURSE back into circulation.
+    """
+    count = await unretire_question_by_name(name, base_course)
+    if count:
+        click.echo(f"{name} is searchable again.")
+    else:
+        click.echo(f"No exercise named {name} in {base_course}.")
+        sys.exit(-1)
+
+
+def _purge_blockers_to_report(question, reasons):
+    """Format one kept exercise for the report."""
+    return f"  keep  {question.base_course}/{question.name}: " + ", ".join(reasons)
+
+
+@questions.command("purge")
+@click.pass_context
+@click.option(
+    "--retired-for-days",
+    default=365,
+    show_default=True,
+    help="Only consider exercises retired at least this long ago",
+)
+@click.option(
+    "--unused-for-years",
+    default=3.0,
+    show_default=True,
+    help="An exercise counts as unused if nothing has touched it in this many years",
+)
+@click.option("--base-course", default=None, help="Limit to one base course")
+@click.option(
+    "--apply",
+    "apply_changes",
+    is_flag=True,
+    help="Actually delete. Without this the command only reports what it would do.",
+)
+async def questions_purge(
+    ctx, retired_for_days, unused_for_years, base_course, apply_changes
+):
+    """
+    Permanently delete retired exercises that nothing depends on any more.
+
+    An exercise is deleted only when it cleared both windows: it was retired at
+    least --retired-for-days ago, and for the last --unused-for-years nothing
+    has referenced it -- no assignment in a course whose term started in that
+    window, no student activity, no graded answers -- and it is no longer part
+    of the book source.
+
+    There is deliberately no way to override those checks. Deletion cascades
+    into assignment_questions, question_tags and question_grades, so an
+    exercise that is still tied to anything is simply kept, and the report says
+    why. If you want one gone regardless, remove whatever still references it
+    first. The default is a dry run; pass --apply to go through with it.
+    """
+    now = canonical_utcnow()
+    retired_before = now - datetime.timedelta(days=retired_for_days)
+    active_since = now - datetime.timedelta(days=round(unused_for_years * 365.25))
+
+    candidates = await fetch_retired_questions(retired_before, base_course)
+    if not candidates:
+        click.echo(
+            f"No exercises have been retired since before {retired_before:%Y-%m-%d}."
+        )
+        return
+
+    click.echo(
+        f"{len(candidates)} exercise(s) retired before {retired_before:%Y-%m-%d}; "
+        f"checking for use since {active_since:%Y-%m-%d}."
+    )
+
+    in_use = await find_questions_in_use([q.id for q in candidates], active_since)
+
+    purge = []
+    keep = []
+    for q in candidates:
+        reasons = in_use.get(q.id, [])
+        if reasons:
+            keep.append((q, reasons))
+        else:
+            purge.append(q)
+
+    for q, reasons in keep:
+        click.echo(_purge_blockers_to_report(q, reasons))
+    for q in purge:
+        click.echo(
+            f"  PURGE {q.base_course}/{q.name} (retired {q.retired_on:%Y-%m-%d})"
+        )
+
+    click.echo(f"\n{len(purge)} to delete, {len(keep)} kept.")
+
+    if not purge:
+        return
+
+    if not apply_changes:
+        click.echo("Dry run -- nothing deleted. Re-run with --apply to delete.")
+        return
+
+    deleted = await delete_questions_by_id([q.id for q in purge])
+    click.echo(f"Deleted {deleted} exercise(s).")
 
 
 if __name__ == "__main__":

@@ -64,9 +64,11 @@ Editorial Page
     </div>
 
     <h3>Questions for Review</h3>
-    <p>Please delete the questions that are clearly inappropriate or just
-        experimental. If a question is fine as it stands, clear its flag to take
-        it off this list.</p>
+    <p>Please retire the questions that are clearly inappropriate or just
+        experimental. Retiring keeps the question working for courses that
+        already assign it, but takes it out of exercise search so it cannot be
+        added to anything new. If a question is fine as it stands, clear its
+        flag to take it off this list.</p>
 
     {% if questions %}
     <div id="questions" class="runestone-sphinx">
@@ -85,8 +87,8 @@ Editorial Page
 
             <div class="question-actions">
                 <button type="button" class="btn btn-danger"
-                    onclick="deleteQuestion('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
-                    Delete
+                    onclick="retireQuestion('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
+                    Retire
                 </button>
                 <button type="button" class="btn btn-primary"
                     onclick="clearFlag('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
