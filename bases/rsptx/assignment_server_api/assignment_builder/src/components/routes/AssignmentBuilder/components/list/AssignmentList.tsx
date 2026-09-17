@@ -1,19 +1,29 @@
-import { useCallback, useMemo, useState } from "react";
-
 import { DataGrid } from "@components/ui/DataGrid";
 import { Icon } from "@components/ui/Icon";
 import { SearchInput } from "@components/ui/SearchInput";
-import { ActionIcon, Button, Group, Skeleton, Switch, Text, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Checkbox,
+  Group,
+  Skeleton,
+  Switch,
+  Text,
+  Tooltip
+} from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { ColumnDef, OnChangeFn, SortingState } from "@tanstack/react-table";
+import { ColumnDef, OnChangeFn, RowSelectionState, SortingState } from "@tanstack/react-table";
 import classNames from "classnames";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Assignment } from "@/types/assignment";
 import { formatUTCDateForDisplay } from "@/utils/date";
 
-import { VisibilityDropdown } from "./VisibilityDropdown";
+import { VisibilityValues } from "../edit/visibilityMode";
 
 import styles from "./AssignmentList.module.css";
+import { BulkActionsBar } from "./BulkActionsBar";
+import { VisibilityDropdown } from "./VisibilityDropdown";
 
 interface AssignmentListProps {
   assignments: Assignment[];
@@ -30,6 +40,9 @@ interface AssignmentListProps {
     data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
   ) => void;
   onRemove: (assignment: Assignment) => void;
+  onBulkVisibilityChange: (assignments: Assignment[], data: VisibilityValues) => void;
+  onBulkEnforceDueChange: (assignments: Assignment[], enforce_due: boolean) => void;
+  onBulkRemove: (assignments: Assignment[]) => void;
 }
 
 const SORT_STORAGE_KEY = "assignmentList_sortField";
@@ -73,8 +86,13 @@ export const AssignmentList = ({
   onEnforceDueChange,
   onImport,
   onRemove,
-  onVisibilityChange
+  onVisibilityChange,
+  onBulkVisibilityChange,
+  onBulkEnforceDueChange,
+  onBulkRemove
 }: AssignmentListProps) => {
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
   const [sortField, setSortField] = useState<string>(
     () => localStorage.getItem(SORT_STORAGE_KEY) || "name"
   );
@@ -114,6 +132,38 @@ export const AssignmentList = ({
     return assignments.filter((a) => a.name?.toLowerCase().includes(query));
   }, [assignments, globalFilter]);
 
+  const selectedAssignments = useMemo(
+    () => filteredAssignments.filter((assignment) => rowSelection[String(assignment.id)]),
+    [filteredAssignments, rowSelection]
+  );
+
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [globalFilter, clearSelection]);
+
+  const handleBulkVisibilityApply = useCallback(
+    (values: VisibilityValues) => {
+      onBulkVisibilityChange(selectedAssignments, values);
+      clearSelection();
+    },
+    [onBulkVisibilityChange, selectedAssignments, clearSelection]
+  );
+
+  const handleBulkEnforceDueApply = useCallback(
+    (enforceDue: boolean) => {
+      onBulkEnforceDueChange(selectedAssignments, enforceDue);
+      clearSelection();
+    },
+    [onBulkEnforceDueChange, selectedAssignments, clearSelection]
+  );
+
+  const handleBulkDelete = useCallback(() => {
+    onBulkRemove(selectedAssignments);
+    clearSelection();
+  }, [onBulkRemove, selectedAssignments, clearSelection]);
+
   const confirmRemove = useCallback(
     (rowData: Assignment) => {
       modals.openConfirmModal({
@@ -129,8 +179,35 @@ export const AssignmentList = ({
     [onRemove]
   );
 
+  const selectColumn: ColumnDef<Assignment, unknown> = {
+    id: "select",
+    enableSorting: false,
+    meta: {
+      headerStyle: { width: 40 },
+      align: "center"
+    },
+    header: ({ table }) => (
+      <Checkbox
+        size="sm"
+        aria-label="Select all assignments"
+        checked={table.getIsAllRowsSelected()}
+        indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
+        onChange={table.getToggleAllRowsSelectedHandler()}
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        size="sm"
+        aria-label={`Select ${row.original.name}`}
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+      />
+    )
+  };
+
   const columns = useMemo<ColumnDef<Assignment, unknown>[]>(
     () => [
+      ...(filteredAssignments.length > 1 ? [selectColumn] : []),
       {
         accessorKey: "name",
         header: "Name",
@@ -284,11 +361,13 @@ export const AssignmentList = ({
       }
     ],
     [
-      confirmRemove,
-      onDuplicate,
+      filteredAssignments.length,
+      selectColumn,
       onEdit,
       onEnforceDueChange,
-      onVisibilityChange
+      onVisibilityChange,
+      onDuplicate,
+      confirmRemove
     ]
   );
 
@@ -340,19 +419,33 @@ export const AssignmentList = ({
           </Button>
         </div>
       ) : (
-        <div className={styles.tableCard}>
-          <DataGrid
-            data={filteredAssignments}
-            columns={columns}
-            getRowId={(row) => String(row.id)}
-            sorting={sorting}
-            onSortingChange={handleSortingChange}
-            emptyMessage="No assignments match your search"
-            ariaLabel="Assignments"
-            minWidth={TABLE_MIN_WIDTH}
-            enableSortingRemoval={false}
-          />
-        </div>
+        <>
+          {selectedAssignments.length > 0 && (
+            <BulkActionsBar
+              selectedCount={selectedAssignments.length}
+              onVisibilityApply={handleBulkVisibilityApply}
+              onEnforceDueApply={handleBulkEnforceDueApply}
+              onDelete={handleBulkDelete}
+              onClear={clearSelection}
+            />
+          )}
+          <div className={styles.tableCard}>
+            <DataGrid
+              data={filteredAssignments}
+              columns={columns}
+              getRowId={(row) => String(row.id)}
+              sorting={sorting}
+              onSortingChange={handleSortingChange}
+              enableRowSelection
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
+              emptyMessage="No assignments match your search"
+              ariaLabel="Assignments"
+              minWidth={TABLE_MIN_WIDTH}
+              enableSortingRemoval={false}
+            />
+          </div>
+        </>
       )}
     </div>
   );
