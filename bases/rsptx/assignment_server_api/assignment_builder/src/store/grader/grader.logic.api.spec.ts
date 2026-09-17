@@ -204,6 +204,7 @@ describe("getGraderQuestions transformResponse", () => {
       question_type: "mchoice",
       points: 5,
       answered_count: 20,
+      total_attempts: 42,
       correct_count: 15,
       average_score: 3.5
     }
@@ -225,6 +226,7 @@ describe("getGraderQuestions transformResponse", () => {
     };
     const q = response.detail.questions[0];
     expect(q.answered_count).toBe(20);
+    expect(q.total_attempts).toBe(42);
     expect(q.correct_count).toBe(15);
     expect(q.average_score).toBe(3.5);
   });

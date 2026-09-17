@@ -23,6 +23,8 @@ export interface GraderQuestionStats {
 
   answered_count: number;
 
+  total_attempts: number;
+
   correct_count: number;
 
   graded_count?: number;

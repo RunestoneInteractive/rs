@@ -139,8 +139,8 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
 
           {!hasGradeable && (
             <div className={styles.calloutWarning}>
-              None of the selected questions can be auto-graded. Use <strong>Multi-grade</strong> to
-              grade them by hand.
+              None of the selected questions can be auto-graded. Use <strong>Grade manually</strong>{" "}
+              to grade them by hand.
             </div>
           )}
 

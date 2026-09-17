@@ -42,6 +42,7 @@ function makeQuestion(
     question_type: "mchoice",
     points: 10,
     answered_count: 0,
+    total_attempts: 0,
     correct_count: 0,
     average_score: 0,
     ...overrides

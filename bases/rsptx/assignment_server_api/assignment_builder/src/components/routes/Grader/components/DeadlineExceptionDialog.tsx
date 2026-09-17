@@ -66,6 +66,9 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
       centered
     >
       <div className={styles.dialogStack}>
+        <p className={styles.dialogIntro}>
+          This accommodation is saved permanently. It remains active until it is changed or deleted.
+        </p>
         <StudentMultiSelect
           selected={selectedSids}
           onChange={setSelectedSids}
