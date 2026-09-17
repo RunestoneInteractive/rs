@@ -6,11 +6,16 @@ import {
   useUpdateAssignmentMutation,
   useCreateAssignmentMutation,
   useRemoveAssignmentMutation,
-  useDuplicateAssignmentMutation
+  useDuplicateAssignmentMutation,
+  useBulkUpdateAssignmentsMutation,
+  useBulkRemoveAssignmentsMutation
 } from "./assignment.logic.api";
 import type { Assignment } from "@/types/assignment";
 import type { DetailResponse } from "@/types/api";
 import type { GetAssignmentsResponse, GetAssignmentResponse } from "@/types/assignment";
+import { notify } from "@/components/ui/notify";
+import { baseQuery } from "../baseQuery";
+import { configureStore } from "@reduxjs/toolkit";
 
 vi.mock("@components/ui/notify", () => ({
   notify: {
@@ -295,5 +300,96 @@ describe("duplicateAssignment query builder", () => {
     const result = queryFn(15);
     expect(result.method).toBe("POST");
     expect(result.url).toBe("/assignment/instructor/assignments/15/duplicate");
+  });
+});
+
+describe("bulk mutations", () => {
+  const makeStore = () =>
+    configureStore({
+      reducer: { [assignmentApi.reducerPath]: assignmentApi.reducer },
+      middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(assignmentApi.middleware)
+    });
+
+  const mockedBaseQuery = vi.mocked(baseQuery);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("exports the bulk hooks", () => {
+    expect(typeof useBulkUpdateAssignmentsMutation).toBe("function");
+    expect(typeof useBulkRemoveAssignmentsMutation).toBe("function");
+    expect(assignmentApi.endpoints.bulkUpdateAssignments).toBeDefined();
+    expect(assignmentApi.endpoints.bulkRemoveAssignments).toBeDefined();
+  });
+
+  it("bulkUpdateAssignments PUTs each assignment and counts successes and failures", async () => {
+    mockedBaseQuery
+      .mockResolvedValueOnce({ data: {} })
+      .mockResolvedValueOnce({ error: { status: 500, data: {} } });
+
+    const store = makeStore();
+    const result = await store.dispatch(
+      assignmentApi.endpoints.bulkUpdateAssignments.initiate([
+        makeAssignment({ id: 1 }),
+        makeAssignment({ id: 2 })
+      ])
+    );
+
+    expect(mockedBaseQuery).toHaveBeenCalledTimes(2);
+    expect(mockedBaseQuery.mock.calls[0][0]).toMatchObject({
+      method: "PUT",
+      url: "/assignment/instructor/assignments/1"
+    });
+    expect(mockedBaseQuery.mock.calls[1][0]).toMatchObject({
+      method: "PUT",
+      url: "/assignment/instructor/assignments/2"
+    });
+    expect("data" in result && result.data).toEqual({ succeeded: 1, failed: 1 });
+  });
+
+  it("bulkRemoveAssignments DELETEs each assignment and toasts a summary", async () => {
+    mockedBaseQuery.mockResolvedValue({ data: {} });
+
+    const store = makeStore();
+    const result = await store.dispatch(
+      assignmentApi.endpoints.bulkRemoveAssignments.initiate([
+        makeAssignment({ id: 3 }),
+        makeAssignment({ id: 4 })
+      ])
+    );
+
+    expect(mockedBaseQuery).toHaveBeenCalledTimes(2);
+    expect(mockedBaseQuery.mock.calls[0][0]).toMatchObject({
+      method: "DELETE",
+      url: "/assignment/instructor/assignments/3"
+    });
+    expect("data" in result && result.data).toEqual({ succeeded: 2, failed: 0 });
+    expect(notify.success).toHaveBeenCalledWith("Deleted 2 assignments");
+    expect(notify.error).not.toHaveBeenCalled();
+  });
+
+  it("bulkRemoveAssignments toasts the error copy for failed deletions", async () => {
+    mockedBaseQuery.mockResolvedValue({ error: { status: 500, data: {} } });
+
+    const store = makeStore();
+    const result = await store.dispatch(
+      assignmentApi.endpoints.bulkRemoveAssignments.initiate([makeAssignment({ id: 5 })])
+    );
+
+    expect("data" in result && result.data).toEqual({ succeeded: 0, failed: 1 });
+    expect(notify.success).not.toHaveBeenCalled();
+    expect(notify.error).toHaveBeenCalledWith("Couldn't delete 1 assignment. Try again.");
+  });
+
+  it("phrases the bulk delete copy with singular and plural subjects", () => {
+    expect(ASSIGNMENT_TOAST_COPY.bulkDeleted(1)).toBe("Deleted 1 assignment");
+    expect(ASSIGNMENT_TOAST_COPY.bulkDeleted(3)).toBe("Deleted 3 assignments");
+    expect(ASSIGNMENT_TOAST_COPY.bulkDeleteError(1)).toBe(
+      "Couldn't delete 1 assignment. Try again."
+    );
+    expect(ASSIGNMENT_TOAST_COPY.bulkDeleteError(2)).toBe(
+      "Couldn't delete 2 assignments. Try again."
+    );
   });
 });

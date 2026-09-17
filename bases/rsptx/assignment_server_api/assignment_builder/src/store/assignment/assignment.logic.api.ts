@@ -20,6 +20,11 @@ import {
   SharedAssignmentPreview
 } from "@/types/assignmentSharing";
 
+export interface BulkActionResult {
+  succeeded: number;
+  failed: number;
+}
+
 export const ASSIGNMENT_TOAST_COPY = {
   loadAssignmentsError: "Couldn't load assignments. Refresh the page.",
   loadAssignmentError: "Couldn't load the assignment. Refresh the page.",
@@ -67,7 +72,10 @@ export const ASSIGNMENT_TOAST_COPY = {
       parts.push(`${result.duedate_not_shifted} due dates not adjusted`);
     }
     return `${parts.join(", ")}. Imports are hidden until you make them visible.`;
-  }
+  },
+  bulkDeleted: (count: number) => `Deleted ${count} ${count === 1 ? "assignment" : "assignments"}`,
+  bulkDeleteError: (count: number) =>
+    `Couldn't delete ${count} ${count === 1 ? "assignment" : "assignments"}. Try again.`
 } as const;
 
 export const assignmentApi = createApi({
@@ -303,6 +311,63 @@ export const assignmentApi = createApi({
             notify.error(ASSIGNMENT_TOAST_COPY.importError);
           });
       }
+    }),
+    bulkUpdateAssignments: build.mutation<BulkActionResult, Assignment[]>({
+      queryFn: async (assignments, _api, _extraOptions, fetchWithBQ) => {
+        const results = await Promise.all(
+          assignments.map((assignment) =>
+            fetchWithBQ({
+              method: "PUT",
+              url: `/assignment/instructor/assignments/${assignment.id}`,
+              body: assignment
+            })
+          )
+        );
+        const failed = results.filter((result) => result.error).length;
+
+        return { data: { succeeded: assignments.length - failed, failed } };
+      },
+      invalidatesTags: (result) => {
+        if (result && result.succeeded > 0) {
+          return [{ type: "Assignments" }, { type: "Assignment" }];
+        }
+        return [];
+      }
+    }),
+    bulkRemoveAssignments: build.mutation<BulkActionResult, Assignment[]>({
+      queryFn: async (assignments, _api, _extraOptions, fetchWithBQ) => {
+        const results = await Promise.all(
+          assignments.map((assignment) =>
+            fetchWithBQ({
+              method: "DELETE",
+              url: `/assignment/instructor/assignments/${assignment.id}`
+            })
+          )
+        );
+        const failed = results.filter((result) => result.error).length;
+
+        return { data: { succeeded: assignments.length - failed, failed } };
+      },
+      invalidatesTags: (result) => {
+        if (result && result.succeeded > 0) {
+          return [{ type: "Assignments" }];
+        }
+        return [];
+      },
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            if (data.succeeded > 0) {
+              notify.success(ASSIGNMENT_TOAST_COPY.bulkDeleted(data.succeeded));
+            }
+            if (data.failed > 0) {
+              notify.error(ASSIGNMENT_TOAST_COPY.bulkDeleteError(data.failed));
+            }
+          })
+          .catch(() => {
+            notify.error(ASSIGNMENT_TOAST_COPY.deleteError);
+          });
+      }
     })
   })
 });
@@ -317,5 +382,7 @@ export const {
   useShareableTreeQuery,
   usePreviewSharedAssignmentQuery,
   useImportAssignmentMutation,
-  useImportCourseAssignmentsMutation
+  useImportCourseAssignmentsMutation,
+  useBulkUpdateAssignmentsMutation,
+  useBulkRemoveAssignmentsMutation
 } = assignmentApi;
