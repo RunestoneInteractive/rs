@@ -19,7 +19,7 @@ export default class BlockFeedback extends HParsonsFeedback {
     }
 
     customizeUI() {
-        this.hparsons.runButton.textContent = "Check Me";
+        this.hparsons.runButton.textContent = t("msg_hparsons_check_me");
     }
 
     init() {
@@ -205,6 +205,6 @@ export default class BlockFeedback extends HParsonsFeedback {
             this.solved = false;
         }
         this.clearFeedback();
-        this.announceFeedback("Blocks reset.");
+        this.announceFeedback(t("msg_hparsons_blocks_reset"));
     }
 }

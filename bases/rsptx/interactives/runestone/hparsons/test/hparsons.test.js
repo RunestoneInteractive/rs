@@ -3,6 +3,7 @@
 // without jQuery.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import HParsons from "../js/hparsons.js";
+import { setLocale } from "../../common/js/rsi18n.js";
 
 // Build the DOM a book page provides: div.runestone > [data-component=hparsons]
 // wrapping a textarea whose text holds the --blocks-- section. data-blockanswer
@@ -384,6 +385,36 @@ describe("HParsons keyboard movement surface", () => {
         );
         expect(ids.every(Boolean)).toBe(true);
         expect(new Set(ids).size).toBe(ids.length);
+    });
+});
+
+describe("HParsons localization", () => {
+    beforeEach(() => {
+        document.body.innerHTML = "";
+        setLocale("en");
+        vi.spyOn(HParsons.prototype, "queueMathJax").mockResolvedValue({});
+        vi.spyOn(HParsons.prototype, "logBookEvent").mockResolvedValue({});
+        vi.spyOn(HParsons.prototype, "checkServer").mockImplementation(
+            () => {},
+        );
+    });
+
+    it("uses the active locale for hParsons interface strings", () => {
+        setLocale("pt-BR");
+        const hp = makeComponent({
+            blocks: ["first", "second"].join("\n"),
+            blockAnswer: "0 1",
+        });
+        const input = hp.hparsonsInput.querySelector(".hparsons-input");
+
+        expect(hp.runButton.textContent).toBe("Verificar");
+        expect(
+            input.querySelector(".drag-area").getAttribute("aria-label"),
+        ).toBe("Blocos disponíveis");
+        expect(input.querySelector(".hparsons-drag-tip").textContent).toBe(
+            "Arraste ou clique nos blocos abaixo para formar sua resposta:",
+        );
+        setLocale("en");
     });
 });
 describe("HParsons wrong-order feedback", () => {

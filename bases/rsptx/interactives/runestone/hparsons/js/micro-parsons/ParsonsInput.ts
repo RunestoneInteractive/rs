@@ -57,7 +57,8 @@ export class ParsonsInput implements IParsonsInput {
     this.el.appendChild(this._keyboardEntryHint);
 
     const dragTip = document.createElement("div");
-    dragTip.innerText = "Drag or click the blocks below to form your code:";
+    dragTip.innerText = t("msg_hparsons_drag_blocks_code");
+    dragTip.classList.add("hparsons-drag-tip");
     dragTip.classList.add("hparsons-tip");
     this.el.append(dragTip);
 
@@ -65,10 +66,14 @@ export class ParsonsInput implements IParsonsInput {
     this.el.appendChild(this._dragArea);
     this._dragArea.classList.add("drag-area");
     this._dragArea.setAttribute("role", "listbox");
-    this._dragArea.setAttribute("aria-label", "Available blocks");
+    this._dragArea.setAttribute(
+      "aria-label",
+      t("msg_hparsons_available_blocks"),
+    );
 
     const dropTip = document.createElement("div");
-    dropTip.innerText = "Your code (click on a block to remove it):";
+    dropTip.innerText = t("msg_hparsons_drop_blocks_code");
+    dropTip.classList.add("hparsons-drop-tip");
     dropTip.classList.add("hparsons-tip");
     this.el.append(dropTip);
 
@@ -76,7 +81,7 @@ export class ParsonsInput implements IParsonsInput {
     this.el.appendChild(this._dropArea);
     this._dropArea.classList.add("drop-area");
     this._dropArea.setAttribute("role", "listbox");
-    this._dropArea.setAttribute("aria-label", "Answer area");
+    this._dropArea.setAttribute("aria-label", t("msg_hparsons_answer_area"));
     this._prevPosition = -1;
 
     // Visually-hidden live region for screen-reader announcements
@@ -94,7 +99,7 @@ export class ParsonsInput implements IParsonsInput {
     this._keyboardInstructions.id = `${this.el.id}-keyboard-instructions`;
     this._keyboardInstructions.classList.add("sr-only");
     this._keyboardInstructions.textContent =
-      "Press Enter to move blocks with the keyboard.";
+      t("msg_hparsons_keyboard_idle_instructions");
     this.el.appendChild(this._keyboardInstructions);
     this._keyboardApplication = document.createElement("div");
     this._keyboardApplication.classList.add("hparsons-keyboard-application");
@@ -285,7 +290,9 @@ export class ParsonsInput implements IParsonsInput {
       }
       this._updateBlockAria();
       this._refocusMovedBlock(focusedBlock);
-      this._announce(`${blockText} moved to answer area`);
+      this._announce(
+        t("msg_hparsons_block_moved_to_answer", blockText),
+      );
     } else {
       const startPosition = this._getBlockPosition(block);
       if (this.reusable) {
@@ -307,7 +314,9 @@ export class ParsonsInput implements IParsonsInput {
       this.parentElement.logEvent(inputEvent);
       this._updateBlockAria();
       this._refocusMovedBlock(focusedBlock);
-      this._announce(`${blockText} moved to available blocks`);
+      this._announce(
+        t("msg_hparsons_block_moved_to_available", blockText),
+      );
     }
   };
 
@@ -541,9 +550,9 @@ export class ParsonsInput implements IParsonsInput {
     this._keyboardInputActive = true;
     this._hideKeyboardEntryHint();
     this._keyboardInstructions.textContent =
-      "Use Left and Right Arrow to choose a block in this area. Use Up and Down Arrow to switch between available blocks and the answer area. Press Enter to move the current block. Press Escape or Tab to finish.";
+      t("msg_hparsons_keyboard_instructions");
     this._setActiveBlock(blocks[0], true);
-    this._announce(`Moving ${this._getAccessibleBlockText(blocks[0])}`);
+    this._announce(t("msg_hparsons_moving", this._getAccessibleBlockText(blocks[0])));
   };
 
   private _exitKeyboardMovement = (returnFocusToEntry = false): void => {
@@ -552,9 +561,9 @@ export class ParsonsInput implements IParsonsInput {
     this._keyboardApplication.removeAttribute("aria-label");
     this.el.setAttribute("aria-label", t("msg_parson_keyboard_entry_label"));
     this._keyboardInstructions.textContent =
-      "Press Enter to move blocks with the keyboard.";
+      t("msg_hparsons_keyboard_idle_instructions");
     this._updateBlockAria();
-    this._announce("Keyboard block movement finished.");
+    this._announce(t("msg_hparsons_keyboard_finished"));
     if (returnFocusToEntry) {
       this.el.focus();
     }

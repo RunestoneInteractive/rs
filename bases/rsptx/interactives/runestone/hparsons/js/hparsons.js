@@ -1,5 +1,9 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import { disableMathJaxTabStops } from "../../common/js/mathjax-a11y.js";
+import { t } from "../../common/js/rsi18n.js";
+import "./hparsons-i18n.en.js";
+import "./hparsons-i18n.pt-br.js";
+import "./hparsons-i18n.sr-Cyrl.js";
 
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
@@ -138,14 +142,12 @@ export default class HParsons extends RunestoneBase {
         this.renderMathInBlocks();
         // Change "code" to "answer" in parsons direction for non-code languages
         if (this.language == null || this.language === "math") {
-            this.outerDiv.querySelectorAll(".hparsons-tip").forEach((el) => {
-                if (el.textContent.includes("our code")) {
-                    el.textContent = el.textContent.replace(
-                        "our code",
-                        "our answer",
-                    );
-                }
-            });
+            this.outerDiv.querySelector(".hparsons-drag-tip").textContent = t(
+                "msg_hparsons_drag_blocks_answer",
+            );
+            this.outerDiv.querySelector(".hparsons-drop-tip").textContent = t(
+                "msg_hparsons_drop_blocks_answer",
+            );
         }
     }
 
@@ -162,7 +164,7 @@ export default class HParsons extends RunestoneBase {
         this.runButton.classList.add("btn", "btn-success", "run-button");
         ctrlDiv.appendChild(this.runButton);
         this.runButton.setAttribute("type", "button");
-        this.runButton.textContent = "Run";
+        this.runButton.textContent = t("msg_hparsons_run");
         var that = this;
         this.runButton.onclick = () => {
             that.feedbackController.runButtonHandler();
@@ -172,7 +174,7 @@ export default class HParsons extends RunestoneBase {
         // Reset button
         var resetBtn;
         resetBtn = document.createElement("button");
-        resetBtn.textContent = "Reset";
+        resetBtn.textContent = t("msg_parson_reset");
         resetBtn.classList.add("btn", "btn-warning", "run-button");
         ctrlDiv.appendChild(resetBtn);
         this.resetButton = resetBtn;
