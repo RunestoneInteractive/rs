@@ -220,6 +220,7 @@ from .question import (
     fetch_previous_selections,
     fetch_question,
     fetch_question_by_id,
+    fetch_questions_by_name,
     fetch_flagged_questions,
     fetch_questions_for_chapter_subchapter,
     fetch_question_count_per_subchapter,
@@ -271,6 +272,8 @@ from .scoring import (
 
 from .selectq import (
     create_selected_question,
+    fetch_selected_id,
+    fetch_selected_ids_for_selector,
     fetch_selected_question,
     update_selected_question,
 )
@@ -510,6 +513,7 @@ __all__ += [
     "fetch_matching_questions",
     "fetch_previous_selections",
     "fetch_question",
+    "fetch_questions_by_name",
     "fetch_question_by_id",
     "fetch_flagged_questions",
     "fetch_questions_for_chapter_subchapter",
@@ -566,6 +570,8 @@ __all__ += [
 # from .selectq
 __all__ += [
     "create_selected_question",
+    "fetch_selected_id",
+    "fetch_selected_ids_for_selector",
     "fetch_selected_question",
     "update_selected_question",
 ]

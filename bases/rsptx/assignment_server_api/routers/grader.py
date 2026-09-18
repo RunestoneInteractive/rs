@@ -53,6 +53,11 @@ from rsptx.grading_helpers.answer_tables import (
     describe_interaction,
     interaction_events_for,
 )
+from rsptx.grading_helpers.select_questions import (
+    is_select_question,
+    resolve_for_class,
+    resolve_one,
+)
 from rsptx.grading_helpers.regrade import (
     RegradeOptions,
     page_url_suffix,
@@ -107,6 +112,11 @@ class GraderStudentAnswer(BaseModel):
     #: grade apart from an auto-graded one even with no comment to show.
     hand_graded: bool = False
     max_points: int = 0
+    #: For a selectquestion, the question this student was actually served.
+    #: The grading preview has to render that one, not the wrapper.
+    selected_div_id: Optional[str] = None
+    selected_question_type: Optional[str] = None
+    selected_htmlsrc: Optional[str] = None
 
 
 class GraderAnswerHistoryItem(BaseModel):
@@ -128,6 +138,61 @@ class GradeUpdatePayload(BaseModel):
     # clients (and the direct-POST e2e tests) keep working; when it is missing we
     # fall back to looking the assignment(s) up from ``div_id``.
     assignment_id: Optional[int] = None
+
+
+async def _select_question_answered_sids(session, question, course, instructor_ids):
+    """The students who have answered a ``selectquestion``.
+
+    Their answers are filed under whichever question each of them was served,
+    so counting rows under the wrapper's own name reports 0 no matter how much
+    of the class answered.  See issue #1481.
+    """
+    resolved = await resolve_for_class(question, basecourse=course.base_course)
+    if not resolved:
+        return set()
+
+    by_type: dict = {}
+    for r in resolved.values():
+        by_type.setdefault(r.question_type, set()).add(r.div_id)
+
+    def served(sid, div_id):
+        r = resolved.get(sid)
+        return bool(sid) and sid not in instructor_ids and r and r.div_id == div_id
+
+    answered = set()
+    for qtype, div_ids in by_type.items():
+        tbl = _answer_table_for(qtype)
+        if tbl is not None:
+            res = await session.execute(
+                select(tbl.sid, tbl.div_id)
+                .where(
+                    and_(
+                        tbl.div_id.in_(div_ids),
+                        tbl.course_name == course.course_name,
+                    )
+                )
+                .distinct()
+            )
+            answered.update(sid for sid, div in res.all() if served(sid, div))
+
+        events = interaction_events_for(qtype)
+        if events:
+            for div_id in div_ids:
+                for u in await fetch_interaction_useinfo(
+                    div_id, course.course_name, events
+                ):
+                    if served(u.sid, div_id) and is_interaction_event(u.event, u.act):
+                        answered.add(u.sid)
+
+        if qtype in CODE_TABLE_TYPES:
+            res = await session.execute(
+                select(Code.sid, Code.acid)
+                .where(and_(Code.acid.in_(div_ids), Code.course_id == course.id))
+                .distinct()
+            )
+            answered.update(sid for sid, acid in res.all() if served(sid, acid))
+
+    return answered
 
 
 @router.get("/assignments/{assignment_id}/questions")
@@ -229,6 +294,13 @@ async def list_assignment_questions(
                         select(func.distinct(Code.sid)).where(and_(*code_clauses))
                     )
                     answered_sids.update(s for (s,) in res.all() if s)
+
+                if is_select_question(q):
+                    answered_sids.update(
+                        await _select_question_answered_sids(
+                            session, q, course, instructor_ids
+                        )
+                    )
 
                 answered_count = len(answered_sids)
 
@@ -380,73 +452,98 @@ async def list_question_answers(
             status=status.HTTP_404_NOT_FOUND, detail="Question not in assignment"
         )
 
-    tbl = _answer_table_for(question.question_type)
     students = await fetch_users_for_course(course.course_name)
     instructor_ids = {
         u.username for u in await fetch_course_instructors(course.course_name)
     }
     student_map = {s.username: s for s in students if s.username not in instructor_ids}
 
+    # A selectquestion stores the grade under the wrapper but the answer under
+    # whichever question the student was actually served, so it has to be
+    # resolved per student or the whole class reads as "No submission" on a
+    # question that has already been graded.  See issue #1481.
+    resolved = await resolve_for_class(
+        question, student_map.keys(), basecourse=course.base_course
+    )
+    # Which div_id holds this student's work, and which answer table it is in.
+    scoring_div = {sid: r.div_id for sid, r in resolved.items()}
+    if resolved:
+        by_type: dict = {}
+        for r in resolved.values():
+            by_type.setdefault(r.question_type, set()).add(r.div_id)
+    else:
+        by_type = {question.question_type: {question.name}}
+
+    def _wanted(sid: str, div_id: str) -> bool:
+        """True when this row belongs to the question this student was served."""
+        return sid in student_map and scoring_div.get(sid, question.name) == div_id
+
     answers: List[GraderStudentAnswer] = []
     latest_by_sid: dict = {}
     attempt_counts: dict = {}
     answer_source: dict = {}
 
-    if tbl is not None:
-        async with async_session() as session:
-            q = (
-                select(tbl)
-                .where(
-                    and_(
-                        tbl.div_id == question.name,
-                        tbl.course_name == course.course_name,
+    for qtype, div_ids in by_type.items():
+        tbl = _answer_table_for(qtype)
+        if tbl is not None:
+            async with async_session() as session:
+                q = (
+                    select(tbl)
+                    .where(
+                        and_(
+                            tbl.div_id.in_(div_ids),
+                            tbl.course_name == course.course_name,
+                        )
                     )
+                    .order_by(tbl.sid, tbl.timestamp.desc())
                 )
-                .order_by(tbl.sid, tbl.timestamp.desc())
-            )
-            res = await session.execute(q)
-            for a in res.scalars():
-                if a.sid not in student_map:
-                    continue
-                attempt_counts[a.sid] = attempt_counts.get(a.sid, 0) + 1
-                if a.sid not in latest_by_sid:
-                    latest_by_sid[a.sid] = a
-                    answer_source[a.sid] = "answer_table"
+                res = await session.execute(q)
+                for a in res.scalars():
+                    if not _wanted(a.sid, a.div_id):
+                        continue
+                    attempt_counts[a.sid] = attempt_counts.get(a.sid, 0) + 1
+                    if a.sid not in latest_by_sid:
+                        latest_by_sid[a.sid] = a
+                        answer_source[a.sid] = "answer_table"
 
-    interaction_events = interaction_events_for(question.question_type)
-    if interaction_events:
-        # No answer table: the student's "answer" is the interaction itself, so
-        # show the most recent one rather than an empty list of students.
-        for u in await fetch_interaction_useinfo(
-            question.name, course.course_name, interaction_events
-        ):
-            if u.sid not in student_map or not is_interaction_event(u.event, u.act):
-                continue
-            attempt_counts[u.sid] = attempt_counts.get(u.sid, 0) + 1
-            # Rows arrive oldest first, so keep overwriting to end on the latest.
-            latest_by_sid[u.sid] = u
-            answer_source[u.sid] = "useinfo"
+        interaction_events = interaction_events_for(qtype)
+        if interaction_events:
+            # No answer table: the student's "answer" is the interaction itself,
+            # so show the most recent one rather than an empty list of students.
+            for div_id in div_ids:
+                for u in await fetch_interaction_useinfo(
+                    div_id, course.course_name, interaction_events
+                ):
+                    if not _wanted(u.sid, div_id) or not is_interaction_event(
+                        u.event, u.act
+                    ):
+                        continue
+                    attempt_counts[u.sid] = attempt_counts.get(u.sid, 0) + 1
+                    # Rows arrive oldest first, so keep overwriting to end on
+                    # the latest.
+                    latest_by_sid[u.sid] = u
+                    answer_source[u.sid] = "useinfo"
 
-    if question.question_type in CODE_TABLE_TYPES:
-        async with async_session() as session:
-            q = (
-                select(Code)
-                .where(
-                    and_(
-                        Code.acid == question.name,
-                        Code.course_id == course.id,
+        if qtype in CODE_TABLE_TYPES:
+            async with async_session() as session:
+                q = (
+                    select(Code)
+                    .where(
+                        and_(
+                            Code.acid.in_(div_ids),
+                            Code.course_id == course.id,
+                        )
                     )
+                    .order_by(Code.sid, Code.timestamp.desc())
                 )
-                .order_by(Code.sid, Code.timestamp.desc())
-            )
-            res = await session.execute(q)
-            for c in res.scalars():
-                if c.sid not in student_map:
-                    continue
-                attempt_counts[c.sid] = attempt_counts.get(c.sid, 0) + 1
-                if c.sid not in latest_by_sid:
-                    latest_by_sid[c.sid] = c
-                    answer_source[c.sid] = "code_table"
+                res = await session.execute(q)
+                for c in res.scalars():
+                    if not _wanted(c.sid, c.acid):
+                        continue
+                    attempt_counts[c.sid] = attempt_counts.get(c.sid, 0) + 1
+                    if c.sid not in latest_by_sid:
+                        latest_by_sid[c.sid] = c
+                        answer_source[c.sid] = "code_table"
 
     # One query for the whole class rather than one per student: the roster is
     # the loop bound now, not the (usually shorter) list of submitters.
@@ -469,6 +566,7 @@ async def list_question_answers(
     for sid, stu in student_map.items():
         row = latest_by_sid.get(sid)
         grade = grades_by_sid.get(sid)
+        served = resolved.get(sid)
 
         if row is None:
             answer_text = None
@@ -514,6 +612,9 @@ async def list_question_answers(
                 comment=display_comment(grade.comment) if grade else None,
                 hand_graded=bool(grade and is_hand_graded(grade.comment)),
                 max_points=max_points,
+                selected_div_id=served.div_id if served else None,
+                selected_question_type=served.question_type if served else None,
+                selected_htmlsrc=served.htmlsrc if served else None,
             )
         )
 
@@ -559,7 +660,10 @@ async def get_student_answer_history(
             status=status.HTTP_404_NOT_FOUND, detail="Question not in assignment"
         )
 
-    tbl = _answer_table_for(question.question_type)
+    # See issue #1481: a selectquestion keeps its answers under the question the
+    # student was served, not under the wrapper named by the assignment.
+    served = await resolve_one(question, sid, basecourse=course.base_course)
+    tbl = _answer_table_for(served.question_type)
     history: List[GraderAnswerHistoryItem] = []
 
     if tbl is not None:
@@ -568,7 +672,7 @@ async def get_student_answer_history(
                 select(tbl)
                 .where(
                     and_(
-                        tbl.div_id == question.name,
+                        tbl.div_id == served.div_id,
                         tbl.course_name == course.course_name,
                         tbl.sid == sid,
                     )
@@ -602,12 +706,12 @@ async def get_student_answer_history(
                     )
                 )
 
-    interaction_events = interaction_events_for(question.question_type)
+    interaction_events = interaction_events_for(served.question_type)
     if interaction_events:
         # The submissions are the useinfo rows themselves, so build the timeline
         # from them rather than leaving the history empty.
         for u in await fetch_interaction_useinfo(
-            question.name, course.course_name, interaction_events, sid=sid
+            served.div_id, course.course_name, interaction_events, sid=sid
         ):
             if not is_interaction_event(u.event, u.act):
                 continue
@@ -622,13 +726,13 @@ async def get_student_answer_history(
                 )
             )
 
-    if question.question_type in CODE_TABLE_TYPES:
+    if served.question_type in CODE_TABLE_TYPES:
         async with async_session() as session:
             q = (
                 select(Code)
                 .where(
                     and_(
-                        Code.acid == question.name,
+                        Code.acid == served.div_id,
                         Code.course_id == course.id,
                         Code.sid == sid,
                     )
@@ -651,11 +755,14 @@ async def get_student_answer_history(
     history.sort(key=lambda h: h.timestamp or "")
 
     async with async_session() as session:
+        # For a selectquestion both names appear in useinfo -- the wrapper logs
+        # the selection, the served question logs the work -- so show both.
+        div_ids = {question.name, served.div_id}
         q = (
             select(Useinfo)
             .where(
                 and_(
-                    Useinfo.div_id == question.name,
+                    Useinfo.div_id.in_(div_ids),
                     Useinfo.course_id == course.course_name,
                     Useinfo.sid == sid,
                 )

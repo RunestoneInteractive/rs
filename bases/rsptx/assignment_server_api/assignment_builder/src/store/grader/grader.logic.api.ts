@@ -49,6 +49,12 @@ export interface GraderStudentAnswer {
   /** True when a human set this score, with or without a comment. */
   hand_graded?: boolean;
   max_points: number;
+  /** For a selectquestion, the question this student was actually served. The
+   * grade is filed under the wrapper but the work is filed under this one, so
+   * the preview has to render this one. */
+  selected_div_id?: string | null;
+  selected_question_type?: string | null;
+  selected_htmlsrc?: string | null;
 }
 
 export interface GraderAnswerHistoryItem {

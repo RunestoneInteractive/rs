@@ -384,9 +384,14 @@ export const GraderQuestionPage: React.FC = () => {
                   ref={submissionRef}
                   assignmentId={aid}
                   questionId={qid}
-                  questionName={data.question.name}
-                  questionType={data.question.question_type}
-                  htmlsrc={data.question.htmlsrc || questionMeta?.htmlsrc}
+                  /* A selectquestion is a wrapper: this student's work belongs
+                     to whichever question they were served, so preview that
+                     one. The grade still goes to the wrapper. */
+                  questionName={student.selected_div_id || data.question.name}
+                  questionType={student.selected_question_type || data.question.question_type}
+                  htmlsrc={
+                    student.selected_htmlsrc || data.question.htmlsrc || questionMeta?.htmlsrc
+                  }
                   student={student}
                 />
               )}

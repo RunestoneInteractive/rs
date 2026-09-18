@@ -1388,3 +1388,201 @@ async def test_an_autograded_row_is_not_reported_as_hand_graded(
     ]
     assert mine["comment"] is None
     assert mine["hand_graded"] is False
+
+
+async def _add_select_question(
+    assignment_id, selector_div_id, served_div_id, points=5, autograde="pct_correct"
+):
+    """Seed a ``selectquestion`` wrapper plus the question it stands in for.
+
+    Returns ``(selector_question_id, served_question_id)``.
+    """
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import AssignmentQuestion, Question
+
+    async with async_session.begin() as session:
+        selector = Question(
+            base_course=COURSE_NAME,
+            name=selector_div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type="selectquestion",
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        served = Question(
+            base_course=COURSE_NAME,
+            name=served_div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type="mchoice",
+            htmlsrc="<div>the real question</div>",
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        session.add_all([selector, served])
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment_id,
+                question_id=selector.id,
+                points=points,
+                autograde=autograde,
+                which_to_grade="best_answer",
+                reading_assignment=False,
+                sorting_priority=1,
+            )
+        )
+        return selector.id, served.id
+
+
+async def _serve_selected_question(sid, selector_div_id, served_div_id):
+    from rsptx.db.crud import create_selected_question
+
+    await create_selected_question(sid, selector_div_id, served_div_id)
+
+
+async def _log_mchoice_answer(sid, div_id, answer, correct=True, when=None):
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import MchoiceAnswers
+
+    async with async_session.begin() as session:
+        session.add(
+            MchoiceAnswers(
+                timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
+                sid=sid,
+                div_id=div_id,
+                course_name=COURSE_NAME,
+                answer=answer,
+                correct=correct,
+                percent=1.0 if correct else 0.0,
+            )
+        )
+
+
+async def test_answers_list_resolves_selectquestion(auth_instructor_client):
+    """A selectquestion shows the work the student actually did.
+
+    Regression for issue #1481: the grade is filed under the wrapper but the
+    answer is filed under the question the student was served, so reading the
+    wrapper's own div_id reported "No submission" for a whole class that had
+    already been graded.
+    """
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "answers_selectq")
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "answers_selectq_wrapper", "answers_selectq_real"
+    )
+    await _serve_selected_question(
+        "testuser1", "answers_selectq_wrapper", "answers_selectq_real"
+    )
+    await _log_mchoice_answer("testuser1", "answers_selectq_real", "0", correct=True)
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": selector_id},
+    )
+    assert resp.status_code == 200
+    mine = [a for a in resp.json()["detail"]["answers"] if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    assert mine[0]["attempts"] == 1
+    assert mine[0]["answer"] == "0"
+    assert mine[0]["correct"] is True
+    # The preview has to render the served question, not the wrapper.
+    assert mine[0]["selected_div_id"] == "answers_selectq_real"
+    assert mine[0]["selected_question_type"] == "mchoice"
+    assert mine[0]["selected_htmlsrc"] == "<div>the real question</div>"
+
+
+async def test_answers_list_selectquestion_without_selection(auth_instructor_client):
+    """A student the selectquestion was never served to still reads as
+    "No submission".
+
+    Without a ``selected_questions`` row there is nothing tying that student to
+    the question, so an answer sitting under it is somebody else's business --
+    the same call the re-grader makes.
+    """
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "answers_selectq_none"
+    )
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "answers_selectq_none_wrapper", "answers_selectq_none_real"
+    )
+    await _log_mchoice_answer("testuser1", "answers_selectq_none_real", "1")
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": selector_id},
+    )
+    assert resp.status_code == 200
+    mine = [a for a in resp.json()["detail"]["answers"] if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    assert mine[0]["attempts"] == 0
+    assert mine[0]["answer"] is None
+    assert mine[0]["selected_div_id"] is None
+
+
+async def test_question_stats_count_selectquestion_answers(auth_instructor_client):
+    """The question list counts a selectquestion as answered."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_selectq")
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "stats_selectq_wrapper", "stats_selectq_real"
+    )
+    await _serve_selected_question(
+        "testuser1", "stats_selectq_wrapper", "stats_selectq_real"
+    )
+    await _log_mchoice_answer("testuser1", "stats_selectq_real", "2")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    stats = {q["id"]: q for q in resp.json()["detail"]["questions"]}
+    assert stats[selector_id]["answered_count"] == 1
+
+
+async def test_answer_history_resolves_selectquestion(auth_instructor_client):
+    """Every attempt on the served question shows in the wrapper's history."""
+    import datetime
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "history_selectq")
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "history_selectq_wrapper", "history_selectq_real"
+    )
+    await _serve_selected_question(
+        "testuser1", "history_selectq_wrapper", "history_selectq_real"
+    )
+    await _log_mchoice_answer(
+        "testuser1",
+        "history_selectq_real",
+        "0",
+        correct=False,
+        when=datetime.datetime(2024, 6, 1, 12, 0, 0),
+    )
+    await _log_mchoice_answer(
+        "testuser1",
+        "history_selectq_real",
+        "2",
+        correct=True,
+        when=datetime.datetime(2024, 6, 1, 12, 5, 0),
+    )
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/history",
+        params={
+            "assignment_id": assignment_id,
+            "question_id": selector_id,
+            "sid": "testuser1",
+        },
+    )
+    assert resp.status_code == 200
+    history = resp.json()["detail"]["history"]
+    assert [h["answer"] for h in history] == ["0", "2"]
+    assert history[-1]["correct"] is True

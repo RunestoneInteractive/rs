@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, Iterable, List, Optional, Tuple
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.exc import IntegrityError
 
@@ -57,6 +57,41 @@ async def fetch_question(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return QuestionValidator.from_orm(res.scalars().first())
+
+
+async def fetch_questions_by_name(
+    names: Iterable[str], basecourse: Optional[str] = None
+) -> Dict[str, QuestionValidator]:
+    """
+    Fetch several questions at once, keyed by their name (div_id).
+
+    Callers that have a list of div_ids -- the grader resolving a page full of
+    ``selectquestion`` wrappers, for instance -- would otherwise issue one
+    query per question.
+
+    ``(base_course, name)`` is the unique pair, so a name can in principle
+    appear in more than one book; when ``basecourse`` is given a row from that
+    book wins, otherwise the first row found is used.
+
+    :param names: the question names (div_ids) to look up
+    :param basecourse: str, the base course to prefer (optional)
+    :return: a mapping of question name to QuestionValidator
+    """
+    wanted = [n for n in set(names) if n]
+    if not wanted:
+        return {}
+
+    query = select(Question).where(Question.name.in_(wanted))
+    async with async_session() as session:
+        res = await session.execute(query)
+        found: Dict[str, QuestionValidator] = {}
+        for q in res.scalars():
+            if q.name in found and (
+                not basecourse or found[q.name].base_course == basecourse
+            ):
+                continue
+            found[q.name] = QuestionValidator.from_orm(q)
+        return found
 
 
 async def fetch_question_by_id(question_id: int) -> Optional[QuestionValidator]:
