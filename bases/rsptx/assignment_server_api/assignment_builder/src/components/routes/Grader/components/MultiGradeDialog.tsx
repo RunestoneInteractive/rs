@@ -265,7 +265,7 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
 
   return (
     <Modal
-      title="Multi-grade selected questions"
+      title="Manually grade selected questions"
       opened={visible}
       onClose={close}
       size="860px"

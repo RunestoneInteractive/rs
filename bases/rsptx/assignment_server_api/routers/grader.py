@@ -88,6 +88,8 @@ class GraderQuestionStats(BaseModel):
 
     answered_count: int
 
+    total_attempts: int
+
     correct_count: int
 
     graded_count: int
@@ -233,6 +235,7 @@ async def list_assignment_questions(
         interaction_events = interaction_events_for(q.question_type)
 
         answered_count = 0
+        total_attempts = 0
         correct_count = 0
         graded_count = 0
         average_score = 0.0
@@ -263,6 +266,10 @@ async def list_assignment_questions(
                         select(func.distinct(tbl.sid)).where(and_(*base_clauses))
                     )
                     answered_sids.update(s for (s,) in res.all() if s)
+                    res = await session.execute(
+                        select(func.count(tbl.id)).where(and_(*base_clauses))
+                    )
+                    total_attempts += int(res.scalar() or 0)
 
                 if interaction_events:
                     for u in await fetch_interaction_useinfo(
@@ -272,6 +279,7 @@ async def list_assignment_questions(
                             continue
                         if is_interaction_event(u.event, u.act):
                             answered_sids.add(u.sid)
+                            total_attempts += 1
 
                 if q.question_type == "page":
                     # A reading has no answers. What it has is readers: count
@@ -295,6 +303,10 @@ async def list_assignment_questions(
                         select(func.distinct(Code.sid)).where(and_(*code_clauses))
                     )
                     answered_sids.update(s for (s,) in res.all() if s)
+                    res = await session.execute(
+                        select(func.count(Code.id)).where(and_(*code_clauses))
+                    )
+                    total_attempts += int(res.scalar() or 0)
 
                 if is_select_question(q):
                     answered_sids.update(
@@ -393,6 +405,7 @@ async def list_assignment_questions(
                 autograde=aq.autograde,
                 which_to_grade=aq.which_to_grade,
                 answered_count=answered_count,
+                total_attempts=total_attempts,
                 correct_count=correct_count,
                 graded_count=graded_count,
                 average_score=round(average_score, 2),
