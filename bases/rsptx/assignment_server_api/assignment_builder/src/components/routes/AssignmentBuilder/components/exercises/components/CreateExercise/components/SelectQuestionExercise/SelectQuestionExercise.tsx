@@ -127,6 +127,7 @@ export const SelectQuestionExercise: FC<ExerciseComponentProps> = ({
 
   const handleQuestionListChange = (questionList: QuestionWithLabel[]) => {
     const labelsRecord: Record<string, string> = {};
+
     questionList.forEach((q) => {
       if (q.label) {
         labelsRecord[q.questionId] = q.label;

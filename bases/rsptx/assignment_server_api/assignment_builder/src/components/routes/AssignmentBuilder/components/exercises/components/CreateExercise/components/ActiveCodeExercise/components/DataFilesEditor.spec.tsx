@@ -2,7 +2,6 @@ import { modals } from "@mantine/modals";
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen, waitFor } from "@/test/renderWithMantine";
-
 import { ExistingDataFile } from "@/types/datafile";
 
 import { DataFilesEditor } from "./DataFilesEditor";

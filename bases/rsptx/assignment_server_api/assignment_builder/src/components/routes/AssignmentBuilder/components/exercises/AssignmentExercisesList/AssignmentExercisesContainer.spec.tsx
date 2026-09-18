@@ -1,6 +1,7 @@
+import { notify } from "@components/ui/notify";
+
 import { renderWithMantine, screen, waitFor } from "@/test/renderWithMantine";
 import { Exercise } from "@/types/exercises";
-import { notify } from "@components/ui/notify";
 
 import { AssignmentExercisesContainer } from "./AssignmentExercisesContainer";
 

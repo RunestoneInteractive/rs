@@ -48,8 +48,8 @@ export const ImportPreviewPanel = ({ assignmentId, onClose }: ImportPreviewPanel
             </Text>
             <Text size="sm" c="dimmed">
               {preview.question_count} question{preview.question_count === 1 ? "" : "s"} ·{" "}
-              {preview.points} points · due{" "}
-              {formatUTCDateForDisplay(preview.duedate, DATE_FORMAT)} in your term
+              {preview.points} points · due {formatUTCDateForDisplay(preview.duedate, DATE_FORMAT)}{" "}
+              in your term
             </Text>
           </Stack>
 

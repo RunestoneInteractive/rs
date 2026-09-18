@@ -1,7 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { DATAFILE_TOAST_COPY, datafileApi, getErrorMessage } from "./datafile.logic.api";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
+
 import type { ExistingDataFile } from "@/types/datafile";
+
+import { DATAFILE_TOAST_COPY, datafileApi, getErrorMessage } from "./datafile.logic.api";
 
 vi.mock("@components/ui/notify", () => ({
   notify: {
@@ -45,26 +47,31 @@ describe("datafileApi — module exports", () => {
 
   it("exports useFetchDatafilesQuery hook", () => {
     const { useFetchDatafilesQuery } = datafileApi;
+
     expect(typeof useFetchDatafilesQuery).toBe("function");
   });
 
   it("exports useFetchDatafileQuery hook", () => {
     const { useFetchDatafileQuery } = datafileApi;
+
     expect(typeof useFetchDatafileQuery).toBe("function");
   });
 
   it("exports useCreateDatafileMutation hook", () => {
     const { useCreateDatafileMutation } = datafileApi;
+
     expect(typeof useCreateDatafileMutation).toBe("function");
   });
 
   it("exports useUpdateDatafileMutation hook", () => {
     const { useUpdateDatafileMutation } = datafileApi;
+
     expect(typeof useUpdateDatafileMutation).toBe("function");
   });
 
   it("exports useDeleteDatafileMutation hook", () => {
     const { useDeleteDatafileMutation } = datafileApi;
+
     expect(typeof useDeleteDatafileMutation).toBe("function");
   });
 });
@@ -75,12 +82,14 @@ describe("datafileApi — reducer integration", () => {
 
   it("registers under its reducerPath and returns defined initial state", () => {
     const store = buildStore();
+
     expect(store.getState()[datafileApi.reducerPath]).toBeDefined();
   });
 
   it("each call to buildStore creates an independent store instance", () => {
     const a = buildStore();
     const b = buildStore();
+
     expect(a).not.toBe(b);
   });
 });
@@ -100,6 +109,7 @@ describe("datafileApi — fetchDatafiles transformResponse logic", () => {
         main_code: ""
       }
     ];
+
     expect(transform({ detail: { datafiles } })).toEqual(datafiles);
   });
 
@@ -116,6 +126,7 @@ describe("datafileApi — fetchDatafiles transformResponse logic", () => {
       { id: 1, acid: "a1", filename: "f1.csv", course_id: "cs101", owner: "u1", main_code: "" },
       { id: 2, acid: "a2", filename: "f2.csv", course_id: "cs101", owner: "u2", main_code: "" }
     ];
+
     expect(transform({ detail: { datafiles } })).toHaveLength(2);
   });
 });
@@ -222,12 +233,14 @@ describe("datafileApi — updateDatafile invalidatesTags logic", () => {
 
   it("invalidates both Datafiles list and the specific Datafile entry", () => {
     const tags = invalidatesTags(undefined, undefined, { acid: "target", main_code: "" });
+
     expect(tags).toContainEqual("Datafiles");
     expect(tags).toContainEqual({ type: "Datafile", id: "target" });
   });
 
   it("uses the acid from arg as the specific tag id", () => {
     const tags = invalidatesTags(undefined, undefined, { acid: "specific_acid", main_code: "x" });
+
     expect(tags).toContainEqual({ type: "Datafile", id: "specific_acid" });
   });
 });

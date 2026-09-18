@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { useTableRowMenu } from "./useTableRowMenu";
 
 const createMockEditor = (overrides: Record<string, unknown> = {}) => {
@@ -20,37 +21,44 @@ describe("useTableRowMenu", () => {
   describe("initial state", () => {
     it("returns rowMenuVisible as false initially", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(result.current.rowMenuVisible).toBe(false);
     });
 
     it("returns rowMenuPosition as { x: 0, y: 0 } initially", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(result.current.rowMenuPosition).toEqual({ x: 0, y: 0 });
     });
 
     it("returns rowMenuRef as a ref object", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(result.current.rowMenuRef).toBeDefined();
       expect(result.current.rowMenuRef).toHaveProperty("current");
     });
 
     it("returns currentRowElement as null initially", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(result.current.currentRowElement).toBeNull();
     });
 
     it("returns setRowMenuVisible as a function", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(typeof result.current.setRowMenuVisible).toBe("function");
     });
 
     it("returns getRowCount as a function", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(typeof result.current.getRowCount).toBe("function");
     });
 
     it("returns isLastRow as a function", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(typeof result.current.isLastRow).toBe("function");
     });
   });
@@ -58,6 +66,7 @@ describe("useTableRowMenu", () => {
   describe("setRowMenuVisible", () => {
     it("sets rowMenuVisible to true when called with true", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       act(() => {
         result.current.setRowMenuVisible(true);
       });
@@ -66,6 +75,7 @@ describe("useTableRowMenu", () => {
 
     it("sets rowMenuVisible back to false when called with false", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       act(() => {
         result.current.setRowMenuVisible(true);
       });
@@ -79,6 +89,7 @@ describe("useTableRowMenu", () => {
   describe("getRowCount", () => {
     it("returns 0 when editor is null", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(result.current.getRowCount()).toBe(0);
     });
 
@@ -95,6 +106,7 @@ describe("useTableRowMenu", () => {
       });
 
       const { result } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(result.current.getRowCount()).toBe(0);
     });
 
@@ -144,6 +156,7 @@ describe("useTableRowMenu", () => {
       });
 
       const { result } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(result.current.getRowCount()).toBe(2);
     });
 
@@ -178,6 +191,7 @@ describe("useTableRowMenu", () => {
       });
 
       const { result } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(result.current.getRowCount()).toBe(0);
     });
 
@@ -213,6 +227,7 @@ describe("useTableRowMenu", () => {
       });
 
       const { result } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(result.current.getRowCount()).toBe(1);
     });
   });
@@ -246,6 +261,7 @@ describe("useTableRowMenu", () => {
       });
 
       const { result } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(result.current.isLastRow()).toBe(true);
     });
 
@@ -279,11 +295,13 @@ describe("useTableRowMenu", () => {
       });
 
       const { result } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(result.current.isLastRow()).toBe(false);
     });
 
     it("returns false when editor is null (row count is 0)", () => {
       const { result } = renderHook(() => useTableRowMenu(null));
+
       expect(result.current.isLastRow()).toBe(false);
     });
   });
@@ -299,6 +317,7 @@ describe("useTableRowMenu", () => {
       expect(result.current.rowMenuVisible).toBe(true);
 
       const menuDiv = document.createElement("div");
+
       document.body.appendChild(menuDiv);
       Object.defineProperty(result.current.rowMenuRef, "current", {
         value: menuDiv,
@@ -306,10 +325,12 @@ describe("useTableRowMenu", () => {
       });
 
       const outsideElement = document.createElement("div");
+
       document.body.appendChild(outsideElement);
 
       act(() => {
         const event = new MouseEvent("mousedown", { bubbles: true });
+
         Object.defineProperty(event, "target", { value: outsideElement });
         document.dispatchEvent(event);
       });
@@ -322,8 +343,10 @@ describe("useTableRowMenu", () => {
 
     it("does not add mousedown listener when menu is not visible", () => {
       const addSpy = vi.spyOn(document, "addEventListener");
+
       renderHook(() => useTableRowMenu(null));
       const mousedownCalls = addSpy.mock.calls.filter(([type]) => type === "mousedown");
+
       expect(mousedownCalls).toHaveLength(0);
       addSpy.mockRestore();
     });
@@ -341,6 +364,7 @@ describe("useTableRowMenu", () => {
       });
 
       const mousedownCalls = removeSpy.mock.calls.filter(([type]) => type === "mousedown");
+
       expect(mousedownCalls.length).toBeGreaterThan(0);
       removeSpy.mockRestore();
     });
@@ -349,12 +373,14 @@ describe("useTableRowMenu", () => {
   describe("cleanup", () => {
     it("unmounts without error when editor is null", () => {
       const { unmount } = renderHook(() => useTableRowMenu(null));
+
       expect(() => unmount()).not.toThrow();
     });
 
     it("unmounts without error when editor is provided", () => {
       const mockEditor = createMockEditor();
       const { unmount } = renderHook(() => useTableRowMenu(mockEditor));
+
       expect(() => unmount()).not.toThrow();
     });
   });

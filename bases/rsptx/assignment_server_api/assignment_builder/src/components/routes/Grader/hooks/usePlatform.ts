@@ -8,6 +8,7 @@ export const detectPlatform = (): Platform => {
   const platform =
     // @ts-expect-error - userAgentData not in lib.dom yet
     navigator.userAgentData?.platform || navigator.platform || "";
+
   if (/Mac|iPhone|iPad|iPod/i.test(`${platform} ${ua}`)) return "mac";
   return "other";
 };

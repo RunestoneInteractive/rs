@@ -15,9 +15,8 @@ import {
 } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { RefCallback, useMemo, useState } from "react";
 
-import { useExercisesSelector } from "@/hooks/useExercisesSelector";
-
 import { difficultyOptions } from "@/config/exerciseTypes";
+import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { useJwtUser } from "@/hooks/useJwtUser";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
@@ -29,9 +28,8 @@ import { EditDropdownValueHeader } from "../components/EditAllExercises/EditDrop
 import { EditInputValueHeader } from "../components/EditAllExercises/EditInputValueHeader";
 import { ExercisePreviewModal } from "../components/ExercisePreview/ExercisePreviewModal";
 
-import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
-
 import styles from "./AssignmentExercisesTable.module.css";
+import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
 
 const ASYNC_MODE_OPTIONS = (hasApiKey: boolean) => [
   { value: "Standard", label: "Standard" },
@@ -418,6 +416,8 @@ export const AssignmentExercisesTable = ({
     }
 
     return baseColumns;
+    // TODO(eslint): Audit the complete dependency list without changing current behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleMouseDown, handleChange, startItemId, showAsyncColumn, hasApiKey, username]);
 
   return (

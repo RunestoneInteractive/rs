@@ -8,6 +8,7 @@ import { RegexEditor } from "./RegexEditor";
 describe("RegexEditor", () => {
   it("emits the pattern value as the user types", () => {
     const onChange = vi.fn();
+
     renderWithMantine(<RegexEditor value="" onChange={onChange} />);
 
     fireEvent.change(screen.getByPlaceholderText("Regex pattern"), {
@@ -21,6 +22,7 @@ describe("RegexEditor", () => {
     renderWithMantine(<RegexEditor value="" onChange={vi.fn()} />);
 
     const pattern = screen.getByPlaceholderText("Regex pattern");
+
     fireEvent.change(pattern, { target: { value: "[" } });
 
     expect(pattern).toHaveAttribute("aria-invalid", "true");

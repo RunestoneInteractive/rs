@@ -9,11 +9,10 @@ import { Nullable } from "@/types/common";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
+import styles from "./AssignmentReadingsTable.module.css";
 import { ActivitiesRequiredCell } from "./components/ActivitiesRequiredCell";
 import { EditInputValueHeaderReadings } from "./components/EditAllReadings/EditInputValueHeaderReadings";
 import { MouseUpHandler } from "./types";
-
-import styles from "./AssignmentReadingsTable.module.css";
 
 interface AssignmentReadingsTableProps {
   assignmentReadings: Exercise[];
@@ -140,6 +139,8 @@ export const AssignmentReadingsTable = ({
         )
       }
     ],
+    // TODO(eslint): Audit the complete dependency list without changing current behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleMouseDown, handleChange, startItemId]
   );
 

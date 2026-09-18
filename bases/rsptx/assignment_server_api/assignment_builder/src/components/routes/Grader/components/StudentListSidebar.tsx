@@ -1,8 +1,8 @@
 import { Button, Progress, TextInput } from "@mantine/core";
+import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 import React, { useMemo, useRef } from "react";
 
 import { Icon } from "@/components/ui/Icon";
-import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
 import {
   getQuestionProgress,
@@ -13,6 +13,7 @@ import {
   studentDisplayName,
   StudentGradingStatus
 } from "../state/graderSelectors";
+
 import styles from "./StudentListSidebar.module.css";
 
 interface Props {
@@ -42,8 +43,10 @@ export const StudentListSidebar: React.FC<Props> = ({
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
+
     return answers.filter((a) => {
       const status = getStudentStatus(a, question, { dirtySids });
+
       if (hideGraded && (status === "graded" || status === "autograded")) return false;
       if (!q) return true;
       return studentDisplayName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
@@ -102,6 +105,7 @@ export const StudentListSidebar: React.FC<Props> = ({
         {filtered.map((a) => {
           const status = getStudentStatus(a, question, { dirtySids });
           const active = a.sid === activeSid;
+
           return (
             <li
               key={a.sid}

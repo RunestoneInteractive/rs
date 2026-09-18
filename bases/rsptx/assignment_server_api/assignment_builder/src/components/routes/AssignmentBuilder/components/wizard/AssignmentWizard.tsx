@@ -12,15 +12,12 @@ import {
 import classNames from "classnames";
 import { Control, Controller, UseFormSetValue, UseFormWatch } from "react-hook-form";
 
+import stepperStyles from "@/components/ui/WizardStepper.module.css";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
-
 import { CourseTimezoneNotice } from "../edit/CourseTimezoneNotice";
-
 import { VisibilityControl } from "../edit/VisibilityControl";
-
-import stepperStyles from "@/components/ui/WizardStepper.module.css";
 
 import styles from "./AssignmentWizard.module.css";
 

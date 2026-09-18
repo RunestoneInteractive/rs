@@ -1,3 +1,4 @@
+import { useSaveGradeMutation } from "@store/grader/grader.logic.api";
 import { renderHook, act } from "@testing-library/react";
 
 vi.mock("@store/grader/grader.logic.api", () => ({
@@ -8,8 +9,8 @@ vi.mock("../tour/GraderTourContext", () => ({
   useGraderTourContext: vi.fn()
 }));
 
-import { useSaveGradeMutation } from "@store/grader/grader.logic.api";
 import { useGraderTourContext } from "../tour/GraderTourContext";
+
 import { useAutoSaveGrade } from "./useAutoSaveGrade";
 
 const mockUnwrap = vi.fn();

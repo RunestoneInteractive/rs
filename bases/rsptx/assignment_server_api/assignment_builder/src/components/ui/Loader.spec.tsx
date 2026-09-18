@@ -7,6 +7,7 @@ import { Loader } from "./Loader";
 describe("Loader", () => {
   it("renders a visible loading indicator", () => {
     const { container } = renderWithMantine(<Loader />);
+
     expect(container.querySelector(".mantine-Loader-root")).toBeInTheDocument();
   });
 });

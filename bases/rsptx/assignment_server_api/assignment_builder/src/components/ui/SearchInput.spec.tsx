@@ -12,11 +12,13 @@ describe("SearchInput", () => {
     );
 
     const input = screen.getByPlaceholderText("Search exercises...") as HTMLInputElement;
+
     expect(input.value).toBe("hello");
   });
 
   it("emits the new value on change", () => {
     const onChange = vi.fn();
+
     renderWithMantine(<SearchInput value="" onChange={onChange} placeholder="Search" />);
 
     fireEvent.change(screen.getByPlaceholderText("Search"), { target: { value: "loops" } });

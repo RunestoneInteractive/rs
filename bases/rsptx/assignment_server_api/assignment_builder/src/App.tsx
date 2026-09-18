@@ -166,6 +166,7 @@ function App() {
               path: "grader",
               async lazy() {
                 const { Grader } = await import("@components/routes/Grader");
+
                 return { Component: Grader };
               },
               children: [
@@ -173,6 +174,7 @@ function App() {
                   index: true,
                   async lazy() {
                     const { GraderAssignmentsPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderAssignmentsPage };
                   }
                 },
@@ -180,6 +182,7 @@ function App() {
                   path: "gradebook",
                   async lazy() {
                     const { GraderGradebookPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderGradebookPage };
                   }
                 },
@@ -187,6 +190,7 @@ function App() {
                   path: ":assignmentId",
                   async lazy() {
                     const { GraderQuestionsPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionsPage };
                   }
                 },
@@ -194,6 +198,7 @@ function App() {
                   path: ":assignmentId/questions/:questionId",
                   async lazy() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionPage };
                   }
                 },
@@ -201,6 +206,7 @@ function App() {
                   path: ":assignmentId/questions/:questionId/students/:sid",
                   async lazy() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionPage };
                   }
                 },
@@ -208,6 +214,7 @@ function App() {
                   path: ":assignmentId/questions/:questionId/:sid",
                   async lazy() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionPage };
                   }
                 }

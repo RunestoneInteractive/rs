@@ -1,15 +1,8 @@
+import { GraderQuestionStats, GraderStudentAnswer } from "@store/grader/grader.logic.api";
 import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import {
-  GraderQuestionStats,
-  GraderStudentAnswer
-} from "@store/grader/grader.logic.api";
-
-import {
-  findFirstUngradedSid,
-  findNextUngradedSid
-} from "../state/graderSelectors";
+import { findFirstUngradedSid, findNextUngradedSid } from "../state/graderSelectors";
 import { useGraderTourContext } from "../tour/GraderTourContext";
 
 export interface StudentNavigation {
@@ -60,8 +53,7 @@ export const useStudentNavigation = (opts: Options): StudentNavigation => {
     if (!questions || !qid) return -1;
     return questions.findIndex((q) => q.id === qid);
   }, [questions, qid]);
-  const prevQuestion =
-    questionIndex > 0 ? questions![questionIndex - 1] : undefined;
+  const prevQuestion = questionIndex > 0 ? questions![questionIndex - 1] : undefined;
   const nextQuestion =
     questionIndex >= 0 && questions && questionIndex < questions.length - 1
       ? questions[questionIndex + 1]
@@ -74,6 +66,7 @@ export const useStudentNavigation = (opts: Options): StudentNavigation => {
     (sid: string) => {
       if (isDemo) {
         const row = answers.find((a) => a.sid === sid) ?? null;
+
         setDemoSelected(row);
         return;
       }
@@ -83,11 +76,10 @@ export const useStudentNavigation = (opts: Options): StudentNavigation => {
   );
 
   const goToQuestion = useCallback(
-    (targetQid: number, opts?: { selectLast?: boolean }) => {
+    (targetQid: number, options?: { selectLast?: boolean }) => {
       if (isDemo) return;
       navigate(`/grader/${aid}/questions/${targetQid}`, {
-
-        state: opts?.selectLast ? { selectLast: true } : undefined
+        state: options?.selectLast ? { selectLast: true } : undefined
       });
     },
     [aid, isDemo, navigate]
@@ -97,7 +89,6 @@ export const useStudentNavigation = (opts: Options): StudentNavigation => {
     if (hasPrevStudent) {
       goTo(answers[currentIndex - 1].sid);
     } else if (prevQuestion) {
-
       goToQuestion(prevQuestion.id, { selectLast: true });
     }
   }, [hasPrevStudent, currentIndex, answers, goTo, prevQuestion, goToQuestion]);
@@ -114,6 +105,7 @@ export const useStudentNavigation = (opts: Options): StudentNavigation => {
     const nextSid = findNextUngradedSid(answers, currentIndex, question, {
       dirtySids
     });
+
     if (nextSid) {
       goTo(nextSid);
       return true;

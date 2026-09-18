@@ -1,5 +1,5 @@
-import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
 import { NumberInput, Select, Switch, TagsInput, TextInput } from "@mantine/core";
+import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
 import { difficultyOptions } from "@/config/exerciseTypes";

@@ -1,8 +1,8 @@
+import type { StudentAssignmentScoresResponse } from "@store/grader/grader.logic.api";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-import type { StudentAssignmentScoresResponse } from "@store/grader/grader.logic.api";
 
 import { GradebookCellDialog } from "./GradebookCellDialog";
 

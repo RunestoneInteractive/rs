@@ -6,9 +6,8 @@ import { modals } from "@mantine/modals";
 
 import { Exercise } from "@/types/exercises";
 
-import { ChooseReadingsButton } from "./components/ChooseReadingsButton";
-
 import styles from "./ReadingsToolbar.module.css";
+import { ChooseReadingsButton } from "./components/ChooseReadingsButton";
 
 const TITLE = "Sections to read";
 

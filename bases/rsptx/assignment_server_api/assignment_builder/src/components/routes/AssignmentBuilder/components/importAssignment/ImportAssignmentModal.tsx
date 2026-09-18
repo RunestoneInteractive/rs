@@ -9,15 +9,11 @@ import {
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  ShareableTreeAssignment,
-  ShareableTreeCourse
-} from "@/types/assignmentSharing";
+import { ShareableTreeAssignment, ShareableTreeCourse } from "@/types/assignmentSharing";
 import { SelectedKey, TreeNode } from "@/types/treeNode";
 
-import { ImportPreviewPanel } from "./ImportPreviewPanel";
-
 import styles from "./ImportAssignmentModal.module.css";
+import { ImportPreviewPanel } from "./ImportPreviewPanel";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PAGE_SIZE = 25;
@@ -170,19 +166,16 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
     [selectableUnder]
   );
 
-  const handleUnselect = useCallback(
-    (node: TreeNode) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
+  const handleUnselect = useCallback((node: TreeNode) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
 
-        for (const assignment of assignmentsUnder(node)) {
-          next.delete(assignment.id);
-        }
-        return next;
-      });
-    },
-    []
-  );
+      for (const assignment of assignmentsUnder(node)) {
+        next.delete(assignment.id);
+      }
+      return next;
+    });
+  }, []);
 
   /**
    * Import the selection, one course at a time where a whole course is checked.
@@ -195,9 +188,7 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
     const wholeCourses = courses.filter(
       (course) =>
         course.assignments.length > 0 &&
-        course.assignments.every(
-          (a) => a.already_imported || selectedIds.has(a.id)
-        ) &&
+        course.assignments.every((a) => a.already_imported || selectedIds.has(a.id)) &&
         course.assignments.some((a) => selectedIds.has(a.id))
     );
     const wholeCourseIds = new Set(wholeCourses.map((c) => c.id));
@@ -343,12 +334,7 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
   const totalPages = data?.pagination.pages ?? 0;
 
   return (
-    <Modal
-      opened={visible}
-      onClose={handleClose}
-      title="Import assignments"
-      size="72rem"
-    >
+    <Modal opened={visible} onClose={handleClose} title="Import assignments" size="72rem">
       <Stack gap="md">
         <Group justify="space-between" align="center">
           <SearchInput

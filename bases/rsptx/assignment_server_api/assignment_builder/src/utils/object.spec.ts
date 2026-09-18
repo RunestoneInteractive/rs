@@ -29,16 +29,19 @@ describe("isEmptyObject", () => {
 describe("dumpObject", () => {
   it("serializes a plain object with default spacing of 2", () => {
     const result = dumpObject({ a: 1 });
+
     expect(result).toBe(JSON.stringify({ a: 1 }, null, 2));
   });
 
   it("serializes a nested object", () => {
     const data = { outer: { inner: "value" } };
+
     expect(dumpObject(data)).toBe(JSON.stringify(data, null, 2));
   });
 
   it("serializes an array", () => {
     const data = [1, 2, 3];
+
     expect(dumpObject(data)).toBe(JSON.stringify(data, null, 2));
   });
 
@@ -56,18 +59,22 @@ describe("dumpObject", () => {
 
   it("respects a custom spacing argument", () => {
     const data = { key: "val" };
+
     expect(dumpObject(data, 4)).toBe(JSON.stringify(data, null, 4));
   });
 
   it("serializes with spacing 0 producing compact JSON", () => {
     const data = { a: 1, b: 2 };
+
     expect(dumpObject(data, 0)).toBe(JSON.stringify(data, null, 0));
   });
 
   it("returns an error message when the data cannot be serialized", () => {
     const circular: Record<string, unknown> = {};
+
     circular.self = circular;
     const result = dumpObject(circular);
+
     expect(result).toMatch(/^Error: Unable to serialize the provided data/);
   });
 });

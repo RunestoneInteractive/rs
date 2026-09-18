@@ -44,16 +44,19 @@ describe("cellKey", () => {
 describe("buildCellLookup / getCellScore", () => {
   it("resolves a present score", () => {
     const lookup = buildCellLookup(cells);
+
     expect(getCellScore(lookup, "s1", 1)).toBe(8);
   });
 
   it("returns null for a missing cell", () => {
     const lookup = buildCellLookup(cells);
+
     expect(getCellScore(lookup, "s9", 1)).toBeNull();
   });
 
   it("returns null for an explicit null score", () => {
     const lookup = buildCellLookup(cells);
+
     expect(getCellScore(lookup, "s2", 2)).toBeNull();
   });
 });
@@ -61,26 +64,31 @@ describe("buildCellLookup / getCellScore", () => {
 describe("getCell / isCellManual", () => {
   it("returns the full cell for a present (sid, assignment)", () => {
     const lookup = buildCellLookup(cells);
+
     expect(getCell(lookup, "s1", 1)?.score).toBe(8);
   });
 
   it("returns undefined for a missing cell", () => {
     const lookup = buildCellLookup(cells);
+
     expect(getCell(lookup, "s9", 1)).toBeUndefined();
   });
 
   it("flags a manual cell", () => {
     const lookup = buildCellLookup(cells);
+
     expect(isCellManual(lookup, "s1", 1)).toBe(true);
   });
 
   it("reports non-manual for a cell without the flag", () => {
     const lookup = buildCellLookup(cells);
+
     expect(isCellManual(lookup, "s1", 2)).toBe(false);
   });
 
   it("reports non-manual for a missing cell", () => {
     const lookup = buildCellLookup(cells);
+
     expect(isCellManual(lookup, "s9", 1)).toBe(false);
   });
 });
@@ -103,6 +111,7 @@ describe("assignmentAverage", () => {
       { sid: "a", assignment_id: 7, score: 1, released: true },
       { sid: "b", assignment_id: 7, score: 2, released: true }
     ];
+
     expect(assignmentAverage(data, 7)).toBe(1.5);
   });
 });
@@ -110,16 +119,19 @@ describe("assignmentAverage", () => {
 describe("studentTotal", () => {
   it("sums a student's scores across assignments", () => {
     const lookup = buildCellLookup(cells);
+
     expect(studentTotal(lookup, assignments, "s1")).toBe(13);
   });
 
   it("treats missing scores as zero but still totals graded ones", () => {
     const lookup = buildCellLookup(cells);
+
     expect(studentTotal(lookup, assignments, "s2")).toBe(6);
   });
 
   it("returns null when the student has no graded cells", () => {
     const lookup = buildCellLookup([{ sid: "s3", assignment_id: 1, score: null, released: true }]);
+
     expect(studentTotal(lookup, assignments, "s3")).toBeNull();
   });
 });
@@ -150,22 +162,26 @@ describe("displayScore", () => {
 describe("studentTotalDisplay", () => {
   it("sums points in points mode", () => {
     const lookup = buildCellLookup(cells);
+
     expect(studentTotalDisplay(lookup, assignments, "s1", true)).toBe(13);
   });
 
   it("reports a percent of the points available across graded assignments", () => {
     const lookup = buildCellLookup(cells);
+
     expect(studentTotalDisplay(lookup, assignments, "s1", false)).toBe(86.67);
   });
 
   it("leaves ungraded assignments out of the denominator", () => {
     const lookup = buildCellLookup(cells);
     // s2 was graded only on the 10 point A1, so 6/10 rather than 6/15.
+
     expect(studentTotalDisplay(lookup, assignments, "s2", false)).toBe(60);
   });
 
   it("returns null when the student has no graded cells", () => {
     const lookup = buildCellLookup([{ sid: "s3", assignment_id: 1, score: null, released: true }]);
+
     expect(studentTotalDisplay(lookup, assignments, "s3", false)).toBeNull();
   });
 });

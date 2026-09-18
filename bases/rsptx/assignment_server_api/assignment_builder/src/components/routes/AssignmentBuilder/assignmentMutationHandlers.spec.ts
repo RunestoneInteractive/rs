@@ -1,7 +1,7 @@
+import { notify } from "@components/ui/notify";
 import { vi } from "vitest";
 
 import { Assignment } from "@/types/assignment";
-import { notify } from "@components/ui/notify";
 
 import {
   BulkUpdateAssignmentsTrigger,

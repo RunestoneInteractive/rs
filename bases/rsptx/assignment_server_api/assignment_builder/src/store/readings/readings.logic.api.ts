@@ -1,8 +1,8 @@
+import { notify } from "@components/ui/notify";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
 import { exercisesActions } from "@store/exercises/exercises.logic";
 import { readingsActions } from "@store/readings/readings.logic";
-import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import { GetAvailableReadingsPayload } from "@/types/readings";

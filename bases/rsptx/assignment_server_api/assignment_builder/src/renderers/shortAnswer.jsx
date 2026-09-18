@@ -5,14 +5,14 @@ import { createShortAnswerTemplate } from "../componentFuncs";
 import {
   setQuestionJson,
   selectUniqueId,
-  setPreviewSrc,
+  setPreviewSrc
 } from "../state/interactive/interactiveSlice";
 import { setCode } from "../state/preview/previewSlice";
 import {
   setStatement,
   setAttachment,
   selectAttachment,
-  selectStatement,
+  selectStatement
 } from "../state/shortanswer/shortSlice";
 
 export function ShortAnswerCreator() {

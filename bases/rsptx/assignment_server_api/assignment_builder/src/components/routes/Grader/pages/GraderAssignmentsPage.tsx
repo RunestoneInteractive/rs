@@ -1,4 +1,5 @@
 import { Button, Center, Loader } from "@mantine/core";
+import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 import { ColumnDef, FilterFn } from "@tanstack/react-table";
 import React, { useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
@@ -8,15 +9,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
 import { parseUTCDate } from "@/utils/date";
-import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 
+import styles from "../Grader.module.css";
 import { ReleaseStatusBadge } from "../components/ReleaseStatusBadge";
 import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import styles from "../Grader.module.css";
 import { useViewModeStorage } from "../hooks/useViewModeStorage";
 import { effectiveViewMode } from "../state/graderSelectors";
-import { DEMO_ASSIGNMENTS } from "../tour/graderDemoData";
 import { useGraderTourContext } from "../tour/GraderTourContext";
+import { DEMO_ASSIGNMENTS } from "../tour/graderDemoData";
 
 const VIEW_MODES = ["cards", "table"] as const satisfies readonly GraderViewMode[];
 const VIEW_MODE_STORAGE_KEY = "grader.assignmentsViewMode";
@@ -42,16 +42,20 @@ const matchesDateRange = (
 ): boolean => {
   if (!range) return true;
   const [from, to] = range;
+
   if (!from && !to) return true;
   if (!dueDate) return false;
   const t = dueDate.getTime();
+
   if (from) {
     const start = new Date(from);
+
     start.setHours(0, 0, 0, 0);
     if (t < start.getTime()) return false;
   }
   if (to) {
     const end = new Date(to);
+
     end.setHours(23, 59, 59, 999);
     if (t > end.getTime()) return false;
   }
@@ -83,6 +87,7 @@ export const GraderAssignmentsPage: React.FC = () => {
 
   const columns = useMemo<ColumnDef<AssignmentRow, unknown>[]>(() => {
     const [startDate, endDate] = dateRange ?? [null, null];
+
     return [
       {
         accessorKey: "name",
@@ -128,6 +133,7 @@ export const GraderAssignmentsPage: React.FC = () => {
                 endDate={endDate ?? undefined}
                 onChange={(dates) => {
                   const [from, to] = (dates as [Date | null, Date | null]) ?? [null, null];
+
                   setDateRange(!from && !to ? null : [from, to]);
                 }}
                 isClearable

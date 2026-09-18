@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+
 import {
   altKeyLabel,
   detectPlatform,
@@ -128,11 +129,13 @@ describe("detectPlatform", () => {
 describe("usePlatform", () => {
   it("returns a valid Platform value ('mac' or 'other')", () => {
     const { result } = renderHook(() => usePlatform());
+
     expect(["mac", "other"]).toContain(result.current);
   });
 
   it("returns the same value as detectPlatform", () => {
     const { result } = renderHook(() => usePlatform());
+
     expect(result.current).toBe(detectPlatform());
   });
 });

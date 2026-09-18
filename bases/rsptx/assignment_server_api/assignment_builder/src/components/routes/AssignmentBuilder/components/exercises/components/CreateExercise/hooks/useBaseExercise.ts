@@ -1,9 +1,9 @@
+import { OptionWithId } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components";
+import { notify } from "@components/ui/notify";
 import { useCallback, useEffect, useState } from "react";
 
 import { CreateExerciseFormType, Option } from "@/types/exercises";
-import { notify } from "@components/ui/notify";
 import { createExerciseId } from "@/utils/exercise";
-import { OptionWithId } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components";
 
 export type UseBaseExerciseProps<T extends Partial<CreateExerciseFormType>> = {
   initialData?: T;
@@ -22,6 +22,7 @@ export type UseBaseExerciseProps<T extends Partial<CreateExerciseFormType>> = {
 
 const handleOptionIds = (options?: OptionWithId[] | Option[]) => {
   const opts = options ?? [];
+
   return opts.map((opt) => {
     if (!("id" in opt) || !opt.id) {
       return {

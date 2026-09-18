@@ -8,19 +8,19 @@ import {
   TextInput,
   UnstyledButton
 } from "@mantine/core";
-import React, { useMemo, useState } from "react";
-
-import { Icon } from "@/components/ui/Icon";
 import type { GradebookAssignment, GradebookStudent } from "@store/grader/grader.logic.api";
 import {
   GRADEBOOK_CSV_URL,
   gradebookCsvFilename,
   useGetGradebookQuery
 } from "@store/grader/grader.logic.api";
+import React, { useMemo, useState } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
+import styles from "../Grader.module.css";
 import { GradebookCellDialog } from "../components/GradebookCellDialog";
 import { GradebookUnitsToggle } from "../components/GradebookUnitsToggle";
-import styles from "../Grader.module.css";
 import {
   assignmentAverage,
   buildCellLookup,
@@ -51,7 +51,11 @@ export const GraderGradebookPage: React.FC = () => {
   const courseName = window.eBookConfig?.course ?? "course";
   const csvFilename = gradebookCsvFilename(courseName);
 
+  // TODO(eslint): Stabilize fallback collections without changing loading behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allAssignments = data?.assignments ?? [];
+  // TODO(eslint): Stabilize fallback collections without changing loading behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allStudents = data?.students ?? [];
 
   const assignments = useMemo(

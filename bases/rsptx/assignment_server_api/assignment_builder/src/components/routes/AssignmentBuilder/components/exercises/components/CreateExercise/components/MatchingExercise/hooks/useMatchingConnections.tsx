@@ -3,7 +3,6 @@ import { RefObject, useCallback, useEffect, useState } from "react";
 import { notify } from "@/components/ui/notify";
 
 import { CONNECTION_TOAST_COPY, blockSide } from "../../../shared/connections";
-
 import styles from "../MatchingExercise.module.css";
 import { MatchingData } from "../types";
 
@@ -68,7 +67,8 @@ export const useMatchingConnections = ({
       setActiveSource(sourceId);
       setHasMovedEnough(false);
 
-      const isLeftSource = blockSide(formData.left || [], formData.right || [], sourceId) === "left";
+      const isLeftSource =
+        blockSide(formData.left || [], formData.right || [], sourceId) === "left";
       const position = getBlockPosition(sourceId, isLeftSource);
 
       if (position) {
@@ -217,7 +217,13 @@ export const useMatchingConnections = ({
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeSource, formData.left, formData.right, getScrollableContainer, handleCompleteConnection]);
+  }, [
+    activeSource,
+    formData.left,
+    formData.right,
+    getScrollableContainer,
+    handleCompleteConnection
+  ]);
 
   useEffect(() => {
     const scrollableContainer = getScrollableContainer();
@@ -228,7 +234,8 @@ export const useMatchingConnections = ({
       triggerConnectionsRedraw();
 
       if (activeSource) {
-        const isLeftSource = blockSide(formData.left || [], formData.right || [], activeSource) === "left";
+        const isLeftSource =
+          blockSide(formData.left || [], formData.right || [], activeSource) === "left";
         const sourcePosition = getBlockPosition(activeSource, isLeftSource);
 
         if (sourcePosition && !hasMovedEnough) {

@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 import { BlockItem } from "./BlockItem";

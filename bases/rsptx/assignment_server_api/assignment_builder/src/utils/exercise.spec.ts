@@ -65,6 +65,7 @@ const makeExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
 describe("createExerciseId", () => {
   it("returns a string matching the expected pattern", () => {
     const id = createExerciseId();
+
     expect(id).toMatch(/^exercise_\d{8}_\d{1,4}$/);
   });
 
@@ -76,11 +77,13 @@ describe("createExerciseId", () => {
     const expectedDate = `${year}${month}${day}`;
 
     const id = createExerciseId();
+
     expect(id).toContain(`exercise_${expectedDate}_`);
   });
 
   it("generates unique ids on repeated calls", () => {
     const ids = new Set(Array.from({ length: 20 }, () => createExerciseId()));
+
     expect(ids.size).toBeGreaterThan(1);
   });
 });
@@ -89,6 +92,7 @@ describe("getLeafNodes", () => {
   it("returns all nodes when tree has no children", () => {
     const tree = [makeLeaf("a"), makeLeaf("b")];
     const leaves = getLeafNodes(tree);
+
     expect(leaves).toHaveLength(2);
     expect(leaves.map((n) => n.key)).toEqual(["a", "b"]);
   });
@@ -96,6 +100,7 @@ describe("getLeafNodes", () => {
   it("returns only leaf nodes from a nested tree", () => {
     const tree = [makeParent("root", [makeLeaf("child1"), makeLeaf("child2")])];
     const leaves = getLeafNodes(tree);
+
     expect(leaves).toHaveLength(2);
     expect(leaves.map((n) => n.key)).toEqual(["child1", "child2"]);
   });
@@ -103,6 +108,7 @@ describe("getLeafNodes", () => {
   it("handles deeply nested trees", () => {
     const tree = [makeParent("level1", [makeParent("level2", [makeLeaf("deep_leaf")])])];
     const leaves = getLeafNodes(tree);
+
     expect(leaves).toHaveLength(1);
     expect(leaves[0].key).toBe("deep_leaf");
   });
@@ -114,6 +120,7 @@ describe("getLeafNodes", () => {
   it("handles mixed parent and leaf nodes at root level", () => {
     const tree = [makeLeaf("leaf_at_root"), makeParent("parent", [makeLeaf("child")])];
     const leaves = getLeafNodes(tree);
+
     expect(leaves).toHaveLength(2);
     expect(leaves.map((n) => n.key)).toEqual(["leaf_at_root", "child"]);
   });
@@ -124,40 +131,46 @@ describe("getSelectedKeys", () => {
     const tree = [makeLeaf("ex1")];
     const exercises = [makeExercise({ name: "ex1" })];
     const result = getSelectedKeys(tree, exercises);
-    expect(result["ex1"]).toEqual({ checked: true, partialChecked: false });
+
+    expect(result.ex1).toEqual({ checked: true, partialChecked: false });
   });
 
   it("marks leaf node as unchecked when its key does not match any exercise", () => {
     const tree = [makeLeaf("ex2")];
     const exercises = [makeExercise({ name: "ex1" })];
     const result = getSelectedKeys(tree, exercises);
-    expect(result["ex2"]).toEqual({ checked: false, partialChecked: false });
+
+    expect(result.ex2).toEqual({ checked: false, partialChecked: false });
   });
 
   it("marks all nodes checked when checkedByDefault is true", () => {
     const tree = [makeLeaf("any_key")];
     const result = getSelectedKeys(tree, [], true);
-    expect(result["any_key"]).toEqual({ checked: true, partialChecked: false });
+
+    expect(result.any_key).toEqual({ checked: true, partialChecked: false });
   });
 
   it("marks parent as fully checked when all children are checked", () => {
     const tree = [makeParent("parent", [makeLeaf("child1"), makeLeaf("child2")])];
     const exercises = [makeExercise({ name: "child1" }), makeExercise({ id: 2, name: "child2" })];
     const result = getSelectedKeys(tree, exercises);
-    expect(result["parent"]).toEqual({ checked: true, partialChecked: false });
+
+    expect(result.parent).toEqual({ checked: true, partialChecked: false });
   });
 
   it("marks parent as partialChecked when only some children are checked", () => {
     const tree = [makeParent("parent", [makeLeaf("child1"), makeLeaf("child2")])];
     const exercises = [makeExercise({ name: "child1" })];
     const result = getSelectedKeys(tree, exercises);
-    expect(result["parent"]).toEqual({ checked: false, partialChecked: true });
+
+    expect(result.parent).toEqual({ checked: false, partialChecked: true });
   });
 
   it("marks parent as unchecked when no children are checked", () => {
     const tree = [makeParent("parent", [makeLeaf("child1"), makeLeaf("child2")])];
     const result = getSelectedKeys(tree, []);
-    expect(result["parent"]).toEqual({ checked: false, partialChecked: false });
+
+    expect(result.parent).toEqual({ checked: false, partialChecked: false });
   });
 
   it("propagates partial check state up the tree", () => {
@@ -166,8 +179,9 @@ describe("getSelectedKeys", () => {
     ];
     const exercises = [makeExercise({ name: "child1" })];
     const result = getSelectedKeys(tree, exercises);
-    expect(result["parent"]).toEqual({ checked: false, partialChecked: true });
-    expect(result["grandparent"]).toEqual({ checked: false, partialChecked: true });
+
+    expect(result.parent).toEqual({ checked: false, partialChecked: true });
+    expect(result.grandparent).toEqual({ checked: false, partialChecked: true });
   });
 
   it("returns empty object for empty tree", () => {
@@ -182,6 +196,7 @@ describe("filterAvailableExercises", () => {
       makeLeaf("q2", { question_type: "page" })
     ];
     const result = filterAvailableExercises(nodes);
+
     expect(result).toHaveLength(1);
     expect(result[0].key).toBe("q1");
   });
@@ -189,6 +204,7 @@ describe("filterAvailableExercises", () => {
   it("adds level property to each node", () => {
     const nodes = [makeLeaf("q1", { question_type: "mchoice" })];
     const result = filterAvailableExercises(nodes);
+
     expect((result[0] as any).level).toBe(0);
   });
 
@@ -199,6 +215,7 @@ describe("filterAvailableExercises", () => {
       })
     ];
     const result = filterAvailableExercises(nodes);
+
     expect((result[0] as any).level).toBe(0);
     expect((result[0].children![0] as any).level).toBe(1);
   });
@@ -210,6 +227,7 @@ describe("filterAvailableExercises", () => {
       })
     ];
     const result = filterAvailableExercises(nodes);
+
     expect(result[0].disabled).toBe(true);
   });
 
@@ -220,12 +238,14 @@ describe("filterAvailableExercises", () => {
       })
     ];
     const result = filterAvailableExercises(nodes);
+
     expect(result[0].disabled).toBe(false);
   });
 
   it("sets disabled to false for leaf nodes", () => {
     const nodes = [makeLeaf("q1", { question_type: "mchoice" })];
     const result = filterAvailableExercises(nodes);
+
     expect(result[0].disabled).toBe(false);
   });
 
@@ -238,6 +258,7 @@ describe("removeChildrenWithoutTitleImmutable", () => {
   it("removes nodes without a title", () => {
     const nodes = [makeLeaf("q1", { title: "Title One" }), { key: "q2", data: {} }];
     const result = removeChildrenWithoutTitleImmutable(nodes);
+
     expect(result).toHaveLength(1);
     expect(result[0].key).toBe("q1");
   });
@@ -249,6 +270,7 @@ describe("removeChildrenWithoutTitleImmutable", () => {
       children: [makeLeaf("child1", { title: "Child Title" }), { key: "child2", data: {} }]
     };
     const result = removeChildrenWithoutTitleImmutable([parent]);
+
     expect(result).toHaveLength(1);
     expect(result[0].children).toHaveLength(1);
     expect(result[0].children![0].key).toBe("child1");
@@ -261,6 +283,7 @@ describe("removeChildrenWithoutTitleImmutable", () => {
       children: [{ key: "child", data: {} }]
     };
     const result = removeChildrenWithoutTitleImmutable([parent]);
+
     expect(result).toHaveLength(1);
     expect(result[0].children).toBeUndefined();
   });
@@ -268,6 +291,7 @@ describe("removeChildrenWithoutTitleImmutable", () => {
   it("does not mutate original nodes", () => {
     const original: TreeNode[] = [makeLeaf("q1", { title: "Title" })];
     const copy = JSON.parse(JSON.stringify(original));
+
     removeChildrenWithoutTitleImmutable(original);
     expect(original).toEqual(copy);
   });
@@ -284,6 +308,7 @@ describe("getExercisesWithoutReadings", () => {
       makeExercise({ id: 2, name: "normal", reading_assignment: false })
     ];
     const result = getExercisesWithoutReadings(exercises);
+
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("normal");
   });
@@ -294,6 +319,7 @@ describe("getExercisesWithoutReadings", () => {
       makeExercise({ id: 2, name: "normal" })
     ];
     const result = getExercisesWithoutReadings(exercises);
+
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("normal");
   });
@@ -305,6 +331,7 @@ describe("getExercisesWithoutReadings", () => {
       makeExercise({ id: 3, name: "second", sorting_priority: 2 })
     ];
     const result = getExercisesWithoutReadings(exercises);
+
     expect(result.map((e) => e.name)).toEqual(["first", "second", "third"]);
   });
 
@@ -313,6 +340,7 @@ describe("getExercisesWithoutReadings", () => {
       makeExercise({ reading_assignment: true }),
       makeExercise({ id: 2, question_type: "page" })
     ];
+
     expect(getExercisesWithoutReadings(exercises)).toEqual([]);
   });
 });
@@ -320,6 +348,7 @@ describe("getExercisesWithoutReadings", () => {
 describe("filterExercisesByQuestionType", () => {
   it("returns all nodes when selectedQuestionTypes is empty", () => {
     const nodes = [makeLeaf("q1"), makeLeaf("q2")];
+
     expect(filterExercisesByQuestionType(nodes, [])).toEqual(nodes);
   });
 
@@ -329,6 +358,7 @@ describe("filterExercisesByQuestionType", () => {
       makeLeaf("q2", { question_type: "shortanswer" })
     ];
     const result = filterExercisesByQuestionType(nodes, ["mchoice"]);
+
     expect(result).toHaveLength(1);
     expect(result[0].key).toBe("q1");
   });
@@ -341,6 +371,7 @@ describe("filterExercisesByQuestionType", () => {
       ])
     ];
     const result = filterExercisesByQuestionType(nodes, ["mchoice"]);
+
     expect(result).toHaveLength(1);
     expect(result[0].children).toHaveLength(1);
     expect(result[0].children![0].key).toBe("child1");
@@ -349,6 +380,7 @@ describe("filterExercisesByQuestionType", () => {
   it("removes parent nodes when none of their children match", () => {
     const nodes = [makeParent("parent", [makeLeaf("child", { question_type: "shortanswer" })])];
     const result = filterExercisesByQuestionType(nodes, ["mchoice"]);
+
     expect(result).toHaveLength(0);
   });
 
@@ -364,6 +396,7 @@ describe("filterOutExercisesByQuestionType", () => {
       makeLeaf("q2", { question_type: "page" })
     ];
     const result = filterOutExercisesByQuestionType(nodes, ["page"]);
+
     expect(result).toHaveLength(1);
     expect(result[0].key).toBe("q1");
   });
@@ -376,6 +409,7 @@ describe("filterOutExercisesByQuestionType", () => {
       ])
     ];
     const result = filterOutExercisesByQuestionType(nodes, ["page"]);
+
     expect(result[0].children).toHaveLength(1);
     expect(result[0].children![0].key).toBe("child1");
   });
@@ -383,6 +417,7 @@ describe("filterOutExercisesByQuestionType", () => {
   it("keeps all nodes when exclusion list is empty", () => {
     const nodes = [makeLeaf("q1"), makeLeaf("q2")];
     const result = filterOutExercisesByQuestionType(nodes, []);
+
     expect(result).toHaveLength(2);
   });
 
@@ -395,17 +430,20 @@ describe("filterExercisesByFromSource", () => {
   it("returns all nodes unchanged when fromSourceOnly is false", () => {
     const nodes = [makeLeaf("q1", { from_source: false }), makeLeaf("q2", { from_source: true })];
     const result = filterExercisesByFromSource(nodes, false);
+
     expect(result).toHaveLength(2);
   });
 
   it("returns all nodes unchanged when fromSourceOnly is omitted", () => {
     const nodes = [makeLeaf("q1"), makeLeaf("q2")];
+
     expect(filterExercisesByFromSource(nodes)).toHaveLength(2);
   });
 
   it("keeps only leaf nodes with from_source true when fromSourceOnly is true", () => {
     const nodes = [makeLeaf("q1", { from_source: true }), makeLeaf("q2", { from_source: false })];
     const result = filterExercisesByFromSource(nodes, true);
+
     expect(result).toHaveLength(1);
     expect(result[0].key).toBe("q1");
   });
@@ -413,6 +451,7 @@ describe("filterExercisesByFromSource", () => {
   it("removes parent node when all children have from_source false", () => {
     const nodes = [makeParent("parent", [makeLeaf("child", { from_source: false })])];
     const result = filterExercisesByFromSource(nodes, true);
+
     expect(result).toHaveLength(0);
   });
 
@@ -424,6 +463,7 @@ describe("filterExercisesByFromSource", () => {
       ])
     ];
     const result = filterExercisesByFromSource(nodes, true);
+
     expect(result).toHaveLength(1);
     expect(result[0].children).toHaveLength(1);
     expect(result[0].children![0].key).toBe("child1");

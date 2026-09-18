@@ -3,8 +3,8 @@
  * @file ePickerSlice.js
  * @summary Redux slice for the ePicker component
  */
-import { createAsyncThunk, createSlice, createSelector } from "@reduxjs/toolkit";
 import { notify } from "@components/ui/notify";
+import { createAsyncThunk, createSlice, createSelector } from "@reduxjs/toolkit";
 
 /**
  * @function fetchChooserData

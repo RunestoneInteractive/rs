@@ -6,9 +6,8 @@ import { modals } from "@mantine/modals";
 
 import { Exercise } from "@/types/exercises";
 
-import { ViewModeSetter } from "./types";
-
 import styles from "./ExercisesToolbar.module.css";
+import { ViewModeSetter } from "./types";
 
 interface ExercisesToolbarProps {
   globalFilter: string;

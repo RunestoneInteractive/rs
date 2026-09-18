@@ -1,7 +1,8 @@
 import { ItemWithLabel } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/DragAndDropExercise/types";
-import { sanitizeId } from "../sanitize";
 
 import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
+import { sanitizeId } from "../sanitize";
 
 interface DragAndDropPreviewProps {
   left: ItemWithLabel[];
