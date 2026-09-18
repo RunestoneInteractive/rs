@@ -1,10 +1,9 @@
 import { Button, Checkbox, Group, Modal, NumberInput, Radio } from "@mantine/core";
-import React, { useEffect, useState } from "react";
-
 import {
   AccommodationPayload,
   useUpsertAccommodationMutation
 } from "@store/grader/grader.logic.api";
+import React, { useEffect, useState } from "react";
 
 import styles from "../Grader.module.css";
 
@@ -38,6 +37,8 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
     if (visible) {
       setSelectedSids(presetSids ?? []);
     }
+    // TODO(eslint): Replace the derived dependency with a stable, behavior-preserving value.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, (presetSids ?? []).join(",")]);
 
   const close = () => onHide();
@@ -52,6 +53,7 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
       visible: visibleFlag,
       allowLink
     };
+
     await upsert(payload).unwrap();
     onSaved?.();
     close();

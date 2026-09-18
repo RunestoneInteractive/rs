@@ -1,11 +1,12 @@
+import type { TableDropdownOption } from "@/types/dataset";
+import type { CreateExerciseFormType, QuestionJSON } from "@/types/exercises";
+
 import {
   DEFAULT_INCORRECT_FEEDBACK,
   buildQuestionJson,
   getDefaultQuestionJson,
   mergeQuestionJsonWithDefaults
 } from "./questionJson";
-import type { TableDropdownOption } from "@/types/dataset";
-import type { CreateExerciseFormType, QuestionJSON } from "@/types/exercises";
 
 const languageOptions: TableDropdownOption[] = [
   { value: "python", label: "Python", description: "Python language" },

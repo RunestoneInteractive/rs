@@ -23,6 +23,7 @@ describe("formatAnswer", () => {
 
   it("falls back to String() when JSON serialization throws on a circular value", () => {
     const circular: Record<string, unknown> = {};
+
     circular.self = circular;
 
     expect(formatAnswer(circular)).toBe("[object Object]");

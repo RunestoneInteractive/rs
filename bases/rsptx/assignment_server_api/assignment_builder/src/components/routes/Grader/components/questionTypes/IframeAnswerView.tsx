@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
-
 import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
+import React, { useEffect, useMemo, useRef } from "react";
 
 import styles from "./AnswerViews.module.css";
 import { QuestionPreviewHeader } from "./RunestonePreview";
@@ -31,12 +30,14 @@ const WRAPPER_TIMEOUT_MS = 5000;
  */
 const waitForSpliceWrapper = (): Promise<SpliceGraderApi | undefined> => {
   const existing = getSpliceWrapper();
+
   if (existing) return Promise.resolve(existing);
 
   return new Promise((resolve) => {
     let waited = 0;
     const timer = setInterval(() => {
       const wrapper = getSpliceWrapper();
+
       waited += WRAPPER_POLL_MS;
       if (wrapper || waited >= WRAPPER_TIMEOUT_MS) {
         clearInterval(timer);
@@ -62,6 +63,7 @@ export const extractFrameSpec = (htmlsrc?: string): FrameSpec | null => {
   const doc = new DOMParser().parseFromString(htmlsrc, "text/html");
   const frame = doc.querySelector("iframe");
   const src = frame?.getAttribute("src");
+
   if (!frame || !src) return null;
   return { src, style: frame.getAttribute("style") ?? "" };
 };
@@ -105,9 +107,11 @@ export const IframeAnswerView: React.FC<AnswerRendererProps & { questionType?: s
     // Nothing to embed until we know which attempt we are replaying: the
     // history arrives a moment after the pane mounts, and loading the activity
     // twice just to throw the first one away is pure waste.
+
     if (!host || !spec || attemptId === undefined) return;
 
     const frame = document.createElement("iframe");
+
     frame.setAttribute("style", spec.style);
     frame.className = styles.activityFrame;
     frame.title = `${questionName} activity submitted by ${sid}`;

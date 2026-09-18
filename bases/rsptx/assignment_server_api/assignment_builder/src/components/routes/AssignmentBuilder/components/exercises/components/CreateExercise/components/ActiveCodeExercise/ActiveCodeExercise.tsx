@@ -81,6 +81,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
       const selectedDatafilesInfo = selectedFileAcids
         .map((acid) => {
           const existingFile = allDatafiles.find((df: ExistingDataFile) => df.acid === acid);
+
           return {
             acid,
             filename: existingFile?.filename

@@ -93,6 +93,7 @@ export const generateParsonsPreview = ({
       // Add DAG tag/depends annotations for non-distractor blocks
       if (grader === "dag" && !block.isDistractor && block.tag) {
         const dependsStr = block.depends?.length ? block.depends.join(",") : "";
+
         blockContent += ` #tag:${block.tag}; depends:${dependsStr};`;
       }
 
@@ -100,6 +101,7 @@ export const generateParsonsPreview = ({
         // isPaired is set automatically for grouped alternatives,
         // pairedWithBlockAbove is set by the user for standalone distractors
         const marker = block.isPaired || block.pairedWithBlockAbove ? "#paired" : "#distractor";
+
         blockContent += block.explanation ? ` ${marker}: ${block.explanation}` : ` ${marker}`;
       }
 
@@ -135,6 +137,7 @@ export const generateParsonsPreview = ({
     const logicalBlocks: { displayOrder?: number; originalIndex: number }[] = [];
     const seenGroupsForOrder = new Set<string>();
     let logicalIdx = 0;
+
     blocks.forEach((block) => {
       if (block.groupId) {
         if (!seenGroupsForOrder.has(block.groupId)) {
@@ -150,14 +153,17 @@ export const generateParsonsPreview = ({
 
     // If any blocks have displayOrder set, compute the data-order attribute
     const hasCustomOrder = logicalBlocks.some((b) => b.displayOrder !== undefined);
+
     if (hasCustomOrder) {
       // Sort by displayOrder, keeping undefined at end
       const sorted = [...logicalBlocks].sort((a, b) => {
         const aOrd = a.displayOrder ?? 9999;
         const bOrd = b.displayOrder ?? 9999;
+
         return aOrd - bOrd;
       });
       const orderArray = sorted.map((b) => b.originalIndex);
+
       dataAttributes += ` data-order="${orderArray.join(",")}"`;
     }
   } else if (customOrder && customOrder.length > 0) {
@@ -168,6 +174,7 @@ export const generateParsonsPreview = ({
   const explanationMap: Record<number, string> = {};
   let blockIdx = 0;
   const seenGroupsForExplanations = new Set<string>();
+
   processedBlocks.forEach((block) => {
     if (block.groupId) {
       if (!seenGroupsForExplanations.has(block.groupId)) {
@@ -191,6 +198,7 @@ export const generateParsonsPreview = ({
       .replace(/'/g, "&#39;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
+
     dataAttributes += ` data-explanations='${escapedJson}'`;
   }
 

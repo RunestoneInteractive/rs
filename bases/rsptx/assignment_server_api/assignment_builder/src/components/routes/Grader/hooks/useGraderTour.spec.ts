@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { driver as driverFactory } from "driver.js";
 import { vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("driver.js", () => {
@@ -6,6 +7,7 @@ vi.mock("driver.js", () => {
     drive: vi.fn(),
     destroy: vi.fn()
   };
+
   return {
     driver: vi.fn(() => mockDriver),
     Driver: {}
@@ -15,12 +17,14 @@ vi.mock("driver.js", () => {
 vi.mock("driver.js/dist/driver.css", () => ({}));
 
 const mockNavigate = vi.fn();
+
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate
 }));
 
 const mockSetIsDemo = vi.fn();
 const mockSetDemoSelected = vi.fn();
+
 vi.mock("../tour/GraderTourContext", () => ({
   useGraderTourContext: () => ({
     isDemo: false,
@@ -30,8 +34,6 @@ vi.mock("../tour/GraderTourContext", () => ({
   })
 }));
 
-import { driver as driverFactory } from "driver.js";
-import { useGraderTour } from "./useGraderTour";
 import {
   DEMO_ASSIGNMENT_ID,
   DEMO_QUESTION_ID,
@@ -39,6 +41,8 @@ import {
   DEMO_ANSWERS
 } from "../tour/graderDemoData";
 import { GRADER_TOUR_STEPS } from "../tour/graderTourConfig";
+
+import { useGraderTour } from "./useGraderTour";
 
 const TOUR_ROUTES = {
   assignments: "/grader",
@@ -59,6 +63,7 @@ describe("useGraderTour", () => {
     vi.clearAllTimers();
     vi.useFakeTimers();
     const bodyEl = document.createElement("div");
+
     bodyEl.setAttribute("data-tour", "grader-title");
     bodyEl.className = "grader-title-el";
     document.body.appendChild(bodyEl);
@@ -71,6 +76,7 @@ describe("useGraderTour", () => {
 
   it("returns startTour function", () => {
     const { result } = renderHook(() => useGraderTour());
+
     expect(typeof result.current.startTour).toBe("function");
   });
 
@@ -79,6 +85,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -92,6 +99,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -104,6 +112,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -117,11 +126,13 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
 
     const driverOptions = (driverFactory as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
     expect(driverOptions.showProgress).toBe(true);
     expect(driverOptions.animate).toBe(true);
     expect(driverOptions.allowClose).toBe(true);
@@ -134,11 +145,13 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
 
     const driverOptions = (driverFactory as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
     expect(driverOptions.steps).toHaveLength(GRADER_TOUR_STEPS.length);
     expect(driverOptions.steps[0].element).toBe(GRADER_TOUR_STEPS[0].element);
     expect(driverOptions.steps[0].popover.title).toBe(GRADER_TOUR_STEPS[0].title);
@@ -150,6 +163,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -159,6 +173,7 @@ describe("useGraderTour", () => {
     mockNavigate.mockClear();
 
     const driverOptions = (driverFactory as ReturnType<typeof vi.fn>).mock.calls[0][0];
+
     act(() => {
       driverOptions.onDestroyed();
     });
@@ -173,6 +188,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -183,6 +199,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const nextPromise = driverOptions.steps[0].popover.onNextClick(null, null, opts);
+
       vi.runAllTimers();
       await nextPromise;
     });
@@ -195,6 +212,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -205,6 +223,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const prevPromise = driverOptions.steps[1].popover.onPrevClick(null, null, opts);
+
       vi.runAllTimers();
       await prevPromise;
     });
@@ -217,6 +236,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -228,6 +248,7 @@ describe("useGraderTour", () => {
     );
 
     const nextQuestionsStepEl = document.createElement("div");
+
     nextQuestionsStepEl.setAttribute(
       "data-tour",
       GRADER_TOUR_STEPS[stepIndexBeforeQuestionsRoute + 1].element.replace(
@@ -240,12 +261,14 @@ describe("useGraderTour", () => {
     mockNavigate.mockClear();
 
     const opts = { driver: { moveNext: vi.fn(), movePrevious: vi.fn() } };
+
     await act(async () => {
       const nextPromise = driverOptions.steps[stepIndexBeforeQuestionsRoute].popover.onNextClick(
         null,
         null,
         opts
       );
+
       vi.runAllTimers();
       await nextPromise;
     });
@@ -258,6 +281,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });
@@ -271,12 +295,14 @@ describe("useGraderTour", () => {
     mockSetDemoSelected.mockClear();
 
     const opts = { driver: { moveNext: vi.fn(), movePrevious: vi.fn() } };
+
     await act(async () => {
       const nextPromise = driverOptions.steps[stepBeforeDialog].popover.onNextClick(
         null,
         null,
         opts
       );
+
       vi.runAllTimers();
       await nextPromise;
     });
@@ -289,6 +315,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const firstTour = result.current.startTour();
+
       vi.runAllTimers();
       await firstTour;
     });
@@ -296,10 +323,12 @@ describe("useGraderTour", () => {
     const firstInstance = mockDriverInstance;
 
     const secondInstance = { drive: vi.fn(), destroy: vi.fn() };
+
     (driverFactory as ReturnType<typeof vi.fn>).mockReturnValue(secondInstance);
 
     await act(async () => {
       const secondTour = result.current.startTour();
+
       vi.runAllTimers();
       await secondTour;
     });
@@ -309,10 +338,12 @@ describe("useGraderTour", () => {
 
   it("cleanup on unmount destroys driver and removes overlay elements", async () => {
     const overlay = document.createElement("div");
+
     overlay.className = "driver-overlay";
     document.body.appendChild(overlay);
 
     const popover = document.createElement("div");
+
     popover.className = "driver-popover";
     document.body.appendChild(popover);
 
@@ -320,6 +351,7 @@ describe("useGraderTour", () => {
 
     await act(async () => {
       const tourPromise = result.current.startTour();
+
       vi.runAllTimers();
       await tourPromise;
     });

@@ -1,14 +1,14 @@
 import { Exercise, QuestionJSON } from "@/types/exercises";
-import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
-import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
-import { generateParsonsPreview } from "@/utils/preview/parsonsPreview";
-import { generateActiveCodePreview } from "@/utils/preview/activeCode";
-import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
-import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
-import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
-import { generatePollPreview } from "@/utils/preview/poll";
-import { generateIframePreview } from "@/utils/preview/iframePreview";
 import { safeJsonParse } from "@/utils/json";
+import { generateActiveCodePreview } from "@/utils/preview/activeCode";
+import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
+import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
+import { generateIframePreview } from "@/utils/preview/iframePreview";
+import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
+import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
+import { generateParsonsPreview } from "@/utils/preview/parsonsPreview";
+import { generatePollPreview } from "@/utils/preview/poll";
+import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
 
 /**
  * Regenerates HTML source for a copied exercise with the new name

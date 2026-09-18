@@ -1,9 +1,11 @@
 import { renderHook, act } from "@testing-library/react";
 
+import type { CreateExerciseFormType } from "@/types/exercises";
+
+import type { StepValidator } from "../config/stepConfigs";
+
 import { useExerciseStepNavigation } from "./useExerciseStepNavigation";
 import type { UseExerciseStepNavigationProps } from "./useExerciseStepNavigation";
-import type { CreateExerciseFormType } from "@/types/exercises";
-import type { StepValidator } from "../config/stepConfigs";
 
 type TestData = Partial<CreateExerciseFormType>;
 
@@ -33,6 +35,7 @@ describe("useExerciseStepNavigation", () => {
     it("returns undefined validation before any user interaction", () => {
       const props = makeProps();
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       expect(result.current.validation).toBeUndefined();
     });
 
@@ -44,6 +47,7 @@ describe("useExerciseStepNavigation", () => {
       ];
       const props = makeProps({ stepValidators: validators });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       expect(result.current.stepsValidity[0]).toBe(true);
       expect(result.current.stepsValidity[1]).toBe(false);
       expect(result.current.stepsValidity[2]).toBe(true);
@@ -52,6 +56,7 @@ describe("useExerciseStepNavigation", () => {
     it("marks a step as valid when there is no validator for that index", () => {
       const props = makeProps({ stepValidators: [] });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       expect(result.current.stepsValidity[0]).toBe(true);
       expect(result.current.stepsValidity[1]).toBe(true);
       expect(result.current.stepsValidity[2]).toBe(true);
@@ -63,6 +68,7 @@ describe("useExerciseStepNavigation", () => {
       const goToNextStep = vi.fn();
       const props = makeProps({ goToNextStep, stepValidators: [validatorAlwaysValid] });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleNext());
       expect(goToNextStep).toHaveBeenCalledOnce();
     });
@@ -74,6 +80,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleNext());
       expect(goToNextStep).not.toHaveBeenCalled();
     });
@@ -83,6 +90,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleNext());
       expect(result.current.validation?.isValid).toBe(false);
       expect(result.current.validation?.errors).toEqual(["Field is required"]);
@@ -91,6 +99,7 @@ describe("useExerciseStepNavigation", () => {
     it("exposes empty errors after handleNext on a valid step", () => {
       const props = makeProps({ stepValidators: [validatorAlwaysValid] });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleNext());
       expect(result.current.validation?.isValid).toBe(true);
       expect(result.current.validation?.errors).toEqual([]);
@@ -99,6 +108,7 @@ describe("useExerciseStepNavigation", () => {
     it("returns isValid true when there is no validator for the active step and handleNext is called", () => {
       const props = makeProps({ stepValidators: [] });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleNext());
       expect(result.current.validation?.isValid).toBe(true);
     });
@@ -113,6 +123,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysInvalid, validatorAlwaysInvalid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleStepSelect(0));
       expect(setActiveStep).toHaveBeenCalledWith(0);
       expect(result.current.validation).toBeUndefined();
@@ -126,6 +137,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysValid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleStepSelect(2));
       expect(setActiveStep).toHaveBeenCalledWith(2);
     });
@@ -138,6 +150,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleStepSelect(1));
       expect(setActiveStep).not.toHaveBeenCalled();
     });
@@ -148,6 +161,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleStepSelect(1));
       expect(result.current.validation?.isValid).toBe(false);
     });
@@ -160,6 +174,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysInvalid, validatorAlwaysInvalid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       act(() => result.current.handleStepSelect(1));
       expect(setActiveStep).toHaveBeenCalledWith(1);
     });
@@ -173,6 +188,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysValid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       await act(async () => result.current.handleSave());
       expect(handleBaseSave).toHaveBeenCalledOnce();
     });
@@ -184,6 +200,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysValid, validatorAlwaysInvalid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       await act(async () => result.current.handleSave());
       expect(handleBaseSave).not.toHaveBeenCalled();
     });
@@ -201,6 +218,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysValid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       await act(async () => result.current.handleSave());
       expect(generateHtmlSrc).toHaveBeenCalledWith(data);
       expect(updateFormData).toHaveBeenCalledWith("htmlsrc", "<html>generated</html>");
@@ -216,6 +234,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysValid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       await act(async () => result.current.handleSave());
       expect(generateHtmlSrc).not.toHaveBeenCalled();
       expect(handleBaseSave).toHaveBeenCalledOnce();
@@ -227,6 +246,7 @@ describe("useExerciseStepNavigation", () => {
         stepValidators: [validatorAlwaysInvalid, validatorAlwaysValid, validatorAlwaysValid]
       });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       await act(async () => result.current.handleSave());
       expect(result.current.validation?.isValid).toBe(false);
     });
@@ -255,6 +275,7 @@ describe("useExerciseStepNavigation", () => {
     it("returns true for every step index when stepValidators array is empty", () => {
       const props = makeProps({ stepValidators: [] });
       const { result } = renderHook(() => useExerciseStepNavigation(props));
+
       steps.forEach((_, i) => {
         expect(result.current.stepsValidity[i]).toBe(true);
       });

@@ -9,6 +9,7 @@ export const cellKey = (sid: string, assignmentId: number): string => `${sid}:${
 
 export const buildCellLookup = (cells: GradebookCell[]): Map<string, GradebookCell> => {
   const lookup = new Map<string, GradebookCell>();
+
   for (const cell of cells) {
     lookup.set(cellKey(cell.sid, cell.assignment_id), cell);
   }
@@ -27,6 +28,7 @@ export const getCellScore = (
   assignmentId: number
 ): number | null => {
   const cell = lookup.get(cellKey(sid, assignmentId));
+
   return cell ? cell.score : null;
 };
 
@@ -40,8 +42,10 @@ export const assignmentAverage = (cells: GradebookCell[], assignmentId: number):
   const scores = cells
     .filter((c) => c.assignment_id === assignmentId && c.score != null)
     .map((c) => c.score as number);
+
   if (scores.length === 0) return null;
   const total = scores.reduce((sum, s) => sum + s, 0);
+
   return Math.round((total / scores.length) * 100) / 100;
 };
 
@@ -52,8 +56,10 @@ export const studentTotal = (
 ): number | null => {
   let total = 0;
   let graded = false;
+
   for (const assignment of assignments) {
     const score = getCellScore(lookup, sid, assignment.id);
+
     if (score != null) {
       total += score;
       graded = true;

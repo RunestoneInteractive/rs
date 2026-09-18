@@ -61,26 +61,31 @@ describe("validateCommonFields", () => {
 
   it("returns an error when name is missing", () => {
     const errors = validateCommonFields({ ...validBase, name: undefined });
+
     expect(errors).toContain("Exercise name is required");
   });
 
   it("returns an error when name is an empty string", () => {
     const errors = validateCommonFields({ ...validBase, name: "" });
+
     expect(errors).toContain("Exercise name is required");
   });
 
   it("returns an error when name is whitespace only", () => {
     const errors = validateCommonFields({ ...validBase, name: "   " });
+
     expect(errors).toContain("Exercise name is required");
   });
 
   it("returns an error when chapter is missing", () => {
     const errors = validateCommonFields({ ...validBase, chapter: undefined });
+
     expect(errors).toContain("Chapter is required");
   });
 
   it("returns an error when chapter is an empty string", () => {
     const errors = validateCommonFields({ ...validBase, chapter: "" });
+
     expect(errors).toContain("Chapter is required");
   });
 
@@ -89,26 +94,31 @@ describe("validateCommonFields", () => {
       ...validBase,
       subchapter: undefined
     });
+
     expect(errors).toContain("Section is required");
   });
 
   it("returns an error when subchapter is an empty string", () => {
     const errors = validateCommonFields({ ...validBase, subchapter: "" });
+
     expect(errors).toContain("Section is required");
   });
 
   it("returns an error when points is undefined", () => {
     const errors = validateCommonFields({ ...validBase, points: undefined });
+
     expect(errors).toContain("Points must be greater than 0");
   });
 
   it("returns an error when points is zero", () => {
     const errors = validateCommonFields({ ...validBase, points: 0 });
+
     expect(errors).toContain("Points must be greater than 0");
   });
 
   it("returns an error when points is negative", () => {
     const errors = validateCommonFields({ ...validBase, points: -1 });
+
     expect(errors).toContain("Points must be greater than 0");
   });
 
@@ -117,16 +127,19 @@ describe("validateCommonFields", () => {
       ...validBase,
       difficulty: undefined
     });
+
     expect(errors).toContain("Difficulty is required");
   });
 
   it("does not return a difficulty error when difficulty is 0", () => {
     const errors = validateCommonFields({ ...validBase, difficulty: 0 });
+
     expect(errors).not.toContain("Difficulty is required");
   });
 
   it("returns multiple errors when several fields are invalid", () => {
     const errors = validateCommonFields({});
+
     expect(errors).toContain("Exercise name is required");
     expect(errors).toContain("Chapter is required");
     expect(errors).toContain("Section is required");
@@ -143,6 +156,7 @@ describe("validateCommonFields", () => {
       points: 3,
       difficulty: undefined
     });
+
     expect(errors).not.toContain("Exercise name is required");
     expect(errors).not.toContain("Chapter is required");
     expect(errors).toContain("Section is required");

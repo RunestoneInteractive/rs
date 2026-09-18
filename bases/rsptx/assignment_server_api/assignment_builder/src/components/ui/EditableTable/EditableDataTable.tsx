@@ -1,4 +1,3 @@
-import { Checkbox, Table, VisuallyHidden } from "@mantine/core";
 import {
   closestCenter,
   DndContext,
@@ -17,6 +16,7 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Checkbox, Table, VisuallyHidden } from "@mantine/core";
 import classNames from "classnames";
 import { ReactNode, RefCallback, useMemo } from "react";
 

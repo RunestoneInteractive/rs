@@ -1,23 +1,23 @@
 import { Button, Center, Checkbox, Loader, Tooltip } from "@mantine/core";
+import { useGetGraderQuestionsQuery } from "@store/grader/grader.logic.api";
 import { ColumnDef, FilterFn } from "@tanstack/react-table";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
-import { useGetGraderQuestionsQuery } from "@store/grader/grader.logic.api";
 
+import styles from "../Grader.module.css";
 import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
 import { MultiGradeDialog } from "../components/MultiGradeDialog";
 import { RegradeWizard } from "../components/RegradeWizard";
 import { ReleaseGradesControl } from "../components/ReleaseGradesControl";
 import { ThresholdControl } from "../components/ThresholdControl";
 import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import styles from "../Grader.module.css";
-import { effectiveViewMode, isAutogradeable } from "../state/graderSelectors";
 import { useViewModeStorage } from "../hooks/useViewModeStorage";
-import { getDemoQuestionsFor } from "../tour/graderDemoData";
+import { effectiveViewMode, isAutogradeable } from "../state/graderSelectors";
 import { useGraderTourContext } from "../tour/GraderTourContext";
+import { getDemoQuestionsFor } from "../tour/graderDemoData";
 
 const friendlyType = (t: string) => {
   const map: Record<string, string> = {
@@ -33,6 +33,7 @@ const friendlyType = (t: string) => {
     webwork: "WeBWorK",
     page: "Reading"
   };
+
   return map[t] || t;
 };
 
@@ -151,11 +152,14 @@ export const GraderQuestionsPage: React.FC = () => {
   const typeOptions = useMemo(() => {
     if (!data) return [] as { label: string; value: string }[];
     const unique = Array.from(new Set(data.questions.map((q) => q.question_type)));
+
     return unique
       .map((t) => ({ label: friendlyType(t), value: t }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [data]);
 
+  // TODO(eslint): Stabilize the fallback collection without changing loading behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allQuestions = data?.questions ?? [];
 
   const columns = useMemo<ColumnDef<QuestionRow, unknown>[]>(
@@ -246,6 +250,7 @@ export const GraderQuestionsPage: React.FC = () => {
         },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
+
           return (
             <span title={stats.correctTooltip}>
               <strong>{row.original.correct_count}</strong>
@@ -261,6 +266,7 @@ export const GraderQuestionsPage: React.FC = () => {
         meta: { headerStyle: { width: 140 }, align: "right", cellClassName: "numeric" },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
+
           return (
             <span title={stats.avgTooltip}>
               <strong className={styles.cellStrong}>{row.original.average_score}</strong>
@@ -290,6 +296,7 @@ export const GraderQuestionsPage: React.FC = () => {
         meta: { headerStyle: { width: 150 }, align: "right", cellClassName: "numeric" },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
+
           return (
             <div className={styles.percentCell}>
               <span title={stats.correctTooltip}>
@@ -470,6 +477,7 @@ export const GraderQuestionsPage: React.FC = () => {
         {data.questions.map((q) => {
           const stats = computeStats(q);
           const selected = selectedQuestionIds.includes(q.id);
+
           return (
             <div
               key={q.id}

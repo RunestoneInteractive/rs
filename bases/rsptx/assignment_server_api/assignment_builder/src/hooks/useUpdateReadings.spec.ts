@@ -1,3 +1,5 @@
+import { notify } from "@components/ui/notify";
+import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { renderHook, act } from "@testing-library/react";
 import { vi } from "vitest";
 
@@ -21,11 +23,10 @@ vi.mock("@/hooks/useReadingsSelector", () => ({
   useReadingsSelector: vi.fn()
 }));
 
-import { notify } from "@components/ui/notify";
-import { useUpdateAssignmentQuestionsMutation } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { useReadingsSelector } from "@/hooks/useReadingsSelector";
-import { useUpdateReadings } from "./useUpdateReadings";
 import type { Exercise } from "@/types/exercises";
+
+import { useUpdateReadings } from "./useUpdateReadings";
 
 const makeExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
   id: 1,
@@ -82,6 +83,7 @@ describe("useUpdateReadings", () => {
 
   it("returns handleChange function", () => {
     const { result } = renderHook(() => useUpdateReadings());
+
     expect(typeof result.current.handleChange).toBe("function");
   });
 
@@ -102,6 +104,7 @@ describe("useUpdateReadings", () => {
 
   it("does nothing when new value equals current value", async () => {
     const exercise = makeExercise({ id: 1, points: 5 });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -119,6 +122,7 @@ describe("useUpdateReadings", () => {
 
   it("calls updateExercises with merged exercise when value changes", async () => {
     const exercise = makeExercise({ id: 1, points: 5 });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -131,6 +135,7 @@ describe("useUpdateReadings", () => {
 
     expect(updateExercises).toHaveBeenCalledOnce();
     const [calledWith] = updateExercises.mock.calls[0];
+
     expect(calledWith).toHaveLength(1);
     expect(calledWith[0]).toMatchObject({ id: 1, points: 10 });
   });
@@ -142,6 +147,7 @@ describe("useUpdateReadings", () => {
       points: 3,
       question_json: parsedJson as unknown as string
     });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -153,12 +159,14 @@ describe("useUpdateReadings", () => {
     });
 
     const [calledWith] = updateExercises.mock.calls[0];
+
     expect(calledWith[0].question_json).toBe(JSON.stringify(parsedJson));
   });
 
   it("shows success toast after successful update", async () => {
     updateExercises.mockResolvedValue({ error: undefined });
     const exercise = makeExercise({ id: 1, points: 3 });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -175,6 +183,7 @@ describe("useUpdateReadings", () => {
   it("shows error toast when updateExercises returns an error", async () => {
     updateExercises.mockResolvedValue({ error: new Error("network error") });
     const exercise = makeExercise({ id: 1, points: 3 });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -190,6 +199,7 @@ describe("useUpdateReadings", () => {
 
   it("updates autograde field correctly", async () => {
     const exercise = makeExercise({ id: 1, autograde: "all_or_nothing" });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -201,11 +211,13 @@ describe("useUpdateReadings", () => {
     });
 
     const [calledWith] = updateExercises.mock.calls[0];
+
     expect(calledWith[0].autograde).toBe("pct_correct");
   });
 
   it("updates activities_required field correctly", async () => {
     const exercise = makeExercise({ id: 1, activities_required: 1 });
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: [exercise]
     });
@@ -217,6 +229,7 @@ describe("useUpdateReadings", () => {
     });
 
     const [calledWith] = updateExercises.mock.calls[0];
+
     expect(calledWith[0].activities_required).toBe(3);
   });
 
@@ -248,6 +261,7 @@ describe("useUpdateReadings", () => {
 
   it("finds the correct reading among multiple exercises", async () => {
     const exercises = [makeExercise({ id: 1, points: 1 }), makeExercise({ id: 2, points: 2 })];
+
     (useReadingsSelector as ReturnType<typeof vi.fn>).mockReturnValue({
       readingExercises: exercises
     });
@@ -259,6 +273,7 @@ describe("useUpdateReadings", () => {
     });
 
     const [calledWith] = updateExercises.mock.calls[0];
+
     expect(calledWith[0].id).toBe(2);
     expect(calledWith[0].points).toBe(9);
   });

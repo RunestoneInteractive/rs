@@ -1,8 +1,9 @@
-import { generateFillInTheBlankPreview } from "./fillInTheBlank";
 import {
   BlankWithFeedback,
   GraderType
 } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise/types";
+
+import { generateFillInTheBlankPreview } from "./fillInTheBlank";
 
 const makeBlank = (overrides: Partial<BlankWithFeedback> = {}): BlankWithFeedback => ({
   id: "blank-1",
@@ -71,6 +72,7 @@ describe("generateFillInTheBlankPreview", () => {
     });
 
     const parsed = JSON.parse(extractJsonData(result));
+
     expect(parsed.problemHtml).toContain('<input type="text" name="x" />');
     expect(parsed.problemHtml).not.toContain("{blank}");
   });
@@ -83,6 +85,7 @@ describe("generateFillInTheBlankPreview", () => {
     });
 
     const parsed = JSON.parse(extractJsonData(result));
+
     expect(parsed.dyn_vars).toBeNull();
   });
 
@@ -122,6 +125,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0][0].feedback).toContain("Correct");
     });
 
@@ -177,6 +181,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0]).toHaveLength(1);
     });
 
@@ -193,6 +198,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0][0].regex).toContain('\\"hi\\"');
     });
   });
@@ -232,6 +238,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0][0].regexFlags).toBe("");
     });
 
@@ -247,6 +254,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0]).toHaveLength(1);
     });
   });
@@ -287,6 +295,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0][0].number).toEqual([2, 10]);
     });
 
@@ -303,6 +312,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.feedbackArray[0]).toHaveLength(1);
     });
   });
@@ -322,6 +332,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.blankNames).toEqual({ x: 2 });
     });
 
@@ -333,6 +344,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.blankNames).toEqual({ x: 0 });
     });
 
@@ -344,6 +356,7 @@ describe("generateFillInTheBlankPreview", () => {
       });
 
       const parsed = JSON.parse(extractJsonData(result));
+
       expect(parsed.blankNames).toEqual({});
     });
   });
@@ -351,6 +364,7 @@ describe("generateFillInTheBlankPreview", () => {
 
 function extractJsonData(html: string): string {
   const match = html.match(/<script type="application\/json">\s*([\s\S]*?)\s*<\/script>/);
+
   if (!match) throw new Error("No JSON script block found in preview output");
   return match[1].trim();
 }

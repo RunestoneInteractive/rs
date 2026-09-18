@@ -1,12 +1,13 @@
 import { Button, NumberInput, Switch, Textarea, Tooltip } from "@mantine/core";
+import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 import React, { forwardRef, useImperativeHandle, useRef } from "react";
 
 import { Icon } from "@/components/ui/Icon";
-import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
-import { AutoSaveStatus } from "../hooks/useAutoSaveGrade";
 import styles from "../Grader.module.css";
+import { AutoSaveStatus } from "../hooks/useAutoSaveGrade";
 import { studentDisplayName } from "../state/graderSelectors";
+
 import { SaveStatusPill } from "./SaveStatusPill";
 
 interface Props {

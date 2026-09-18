@@ -1,10 +1,11 @@
-import type { Assignment } from "@/types/assignment";
 import type {
   GraderAnswersResponse,
   GraderHistoryResponse,
   GraderQuestionsResponse,
   GraderStudentAnswer
 } from "@store/grader/grader.logic.api";
+
+import type { Assignment } from "@/types/assignment";
 
 export const DEMO_ASSIGNMENT_ID = 900001;
 export const DEMO_ALT_ASSIGNMENT_ID = 900002;
@@ -76,6 +77,7 @@ while i &lt; 5: i += 1; print(i)</code><br/>
 const iso = (d: Date) => d.toISOString();
 const daysFromNow = (n: number) => {
   const d = new Date();
+
   d.setDate(d.getDate() + n);
   return iso(d);
 };
@@ -311,6 +313,7 @@ const lastNames = [
 
 const mchoiceAnswer = (i: number) => {
   const choices = ["0", "1", "2", "3"];
+
   return choices[i % choices.length];
 };
 
@@ -326,6 +329,7 @@ export const DEMO_ANSWERS: GraderAnswersResponse = {
     const correct = i % 3 !== 2;
     const partial = !correct && i % 5 === 0;
     const attempts = (i % 4) + 1;
+
     return {
       sid: i === 0 ? DEMO_STUDENT_SID : `demo-student-${i + 1}`,
       first_name: firstNames[i],
@@ -429,6 +433,7 @@ export const DEMO_HISTORY: GraderHistoryResponse = {
 
 export const getDemoHistoryFor = (sid: string): GraderHistoryResponse => {
   const student = DEMO_ANSWERS.answers.find((a) => a.sid === sid);
+
   if (!student) return { history: [], useinfo: [] };
   if (sid === DEMO_STUDENT_SID) return DEMO_HISTORY;
 
@@ -444,6 +449,7 @@ export const getDemoHistoryFor = (sid: string): GraderHistoryResponse => {
     const attemptAnswer = isLast ? finalAnswer : (distractors[i % distractors.length] ?? "1");
     const attemptCorrect = isLast ? finalCorrect : false;
     const attemptPercent = isLast ? finalPercent : i === total - 2 ? 0.5 : 0;
+
     return {
       id: i + 1,
       answer: attemptAnswer,
@@ -505,6 +511,7 @@ export const getDemoQuestionsFor = (aid: number): GraderQuestionsResponse | null
 export const getDemoAnswersFor = (aid: number, qid: number): GraderAnswersResponse | null => {
   if (aid === DEMO_ASSIGNMENT_ID && qid === DEMO_QUESTION_ID) return DEMO_ANSWERS;
   const qMeta = getDemoQuestionsFor(aid)?.questions.find((q) => q.id === qid);
+
   if (!qMeta) return null;
   return {
     question: {

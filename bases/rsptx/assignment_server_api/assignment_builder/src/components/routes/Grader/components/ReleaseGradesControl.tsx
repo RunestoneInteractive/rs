@@ -1,11 +1,11 @@
 import { Switch, Text, Tooltip } from "@mantine/core";
 import { modals } from "@mantine/modals";
+import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
+import { useSetAssignmentReleasedMutation } from "@store/grader/grader.logic.api";
 import React from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { notify } from "@/components/ui/notify";
-import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
-import { useSetAssignmentReleasedMutation } from "@store/grader/grader.logic.api";
 
 import styles from "../Grader.module.css";
 

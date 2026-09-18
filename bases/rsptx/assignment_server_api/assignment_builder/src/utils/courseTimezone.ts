@@ -70,17 +70,20 @@ export const getCourseTimezoneMismatch = (
   browserTimezone: string = getBrowserTimezone()
 ): CourseTimezoneMismatch | null => {
   const course = courseTimezone || "UTC";
+
   if (!browserTimezone || browserTimezone === course) {
     return null;
   }
 
   const courseOffset = offsetMinutes(course, at);
   const browserOffset = offsetMinutes(browserTimezone, at);
+
   if (courseOffset === null || browserOffset === null) {
     return null;
   }
 
   const diff = browserOffset - courseOffset;
+
   if (diff === 0) {
     return null;
   }

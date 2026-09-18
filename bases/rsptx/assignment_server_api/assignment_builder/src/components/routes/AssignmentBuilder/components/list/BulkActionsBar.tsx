@@ -1,8 +1,7 @@
+import { Icon } from "@components/ui/Icon";
 import { Button, Group, Menu, Popover, Stack, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { useState } from "react";
-
-import { Icon } from "@components/ui/Icon";
 
 import {
   adjustDatesForHiddenOnChange,
@@ -11,9 +10,8 @@ import {
 } from "../edit/visibilityDates";
 import { getVisibilityValues, VisibilityMode, VisibilityValues } from "../edit/visibilityMode";
 
-import { VisibilityModeFields } from "./VisibilityModeFields";
-
 import styles from "./BulkActionsBar.module.css";
+import { VisibilityModeFields } from "./VisibilityModeFields";
 
 interface BulkActionsBarProps {
   selectedCount: number;

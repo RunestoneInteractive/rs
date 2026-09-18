@@ -3,8 +3,10 @@ import { useEffect } from "react";
 export function useEnsureEbookConfigForGrader() {
   useEffect(() => {
     const w = window as Window & { eBookConfig?: Record<string, unknown> };
+
     if (!w.eBookConfig) w.eBookConfig = {};
     const cfg = w.eBookConfig;
+
     cfg.useRunestoneServices = cfg.useRunestoneServices !== false;
     cfg.isLoggedIn = cfg.isLoggedIn !== false;
     cfg.new_server_prefix = cfg.new_server_prefix ?? "/ns";

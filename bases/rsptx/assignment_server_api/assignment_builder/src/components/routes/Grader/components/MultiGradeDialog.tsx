@@ -10,9 +10,6 @@ import {
   Textarea,
   TextInput
 } from "@mantine/core";
-import React, { useMemo, useState } from "react";
-
-import { Icon } from "@/components/ui/Icon";
 import {
   GraderQuestionStats,
   GraderStudentAnswer,
@@ -21,6 +18,9 @@ import {
   useRecomputeTotalsMutation,
   useSaveGradeMutation
 } from "@store/grader/grader.logic.api";
+import React, { useMemo, useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import styles from "../Grader.module.css";
 
@@ -35,6 +35,7 @@ interface MultiGradeDialogProps {
 
 const studentLabel = (a: GraderStudentAnswer) => {
   const name = `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim();
+
   return name ? `${name} (${a.sid})` : a.sid;
 };
 
@@ -63,6 +64,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
 
   const rows = useMemo(() => {
     const answers = data?.answers ?? [];
+
     return allowedSids ? answers.filter((a) => allowedSids.has(a.sid)) : answers;
   }, [data, allowedSids]);
 
@@ -70,6 +72,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
 
   const editedSids = Object.keys(edits).filter((sid) => {
     const e = edits[sid];
+
     return e && (e.score !== undefined || (e.comment ?? "") !== "");
   });
 
@@ -82,11 +85,13 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
     if (editedSids.length === 0) return;
     setSaving(true);
     const saved: string[] = [];
+
     for (const sid of editedSids) {
       const e = edits[sid];
       const row = rows.find((r) => r.sid === sid);
       const score = e.score ?? row?.score ?? 0;
       const comment = (e.comment ?? "").trim();
+
       try {
         await save({
           sid,
@@ -208,6 +213,7 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
   const addAffected = (sids: string[]) =>
     setAffected((prev) => {
       const next = new Set(prev);
+
       sids.forEach((s) => next.add(s));
       return next;
     });
@@ -216,11 +222,13 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
     if (sameScore == null) return;
     const targetSids =
       selectedSids.length > 0 ? selectedSids : (roster ?? []).map((s) => s.username);
+
     if (targetSids.length === 0) return;
 
     const comment = sameComment.trim();
     const total = targetSids.length * questions.length;
     let done = 0;
+
     setProgress({ done, total });
     const savedSids: string[] = [];
 

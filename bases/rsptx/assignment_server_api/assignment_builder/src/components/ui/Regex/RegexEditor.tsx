@@ -22,6 +22,8 @@ export const RegexEditor: FC<RegexEditorProps> = ({ value, onChange }) => {
 
   useEffect(() => {
     setInput(value || "");
+    // TODO(eslint): Preserve mount-only initialization until prop synchronization is designed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -57,6 +59,8 @@ export const RegexEditor: FC<RegexEditorProps> = ({ value, onChange }) => {
     onChange(input);
 
     validateWithoutChangingState();
+    // TODO(eslint): Stabilize the callback before expanding dependencies to avoid update loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input]);
 
   const testRegex = () => {

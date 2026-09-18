@@ -1,8 +1,8 @@
+import type { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { renderWithMantine, screen, within } from "@/test/renderWithMantine";
-import type { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
 import { StudentListSidebar } from "./StudentListSidebar";
 
@@ -26,6 +26,7 @@ const renderSidebar = (props: Partial<React.ComponentProps<typeof StudentListSid
     makeAnswer({ sid: "s2", first_name: "Bob", last_name: "Stone" }),
     makeAnswer({ sid: "s3", attempts: 0, score: null })
   ];
+
   renderWithMantine(
     <StudentListSidebar
       answers={answers}
@@ -50,6 +51,7 @@ describe("StudentListSidebar", () => {
     renderSidebar();
 
     const options = screen.getAllByRole("option");
+
     expect(options).toHaveLength(3);
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
     expect(within(options[2]).getAllByText("s3").length).toBeGreaterThanOrEqual(1);
@@ -108,6 +110,7 @@ describe("StudentListSidebar", () => {
     renderSidebar({ activeSid: "s2" });
 
     const selected = screen.getByRole("option", { selected: true });
+
     expect(within(selected).getByText("Bob Stone")).toBeInTheDocument();
   });
 

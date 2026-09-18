@@ -1,6 +1,8 @@
 import { MathExtension } from "@aarkue/tiptap-math-extension";
 import { TipTapImage } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/Plugins/Image";
 import { katexMacros } from "@components/routes/AssignmentBuilder/mathMacros";
+import { Icon } from "@components/ui/Icon";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { Editor as TipTapEditor, Range } from "@tiptap/core";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
@@ -13,8 +15,6 @@ import TableRow from "@tiptap/extension-table-row";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
-import { Icon } from "@components/ui/Icon";
-import { ActionIcon, Tooltip } from "@mantine/core";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect } from "react";
@@ -29,13 +29,13 @@ import "katex/dist/katex.min.css";
 import styles from "./Editor.module.css";
 import { Command, items } from "./SlashCommands";
 import { TipTapDocModal, useTipTapDocModal } from "./TipTapDocModal";
-import { useTableColumnMenu } from "./hooks/useTableColumnMenu";
-import { useTableRowMenu } from "./hooks/useTableRowMenu";
+import { InsertFormPopover, useInsertForm } from "./components/InsertFormPopover";
 import { TableColumnMenu } from "./components/TableColumnMenu";
 import { TableRowMenu } from "./components/TableRowMenu";
-import { InsertFormPopover, useInsertForm } from "./components/InsertFormPopover";
 import { InsertFormBridge } from "./extensions/InsertFormBridge";
 import { TabIndent } from "./extensions/TabIndent";
+import { useTableColumnMenu } from "./hooks/useTableColumnMenu";
+import { useTableRowMenu } from "./hooks/useTableRowMenu";
 
 const customStyles = `
   .tippy-box {

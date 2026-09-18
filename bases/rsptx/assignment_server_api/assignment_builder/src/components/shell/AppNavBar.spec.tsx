@@ -1,8 +1,7 @@
 import userEvent from "@testing-library/user-event";
 
-import { renderWithMantine, screen, waitFor, within } from "@/test/renderWithMantine";
-
 import { NavItem } from "@/navUtils";
+import { renderWithMantine, screen, waitFor, within } from "@/test/renderWithMantine";
 
 import { AppNavBar } from "./AppNavBar";
 
@@ -55,6 +54,7 @@ describe("AppNavBar", () => {
     await userEvent.click(screen.getByRole("button", { name: /user/i }));
 
     const logoutItem = await screen.findByText("Logout");
+
     await userEvent.click(logoutItem);
 
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));

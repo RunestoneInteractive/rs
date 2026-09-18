@@ -1,5 +1,5 @@
-import { Editor, OnMount } from "@monaco-editor/react";
 import { ActionIcon, Tooltip } from "@mantine/core";
+import { Editor, OnMount } from "@monaco-editor/react";
 import classNames from "classnames";
 import { FC, useRef, useState } from "react";
 

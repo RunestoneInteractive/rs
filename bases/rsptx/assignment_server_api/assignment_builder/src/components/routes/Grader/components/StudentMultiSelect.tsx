@@ -1,8 +1,8 @@
 import { Center, Checkbox, Loader, TextInput } from "@mantine/core";
+import { RosterStudent, useGetCourseRosterQuery } from "@store/grader/grader.logic.api";
 import React, { useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
-import { RosterStudent, useGetCourseRosterQuery } from "@store/grader/grader.logic.api";
 
 import styles from "../Grader.module.css";
 
@@ -15,6 +15,7 @@ interface StudentMultiSelectProps {
 
 const displayName = (s: RosterStudent) => {
   const name = `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim();
+
   return name ? `${name} (${s.username})` : s.username;
 };
 
@@ -29,11 +30,13 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
 
   const students = useMemo(() => {
     const list = roster ?? [];
+
     return [...list].sort((a, b) => displayName(a).localeCompare(displayName(b)));
   }, [roster]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+
     if (!term) return students;
     return students.filter((s) => displayName(s).toLowerCase().includes(term));
   }, [students, search]);
@@ -54,9 +57,11 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
   const toggleAllFiltered = () => {
     if (allFilteredSelected) {
       const remove = new Set(filtered.map((s) => s.username));
+
       onChange(selected.filter((u) => !remove.has(u)));
     } else {
       const merged = new Set(selected);
+
       filtered.forEach((s) => merged.add(s.username));
       onChange(Array.from(merged));
     }

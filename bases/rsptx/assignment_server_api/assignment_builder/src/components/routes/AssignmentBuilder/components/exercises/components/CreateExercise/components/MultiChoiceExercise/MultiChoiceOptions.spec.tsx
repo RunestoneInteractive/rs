@@ -66,6 +66,7 @@ describe("MultiChoiceOptions", () => {
     renderWithMantine(<MultiChoiceOptions options={buildOptions()} onChange={vi.fn()} />);
 
     const removeButtons = screen.getAllByRole("button", { name: "Remove option" });
+
     removeButtons.forEach((btn) => expect(btn).toBeDisabled());
   });
 
@@ -75,6 +76,7 @@ describe("MultiChoiceOptions", () => {
     renderWithMantine(<MultiChoiceOptions options={buildOptions()} onChange={onChange} />);
 
     const correctCheckboxes = screen.getAllByRole("checkbox", { name: "Correct" });
+
     await userEvent.click(correctCheckboxes[1]);
 
     expect(onChange).toHaveBeenCalledWith(

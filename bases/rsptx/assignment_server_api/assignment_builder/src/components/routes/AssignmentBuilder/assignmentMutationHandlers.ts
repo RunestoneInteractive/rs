@@ -1,6 +1,8 @@
-import { Assignment } from "@/types/assignment";
 import { notify } from "@components/ui/notify";
 import { BulkActionResult } from "@store/assignment/assignment.logic.api";
+
+import { Assignment } from "@/types/assignment";
+
 import { getVisibilityMode } from "./components/edit/visibilityMode";
 
 export interface VisibilityUpdate {

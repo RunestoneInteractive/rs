@@ -1,23 +1,22 @@
 import { Button, Tooltip } from "@mantine/core";
-import React, { useState } from "react";
-import { Link, Outlet, useLocation, useParams } from "react-router-dom";
-
-import { Icon } from "@/components/ui/Icon";
-
 import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 import {
   useGetGraderAnswersQuery,
   useGetGraderQuestionsQuery
 } from "@store/grader/grader.logic.api";
+import React, { useState } from "react";
+import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 
-import { ShortcutsHelpDialog } from "./components/ShortcutsHelpDialog";
+import { Icon } from "@/components/ui/Icon";
+
 import styles from "./Grader.module.css";
+import { ShortcutsHelpDialog } from "./components/ShortcutsHelpDialog";
 import { useEnsureEbookConfigForGrader } from "./hooks/useEnsureEbookConfigForGrader";
 import { useGraderTour } from "./hooks/useGraderTour";
 import { usePlatform } from "./hooks/usePlatform";
 import { getQuestionProgress } from "./state/graderSelectors";
-import { DEMO_ASSIGNMENTS, getDemoAnswersFor, getDemoQuestionsFor } from "./tour/graderDemoData";
 import { GraderTourProvider, useGraderTourContext } from "./tour/GraderTourContext";
+import { DEMO_ASSIGNMENTS, getDemoAnswersFor, getDemoQuestionsFor } from "./tour/graderDemoData";
 
 export const Grader: React.FC = () => {
   return (

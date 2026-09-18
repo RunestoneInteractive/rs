@@ -15,6 +15,7 @@ const { mockOpenConfirmModal, mockUseGetAssignmentsQuery, mockSetReleased, mockN
 
 vi.mock("@mantine/modals", async (importOriginal) => {
   const original = await importOriginal<typeof import("@mantine/modals")>();
+
   return { ...original, modals: { ...original.modals, openConfirmModal: mockOpenConfirmModal } };
 });
 
@@ -68,6 +69,7 @@ describe("ReleaseGradesControl", () => {
 
     expect(mockOpenConfirmModal).toHaveBeenCalledTimes(1);
     const config = mockOpenConfirmModal.mock.calls[0][0];
+
     expect(config.title).toBe("Release grades");
     expect(config.labels.confirm).toBe("Release");
 
@@ -84,6 +86,7 @@ describe("ReleaseGradesControl", () => {
     await userEvent.click(screen.getByRole("switch"));
 
     const config = mockOpenConfirmModal.mock.calls[0][0];
+
     expect(config.title).toBe("Hide grades");
     expect(config.confirmProps).toEqual({ color: "red" });
 
