@@ -1,6 +1,8 @@
 import Sortable from "sortablejs";
 import { MicroParsonsEvent } from "./LoggingEvents";
 import hljs from "highlight.js/lib/core";
+import { t } from "../../../common/js/rsi18n.js";
+import { getAccessibleElementText } from "../../../common/js/mathjax-a11y.js";
 
 declare class MicroParsons {
   logEvent(event: any): void;
@@ -27,6 +29,12 @@ export class ParsonsInput implements IParsonsInput {
   private hljsLanguage: string | undefined;
   private _liveRegion: HTMLDivElement;
 
+  private _activeBlock: HTMLDivElement | null;
+  private _keyboardEntryHint: HTMLDivElement;
+  private _keyboardApplication: HTMLDivElement;
+  private _keyboardInputActive: boolean;
+  private _keyboardInstructions: HTMLSpanElement;
+  private _nextBlockId: number;
   // if the input has been initialized once
   private initialized: boolean;
   constructor(
@@ -42,8 +50,15 @@ export class ParsonsInput implements IParsonsInput {
     this.el.id =
       "hparsonstool-" + this.parentElement.toolNumber + "-parsons-input";
 
+    this._keyboardEntryHint = document.createElement("div");
+    this._keyboardEntryHint.setAttribute("role", "tooltip");
+    this._keyboardEntryHint.classList.add("hparsons-tip");
+    this._keyboardEntryHint.style.display = "none";
+    this.el.appendChild(this._keyboardEntryHint);
+
     const dragTip = document.createElement("div");
-    dragTip.innerText = "Drag or click the blocks below to form your code:";
+    dragTip.innerText = t("msg_hparsons_drag_blocks_code");
+    dragTip.classList.add("hparsons-drag-tip");
     dragTip.classList.add("hparsons-tip");
     this.el.append(dragTip);
 
@@ -51,10 +66,14 @@ export class ParsonsInput implements IParsonsInput {
     this.el.appendChild(this._dragArea);
     this._dragArea.classList.add("drag-area");
     this._dragArea.setAttribute("role", "listbox");
-    this._dragArea.setAttribute("aria-label", "Available blocks");
+    this._dragArea.setAttribute(
+      "aria-label",
+      t("msg_hparsons_available_blocks"),
+    );
 
     const dropTip = document.createElement("div");
-    dropTip.innerText = "Your code (click on a block to remove it):";
+    dropTip.innerText = t("msg_hparsons_drop_blocks_code");
+    dropTip.classList.add("hparsons-drop-tip");
     dropTip.classList.add("hparsons-tip");
     this.el.append(dropTip);
 
@@ -62,7 +81,7 @@ export class ParsonsInput implements IParsonsInput {
     this.el.appendChild(this._dropArea);
     this._dropArea.classList.add("drop-area");
     this._dropArea.setAttribute("role", "listbox");
-    this._dropArea.setAttribute("aria-label", "Answer area");
+    this._dropArea.setAttribute("aria-label", t("msg_hparsons_answer_area"));
     this._prevPosition = -1;
 
     // Visually-hidden live region for screen-reader announcements
@@ -72,6 +91,30 @@ export class ParsonsInput implements IParsonsInput {
     this._liveRegion.classList.add("sr-only");
     this.el.appendChild(this._liveRegion);
 
+
+    this._activeBlock = null;
+    this._keyboardInputActive = false;
+    this._nextBlockId = 0;
+    this._keyboardInstructions = document.createElement("span");
+    this._keyboardInstructions.id = `${this.el.id}-keyboard-instructions`;
+    this._keyboardInstructions.classList.add("sr-only");
+    this._keyboardInstructions.textContent =
+      t("msg_hparsons_keyboard_idle_instructions");
+    this.el.appendChild(this._keyboardInstructions);
+    this._keyboardApplication = document.createElement("div");
+    this._keyboardApplication.classList.add("hparsons-keyboard-application");
+    this._keyboardApplication.setAttribute("role", "application");
+    this._keyboardApplication.tabIndex = -1;
+    this._keyboardApplication.addEventListener("blur", () => {
+      if (this._keyboardInputActive) {
+        this._exitKeyboardMovement();
+      }
+    });
+    this.el.appendChild(this._keyboardApplication);
+    this.el.tabIndex = 0;
+    this.el.setAttribute("role", "button");
+    this.el.setAttribute("aria-label", t("msg_parson_keyboard_entry_label"));
+    this.el.setAttribute("aria-describedby", this._keyboardInstructions.id);
     this.storedSourceBlocks = [];
     this.blockOrder = [];
     this.storedSourceBlockExplanations = null;
@@ -127,6 +170,14 @@ export class ParsonsInput implements IParsonsInput {
       return (block.textContent || "").slice(0, -tooltipLength);
     }
     return block.textContent || "";
+  };
+
+  private _getAccessibleBlockText = (block: HTMLDivElement): string => {
+    const accessibleBlock = block.cloneNode(true) as HTMLDivElement;
+    accessibleBlock
+      .querySelectorAll(".parsons-tooltip")
+      .forEach((tooltip) => tooltip.remove());
+    return getAccessibleElementText(accessibleBlock);
   };
 
   // Durstenfeld shuffle
@@ -214,6 +265,7 @@ export class ParsonsInput implements IParsonsInput {
 
   private _onBlockClicked = (block: Node, ev: Event): void => {
     const blockText = this._getTextFromBlock(block as HTMLDivElement).trim();
+    let focusedBlock = block as HTMLDivElement;
     if (block.parentElement == this._dragArea) {
       let endPosition;
       if (this.reusable) {
@@ -221,6 +273,7 @@ export class ParsonsInput implements IParsonsInput {
         blockCopy.onclick = (ev) => this._onBlockClicked(blockCopy, ev);
         this._dropArea.appendChild(blockCopy);
         endPosition = this._getBlockPosition(blockCopy);
+        focusedBlock = blockCopy;
       } else {
         this._dropArea.appendChild(block);
         endPosition = this._getBlockPosition(block);
@@ -236,13 +289,21 @@ export class ParsonsInput implements IParsonsInput {
         this.parentElement.logEvent(inputEvent);
       }
       this._updateBlockAria();
-      this._announce(`${blockText} moved to answer area`);
+      this._refocusMovedBlock(focusedBlock);
+      this._announce(
+        t("msg_hparsons_block_moved_to_answer", blockText),
+      );
     } else {
       const startPosition = this._getBlockPosition(block);
       if (this.reusable) {
         this._dropArea.removeChild(block);
       } else {
         this._dragArea.appendChild(block);
+      }
+      if (this.reusable) {
+        focusedBlock = this._allBlocks().find(
+          (sourceBlock) => sourceBlock.dataset.index === block.dataset.index,
+        ) as HTMLDivElement;
       }
       const inputEvent: MicroParsonsEvent.Input = {
         type: "input",
@@ -252,7 +313,10 @@ export class ParsonsInput implements IParsonsInput {
       };
       this.parentElement.logEvent(inputEvent);
       this._updateBlockAria();
-      this._announce(`${blockText} moved to available blocks`);
+      this._refocusMovedBlock(focusedBlock);
+      this._announce(
+        t("msg_hparsons_block_moved_to_available", blockText),
+      );
     }
   };
 
@@ -388,27 +452,133 @@ export class ParsonsInput implements IParsonsInput {
   // Accessibility helpers
   // -----------------------------------------------------------------------
 
-  /** Sync role, aria-selected, and roving tabindex for all blocks. */
+  /** Sync block semantics while the combined keyboard surface owns focus. */
   private _updateBlockAria = (): void => {
-    const applyToArea = (area: HTMLDivElement, isAnswer: boolean) => {
-      const blocks = area.querySelectorAll<HTMLDivElement>(".parsons-block");
+    if (this._activeBlock && !this.el.contains(this._activeBlock)) {
+      this._activeBlock = null;
+    }
+    const seenIds = new Set<string>();
+    const applyToArea = (area: HTMLDivElement, areaName: string) => {
+      const blocks = Array.from(
+        area.querySelectorAll<HTMLDivElement>(".parsons-block"),
+      );
       blocks.forEach((block, i) => {
+        if (!block.id || seenIds.has(block.id)) {
+          this._nextBlockId += 1;
+          block.id = `${this.el.id}-block-${this._nextBlockId}`;
+        }
+        seenIds.add(block.id);
         block.setAttribute("role", "option");
-        block.setAttribute("aria-selected", isAnswer ? "true" : "false");
-        block.setAttribute("tabindex", i === 0 ? "0" : "-1");
+        block.setAttribute(
+          "aria-label",
+          `${this._getAccessibleBlockText(block)}, ${areaName}, item ${i + 1} of ${blocks.length}${block.classList.contains("incorrectPosition") ? ", incorrect" : ""}`,
+        );
+        block.setAttribute(
+          "aria-selected",
+          String(block === this._activeBlock),
+        );
+        block.setAttribute("tabindex", "-1");
       });
     };
-    applyToArea(this._dragArea, false);
-    applyToArea(this._dropArea, true);
+    applyToArea(this._dragArea, "available blocks");
+    applyToArea(this._dropArea, "answer area");
   };
 
-  /** Move focus to a specific block, updating roving tabindex within its area. */
-  private _focusBlock = (block: HTMLDivElement, area: HTMLDivElement): void => {
-    area.querySelectorAll<HTMLDivElement>(".parsons-block").forEach((b) => {
-      b.setAttribute("tabindex", "-1");
-    });
-    block.setAttribute("tabindex", "0");
-    block.focus();
+  private _allBlocks = (): HTMLDivElement[] => [
+    ...this._dragArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+    ...this._dropArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+  ];
+
+  public refreshBlockAria = (): void => {
+    this._updateBlockAria();
+  };
+
+  private _getKeyboardBlockLocation = (block: HTMLDivElement): string => {
+    const area =
+      block.parentElement === this._dragArea
+        ? this._dragArea
+        : this._dropArea;
+    const blocks = Array.from(
+      area.querySelectorAll<HTMLDivElement>(".parsons-block"),
+    );
+    const position = blocks.indexOf(block) + 1;
+    return area === this._dragArea
+      ? t("msg_parson_keyboard_unplaced_position", position, blocks.length)
+      : t("msg_parson_keyboard_answer_position", position, blocks.length);
+  };
+
+  private _enterKeyboardNavigationMode = (
+    block: HTMLDivElement,
+    includeInstructions = false,
+  ): void => {
+    const label = [
+      t("msg_parson_keyboard_selected", this._getAccessibleBlockText(block)),
+    ];
+    if (block.classList.contains("incorrectPosition")) {
+      label.push(t("msg_parson_incorrect"));
+    }
+    label.push(this._getKeyboardBlockLocation(block));
+    this._keyboardApplication.setAttribute(
+      "aria-label",
+      includeInstructions
+        ? `${t("msg_parson_keyboard_instructions")} ${label.join(". ")}`
+        : label.join(". "),
+    );
+    this._keyboardApplication.focus();
+  };
+
+  private _setActiveBlock = (
+    block: HTMLDivElement,
+    includeInstructions = false,
+  ): void => {
+    this._activeBlock = block;
+    this._updateBlockAria();
+    if (this._keyboardInputActive) {
+      this._enterKeyboardNavigationMode(block, includeInstructions);
+    }
+  };
+
+  /** Restore the keyboard surface after a pointer click moves a block. */
+  private _refocusMovedBlock = (block: HTMLDivElement): void => {
+    if (!this._keyboardInputActive) return;
+    this._setActiveBlock(block);
+  };
+
+  private _enterKeyboardMovement = (): void => {
+    const blocks = this._allBlocks();
+    if (blocks.length === 0) return;
+    this._keyboardInputActive = true;
+    this._hideKeyboardEntryHint();
+    this._keyboardInstructions.textContent =
+      t("msg_hparsons_keyboard_instructions");
+    this._setActiveBlock(blocks[0], true);
+    this._announce(t("msg_hparsons_moving", this._getAccessibleBlockText(blocks[0])));
+  };
+
+  private _exitKeyboardMovement = (returnFocusToEntry = false): void => {
+    this._keyboardInputActive = false;
+    this._activeBlock = null;
+    this._keyboardApplication.removeAttribute("aria-label");
+    this.el.setAttribute("aria-label", t("msg_parson_keyboard_entry_label"));
+    this._keyboardInstructions.textContent =
+      t("msg_hparsons_keyboard_idle_instructions");
+    this._updateBlockAria();
+    this._announce(t("msg_hparsons_keyboard_finished"));
+    if (returnFocusToEntry) {
+      this.el.focus();
+    }
+  };
+
+  private _moveActiveBlock = (ev: KeyboardEvent): void => {
+    const block = this._activeBlock;
+    if (!block) return;
+    const wasInDragArea = block.parentElement === this._dragArea;
+    this._onBlockClicked(block, ev);
+    const movedBlock =
+      wasInDragArea && this.reusable
+        ? (this._dropArea.lastElementChild as HTMLDivElement)
+        : block;
+    this._setActiveBlock(movedBlock);
   };
 
   /** Announce a message to screen readers via the live region. */
@@ -420,66 +590,107 @@ export class ParsonsInput implements IParsonsInput {
     }, 10);
   };
 
-  /** Wire up keyboard navigation for both block areas. */
+  /** Use one Tab stop for both block areas and scope arrows to movement mode. */
   private _setupKeyboardNav = (): void => {
-    this.el.addEventListener("keydown", (ev: KeyboardEvent) => {
-      const block = (ev.target as HTMLElement).closest<HTMLDivElement>(
-        ".parsons-block",
-      );
-      if (!block) return;
-
-      const area = block.parentElement as HTMLDivElement;
-      if (area !== this._dragArea && area !== this._dropArea) return;
-
-      const blocks = Array.from(
-        area.querySelectorAll<HTMLDivElement>(".parsons-block"),
-      );
-      const idx = blocks.indexOf(block);
-
-      switch (ev.key) {
-        case "ArrowRight":
-        case "ArrowDown":
-          ev.preventDefault();
-          if (idx < blocks.length - 1) {
-            this._focusBlock(blocks[idx + 1], area);
-          }
-          break;
-        case "ArrowLeft":
-        case "ArrowUp":
-          ev.preventDefault();
-          if (idx > 0) {
-            this._focusBlock(blocks[idx - 1], area);
-          }
-          break;
-        case " ":
-        case "Enter": {
-          ev.preventDefault();
-          const wasInDragArea = area === this._dragArea;
-          this._onBlockClicked(block, ev);
-          // Focus the moved block in its new location
-          let focusTarget: HTMLDivElement | null = null;
-          if (wasInDragArea) {
-            // Block (or its clone) is now in drop-area
-            focusTarget = this.reusable
-              ? (this._dropArea.lastElementChild as HTMLDivElement)
-              : block;
-          } else {
-            // Block was removed from drop-area
-            focusTarget = this.reusable
-              ? ((this._dropArea.firstElementChild ||
-                  this._dragArea.firstElementChild) as HTMLDivElement | null)
-              : block;
-          }
-          if (focusTarget) {
-            this._focusBlock(
-              focusTarget,
-              focusTarget.parentElement as HTMLDivElement,
-            );
-          }
-          break;
-        }
+    this.el.addEventListener("focus", () => {
+      if (
+        !this._keyboardInputActive &&
+        this.el.matches(":focus-visible")
+      ) {
+        this._showKeyboardEntryHint();
       }
     });
+    this.el.addEventListener("blur", (ev: FocusEvent) => {
+      if (
+        this._keyboardInputActive &&
+        ev.relatedTarget !== this._keyboardApplication
+      ) {
+        this._exitKeyboardMovement();
+      } else if (!this._keyboardInputActive) {
+        this._hideKeyboardEntryHint();
+      }
+    });
+    this.el.addEventListener("click", (ev: MouseEvent) => {
+      if (
+        ev.target === this.el &&
+        !this._keyboardInputActive
+      ) {
+        this._enterKeyboardMovement();
+      }
+    });
+
+    this.el.addEventListener("keydown", (ev: KeyboardEvent) => {
+      if (!this._keyboardInputActive) {
+        if (ev.target !== this.el) return;
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          this._enterKeyboardMovement();
+        }
+        return;
+      }
+      if (!this.el.contains(ev.target as Node)) return;
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        this._exitKeyboardMovement(true);
+        return;
+      }
+      if (ev.key === "Tab") {
+        this._exitKeyboardMovement();
+        return;
+      }
+      const activeBlock = this._activeBlock as HTMLDivElement;
+      if (!activeBlock) {
+        const blocks = this._allBlocks();
+        if (blocks.length === 0) {
+          this._exitKeyboardMovement();
+          return;
+        }
+        this._setActiveBlock(blocks[0]);
+        return;
+      }
+      const currentArea =
+        activeBlock.parentElement === this._dragArea
+          ? this._dragArea
+          : this._dropArea;
+      const otherArea =
+        currentArea === this._dragArea ? this._dropArea : this._dragArea;
+      const currentBlocks = Array.from(
+        currentArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+      );
+      const index = currentBlocks.indexOf(activeBlock);
+      if (ev.key === "ArrowRight") {
+        ev.preventDefault();
+        if (index < currentBlocks.length - 1)
+          this._setActiveBlock(currentBlocks[index + 1]);
+      } else if (ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        if (index > 0) this._setActiveBlock(currentBlocks[index - 1]);
+      } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+        ev.preventDefault();
+        const otherBlocks = Array.from(
+          otherArea.querySelectorAll<HTMLDivElement>(".parsons-block"),
+        );
+        if (otherBlocks.length > 0) {
+          this._setActiveBlock(otherBlocks[Math.min(index, otherBlocks.length - 1)]);
+        }
+      } else if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        this._moveActiveBlock(ev);
+      }
+    });
+  };
+
+  private _showKeyboardEntryHint = (): void => {
+    this._keyboardEntryHint.textContent = t("msg_parson_enter_activate");
+    this._keyboardEntryHint.style.display = "";
+    this._keyboardEntryHint.classList.remove("parsons-entry-hint");
+    void this._keyboardEntryHint.offsetWidth;
+    this._keyboardEntryHint.classList.add("parsons-entry-hint");
+  };
+
+  private _hideKeyboardEntryHint = (): void => {
+    this._keyboardEntryHint.style.display = "none";
+    this._keyboardEntryHint.classList.remove("parsons-entry-hint");
   };
 
   private _getBlockPosition = (block: Node): number => {
