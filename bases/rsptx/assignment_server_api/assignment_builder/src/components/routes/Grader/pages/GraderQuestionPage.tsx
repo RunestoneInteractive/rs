@@ -319,7 +319,7 @@ export const GraderQuestionPage: React.FC = () => {
             size="xs"
             onClick={() => setShowExtraTime(true)}
           >
-            Extra time…
+            Deadline accommodations…
           </Button>
         </div>
       )}

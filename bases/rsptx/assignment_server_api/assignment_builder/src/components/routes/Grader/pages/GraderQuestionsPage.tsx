@@ -58,11 +58,10 @@ type QuestionData = NonNullable<ReturnType<typeof getDemoQuestionsFor>>;
 type QuestionRow = QuestionData["questions"][number];
 
 interface QuestionStats {
+  attemptsPerStudent: number;
   correctPct: number;
   pointsPct: number;
-  isManual: boolean;
   usePartial: boolean;
-  correctLabel: string;
   correctTooltip: string;
   avgTooltip: string;
 }
@@ -79,8 +78,8 @@ const computeStats = (q: QuestionRow): QuestionStats => {
 
   const pointsPct = q.points > 0 ? (q.average_score / q.points) * 100 : 0;
   const avgDenominator = q.graded_count ?? 0;
+  const attemptsPerStudent = q.answered_count > 0 ? q.total_attempts / q.answered_count : 0;
 
-  const correctLabel = usePartial ? "avg. credit" : isManual ? "fully scored" : "fully correct";
   const correctTooltip = usePartial
     ? `Mean partial credit across all answers (${q.question_type})`
     : isManual
@@ -91,11 +90,10 @@ const computeStats = (q: QuestionRow): QuestionStats => {
     : "No graded submissions yet";
 
   return {
+    attemptsPerStudent,
     correctPct,
     pointsPct,
-    isManual,
     usePartial,
-    correctLabel,
     correctTooltip,
     avgTooltip
   };
@@ -223,7 +221,7 @@ export const GraderQuestionsPage: React.FC = () => {
       },
       {
         accessorKey: "answered_count",
-        header: "Answered",
+        header: "Students attempted",
         filterFn: numericEquals,
         meta: {
           headerStyle: { width: 130 },
@@ -239,22 +237,21 @@ export const GraderQuestionsPage: React.FC = () => {
         )
       },
       {
-        accessorKey: "correct_count",
-        header: "Correct",
-        filterFn: numericEquals,
+        id: "attempts_per_student",
+        header: "Attempts / student",
+        accessorFn: (row) => (row.answered_count > 0 ? row.total_attempts / row.answered_count : 0),
+        enableColumnFilter: false,
         meta: {
-          headerStyle: { width: 130 },
+          headerStyle: { width: 160 },
           align: "right",
-          cellClassName: "numeric",
-          filter: { variant: "numeric", placeholder: "=" }
+          cellClassName: "numeric"
         },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
 
           return (
-            <span title={stats.correctTooltip}>
-              <strong>{row.original.correct_count}</strong>
-              <span className={styles.cellSubtle}> {stats.correctLabel}</span>
+            <span title="Average number of attempts among students who attempted the question">
+              <strong>{stats.attemptsPerStudent.toFixed(1)}</strong>
             </span>
           );
         }
@@ -393,7 +390,7 @@ export const GraderQuestionsPage: React.FC = () => {
             onClick={() => setShowMultiGrade(true)}
             data-tour="grader-multigrade-button"
           >
-            Multi-grade…
+            Grade manually…
           </Button>
         </Tooltip>
         <Button
@@ -402,7 +399,7 @@ export const GraderQuestionsPage: React.FC = () => {
           size="xs"
           onClick={() => setShowExtraTime(true)}
         >
-          Extra time…
+          Deadline accommodations…
         </Button>
         {hasSelection && (
           <span className={styles.selectionChip}>
@@ -512,11 +509,15 @@ export const GraderQuestionsPage: React.FC = () => {
                     data-tour="grader-q-answered"
                     title="Distinct students who submitted at least one attempt"
                   >
-                    <Icon name="users" size={14} /> <strong>{q.answered_count}</strong> answered
+                    <Icon name="users" size={14} /> <strong>{q.answered_count}</strong> students
+                    attempted
                   </span>
-                  <span data-tour="grader-q-correct" title={stats.correctTooltip}>
-                    <Icon name="check-circle" size={14} /> <strong>{q.correct_count}</strong>{" "}
-                    {stats.correctLabel}
+                  <span
+                    data-tour="grader-q-attempts"
+                    title="Average number of attempts among students who attempted the question"
+                  >
+                    <Icon name="history" size={14} /> <strong>{stats.attemptsPerStudent.toFixed(1)}</strong>{" "}
+                    attempts / student
                   </span>
                 </div>
                 <div className={styles.metaRow}>

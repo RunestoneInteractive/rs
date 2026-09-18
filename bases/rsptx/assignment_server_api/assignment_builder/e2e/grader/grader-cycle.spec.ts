@@ -21,6 +21,7 @@ const MANUAL_SCORE = 4;
 interface GraderQuestionStat {
   name: string;
   answered_count: number;
+  total_attempts: number;
   correct_count: number;
 }
 
@@ -114,6 +115,7 @@ test(
       const stat = await fetchQuestionStat(page.request, assignmentId, divId);
 
       expect(stat.answered_count).toBe(3);
+      expect(stat.total_attempts).toBe(3);
       expect(stat.correct_count).toBe(2);
 
       await gotoApp(
