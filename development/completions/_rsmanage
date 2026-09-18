@@ -124,6 +124,7 @@ _rsmanage() {
                     ;;
                 courseinfo)
                     _arguments \
+                        '--students[Also list the first name, last name, username, and email of each student]' \
                         '--help[Show this message and exit.]' \
                         '1:course_name: '
                     ;;

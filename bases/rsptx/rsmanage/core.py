@@ -775,8 +775,13 @@ async def addeditor(config, username, basecourse):
 
 @cli.command()
 @click.argument("course_name", required=False)
+@click.option(
+    "--students",
+    is_flag=True,
+    help="Also list the first name, last name, username, and email of each student",
+)
 @pass_config
-async def courseinfo(config, course_name):
+async def courseinfo(config, course_name, students):
     """
     List all information for the single course COURSE_NAME
 
@@ -810,6 +815,14 @@ async def courseinfo(config, course_name):
     print("Instructors:")
     for row in res:
         print(" ", row.first_name, row.last_name, row.username, row.email)
+
+    if students:
+        print("Students:")
+        for row in sorted(
+            student_list,
+            key=lambda s: ((s.last_name or "").lower(), (s.first_name or "").lower()),
+        ):
+            print(" ", row.first_name, row.last_name, row.username, row.email)
 
 
 @cli.command()
