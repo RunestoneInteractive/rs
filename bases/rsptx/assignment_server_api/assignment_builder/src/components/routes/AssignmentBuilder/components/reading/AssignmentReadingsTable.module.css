@@ -2,6 +2,11 @@
   white-space: nowrap;
 }
 
+.chapterCell {
+  min-width: 0;
+  max-width: 16rem;
+}
+
 .sectionCell {
   min-width: 0;
   max-width: 24rem;
