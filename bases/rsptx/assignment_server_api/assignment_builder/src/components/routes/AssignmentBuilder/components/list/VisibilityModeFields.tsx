@@ -1,10 +1,8 @@
+import { DateTimePicker } from "@components/ui/DateTimePicker";
+import { Icon, PrimeIconName } from "@components/ui/Icon";
 import { Group, Radio, Stack, Text } from "@mantine/core";
 
-import { Icon, PrimeIconName } from "@components/ui/Icon";
-
 import { VisibilityMode } from "../edit/visibilityMode";
-
-import { DateTimePicker } from "@components/ui/DateTimePicker";
 
 interface VisibilityModeFieldsProps {
   mode: VisibilityMode;

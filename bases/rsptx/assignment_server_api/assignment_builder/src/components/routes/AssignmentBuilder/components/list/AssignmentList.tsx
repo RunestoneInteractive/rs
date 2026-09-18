@@ -179,31 +179,34 @@ export const AssignmentList = ({
     [onRemove]
   );
 
-  const selectColumn: ColumnDef<Assignment, unknown> = {
-    id: "select",
-    enableSorting: false,
-    meta: {
-      headerStyle: { width: 40 },
-      align: "center"
-    },
-    header: ({ table }) => (
-      <Checkbox
-        size="sm"
-        aria-label="Select all assignments"
-        checked={table.getIsAllRowsSelected()}
-        indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
-        onChange={table.getToggleAllRowsSelectedHandler()}
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        size="sm"
-        aria-label={`Select ${row.original.name}`}
-        checked={row.getIsSelected()}
-        onChange={row.getToggleSelectedHandler()}
-      />
-    )
-  };
+  const selectColumn = useMemo<ColumnDef<Assignment, unknown>>(
+    () => ({
+      id: "select",
+      enableSorting: false,
+      meta: {
+        headerStyle: { width: 40 },
+        align: "center"
+      },
+      header: ({ table }) => (
+        <Checkbox
+          size="sm"
+          aria-label="Select all assignments"
+          checked={table.getIsAllRowsSelected()}
+          indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
+          onChange={table.getToggleAllRowsSelectedHandler()}
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          size="sm"
+          aria-label={`Select ${row.original.name}`}
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+        />
+      )
+    }),
+    []
+  );
 
   const columns = useMemo<ColumnDef<Assignment, unknown>[]>(
     () => [
@@ -360,7 +363,15 @@ export const AssignmentList = ({
         )
       }
     ],
-    [confirmRemove, onDuplicate, onEdit, onEnforceDueChange, onVisibilityChange]
+    [
+      confirmRemove,
+      onDuplicate,
+      onEdit,
+      onEnforceDueChange,
+      onVisibilityChange,
+      selectColumn,
+      filteredAssignments.length
+    ]
   );
 
   const showEmptyState = !loading && assignments.length === 0;

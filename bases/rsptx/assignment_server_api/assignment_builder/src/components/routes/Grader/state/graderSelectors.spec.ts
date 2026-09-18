@@ -1,15 +1,15 @@
 import type { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
 import {
-  isAutogradeable,
-  getStudentStatus,
-  getQuestionProgress,
-  findNextUngradedSid,
+  effectiveViewMode,
   findFirstUngradedSid,
-  statusLabel,
-  statusIcon,
+  findNextUngradedSid,
+  getQuestionProgress,
+  getStudentStatus,
+  isAutogradeable,
   statusColor,
-  effectiveViewMode
+  statusIcon,
+  statusLabel
 } from "./graderSelectors";
 
 const makeAnswer = (overrides: Partial<GraderStudentAnswer> = {}): GraderStudentAnswer => ({
@@ -148,6 +148,7 @@ describe("getStudentStatus", () => {
       // The instructor changed the score and typed nothing; the server marks
       // the row so it no longer counts as auto-graded.
       const s = makeAnswer({ attempts: 1, score: 7, hand_graded: true });
+
       expect(getStudentStatus(s, autoQ)).toBe("graded");
     });
   });
