@@ -126,10 +126,18 @@ def add_exception_handlers(app):
         rslogger.error("UNHANDLED ERROR")
         rslogger.error(exc)
         date = canonical_utcnow().strftime("%Y_%m_%d-%I.%M.%S_%p")
-        with open(f"{settings.error_path}/{date}_traceback.txt", "w") as f:
-            traceback.print_tb(exc.__traceback__, file=f)
-            f.write(f"Error Message: \n{str(exc)}")
-        os.chmod(f"{settings.error_path}/{date}_traceback.txt", 0o766)
+        # Saving the traceback is a convenience, not the job of this handler.
+        # If error_path is missing or unwritable we must still report the
+        # original error rather than replace it with an OSError from here.
+        tb_file = f"{settings.error_path}/{date}_traceback.txt"
+        try:
+            with open(tb_file, "w") as f:
+                traceback.print_tb(exc.__traceback__, file=f)
+                f.write(f"Error Message: \n{str(exc)}")
+            os.chmod(tb_file, 0o766)
+        except OSError as write_err:
+            rslogger.error(f"Could not write traceback to {tb_file}: {write_err}")
+            rslogger.error("".join(traceback.format_tb(exc.__traceback__)))
         # alternatively lets write the traceback info to the database!
         # TODO: get local variable information
         # find a way to get the request body without throwing an error on await request.json()
