@@ -194,7 +194,7 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
         except Exception as e:
             reason = f"{type(e).__name__}: {_describe_token_failure(token)}"
     if authed_user is None:
-        rslogger.warning(
+        rslogger.info(
             f"PEERCOM {os.getpid()}: rejecting unauthenticated websocket for "
             f"{uname=}: {reason}"
         )
