@@ -63,6 +63,7 @@ from rsptx.grading_helpers.regrade import (
     page_url_suffix,
     regrade_batch,
     recompute_totals_for,
+    recompute_totals_detail,
 )
 
 router = APIRouter(
@@ -1027,8 +1028,8 @@ async def recompute_totals(
 ):
     """Recompute assignment totals (and push to the LMS) for the given students.
 
-    Used after the manual multi-grade flow, since the single ``POST /grade``
-    endpoint only writes per-question grades without rolling up the total.
+    ``POST /grade`` already rolls up the total for the one student it graded;
+    this is the bulk form, for repairing a whole roster at once.
 
     Only totals that actually moved are sent to the LMS. ``push_unchanged``
     resends every student's current total instead, to repair an LMS gradebook
@@ -1076,6 +1077,13 @@ async def set_assignment_released(
     """Release or hide an assignment's grades to students by flipping the
     Assignment.released flag. When released is False, the student-facing read
     path hides scores (see the doAssignment template and the student dashboard).
+
+    Releasing also sends every student's current total to the course's LMS.
+    ``released`` is the same flag that gates LTI passback, so grades entered
+    while the assignment was hidden -- the whole point of hiding it -- were
+    dropped by the 1.1 and 1.3 senders at the time. Nothing else would ever
+    resend them: a later recompute finds the totals already correct in
+    Runestone and skips them as unchanged.
     """
     course = await fetch_course(user.course_name)
     assignment = await fetch_one_assignment(payload.assignment_id)
@@ -1084,14 +1092,46 @@ async def set_assignment_released(
             status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
 
+    was_released = assignment.released
     await update_assignment_released(assignment.id, payload.released)
+
+    pushed = 0
+    if payload.released and not was_released:
+        # Re-read so the roll-up sees released=True and the senders let the
+        # scores through; ``assignment`` above still holds the old flag.
+        assignment = await fetch_one_assignment(assignment.id)
+        try:
+            changes = await recompute_totals_detail(
+                course,
+                assignment,
+                instructor_triggered=True,
+                only_existing=True,
+                push_unchanged=True,
+            )
+            # ``only_existing`` keeps a student who never submitted from having
+            # a zero materialised and sent to the LMS; those rows come back
+            # flagged and are the only ones the push skips here.
+            pushed = len([c for c in changes if not c.skipped_no_grade_row])
+        except Exception as e:  # pragma: no cover - defensive
+            # An LMS that is down must not leave the assignment unreleased in
+            # Runestone. The instructor's repair hatch is POST
+            # /recompute_totals with push_unchanged.
+            rslogger.error(
+                f"Release of assignment {assignment.id} could not push grades "
+                f"to the LMS: {e}"
+            )
+
     rslogger.info(
         f"Grades {'released' if payload.released else 'hidden'} by {user.username} "
-        f"assignment={assignment.id}"
+        f"assignment={assignment.id} lms_pushed={pushed}"
     )
     return make_json_response(
         status=status.HTTP_200_OK,
-        detail={"assignment_id": assignment.id, "released": payload.released},
+        detail={
+            "assignment_id": assignment.id,
+            "released": payload.released,
+            "lms_pushed": pushed,
+        },
     )
 
 

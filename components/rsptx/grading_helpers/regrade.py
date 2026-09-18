@@ -654,8 +654,9 @@ async def recompute_totals_for(
     LMS) for the given students. When ``sids`` is empty/None every student in
     the course is recomputed. Returns the number of students processed.
 
-    This is used by the manual multi-grade flow, where individual grades are
-    written through ``POST /grade`` (which does not itself recompute totals).
+    This is used by the manual grading flow: ``POST /grade`` calls it after
+    writing each question grade, and the grader's bulk ``POST /recompute_totals``
+    calls it for a whole set of students at once.
     """
     return len(
         await recompute_totals_detail(

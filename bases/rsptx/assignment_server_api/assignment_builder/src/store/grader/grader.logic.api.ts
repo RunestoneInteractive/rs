@@ -175,6 +175,13 @@ export interface SetReleasedRequest {
 export interface SetReleasedResponse {
   assignment_id: number;
   released: boolean;
+  /**
+   * How many students' totals the release sent to the LMS. Releasing is what
+   * un-gates LTI passback, so it flushes grades entered while the assignment
+   * was hidden. Zero on a hide, and on re-releasing an already-released
+   * assignment.
+   */
+  lms_pushed: number;
 }
 
 export interface SetThresholdRequest {

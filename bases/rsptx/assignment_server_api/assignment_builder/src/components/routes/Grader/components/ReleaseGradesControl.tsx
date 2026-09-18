@@ -30,8 +30,20 @@ export const ReleaseGradesControl: React.FC<ReleaseGradesControlProps> = ({
 
   const apply = async (next: boolean) => {
     try {
-      await setReleased({ assignment_id: assignmentId, released: next }).unwrap();
-      notify.success(next ? "Grades released to students" : "Grades hidden from students");
+      const res = await setReleased({ assignment_id: assignmentId, released: next }).unwrap();
+
+      if (!next) {
+        notify.success("Grades hidden from students");
+        return;
+      }
+      // Releasing is also what un-gates LTI passback, so it flushes grades
+      // entered while the assignment was hidden. Only say so when a linked LMS
+      // actually received something.
+      notify.success(
+        res.lms_pushed
+          ? `Grades released to students, and ${res.lms_pushed} sent to your LMS`
+          : "Grades released to students"
+      );
     } catch {
       notify.error("Couldn't update grade visibility. Try again.");
     }
