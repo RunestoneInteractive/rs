@@ -620,16 +620,18 @@ export default class RunestoneBase {
             if (MathJax.typesetPromise) {
                 if (typeof window.runestoneMathReady !== "undefined") {
                     return window.runestoneMathReady.then(() =>
-                        this.mjresolver(this.aQueue.enqueue(component)),
+                        this.aQueue.enqueue(component),
                     );
                 } else {
-                    return this.mjresolver(this.aQueue.enqueue(component));
+                    return this.aQueue.enqueue(component);
                 }
             } else {
                 console.log(`Waiting on MathJax!! ${MathJax.typesetPromise}`);
-                setTimeout(() => this.queueMathJax(component), 200);
-                console.log(`Returning mjready promise: ${this.mjReady}`);
-                return this.mjReady;
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        this.queueMathJax(component).then(resolve, reject);
+                    }, 200);
+                });
             }
         }
     }

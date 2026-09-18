@@ -1,4 +1,10 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { disableMathJaxTabStops } from "../../common/js/mathjax-a11y.js";
+import { t } from "../../common/js/rsi18n.js";
+import "./hparsons-i18n.en.js";
+import "./hparsons-i18n.pt-br.js";
+import "./hparsons-i18n.sr-Cyrl.js";
+
 import "../css/hljs-xcode.css";
 import BlockFeedback from "./BlockFeedback.js";
 import SQLFeedback from "./SQLFeedback.js";
@@ -136,14 +142,12 @@ export default class HParsons extends RunestoneBase {
         this.renderMathInBlocks();
         // Change "code" to "answer" in parsons direction for non-code languages
         if (this.language == null || this.language === "math") {
-            this.outerDiv.querySelectorAll(".hparsons-tip").forEach((el) => {
-                if (el.textContent.includes("our code")) {
-                    el.textContent = el.textContent.replace(
-                        "our code",
-                        "our answer",
-                    );
-                }
-            });
+            this.outerDiv.querySelector(".hparsons-drag-tip").textContent = t(
+                "msg_hparsons_drag_blocks_answer",
+            );
+            this.outerDiv.querySelector(".hparsons-drop-tip").textContent = t(
+                "msg_hparsons_drop_blocks_answer",
+            );
         }
     }
 
@@ -160,7 +164,7 @@ export default class HParsons extends RunestoneBase {
         this.runButton.classList.add("btn", "btn-success", "run-button");
         ctrlDiv.appendChild(this.runButton);
         this.runButton.setAttribute("type", "button");
-        this.runButton.textContent = "Run";
+        this.runButton.textContent = t("msg_hparsons_run");
         var that = this;
         this.runButton.onclick = () => {
             that.feedbackController.runButtonHandler();
@@ -170,7 +174,7 @@ export default class HParsons extends RunestoneBase {
         // Reset button
         var resetBtn;
         resetBtn = document.createElement("button");
-        resetBtn.textContent = "Reset";
+        resetBtn.textContent = t("msg_parson_reset");
         resetBtn.classList.add("btn", "btn-warning", "run-button");
         ctrlDiv.appendChild(resetBtn);
         this.resetButton = resetBtn;
@@ -193,25 +197,64 @@ export default class HParsons extends RunestoneBase {
         return textarea.value;
     }
 
-    renderMathInBlocks() {
-        if (this.language !== "math") return;
-        setTimeout(() => {
-            const blocks = document.querySelectorAll(
-                `#${this.divid}-container .parsons-block`,
+    observeMathJaxTabStops() {
+        if (this.mathTabStopObserver || typeof MutationObserver === "undefined") {
+            return;
+        }
+        this.mathTabStopObserver = new MutationObserver((mutations) => {
+            const needsCleanup = mutations.some(
+                (mutation) =>
+                    mutation.type === "childList" ||
+                    mutation.target.getAttribute("tabindex") !== "-1",
             );
-            blocks.forEach((block) => {
-                block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
-                if (block.innerHTML.indexOf("process-math") !== -1) {
-                    // remove the span tag with process-math class
-                    block.innerHTML = block.innerHTML.replace(
-                        /<span class="process-math">|<\/span>/g,
-                        "",
-                    );
-                }
+            if (needsCleanup) {
+                disableMathJaxTabStops(this.hparsonsInput, [
+                    ".parsons-block",
+                ]);
+            }
+        });
+        this.mathTabStopObserver.observe(this.hparsonsInput, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ["tabindex"],
+        });
+    }
 
-                this.queueMathJax(block);
-            });
-        }, 10);
+    renderMathInBlocks() {
+        if (this.language !== "math") return Promise.resolve();
+        this.observeMathJaxTabStops();
+        return new Promise((resolve, reject) => {
+            // MathJax may load just after the component; preserve the
+            // established deferral before submitting these block renders.
+            setTimeout(() => {
+                try {
+                    const blocks = this.hparsonsInput.querySelectorAll(
+                        ".parsons-block",
+                    );
+                    const renderPromises = Array.from(blocks, (block) => {
+                        block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                        if (block.innerHTML.indexOf("process-math") !== -1) {
+                            block.innerHTML = block.innerHTML.replace(
+                                /<span class="process-math">|<\/span>/g,
+                                "",
+                            );
+                        }
+                        return this.queueMathJax(block);
+                    });
+                    Promise.all(renderPromises).then(
+                        () => {
+                            disableMathJaxTabStops(this.hparsonsInput, [".parsons-block"]);
+                            this.hparsonsInput.refreshBlockAria();
+                            resolve();
+                        },
+                        reject,
+                    );
+                } catch (err) {
+                    reject(err);
+                }
+            }, 10);
+        });
     }
 
     // Return previous answers in local storage
