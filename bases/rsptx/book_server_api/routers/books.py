@@ -22,12 +22,15 @@ Detailed Module Description
 #
 # Standard library
 # ----------------
+import asyncio
 from datetime import timedelta
+from functools import lru_cache
 import json
 import os
 import os.path
 import random
 import socket
+import tempfile
 from typing import Optional
 from urllib.parse import quote
 
@@ -36,6 +39,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Cookie, Request, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemBytecodeCache, FileSystemLoader
 from jinja2.exceptions import TemplateNotFound
 from pydantic import StringConstraints
 
@@ -182,6 +186,229 @@ async def get_jlite(course: str, filepath: str):
 # the course_name in the uri is the actual course name, not the base course, as was previously
 # the case. This should help eliminate the accidental work in the base course problem, and allow
 # teachers to share links to their course with the students.
+# Template environments
+# =====================
+# Book pages are Jinja2 templates, and they are *big* -- a median CSAwesome page
+# is ~290KB and the largest are close to 1MB.  Compiling one costs 11-44ms of
+# straight-line CPU on the event loop, so ``serve_page`` must not build a fresh
+# ``Jinja2Templates`` (and therefore a fresh, empty template cache) per request:
+# that made every single page view pay the full compile.
+#
+# Instead, environments are cached per (directory, markup system) and back onto a
+# shared on-disk bytecode cache.  Measured on CSAwesome2, that takes a page from
+# ~10.8ms to ~0.5ms.
+#
+# The in-memory template cache is deliberately disabled (``cache_size=0``).  A
+# compiled page retains roughly 1.6MB, so caching templates in memory would make
+# a server's footprint scale with how many books and pages it happens to serve.
+# The bytecode cache gets nearly all of the win with a flat memory profile.
+#
+# Correctness note: a rebuilt book is picked up automatically, because a bytecode
+# bucket is keyed on a checksum of the template source.
+#
+# Size on disk: one file per page, about 1.03x the size of the page's HTML, and a
+# rebuild overwrites its file rather than adding one.  So the ceiling is the HTML
+# of every distinct page this container ever serves, and it resets whenever the
+# container is recreated.  Nothing evicts, so see _ResilientBytecodeCache for what
+# happens when the disk it lives on fills up.
+_BYTECODE_CACHE_ROOT = os.path.join(tempfile.gettempdir(), "rs_jinja_bytecode")
+
+
+class _ResilientBytecodeCache(FileSystemBytecodeCache):
+    """A bytecode cache that cannot take a book page down.
+
+    Jinja re-raises whatever ``dump_bytecode`` runs into -- a full disk, a cache
+    directory cleaned up underneath a running server -- and that propagates out
+    of ``get_template``, which means a 500 on the page.  Nothing here is worth a
+    500: the cache is only ever an optimization, and compiling the page is the
+    behavior we had before it existed.  So I/O errors are swallowed and logged
+    once, and a corrupt or truncated bucket just recompiles.
+    """
+
+    _warned = False
+
+    def _warn_once(self, what: str, e: Exception) -> None:
+        if not _ResilientBytecodeCache._warned:
+            _ResilientBytecodeCache._warned = True
+            rslogger.warning(
+                f"Jinja bytecode cache: {what} failed ({e}). Book pages still "
+                "render, but they are being recompiled every request. Check "
+                f"free space on {self.directory}."
+            )
+
+    def load_bytecode(self, bucket):
+        try:
+            super().load_bytecode(bucket)
+        except Exception as e:
+            # A truncated or corrupt bucket: drop it and let jinja recompile.
+            bucket.reset()
+            self._warn_once("read", e)
+
+    def dump_bytecode(self, bucket):
+        try:
+            super().dump_bytecode(bucket)
+        except OSError as e:
+            self._warn_once("write", e)
+
+
+def _bytecode_cache(flavor: str) -> Optional[FileSystemBytecodeCache]:
+    """Return a bytecode cache for ``flavor``, or None if it is unusable.
+
+    Each markup system gets its own directory.  Jinja keys a bucket on the
+    template's name and path but *not* on the environment's delimiters, so an RST
+    and a PreTeXt environment reading the same file would otherwise collide and
+    one of them would be handed bytecode lexed with the wrong delimiters.
+
+    A cache that cannot be written to is not fatal -- we log and fall back to
+    compiling every time, which is what the code did before.
+    """
+    directory = os.path.join(_BYTECODE_CACHE_ROOT, flavor)
+    try:
+        os.makedirs(directory, exist_ok=True)
+        probe = os.path.join(directory, ".writable")
+        with open(probe, "w") as f:
+            f.write("")
+        os.remove(probe)
+    except OSError as e:
+        rslogger.warning(
+            f"Jinja bytecode cache at {directory} is not writable ({e}); "
+            "book pages will be recompiled on every request."
+        )
+        return None
+    return _ResilientBytecodeCache(directory)
+
+
+# Pruning
+# -------
+# Jinja never evicts from a bytecode cache, so without this the directory tends
+# toward the size of every page the container has ever served (~1.1GB for the
+# current corpus).  ``prune_bytecode_cache`` keeps it under
+# ``settings.book_template_cache_mb`` by deleting the oldest buckets first.
+#
+# mtime is not access time -- a bucket is written once and then only read -- but
+# it is the only signal the filesystem reliably gives us, and evicting by it is
+# self-correcting: a page that is still being served recompiles once and is
+# written back with a fresh mtime, while a page nobody visits stays gone.  The
+# cost of a wrong guess is one recompile.
+PRUNE_INTERVAL_SECONDS = 3600
+_BUCKET_PREFIX = "__jinja2_"
+
+
+def prune_bytecode_cache(budget_bytes: int) -> Optional[tuple]:
+    """Delete the oldest buckets until the cache fits in ``budget_bytes``.
+
+    Blocking (a stat per file, then unlinks); callers dispatch it with
+    ``asyncio.to_thread``.
+
+    :return: ``(removed, freed_bytes, kept_bytes)``, or None if there was
+        nothing to do.
+    """
+    entries = []
+    total = 0
+    for flavor in ("rst", "ptx"):
+        directory = os.path.join(_BYTECODE_CACHE_ROOT, flavor)
+        try:
+            scan = list(os.scandir(directory))
+        except OSError:
+            continue
+        for entry in scan:
+            # Only ever touch files jinja wrote.  Anything else in here is not
+            # ours to delete.
+            if not entry.name.startswith(_BUCKET_PREFIX):
+                continue
+            try:
+                stat = entry.stat()
+            except OSError:
+                continue  # vanished under us; fine
+            entries.append((stat.st_mtime, stat.st_size, entry.path))
+            total += stat.st_size
+
+    if total <= budget_bytes:
+        return None
+
+    entries.sort()  # oldest first
+    removed = freed = 0
+    for _, size, path in entries:
+        if total - freed <= budget_bytes:
+            break
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            continue  # another worker got there first
+        except OSError as e:
+            rslogger.warning(f"Could not prune {path}: {e}")
+            continue
+        removed += 1
+        freed += size
+
+    return removed, freed, total - freed
+
+
+async def prune_bytecode_cache_loop() -> None:
+    """Background task: prune the template bytecode cache on an interval.
+
+    Cancel-safe; the caller owns the task.  Started from the app's lifespan in
+    ``main.py``.
+    """
+    budget = settings.book_template_cache_mb * 1024 * 1024
+    if budget <= 0:
+        rslogger.info("book template cache pruning disabled (budget is 0)")
+        return
+    rslogger.info(
+        f"book template cache: pruning to {settings.book_template_cache_mb}MB "
+        f"every {PRUNE_INTERVAL_SECONDS}s"
+    )
+    # Workers in a container share the directory. Stagger them so they do not
+    # all walk it at the same moment; the deletes are idempotent either way.
+    await asyncio.sleep(random.uniform(0, min(60, PRUNE_INTERVAL_SECONDS)))
+    while True:
+        try:
+            result = await asyncio.to_thread(prune_bytecode_cache, budget)
+            if result:
+                removed, freed, kept = result
+                rslogger.info(
+                    f"book template cache: pruned {removed} pages "
+                    f"({freed / 1048576:.1f}MB freed, {kept / 1048576:.1f}MB kept)"
+                )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            # Never let a bad prune kill the task; the cache is an optimization.
+            rslogger.warning(f"book template cache prune failed: {e}")
+        await asyncio.sleep(PRUNE_INTERVAL_SECONDS)
+
+
+@lru_cache(maxsize=64)
+def _book_templates(directory: str, is_pretext: bool) -> Jinja2Templates:
+    """Build (and cache) the template environment for one book's directory."""
+    env = Environment(
+        loader=FileSystemLoader(directory),
+        autoescape=True,
+        cache_size=0,
+        bytecode_cache=_bytecode_cache("ptx" if is_pretext else "rst"),
+    )
+    # Books built with lots of LaTeX math in them are troublesome as they tend to
+    # have many instances of ``{{`` and ``}}`` which conflicts with the default
+    # Jinja2 start stop delimiters. Rather than escaping all of the latex math the
+    # PreTeXt built books use different delimiters for the templates.
+    if is_pretext:
+        env.variable_start_string = "~._"
+        env.variable_end_string = "_.~"
+        env.comment_start_string = "@@#"
+        env.comment_end_string = "#@@"
+        env.globals.update({"URL": URL})
+    return Jinja2Templates(env=env)
+
+
+@lru_cache(maxsize=1)
+def _server_templates() -> Jinja2Templates:
+    """The server's own templates (the library page), cached for the same reason.
+
+    These are small enough that the in-memory cache is the right call here.
+    """
+    return Jinja2Templates(directory=f"{template_folder}")
+
+
 @router.api_route(
     "/published/{course_name:str}/{pagepath:path}",
     methods=["GET", "POST"],
@@ -280,34 +507,24 @@ async def serve_page(
             )
     # proceed with the knowledge that course_row is defined after this point.
 
-    # The template path comes from the base course's name.
-    templates = Jinja2Templates(
-        directory=safe_join(
+    course_attrs = await fetch_all_course_attributes(course_row.id)
+    # course_attrs will always return a dictionary, even if an empty one.
+    rslogger.debug(f"HEY COURSE ATTRS: {course_attrs}")
+
+    # The template path comes from the base course's name.  The environment is
+    # shared across requests -- see `Template environments`_ above for why.
+    is_pretext = course_attrs.get("markup_system", "RST") == "PreTeXt"
+    if is_pretext:
+        rslogger.debug(f"PRETEXT book found at path {pagepath}")
+    templates = _book_templates(
+        safe_join(
             settings.book_path,
             course_row.base_course,
             "published",
             course_row.base_course,
         ),
+        is_pretext,
     )
-    course_attrs = await fetch_all_course_attributes(course_row.id)
-    # course_attrs will always return a dictionary, even if an empty one.
-    rslogger.debug(f"HEY COURSE ATTRS: {course_attrs}")
-    # TODO set custom delimiters for PreTeXt books (https://stackoverflow.com/questions/33775085/is-it-possible-to-change-the-default-double-curly-braces-delimiter-in-polymer)
-    # Books built with lots of LaTeX math in them are troublesome as they tend to have many instances
-    # of ``{{`` and ``}}`` which conflicts with the default Jinja2 start stop delimiters. Rather than
-    # escaping all of the latex math the PreTeXt built books use different delimiters for the templates
-    # templates.env is a reference to a Jinja2 Environment object
-    # try - templates.env.block_start_string = "@@@+"
-    # try - templates.env.block_end_string = "@@@-"
-
-    if course_attrs.get("markup_system", "RST") == "PreTeXt":
-        rslogger.debug(f"PRETEXT book found at path {pagepath}")
-        templates.env.variable_start_string = "~._"
-        templates.env.variable_end_string = "_.~"
-        templates.env.comment_start_string = "@@#"
-        templates.env.comment_end_string = "#@@"
-        templates.env.globals.update({"URL": URL})
-    # rslogger.debug(f"template cache size {templates.env.cache_size}")
 
     # enable compare me can be set per course if its not set provide a default of true
     if "enable_compare_me" not in course_attrs:
@@ -315,7 +532,7 @@ async def serve_page(
 
     subchapter = os.path.basename(os.path.splitext(pagepath)[0])
     rslogger.debug(f"SUBCHAPTER IS {subchapter}")
-    if course_attrs.get("markup_system", "RST") == "PreTeXt":
+    if is_pretext:
         chapter = await fetch_chapter_for_subchapter(subchapter, course_row.base_course)
     else:
         chapter = os.path.split(os.path.split(pagepath)[0])[1]
@@ -495,7 +712,7 @@ async def library(request: Request, response_class=HTMLResponse):
         course = ""
         username = ""
         instructor_status = False
-    templates = Jinja2Templates(directory=f"{template_folder}")
+    templates = _server_templates()
     sorted_sections = list(sections)
     try:
         sorted_sections.sort()

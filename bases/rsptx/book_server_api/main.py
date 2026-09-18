@@ -98,12 +98,17 @@ async def lifespan(app: FastAPI):
     telemetry_task = asyncio.create_task(telemetry_loop())
     # Watch the connection pools and the event loop; see rsptx.db.pool_monitor.
     pool_monitor_task = start_pool_monitor()
+    # Keep the compiled-page cache on disk under its size budget.
+    prune_task = asyncio.create_task(books.prune_bytecode_cache_loop())
     yield
     # Clean up the ML models and release the resources
     rslogger.info("Book Server is Shutting Down")
     telemetry_task.cancel()
     if pool_monitor_task:
         pool_monitor_task.cancel()
+    prune_task.cancel()
+    # Release the pooled connections to jobe / the tracer / image hosts.
+    await rsproxy.close_clients()
     await term_models()
 
 

@@ -162,6 +162,14 @@ class Settings(BaseSettings):
     db_sync_pool_size: int = 5
     db_sync_max_overflow: int = 10
 
+    # Book server only. Compiled book pages are cached on disk as Jinja bytecode
+    # (see ``rsptx.book_server_api.routers.books``), roughly 1.03x the size of
+    # each page's HTML. Nothing in Jinja evicts, so a long-lived container tends
+    # toward the size of every page it has ever served -- about 1.1GB for the
+    # current corpus. This is the budget the pruner keeps it under; set it to 0
+    # to disable pruning and let the cache grow.
+    book_template_cache_mb: int = 512
+
     @property
     def pool_settings(self) -> dict:
         """Return the pool keyword arguments for ``create_engine``.

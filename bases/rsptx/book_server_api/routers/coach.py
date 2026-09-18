@@ -11,6 +11,7 @@
 # Standard library
 # ----------------
 import ast
+import asyncio
 import html
 import json
 
@@ -528,8 +529,13 @@ async def parsons_scaffolding(
                 generate_Parsons_block,
             )
 
-            example_code = get_example_solution(
-                api_token, language, problem_description, internal_test_case
+            # Calls out to an LLM; keep the blocking client off the event loop.
+            example_code = await asyncio.to_thread(
+                get_example_solution,
+                api_token,
+                language,
+                problem_description,
+                internal_test_case,
             )
             if not example_code:
                 return (
@@ -571,7 +577,10 @@ async def parsons_scaffolding(
             personalized_Parsons_block,
             personalized_solution_generation_type,
             personalized_generation_result_type,
-        ) = parsons_help(
+        ) = await asyncio.to_thread(
+            # parsons_help talks to an LLM and to jobe with blocking clients, so
+            # it has to run in a thread or it stalls the whole event loop.
+            parsons_help,
             language,
             student_code,
             problem_id,
