@@ -123,7 +123,7 @@ services:
   # services depend on this completing successfully, so a stale file stops the
   # stack at `up` instead of breaking mysteriously at runtime.
   preflight:
-    image: ghcr.io/runestoneinteractive/rs-book
+    image: ghcr.io/runestoneinteractive/rs-book:${RS_VERSION:-latest}
     restart: "no"
     command: check_compose_version.sh
     environment:
@@ -186,13 +186,13 @@ services:
   jobe:
     build:
       context: ./projects/jobe
-    image: ghcr.io/runestoneinteractive/rs-jobe
+    image: ghcr.io/runestoneinteractive/rs-jobe:${RS_VERSION:-latest}
     restart: always
 
   book:
     build:
       context: ./projects/book_server
-    image: ghcr.io/runestoneinteractive/rs-book
+    image: ghcr.io/runestoneinteractive/rs-book:${RS_VERSION:-latest}
     hostname: book_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -243,7 +243,7 @@ services:
   assignment:
     build:
       context: ./projects/assignment_server
-    image: ghcr.io/runestoneinteractive/rs-assignment
+    image: ghcr.io/runestoneinteractive/rs-assignment:${RS_VERSION:-latest}
     hostname: assignment_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -286,7 +286,7 @@ services:
     build:
       context: ./
       dockerfile: projects/nginx/Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-nginx
+    image: ghcr.io/runestoneinteractive/rs-nginx:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: always
@@ -329,7 +329,7 @@ services:
     build:
       context: ./
       dockerfile: projects/caddy/Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-caddy
+    image: ghcr.io/runestoneinteractive/rs-caddy:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: always
@@ -375,7 +375,7 @@ services:
       context: ./
       dockerfile: projects/nginx_dstart_dev/Dockerfile
     #image: registry.digitalocean.com/runestone-registry/rs-nginx
-    image: ghcr.io/runestoneinteractive/rs-nginx-dstart-dev
+    image: ghcr.io/runestoneinteractive/rs-nginx-dstart-dev:${RS_VERSION:-latest}
     restart: always
     ports:
       # ports are specified host:container
@@ -391,7 +391,7 @@ services:
     build:
       context: ./
       dockerfile: projects/rsmanage/Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-rsmanage
+    image: ghcr.io/runestoneinteractive/rs-rsmanage:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
@@ -413,7 +413,7 @@ services:
     build:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-author
-    image: ghcr.io/runestoneinteractive/rs-author
+    image: ghcr.io/runestoneinteractive/rs-author:${RS_VERSION:-latest}
     hostname: author_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -447,7 +447,7 @@ services:
     build:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-worker
-    image: ghcr.io/runestoneinteractive/rs-worker
+    image: ghcr.io/runestoneinteractive/rs-worker:${RS_VERSION:-latest}
     hostname: worker_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -483,7 +483,7 @@ services:
     build:
       context: ./projects/admin_server
       dockerfile: Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-admin
+    image: ghcr.io/runestoneinteractive/rs-admin:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     container_name: admin
