@@ -5,6 +5,7 @@ Test the analytics report helpers used by the Chapter Activity report.
 import pandas as pd
 
 from rsptx.admin_server_api.routers.analytics import (
+    _chapter_clause,
     _format_duedate,
     _pad_with_enrolled,
     _student_label,
@@ -101,3 +102,29 @@ def test_format_duedate_omits_any_timezone_label():
     stamp = pd.Timestamp("2026-09-02 04:59:00")
     assert _format_duedate(stamp, "America/Chicago") == "2026-09-01"
     assert "CDT" not in _format_duedate(stamp, "America/Chicago")
+
+
+def test_chapter_clause_binds_the_label_instead_of_interpolating_it():
+    """The chapter label comes from a request body, so it must not reach the SQL."""
+    params = {"base_course": "fopp"}
+    clause = _chapter_clause("questions.chapter", "GeneralIntro", params)
+
+    assert clause == "and questions.chapter = %(chapter)s"
+    assert params["chapter"] == "GeneralIntro"
+
+
+def test_chapter_clause_passes_quotes_through_as_data():
+    """A label that would have closed the old f-string quote stays a value."""
+    params = {}
+    clause = _chapter_clause("questions.chapter", "x' or 'a'='a", params)
+
+    assert "or" not in clause
+    assert params["chapter"] == "x' or 'a'='a"
+
+
+def test_chapter_clause_for_all_adds_nothing():
+    """'all' means no filter, and must not leave a stray bind parameter behind."""
+    params = {"base_course": "fopp"}
+
+    assert _chapter_clause("questions.chapter", "all", params) == ""
+    assert "chapter" not in params
