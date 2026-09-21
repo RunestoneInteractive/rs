@@ -43,6 +43,28 @@
   gap: var(--rs-space-2);
 }
 
+.sectionNav {
+  display: flex;
+  gap: var(--rs-space-5);
+  margin-bottom: var(--rs-space-4);
+  border-bottom: 1px solid var(--rs-border-solid);
+}
+
+.sectionNavLink {
+  color: var(--rs-text-muted);
+  font-weight: var(--rs-font-weight-semibold);
+  padding: 0 var(--rs-space-1) var(--rs-space-2);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.sectionNavLink:hover,
+.sectionNavLink:focus-visible,
+.sectionNavLinkActive {
+  color: var(--rs-brand-600);
+  border-bottom-color: var(--rs-brand-500);
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -272,7 +294,7 @@
 
 .toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--rs-space-3);
   margin-bottom: var(--rs-space-3);
@@ -331,10 +353,6 @@
   border-bottom: 1px solid var(--rs-border-solid);
 }
 
-.cellStrong {
-  font-weight: var(--rs-font-weight-semibold);
-  color: var(--rs-text-strong);
-}
 .cellName {
   display: inline-block;
   max-width: 360px;
@@ -1221,6 +1239,22 @@
   z-index: 3;
   background: var(--rs-neutral-50);
 }
+.gradebookStudentUsername {
+  display: block;
+  width: fit-content;
+  color: var(--rs-brand-600);
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: var(--rs-font-weight-medium);
+}
+.gradebookStudentUsername:hover,
+.gradebookStudentUsername:focus-visible {
+  color: var(--rs-brand-800);
+  text-decoration: underline;
+}
+.gradebookLateWorkModalContent {
+  overflow-y: visible;
+}
 .gradebookWrap thead th {
   background: var(--rs-neutral-50);
   color: var(--rs-text-muted);
@@ -1236,6 +1270,23 @@
 }
 .gradebookColName {
   color: var(--rs-text-strong);
+}
+.gradebookHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--rs-space-1);
+}
+.gradebookLateButton {
+  display: inline-flex;
+  padding: var(--rs-space-1);
+  border-radius: var(--rs-radius-sm);
+  color: var(--rs-text-muted);
+}
+.gradebookLateButton:hover,
+.gradebookLateButton:focus-visible {
+  color: var(--rs-text-strong);
+  background: var(--rs-neutral-100);
 }
 .gradebookTotalCell {
   font-weight: var(--rs-font-weight-semibold);

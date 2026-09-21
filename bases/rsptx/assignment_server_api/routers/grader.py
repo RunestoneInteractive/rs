@@ -1,10 +1,10 @@
 import csv
 import io
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select, func, and_, or_
 
 from rsptx.auth.session import auth_manager
@@ -244,7 +244,6 @@ async def list_assignment_questions(
 
         try:
             async with async_session() as session:
-
                 base_clauses = []
                 latest_ids_q = None
                 if tbl is not None:
@@ -339,7 +338,6 @@ async def list_assignment_questions(
                     )
                     correct_count = int(res.scalar() or 0)
                 else:
-
                     if max_points > 0:
                         qg_clauses = [
                             QuestionGrade.div_id == q.name,
@@ -1293,6 +1291,48 @@ def _display_score(score: float, points: float, show_points: bool) -> float:
     return round(score / points * 100, 2)
 
 
+class GradebookContractModel(BaseModel):
+    """Strict base for the public React gradebook data contract."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class GradebookAssignmentResponse(GradebookContractModel):
+    id: int
+    name: str
+    points: float
+    duedate: str | None = None
+    released: bool
+    kind: Literal["assignment", "practice"] = "assignment"
+
+
+class GradebookStudentResponse(GradebookContractModel):
+    sid: str
+    name: str
+    sort_name: str
+    email: str | None = None
+
+
+class GradebookCellResponse(GradebookContractModel):
+    sid: str
+    assignment_id: int
+    score: float | None = None
+    released: bool
+    manual_total: bool
+
+
+class GradebookDataResponse(GradebookContractModel):
+    assignments: list[GradebookAssignmentResponse]
+    students: list[GradebookStudentResponse]
+    cells: list[GradebookCellResponse]
+    averages: dict[str, float | None]
+    show_points: bool
+
+
+class GradebookEnvelopeResponse(GradebookContractModel):
+    detail: GradebookDataResponse
+
+
 def _gradebook_to_csv(data: dict) -> str:
     """Render the gradebook as CSV in the same units the on-screen gradebook uses:
     a percent of each assignment's points, or raw points when the course has set
@@ -1305,11 +1345,11 @@ def _gradebook_to_csv(data: dict) -> str:
 
     def column_name(assignment: dict) -> str:
         if show_points:
-            return f"{assignment['name']} ({assignment['points']} pts)"
+            return f"{assignment['name']} ({_format_score(assignment['points'])} pts)"
         return f"{assignment['name']} (%)"
 
     writer.writerow(
-        ["Username", "Student"]
+        ["Username", "Student", "Email"]
         + [column_name(a) for a in assignments]
         + ["Total" if show_points else "Total (%)"]
     )
@@ -1319,7 +1359,7 @@ def _gradebook_to_csv(data: dict) -> str:
     for student in data["students"]:
         # The username leads the row: instructors key their own grading scripts off
         # it, and display names are neither unique nor stable. See issue #1477.
-        row = [student["sid"], student["name"]]
+        row = [student["sid"], student["name"], student.get("email") or ""]
         earned = 0.0
         possible = 0.0
         graded = False
@@ -1344,7 +1384,7 @@ def _gradebook_to_csv(data: dict) -> str:
     return output.getvalue()
 
 
-@router.get("/gradebook/data")
+@router.get("/gradebook/data", response_model=GradebookEnvelopeResponse)
 @instructor_role_required()
 async def get_gradebook(request: Request, user=Depends(auth_manager)):
     """Return the gradebook matrix (assignments x students) for the caller's
@@ -1354,8 +1394,8 @@ async def get_gradebook(request: Request, user=Depends(auth_manager)):
     SPA deep link ``/grader/gradebook`` falls through to the React app instead of
     being shadowed by this JSON endpoint.
     """
-    data = await fetch_gradebook(user.course_name)
-    return make_json_response(status=status.HTTP_200_OK, detail=data)
+    data = GradebookDataResponse.model_validate(await fetch_gradebook(user.course_name))
+    return GradebookEnvelopeResponse(detail=data)
 
 
 @router.get("/gradebook.csv")

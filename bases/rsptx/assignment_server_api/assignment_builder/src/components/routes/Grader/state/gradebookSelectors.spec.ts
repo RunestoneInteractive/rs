@@ -4,11 +4,13 @@ import type {
   GradebookStudent,
   StudentAssignmentQuestionScore
 } from "@store/grader/grader.logic.api";
+import { describe, expect, it } from "vitest";
 
 import {
   assignmentAverage,
   buildCellLookup,
   cellKey,
+  classTotalAverage,
   columnUnitLabel,
   displayScore,
   filterAssignments,
@@ -16,6 +18,7 @@ import {
   formatScore,
   getCell,
   getCellScore,
+  gradebookToCsv,
   isCellManual,
   isTotalStale,
   questionScoreSum,
@@ -33,6 +36,12 @@ const cells: GradebookCell[] = [
   { sid: "s1", assignment_id: 2, score: 5, released: false },
   { sid: "s2", assignment_id: 1, score: 6, released: true },
   { sid: "s2", assignment_id: 2, score: null, released: false }
+];
+
+const students: GradebookStudent[] = [
+  { sid: "s1", name: "Ada Lovelace", email: "ada@example.com" },
+  { sid: "s2", name: "Alan Turing", email: "alan@example.com" },
+  { sid: "s3", name: 'Grace "Amazing" Hopper', email: null }
 ];
 
 describe("cellKey", () => {
@@ -186,6 +195,24 @@ describe("studentTotalDisplay", () => {
   });
 });
 
+describe("classTotalAverage", () => {
+  it("averages the students' totals in points mode", () => {
+    expect(classTotalAverage(buildCellLookup(cells), assignments, students, true)).toBe(9.5);
+  });
+
+  it("averages weighted student percentages and omits students without scores", () => {
+    expect(classTotalAverage(buildCellLookup(cells), assignments, students, false)).toBe(73.34);
+  });
+
+  it("uses only the assignment columns currently shown", () => {
+    expect(classTotalAverage(buildCellLookup(cells), [assignments[1]], students, true)).toBe(5);
+  });
+
+  it("returns null when no student has a score", () => {
+    expect(classTotalAverage(new Map(), assignments, students, false)).toBeNull();
+  });
+});
+
 describe("columnUnitLabel", () => {
   it("names the points available in points mode", () => {
     expect(columnUnitLabel(10, true)).toBe(" / 10");
@@ -210,27 +237,65 @@ describe("formatScore", () => {
   });
 });
 
+describe("gradebookToCsv", () => {
+  it("exports only the students and assignments passed by the current view", () => {
+    const csv = gradebookToCsv([students[1]], [assignments[0]], buildCellLookup(cells), false);
+    const lines = csv.trim().split("\r\n");
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toBe('"Username","Student","Email","A1 (%)","Total (%)"');
+    expect(lines[1]).toBe('"s2","Alan Turing","alan@example.com","60","60"');
+    expect(csv).not.toContain("Ada Lovelace");
+    expect(csv).not.toContain("A2");
+  });
+
+  it("preserves the supplied row order and escapes quotes", () => {
+    const csv = gradebookToCsv(
+      [students[2], students[0]],
+      assignments,
+      buildCellLookup(cells),
+      true
+    );
+    const lines = csv.trim().split("\r\n");
+
+    expect(lines[1]).toContain('"Grace ""Amazing"" Hopper"');
+    expect(lines[2]).toContain('"Ada Lovelace"');
+    expect(lines[0]).toContain('"A1 (10 pts)"');
+    expect(lines[0]).toContain('"Total"');
+  });
+});
+
 describe("filterStudents", () => {
-  const students: GradebookStudent[] = [
+  const filterableStudents: GradebookStudent[] = [
     { sid: "ada@example.com", name: "Ada Lovelace" },
-    { sid: "turing", name: "Alan Turing" },
+    { sid: "turing", name: "Alan Turing", email: "alan@school.example" },
     { sid: "nameless", name: "nameless" }
   ];
 
   it("returns everyone for an empty query", () => {
-    expect(filterStudents(students, "   ")).toHaveLength(3);
+    expect(filterStudents(filterableStudents, "   ")).toHaveLength(3);
   });
 
   it("matches the display name case-insensitively", () => {
-    expect(filterStudents(students, "LOVELACE").map((s) => s.sid)).toEqual(["ada@example.com"]);
+    expect(filterStudents(filterableStudents, "LOVELACE").map((s) => s.sid)).toEqual([
+      "ada@example.com"
+    ]);
   });
 
   it("matches on the sid so a student with no name is still findable", () => {
-    expect(filterStudents(students, "ada@").map((s) => s.sid)).toEqual(["ada@example.com"]);
+    expect(filterStudents(filterableStudents, "ada@").map((s) => s.sid)).toEqual([
+      "ada@example.com"
+    ]);
+  });
+
+  it("matches the visible email field", () => {
+    expect(filterStudents(filterableStudents, "school.example").map((s) => s.sid)).toEqual([
+      "turing"
+    ]);
   });
 
   it("returns nothing when nothing matches", () => {
-    expect(filterStudents(students, "grace")).toEqual([]);
+    expect(filterStudents(filterableStudents, "grace")).toEqual([]);
   });
 });
 

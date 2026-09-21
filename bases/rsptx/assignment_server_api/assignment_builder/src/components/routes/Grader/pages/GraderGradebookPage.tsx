@@ -1,4 +1,5 @@
 import {
+  Anchor,
   Button,
   Center,
   Loader,
@@ -9,27 +10,27 @@ import {
   UnstyledButton
 } from "@mantine/core";
 import type { GradebookAssignment, GradebookStudent } from "@store/grader/grader.logic.api";
-import {
-  GRADEBOOK_CSV_URL,
-  gradebookCsvFilename,
-  useGetGradebookQuery
-} from "@store/grader/grader.logic.api";
+import { gradebookCsvFilename, useGetGradebookQuery } from "@store/grader/grader.logic.api";
 import React, { useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 
+import { ErrorState } from "../../AssignmentBuilder/components/ErrorState/ErrorState";
 import styles from "../Grader.module.css";
 import { GradebookCellDialog } from "../components/GradebookCellDialog";
+import { GradebookLateWorkDialog } from "../components/GradebookLateWorkDialog";
 import { GradebookUnitsToggle } from "../components/GradebookUnitsToggle";
 import {
   assignmentAverage,
   buildCellLookup,
+  classTotalAverage,
   columnUnitLabel,
   displayScore,
   filterAssignments,
   filterStudents,
   formatScore,
   getCell,
+  gradebookToCsv,
   studentTotalDisplay
 } from "../state/gradebookSelectors";
 
@@ -38,11 +39,17 @@ interface OpenCell {
   student: GradebookStudent;
 }
 
+type GradebookSort =
+  | { column: "student"; direction: "asc" | "desc" }
+  | { column: "assignment"; assignmentId: number; direction: "asc" | "desc" };
+
 export const GraderGradebookPage: React.FC = () => {
-  const { data, isLoading } = useGetGradebookQuery();
+  const { data, isLoading, isError, refetch } = useGetGradebookQuery();
   const [studentQuery, setStudentQuery] = useState("");
   const [selectedAssignmentIds, setSelectedAssignmentIds] = useState<string[]>([]);
   const [openCell, setOpenCell] = useState<OpenCell | null>(null);
+  const [lateAssignment, setLateAssignment] = useState<GradebookAssignment | null>(null);
+  const [sort, setSort] = useState<GradebookSort>({ column: "student", direction: "asc" });
 
   const lookup = useMemo(() => buildCellLookup(data?.cells ?? []), [data?.cells]);
   // Scores read as a percent of each assignment unless the course opted into raw
@@ -66,11 +73,59 @@ export const GraderGradebookPage: React.FC = () => {
     () => filterStudents(allStudents, studentQuery),
     [allStudents, studentQuery]
   );
+  const sortedStudents = useMemo(() => {
+    const direction = sort.direction === "asc" ? 1 : -1;
+
+    return [...students].sort((left, right) => {
+      if (sort.column === "student") {
+        const leftName = left.sort_name ?? left.name ?? left.sid;
+        const rightName = right.sort_name ?? right.name ?? right.sid;
+
+        return leftName.localeCompare(rightName, undefined, { sensitivity: "base" }) * direction;
+      }
+      const leftScore = getCell(lookup, left.sid, sort.assignmentId)?.score;
+      const rightScore = getCell(lookup, right.sid, sort.assignmentId)?.score;
+
+      // Missing work stays at the bottom in either direction
+      if (leftScore == null && rightScore == null) return 0;
+      if (leftScore == null) return 1;
+      if (rightScore == null) return -1;
+      if (leftScore === rightScore) {
+        return (left.sort_name ?? left.name).localeCompare(right.sort_name ?? right.name);
+      }
+      return (leftScore - rightScore) * direction;
+    });
+  }, [lookup, sort, students]);
 
   const assignmentOptions = useMemo(
     () => allAssignments.map((a) => ({ value: String(a.id), label: a.name })),
     [allAssignments]
   );
+
+  const toggleStudentSort = () =>
+    setSort((current) => ({
+      column: "student",
+      direction: current.column === "student" && current.direction === "asc" ? "desc" : "asc"
+    }));
+  const toggleAssignmentSort = (assignmentId: number) =>
+    setSort((current) => ({
+      column: "assignment",
+      assignmentId,
+      direction:
+        current.column === "assignment" &&
+        current.assignmentId === assignmentId &&
+        current.direction === "asc"
+          ? "desc"
+          : "asc"
+    }));
+  const sortIndicator = (column: "student" | "assignment", assignmentId?: number) => {
+    const active =
+      sort.column === column &&
+      (column === "student" ||
+        (sort.column === "assignment" && sort.assignmentId === assignmentId));
+
+    return active ? (sort.direction === "asc" ? " ↑" : " ↓") : "";
+  };
 
   if (!data && isLoading) {
     return (
@@ -80,11 +135,33 @@ export const GraderGradebookPage: React.FC = () => {
     );
   }
 
+  if (!data && isError) {
+    return (
+      <ErrorState
+        title="Could not load the gradebook"
+        message="Something went wrong while fetching grades for this course."
+        retryLabel="Try again"
+        onRetry={refetch}
+      />
+    );
+  }
+
+  const exportCurrentView = () => {
+    const csv = gradebookToCsv(sortedStudents, assignments, lookup, showPoints);
+    const url = window.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = csvFilename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   const exportButton = (
     <Button
-      component="a"
-      href={GRADEBOOK_CSV_URL}
-      download={csvFilename}
+      onClick={exportCurrentView}
       leftSection={<Icon name="download" size={14} />}
       variant="light"
       size="xs"
@@ -120,12 +197,11 @@ export const GraderGradebookPage: React.FC = () => {
   return (
     <>
       <div className={styles.toolbar}>
-        <span className={styles.cellStrong}>Gradebook</span>
         <div className={styles.toolbarGroup}>
           <TextInput
             size="xs"
             placeholder="Filter students"
-            aria-label="Filter students by name"
+            aria-label="Filter students by name, username, or email"
             value={studentQuery}
             onChange={(e) => setStudentQuery(e.currentTarget.value)}
             leftSection={<Icon name="search" size={14} />}
@@ -165,13 +241,56 @@ export const GraderGradebookPage: React.FC = () => {
           <Table stickyHeader highlightOnHover verticalSpacing="xs" aria-label="Gradebook">
             <Table.Thead>
               <Table.Tr>
-                <Table.Th className={styles.gradebookStudentHead}>Student</Table.Th>
+                <Table.Th
+                  className={styles.gradebookStudentHead}
+                  aria-sort={
+                    sort.column === "student"
+                      ? sort.direction === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : "none"
+                  }
+                >
+                  <UnstyledButton onClick={toggleStudentSort} aria-label="Sort by student">
+                    Student{sortIndicator("student")}
+                  </UnstyledButton>
+                </Table.Th>
                 {assignments.map((a) => (
-                  <Table.Th key={a.id} className={styles.gradebookNumHead}>
-                    <span className={styles.gradebookColName}>{a.name}</span>
-                    <span className={styles.cellSubtle}>
-                      {columnUnitLabel(a.points, showPoints)}
-                    </span>
+                  <Table.Th
+                    key={a.id}
+                    className={styles.gradebookNumHead}
+                    aria-sort={
+                      sort.column === "assignment" && sort.assignmentId === a.id
+                        ? sort.direction === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
+                  >
+                    <div className={styles.gradebookHeaderActions}>
+                      <UnstyledButton
+                        onClick={() => toggleAssignmentSort(a.id)}
+                        aria-label={`Sort by ${a.name} score`}
+                      >
+                        <span className={styles.gradebookColName}>
+                          {a.name}
+                          {sortIndicator("assignment", a.id)}
+                        </span>
+                        <span className={styles.cellSubtle}>
+                          {columnUnitLabel(a.points, showPoints)}
+                        </span>
+                      </UnstyledButton>
+                      {a.kind !== "practice" && (
+                        <UnstyledButton
+                          className={styles.gradebookLateButton}
+                          onClick={() => setLateAssignment(a)}
+                          aria-label={`Show students with late work for ${a.name}`}
+                          title="Show students with late work"
+                        >
+                          <Icon name="clock" size={13} />
+                        </UnstyledButton>
+                      )}
+                    </div>
                   </Table.Th>
                 ))}
                 <Table.Th className={styles.gradebookNumHead}>
@@ -181,35 +300,46 @@ export const GraderGradebookPage: React.FC = () => {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {students.map((student) => (
+              {sortedStudents.map((student) => (
                 <Table.Tr key={student.sid}>
                   <Table.Td className={styles.gradebookStudentCell}>
-                    {student.sort_name ?? student.name}
+                    <div>{student.sort_name ?? student.name}</div>
+                    {student.email && <div className={styles.cellSubtle}>{student.email}</div>}
+                    <Anchor
+                      className={styles.gradebookStudentUsername}
+                      href={`/assignment/student/studentreport?id=${encodeURIComponent(student.sid)}`}
+                      title={`Open student report for ${student.name}`}
+                    >
+                      {student.sid}
+                    </Anchor>
                   </Table.Td>
                   {assignments.map((a) => {
                     const cell = getCell(lookup, student.sid, a.id);
+                    const score = formatScore(displayScore(cell?.score, a.points, showPoints));
 
                     return (
                       <Table.Td key={a.id} className={styles.gradebookNumCell}>
-                        <UnstyledButton
-                          className={`${styles.gradebookCellButton} ${
-                            cell?.manual_total ? styles.gradebookCellManual : ""
-                          }`}
-                          onClick={() => setOpenCell({ assignment: a, student })}
-                          aria-label={`Show details for ${student.name} on ${a.name}`}
-                          title={
-                            cell?.manual_total
-                              ? "Manual total — click for the question breakdown"
-                              : "Click for the question breakdown"
-                          }
-                        >
-                          <span>
-                            {formatScore(displayScore(cell?.score, a.points, showPoints))}
-                          </span>
-                          {cell?.manual_total && (
-                            <span className={styles.gradebookManualDot} aria-hidden="true" />
-                          )}
-                        </UnstyledButton>
+                        {a.kind === "practice" ? (
+                          <span title="Spaced practice score">{score}</span>
+                        ) : (
+                          <UnstyledButton
+                            className={`${styles.gradebookCellButton} ${
+                              cell?.manual_total ? styles.gradebookCellManual : ""
+                            }`}
+                            onClick={() => setOpenCell({ assignment: a, student })}
+                            aria-label={`Show details for ${student.name} on ${a.name}`}
+                            title={
+                              cell?.manual_total
+                                ? "Manual total — click for the question breakdown"
+                                : "Click for the question breakdown"
+                            }
+                          >
+                            <span>{score}</span>
+                            {cell?.manual_total && (
+                              <span className={styles.gradebookManualDot} aria-hidden="true" />
+                            )}
+                          </UnstyledButton>
+                        )}
                       </Table.Td>
                     );
                   })}
@@ -229,7 +359,9 @@ export const GraderGradebookPage: React.FC = () => {
                     )}
                   </Table.Td>
                 ))}
-                <Table.Td className={styles.gradebookNumCell}>—</Table.Td>
+                <Table.Td className={styles.gradebookNumCell}>
+                  {formatScore(classTotalAverage(lookup, assignments, allStudents, showPoints))}
+                </Table.Td>
               </Table.Tr>
             </Table.Tfoot>
           </Table>
@@ -243,6 +375,11 @@ export const GraderGradebookPage: React.FC = () => {
         student={openCell?.student ?? null}
         score={openCellScore?.score ?? null}
         manual={!!openCellScore?.manual_total}
+      />
+      <GradebookLateWorkDialog
+        opened={!!lateAssignment}
+        onClose={() => setLateAssignment(null)}
+        assignment={lateAssignment}
       />
     </>
   );
