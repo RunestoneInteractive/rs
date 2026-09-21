@@ -1,20 +1,21 @@
-import "./App.css";
 import { AppNavBar } from "@components/shell/AppNavBar";
 import { useScrollShadow } from "@components/shell/useScrollShadow";
 import { useSelector } from "react-redux";
 import {
-  createBrowserRouter,
+  Navigate,
+  Outlet,
   RouterProvider,
-  useNavigate,
+  createBrowserRouter,
   useLocation,
-  Outlet
+  useNavigate
 } from "react-router-dom";
+import "./App.css";
 
 import { routerService } from "@/router";
 
 import shellStyles from "./components/shell/AppShell.module.css";
 import { buildNavBar } from "./navUtils.js";
-import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
+import AssignmentEditor, { AddQuestionTabGroup, MoreOptions } from "./renderers/assignment.jsx";
 import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import {
   AssignmentQuestion,
@@ -66,7 +67,7 @@ function AssignmentGraderOld() {
   );
 }
 
-const FULL_BLEED_ROUTE = /^\/(grader|builder)(\/|$)/;
+const FULL_BLEED_ROUTE = /^\/(grader|gradebook|builder)(\/|$)/;
 
 function AppContent() {
   const navigate = useNavigate();
@@ -180,11 +181,7 @@ function App() {
                 },
                 {
                   path: "gradebook",
-                  async lazy() {
-                    const { GraderGradebookPage } = await import("@components/routes/Grader");
-
-                    return { Component: GraderGradebookPage };
-                  }
+                  element: <Navigate to="/gradebook" replace />
                 },
                 {
                   path: ":assignmentId",
@@ -216,6 +213,24 @@ function App() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
 
                     return { Component: GraderQuestionPage };
+                  }
+                }
+              ]
+            },
+            {
+              path: "gradebook",
+              async lazy() {
+                const { Grader } = await import("@components/routes/Grader");
+
+                return { Component: Grader };
+              },
+              children: [
+                {
+                  index: true,
+                  async lazy() {
+                    const { GraderGradebookPage } = await import("@components/routes/Grader");
+
+                    return { Component: GraderGradebookPage };
                   }
                 }
               ]

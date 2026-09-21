@@ -11,8 +11,40 @@ connection pool.
 """
 
 import pytest
+from fastapi.responses import HTMLResponse
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
+
+
+async def test_gradebook_public_url_uses_react_shell(
+    auth_instructor_client, monkeypatch
+):
+    """The established public URL is served by the React shell."""
+    called = {}
+
+    async def fake_get_builder(request, path, user, response_class):
+        called["path"] = path
+        return HTMLResponse('<div id="root"></div>')
+
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.get_builder",
+        fake_get_builder,
+    )
+
+    response = await auth_instructor_client.get("/instructor/gradebook")
+
+    assert response.status_code == 200
+    assert '<div id="root"></div>' in response.text
+    assert called["path"] == "/gradebook"
+
+
+async def test_temporary_react_gradebook_preview_url_is_removed(
+    auth_instructor_client,
+):
+    """The temporary review alias must not remain as a second public page."""
+    response = await auth_instructor_client.get("/instructor/react/gradebook")
+
+    assert response.status_code == 404
 
 
 # ---------------------------------------------------------------------------
@@ -558,7 +590,9 @@ async def test_search_can_be_limited_to_the_callers_own_courses(
     wide = await auth_instructor_client.post(
         "/instructor/assignments/search", json={"page": 0, "limit": 50}
     )
-    assert "route_shared_hw" in [a["name"] for a in wide.json()["detail"]["assignments"]]
+    assert "route_shared_hw" in [
+        a["name"] for a in wide.json()["detail"]["assignments"]
+    ]
 
     narrowed = await auth_instructor_client.post(
         "/instructor/assignments/search",

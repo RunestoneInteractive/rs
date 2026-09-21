@@ -1,10 +1,10 @@
-import { Button, Center, Loader } from "@mantine/core";
+import { Center, Loader } from "@mantine/core";
 import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
 import { ColumnDef, FilterFn } from "@tanstack/react-table";
 import React, { useMemo, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
@@ -221,16 +221,6 @@ export const GraderAssignmentsPage: React.FC = () => {
 
   const viewToggle = (
     <div className={styles.toolbar}>
-      <Button
-        component={Link}
-        to="/grader/gradebook"
-        leftSection={<Icon name="table" size={14} />}
-        variant="light"
-        size="xs"
-        disabled={isDemo}
-      >
-        Gradebook
-      </Button>
       <ViewModeToggle
         value={activeViewMode}
         onChange={setViewMode}

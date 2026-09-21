@@ -18,6 +18,7 @@ const fetchGradebook = async (request: APIRequestContext): Promise<GradebookPayl
 
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { detail: GradebookPayload };
+
   return body.detail;
 };
 
@@ -43,21 +44,24 @@ test(
         { id: assignmentId, name: assignmentName },
         { name: divId }
       );
+
       expect(question.id).toBeGreaterThan(0);
 
       const before = await fetchGradebook(page.request);
       const student = before.students.find((s) => s.sid === sid);
+
       if (!student) {
         test.skip(true, `cycle student ${sid} not enrolled; run the S2 seed`);
         return;
       }
 
-      await gotoApp(page, "/grader/gradebook");
+      await gotoApp(page, "/gradebook");
       await expect(page.getByRole("table", { name: "Gradebook" })).toBeVisible();
 
       const cellButton = page.getByRole("button", {
         name: `Show details for ${student.name} on ${assignmentName}`
       });
+
       await cellButton.scrollIntoViewIfNeeded();
       await cellButton.click();
 
@@ -70,16 +74,19 @@ test(
 
       const afterSet = await fetchGradebook(page.request);
       const setCell = cellFor(afterSet, sid, assignmentId);
+
       expect(setCell?.score).toBe(42);
       expect(setCell?.manual_total).toBe(true);
 
       const recompute = await page.request.post("/assignment/instructor/grader/recompute_totals", {
         data: { assignment_id: assignmentId, sids: [sid] }
       });
+
       expect(recompute.ok()).toBe(true);
 
       const afterRecompute = await fetchGradebook(page.request);
       const survivedCell = cellFor(afterRecompute, sid, assignmentId);
+
       expect(survivedCell?.score, "manual total should survive recompute").toBe(42);
       expect(survivedCell?.manual_total).toBe(true);
 
@@ -90,6 +97,7 @@ test(
 
       const afterRevert = await fetchGradebook(page.request);
       const revertedCell = cellFor(afterRevert, sid, assignmentId);
+
       expect(revertedCell?.score, "revert should recompute the total").toBe(0);
       expect(revertedCell?.manual_total).toBe(false);
     } finally {

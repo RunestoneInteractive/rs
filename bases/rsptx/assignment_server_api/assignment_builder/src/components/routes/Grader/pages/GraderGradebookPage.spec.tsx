@@ -1,15 +1,19 @@
 import type { GradebookResponse } from "@store/grader/grader.logic.api";
 import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithMantine, screen, within } from "@/test/renderWithMantine";
 
 import { GraderGradebookPage } from "./GraderGradebookPage";
 
-const { mockUseGetGradebookQuery, mockCellDialog, mockUnitsToggle } = vi.hoisted(() => ({
-  mockUseGetGradebookQuery: vi.fn(),
-  mockCellDialog: vi.fn(),
-  mockUnitsToggle: vi.fn()
-}));
+const { mockUseGetGradebookQuery, mockCellDialog, mockLateDialog, mockUnitsToggle, mockRefetch } =
+  vi.hoisted(() => ({
+    mockUseGetGradebookQuery: vi.fn(),
+    mockCellDialog: vi.fn(),
+    mockLateDialog: vi.fn(),
+    mockUnitsToggle: vi.fn(),
+    mockRefetch: vi.fn()
+  }));
 
 vi.mock("@store/grader/grader.logic.api", async (importOriginal) => {
   const original = await importOriginal<typeof import("@store/grader/grader.logic.api")>();
@@ -24,6 +28,13 @@ vi.mock("@store/grader/grader.logic.api", async (importOriginal) => {
 vi.mock("../components/GradebookCellDialog", () => ({
   GradebookCellDialog: (props: Record<string, unknown>) => {
     mockCellDialog(props);
+    return null;
+  }
+}));
+
+vi.mock("../components/GradebookLateWorkDialog", () => ({
+  GradebookLateWorkDialog: (props: Record<string, unknown>) => {
+    mockLateDialog(props);
     return null;
   }
 }));
@@ -43,8 +54,8 @@ const matrix: GradebookResponse = {
     { id: 2, name: "Homework 2", points: 5, duedate: null, released: false }
   ],
   students: [
-    { sid: "s1", name: "Ada Lovelace" },
-    { sid: "s2", name: "Alan Turing" }
+    { sid: "s1", name: "Ada Lovelace", email: "ada@example.com" },
+    { sid: "s2", name: "Alan Turing", email: "alan@example.com" }
   ],
   cells: [
     { sid: "s1", assignment_id: 1, score: 8, released: true },
@@ -60,7 +71,12 @@ const matrix: GradebookResponse = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUseGetGradebookQuery.mockReturnValue({ data: matrix, isLoading: false });
+  mockUseGetGradebookQuery.mockReturnValue({
+    data: matrix,
+    isLoading: false,
+    isError: false,
+    refetch: mockRefetch
+  });
 });
 
 describe("GraderGradebookPage", () => {
@@ -68,6 +84,24 @@ describe("GraderGradebookPage", () => {
     mockUseGetGradebookQuery.mockReturnValue({ data: undefined, isLoading: true });
     renderWithMantine(<GraderGradebookPage />);
     expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+  });
+
+  it("shows a retryable error instead of an empty gradebook when loading fails", async () => {
+    mockUseGetGradebookQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch: mockRefetch
+    });
+    renderWithMantine(<GraderGradebookPage />);
+
+    expect(
+      screen.getByRole("heading", { name: "Could not load the gradebook" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Nothing to grade yet")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
   });
 
   it("renders the assignment columns, students and totals", () => {
@@ -78,9 +112,21 @@ describe("GraderGradebookPage", () => {
     expect(table.getByText("Quiz 1")).toBeInTheDocument();
     expect(table.getByText("Homework 2")).toBeInTheDocument();
     expect(table.getByText("Ada Lovelace")).toBeInTheDocument();
+    expect(table.getByText("ada@example.com")).toBeInTheDocument();
     expect(table.getByText("Alan Turing")).toBeInTheDocument();
     expect(table.getByText("13")).toBeInTheDocument();
     expect(table.getByText("Class average")).toBeInTheDocument();
+    const averageRow = table.getByRole("row", { name: /Class average/ });
+
+    expect(
+      within(averageRow)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent)
+    ).toEqual(["7", "5", "9.5"]);
+    expect(table.getByRole("link", { name: "s1" })).toHaveAttribute(
+      "href",
+      "/assignment/student/studentreport?id=s1"
+    );
   });
 
   it('labels each row "Last, First" so the last-name order the rows arrive in reads as an order', () => {
@@ -149,13 +195,10 @@ describe("GraderGradebookPage", () => {
     expect(mockUnitsToggle).toHaveBeenCalledWith(expect.objectContaining({ showPoints: false }));
   });
 
-  it("renders an Export CSV download link to the CSV endpoint", () => {
+  it("renders an Export CSV button for the current view", () => {
     renderWithMantine(<GraderGradebookPage />);
 
-    const link = screen.getByRole("link", { name: /export csv/i });
-
-    expect(link).toHaveAttribute("href", "/assignment/instructor/grader/gradebook.csv");
-    expect(link).toHaveAttribute("download");
+    expect(screen.getByRole("button", { name: /export csv/i })).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no students", () => {
@@ -170,11 +213,35 @@ describe("GraderGradebookPage", () => {
   it("filters rows by student name", async () => {
     renderWithMantine(<GraderGradebookPage />);
 
-    await userEvent.type(screen.getByLabelText("Filter students by name"), "turing");
+    await userEvent.type(
+      screen.getByLabelText("Filter students by name, username, or email"),
+      "turing"
+    );
 
     expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
     expect(screen.getByText("Alan Turing")).toBeInTheDocument();
     expect(screen.getByText(/Showing 1 of 2 students/)).toBeInTheDocument();
+  });
+
+  it("sorts by student and by an assignment score", async () => {
+    renderWithMantine(<GraderGradebookPage />);
+    const table = screen.getByRole("table", { name: "Gradebook" });
+    const studentNames = () =>
+      within(table)
+        .getAllByRole("row")
+        .slice(1, 3)
+        .map((row) => within(row).getAllByRole("cell")[0].firstElementChild?.textContent);
+
+    expect(studentNames()).toEqual(["Ada Lovelace", "Alan Turing"]);
+
+    await userEvent.click(within(table).getByRole("button", { name: "Sort by student" }));
+    expect(studentNames()).toEqual(["Alan Turing", "Ada Lovelace"]);
+
+    await userEvent.click(within(table).getByRole("button", { name: "Sort by Quiz 1 score" }));
+    expect(studentNames()).toEqual(["Alan Turing", "Ada Lovelace"]);
+
+    await userEvent.click(within(table).getByRole("button", { name: "Sort by Quiz 1 score" }));
+    expect(studentNames()).toEqual(["Ada Lovelace", "Alan Turing"]);
   });
 
   it("filters columns by assignment name", async () => {
@@ -191,13 +258,59 @@ describe("GraderGradebookPage", () => {
     expect(table.getByText("Homework 2")).toBeInTheDocument();
     // Only the shown column is added up, and the header says so.
     expect(table.getByText("Total (shown)")).toBeInTheDocument();
+    const averageRow = table.getByRole("row", { name: /Class average/ });
+
+    expect(
+      within(averageRow)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent)
+    ).toEqual(["5", "5"]);
     expect(screen.getByText(/1 of 2 assignments/)).toBeInTheDocument();
+  });
+
+  it("shows multiple selected assignments while also filtering students", async () => {
+    mockUseGetGradebookQuery.mockReturnValue({
+      data: {
+        ...matrix,
+        assignments: [
+          ...matrix.assignments,
+          { id: 3, name: "Exam 3", points: 20, duedate: null, released: true }
+        ]
+      },
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch
+    });
+    renderWithMantine(<GraderGradebookPage />);
+
+    const assignmentFilter = screen.getAllByLabelText("Filter assignment columns by name")[0];
+
+    await userEvent.click(assignmentFilter);
+    await userEvent.click(await screen.findByRole("option", { name: "Quiz 1" }));
+    await userEvent.click(assignmentFilter);
+    await userEvent.click(await screen.findByRole("option", { name: "Homework 2" }));
+    await userEvent.type(
+      screen.getByLabelText("Filter students by name, username, or email"),
+      "turing"
+    );
+
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
+
+    expect(table.getByText("Quiz 1")).toBeInTheDocument();
+    expect(table.getByText("Homework 2")).toBeInTheDocument();
+    expect(table.queryByText("Exam 3")).not.toBeInTheDocument();
+    expect(table.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+    expect(table.getByText("Alan Turing")).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1 of 2 students and 2 of 3 assignments/)).toBeInTheDocument();
   });
 
   it("tells the reader when the filters match nothing", async () => {
     renderWithMantine(<GraderGradebookPage />);
 
-    await userEvent.type(screen.getByLabelText("Filter students by name"), "nobody");
+    await userEvent.type(
+      screen.getByLabelText("Filter students by name, username, or email"),
+      "nobody"
+    );
 
     expect(screen.getByText("Nothing matches these filters")).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Gradebook" })).not.toBeInTheDocument();
@@ -223,5 +336,58 @@ describe("GraderGradebookPage", () => {
         manual: false
       })
     );
+  });
+
+  it("opens late work for a real assignment", async () => {
+    renderWithMantine(<GraderGradebookPage />);
+
+    expect(mockLateDialog).toHaveBeenLastCalledWith(
+      expect.objectContaining({ opened: false, assignment: null })
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show students with late work for Quiz 1" })
+    );
+
+    expect(mockLateDialog).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        opened: true,
+        assignment: expect.objectContaining({ id: 1, name: "Quiz 1" })
+      })
+    );
+  });
+
+  it("renders Practice as a grade column without an assignment drill-down", () => {
+    mockUseGetGradebookQuery.mockReturnValue({
+      data: {
+        ...matrix,
+        assignments: [
+          { id: 0, name: "Practice", points: 5, duedate: null, released: true, kind: "practice" },
+          ...matrix.assignments
+        ],
+        cells: [
+          {
+            sid: "s1",
+            assignment_id: 0,
+            score: 4,
+            released: true,
+            manual_total: false
+          },
+          ...matrix.cells
+        ]
+      },
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch
+    });
+    renderWithMantine(<GraderGradebookPage />);
+
+    const table = within(screen.getByRole("table", { name: "Gradebook" }));
+
+    expect(table.getByText("Practice")).toBeInTheDocument();
+    expect(table.getAllByTitle("Spaced practice score")[0]).toHaveTextContent("4");
+    expect(
+      table.queryByRole("button", { name: "Show details for Ada Lovelace on Practice" })
+    ).not.toBeInTheDocument();
   });
 });

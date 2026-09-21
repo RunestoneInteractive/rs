@@ -202,6 +202,7 @@ export interface GradebookAssignment {
   points: number;
   duedate?: string | null;
   released: boolean;
+  kind?: "assignment" | "practice";
 }
 
 export interface GradebookStudent {
@@ -210,6 +211,8 @@ export interface GradebookStudent {
   name: string;
   /** "Last, First" -- the order the gradebook rows already arrive in. */
   sort_name?: string;
+  /** Preserved from the legacy visible identity columns and mirrored in CSV. */
+  email?: string | null;
 }
 
 export interface GradebookCell {
@@ -254,6 +257,20 @@ export interface StudentAssignmentScoresResponse {
   /** A hand-entered total is expected to differ from the sum of the questions. */
   manual_total: boolean;
   questions: StudentAssignmentQuestionScore[];
+}
+
+export interface LateStudent {
+  username: string;
+  name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+}
+
+export interface LateStudentsResponse {
+  assignment_id: number;
+  assignment_name: string;
+  enforce_due: boolean;
+  students: LateStudent[];
 }
 
 export interface SetManualTotalRequest {
@@ -541,6 +558,13 @@ export const graderApi = createApi({
       ],
       transformResponse: (r: DetailResponse<StudentAssignmentScoresResponse>) => r.detail
     }),
+    getLateStudents: build.query<LateStudentsResponse, number>({
+      query: (assignmentId) => ({
+        method: "GET",
+        url: `/assignment/instructor/assignments/${assignmentId}/late_students`
+      }),
+      transformResponse: (r: DetailResponse<LateStudentsResponse>) => r.detail
+    }),
     setManualTotal: build.mutation<SetManualTotalResponse, SetManualTotalRequest>({
       query: (body) => ({
         method: "POST",
@@ -596,6 +620,7 @@ export const {
   useSetAssignmentThresholdMutation,
   useGetGradebookQuery,
   useGetStudentAssignmentScoresQuery,
+  useGetLateStudentsQuery,
   useSetManualTotalMutation,
   useSetGradebookUnitsMutation
 } = graderApi;
