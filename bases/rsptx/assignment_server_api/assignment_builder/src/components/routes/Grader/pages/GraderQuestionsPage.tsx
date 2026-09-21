@@ -251,7 +251,7 @@ export const GraderQuestionsPage: React.FC = () => {
 
           return (
             <span title="Average number of attempts among students who attempted the question">
-              <strong>{stats.attemptsPerStudent.toFixed(1)}</strong>
+              <strong>{stats.attemptsPerStudent.toFixed(1)}</strong>{" "}
             </span>
           );
         }
@@ -516,8 +516,8 @@ export const GraderQuestionsPage: React.FC = () => {
                     data-tour="grader-q-attempts"
                     title="Average number of attempts among students who attempted the question"
                   >
-                    <Icon name="history" size={14} /> <strong>{stats.attemptsPerStudent.toFixed(1)}</strong>{" "}
-                    attempts / student
+                    <Icon name="history" size={14} />{" "}
+                    <strong>{stats.attemptsPerStudent.toFixed(1)}</strong> attempts / student
                   </span>
                 </div>
                 <div className={styles.metaRow}>
