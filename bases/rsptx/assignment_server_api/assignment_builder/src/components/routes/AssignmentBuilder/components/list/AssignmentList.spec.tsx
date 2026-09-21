@@ -208,6 +208,48 @@ describe("AssignmentList", () => {
     expect(rows[0]).toHaveTextContent("Charlie");
   });
 
+  it("restores the persisted page and page size on mount", () => {
+    localStorage.setItem("assignmentList_pageSize", "10");
+    localStorage.setItem("assignmentList_pageIndex", "1");
+
+    const many = Array.from({ length: 30 }, (_, i) =>
+      makeAssignment({ id: i + 1, name: `Assignment ${String(i + 1).padStart(2, "0")}` })
+    );
+
+    renderWithMantine(<AssignmentList {...baseProps()} assignments={many} />);
+
+    expect(screen.getByRole("button", { name: "Assignment 11" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assignment 01" })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Rows per page" })).toHaveValue("10");
+  });
+
+  it("persists the page and page size when they change", () => {
+    const many = Array.from({ length: 30 }, (_, i) =>
+      makeAssignment({ id: i + 1, name: `Assignment ${String(i + 1).padStart(2, "0")}` })
+    );
+
+    renderWithMantine(<AssignmentList {...baseProps()} assignments={many} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "2" }));
+
+    expect(localStorage.getItem("assignmentList_pageIndex")).toBe("1");
+
+    fireEvent.click(screen.getByRole("textbox", { name: "Rows per page" }));
+    fireEvent.click(screen.getByRole("option", { name: "50" }));
+
+    expect(localStorage.getItem("assignmentList_pageSize")).toBe("50");
+    expect(localStorage.getItem("assignmentList_pageIndex")).toBe("0");
+  });
+
+  it("falls back to the last page when the stored page no longer exists", () => {
+    localStorage.setItem("assignmentList_pageSize", "10");
+    localStorage.setItem("assignmentList_pageIndex", "5");
+
+    renderWithMantine(<AssignmentList {...baseProps()} />);
+
+    expect(screen.getByRole("button", { name: "Alpha" })).toBeInTheDocument();
+  });
+
   it("hides the bulk actions bar until a row is selected", () => {
     renderWithMantine(<AssignmentList {...baseProps()} />);
 

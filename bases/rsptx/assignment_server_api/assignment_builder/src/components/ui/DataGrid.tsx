@@ -27,7 +27,7 @@ import {
   SortingState,
   useReactTable
 } from "@tanstack/react-table";
-import React, { RefCallback, useMemo, useState } from "react";
+import React, { RefCallback, useEffect, useMemo, useState } from "react";
 
 import styles from "./DataGrid.module.css";
 import { Icon } from "./Icon";
@@ -243,6 +243,18 @@ export function DataGrid<T>({
 
   const resolvedPageCount = table.getPageCount();
   const rows = table.getRowModel().rows;
+
+  // Column filters shrink the table from the inside, so a page index that came
+  // from somewhere else (a restored preference, say) can point past the last
+  // page — where the pager is hidden and the table just looks empty.
+  useEffect(() => {
+    if (loading || resolvedPageCount === 0) {
+      return;
+    }
+    if (pagination.pageIndex > resolvedPageCount - 1) {
+      setPagination((p) => ({ ...p, pageIndex: resolvedPageCount - 1 }));
+    }
+  }, [loading, resolvedPageCount, pagination.pageIndex, setPagination]);
 
   const sizeData = useMemo(
     () => pageSizeOptions.map((n) => ({ value: String(n), label: String(n) })),
