@@ -10,6 +10,7 @@ import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 
 import styles from "./Grader.module.css";
+import { GraderSectionNav } from "./components/GraderSectionNav";
 import { ShortcutsHelpDialog } from "./components/ShortcutsHelpDialog";
 import { useEnsureEbookConfigForGrader } from "./hooks/useEnsureEbookConfigForGrader";
 import { useGraderTour } from "./hooks/useGraderTour";
@@ -89,8 +90,9 @@ const GraderShell: React.FC = () => {
         </div>
       </div>
 
+      <GraderSectionNav />
+
       <nav className={styles.breadcrumb} aria-label="breadcrumb" data-tour="grader-breadcrumb">
-        <Link to="/grader">Assignments</Link>
         {assignment && (
           <>
             <Icon name="angle-right" size={10} className={styles.breadcrumbSep} />
@@ -113,7 +115,6 @@ const GraderShell: React.FC = () => {
             </span>
           </>
         )}
-        <span className={styles.breadcrumbPath}>{location.pathname}</span>
       </nav>
 
       <div className={styles.body}>

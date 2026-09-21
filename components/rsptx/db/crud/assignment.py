@@ -1,5 +1,5 @@
 import datetime
-from typing import NamedTuple, Optional, List
+from typing import List, NamedTuple, Optional, TypedDict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException, status
 from asyncpg.exceptions import UniqueViolationError
@@ -25,6 +25,7 @@ from ..models import (
     AssignmentQuestionValidator,
     AuthUser,
     CourseAttribute,
+    CoursePractice,
     CourseInstructor,
     Courses,
     DeadlineException,
@@ -36,6 +37,8 @@ from ..models import (
     QuestionGrade,
     Useinfo,
     UserCourse,
+    UserTopicPracticeCompletion,
+    UserTopicPracticeLog,
 )
 
 from ..async_session import async_session
@@ -561,8 +564,9 @@ async def fetch_assignments(
 
     if is_peer:
         pclause = or_(
-            Assignment.is_peer == True, Assignment.kind == "Peer"  # noqa: E712
-        )  # noqa: E712
+            Assignment.is_peer == True,  # noqa: E712
+            Assignment.kind == "Peer",
+        )
     else:
         pclause = or_(
             Assignment.is_peer == False,  # noqa: E712
@@ -1154,11 +1158,46 @@ async def fetch_all_grades_for_assignment(
         return [GradeValidator.from_orm(a) for a in res.scalars()]
 
 
-async def fetch_gradebook(course_name: str) -> dict:
+class GradebookAssignmentData(TypedDict):
+    id: int
+    name: str
+    points: float
+    duedate: str | None
+    released: bool
+    kind: str
+
+
+class GradebookStudentData(TypedDict):
+    sid: str
+    name: str
+    sort_name: str
+    email: str | None
+
+
+class GradebookCellData(TypedDict):
+    sid: str
+    assignment_id: int
+    score: float | None
+    released: bool
+    manual_total: bool
+
+
+class GradebookData(TypedDict):
+    assignments: list[GradebookAssignmentData]
+    students: list[GradebookStudentData]
+    cells: list[GradebookCellData]
+    averages: dict[str, float | None]
+    show_points: bool
+
+
+async def fetch_gradebook(course_name: str) -> GradebookData:
     """
     Build the gradebook matrix for a course: every assignment, every enrolled
     student (instructors excluded), and the per-(student, assignment) total score
-    from the ``grades`` table, plus the class average per assignment.
+    from the ``grades`` table, plus the class average per assignment. When
+    spaced practice is configured, it is represented as the reserved column id
+    ``0`` so the client can filter, total, average, and export it like the legacy
+    gradebook did without pretending it is a real assignment.
 
     Additive read-only aggregation used only by the Assignment Builder grader. It
     does not modify any shared fetch_* function.
@@ -1245,6 +1284,46 @@ async def fetch_gradebook(course_name: str) -> dict:
                 )
             ).all()
 
+        practice_row = (
+            (
+                await session.execute(
+                    select(CoursePractice)
+                    .where(
+                        CoursePractice.course_name == course_name,
+                        CoursePractice.end_date.is_not(None),
+                    )
+                    .order_by(CoursePractice.id.desc())
+                    .limit(1)
+                )
+            )
+            .scalars()
+            .first()
+        )
+        practice_counts: dict[int, int] = {}
+        if practice_row:
+            if practice_row.spacing == 1:
+                count_model = UserTopicPracticeCompletion
+                count_conditions = [
+                    UserTopicPracticeCompletion.course_name == course_name
+                ]
+            else:
+                count_model = UserTopicPracticeLog
+                count_conditions = [
+                    UserTopicPracticeLog.course_name == course_name,
+                    UserTopicPracticeLog.q.notin_([0, -1]),
+                ]
+            practice_count_rows = (
+                await session.execute(
+                    select(count_model.user_id, func.count())
+                    .where(*count_conditions)
+                    .group_by(count_model.user_id)
+                )
+            ).all()
+            practice_counts = {
+                user_id: int(completion_count or 0)
+                for user_id, completion_count in practice_count_rows
+            }
+
     released_map = {a.id: bool(a.released) for a in assignment_rows}
     assignments = [
         {
@@ -1253,6 +1332,7 @@ async def fetch_gradebook(course_name: str) -> dict:
             "points": points_map.get(a.id, 0),
             "duedate": a.duedate.isoformat() if a.duedate else None,
             "released": bool(a.released),
+            "kind": "assignment",
         }
         for a in assignment_rows
     ]
@@ -1264,6 +1344,7 @@ async def fetch_gradebook(course_name: str) -> dict:
             # when the cell shows "First Last". ``sort_name`` gives the gradebook a
             # label that matches the order it is already in. See issue #1463.
             "sort_name": f"{s.last_name}, {s.first_name}".strip(", ") or s.username,
+            "email": s.email,
         }
         for s in students
     ]
@@ -1288,13 +1369,54 @@ async def fetch_gradebook(course_name: str) -> dict:
             bucket[0] += score
             bucket[1] += 1
 
+    if practice_row:
+        if practice_row.spacing == 1:
+            points_per_completion = float(practice_row.day_points or 0)
+            maximum_completions = int(practice_row.max_practice_days or 0)
+        else:
+            points_per_completion = float(practice_row.question_points or 0)
+            maximum_completions = int(practice_row.max_practice_questions or 0)
+        practice_points = points_per_completion * maximum_completions
+        assignments.insert(
+            0,
+            {
+                "id": 0,
+                "name": "Practice",
+                "points": practice_points,
+                "duedate": None,
+                "released": True,
+                "kind": "practice",
+            },
+        )
+        # The legacy page leaves Practice blank when it is worth no points.
+        if practice_points > 0:
+            for user_id, completion_count in practice_counts.items():
+                sid = id_to_sid.get(user_id)
+                if sid is None:
+                    continue
+                score = points_per_completion * min(
+                    completion_count, maximum_completions
+                )
+                cells.append(
+                    {
+                        "sid": sid,
+                        "assignment_id": 0,
+                        "score": score,
+                        "released": True,
+                        "manual_total": False,
+                    }
+                )
+                bucket = sums.setdefault(0, [0.0, 0])
+                bucket[0] += score
+                bucket[1] += 1
+
     averages = {
-        str(a.id): (
-            round(sums[a.id][0] / sums[a.id][1], 2)
-            if a.id in sums and sums[a.id][1]
+        str(assignment["id"]): (
+            round(sums[assignment["id"]][0] / sums[assignment["id"]][1], 2)
+            if assignment["id"] in sums and sums[assignment["id"]][1]
             else None
         )
-        for a in assignment_rows
+        for assignment in assignments
     }
 
     return {

@@ -102,13 +102,148 @@ async def test_gradebook_returns_matrix_shape(auth_instructor_client):
             "points",
             "duedate",
             "released",
+            "kind",
         }
+        assert assignment["kind"] in ("assignment", "practice")
+    for student in detail["students"]:
+        assert set(student.keys()) == {"sid", "name", "sort_name", "email"}
+    for cell in detail["cells"]:
+        assert set(cell.keys()) == {
+            "sid",
+            "assignment_id",
+            "score",
+            "released",
+            "manual_total",
+        }
+    assignment_ids = {str(assignment["id"]) for assignment in detail["assignments"]}
+    assert set(detail["averages"]) == assignment_ids
+
+
+async def test_gradebook_includes_capped_spaced_practice(auth_instructor_client):
+    """Practice mirrors the legacy day-based calculation and is exposed as a
+    non-assignment gradebook column with the reserved id zero."""
+    import datetime
+
+    from sqlalchemy import delete
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import CoursePractice, UserTopicPracticeCompletion
+
+    student = await _enroll_student("testuser1", "test_course_1")
+    async with async_session() as session:
+        practice = CoursePractice(
+            auth_user_id=student.id,
+            course_name="test_course_1",
+            start_date=datetime.date(2026, 1, 1),
+            end_date=datetime.date(2026, 12, 31),
+            max_practice_days=3,
+            max_practice_questions=0,
+            day_points=2,
+            question_points=0,
+            graded=1,
+            spacing=1,
+        )
+        completions = [
+            UserTopicPracticeCompletion(
+                user_id=student.id,
+                course_name="test_course_1",
+                practice_completion_date=datetime.date(2026, 1, day),
+            )
+            for day in range(1, 5)
+        ]
+        session.add(practice)
+        session.add_all(completions)
+        await session.commit()
+        practice_id = practice.id
+        completion_ids = [completion.id for completion in completions]
+
+    try:
+        resp = await auth_instructor_client.get("/instructor/grader/gradebook/data")
+        assert resp.status_code == 200
+        detail = resp.json()["detail"]
+        practice_column = next(
+            assignment
+            for assignment in detail["assignments"]
+            if assignment["kind"] == "practice"
+        )
+        assert practice_column == {
+            "id": 0,
+            "name": "Practice",
+            "points": 6.0,
+            "duedate": None,
+            "released": True,
+            "kind": "practice",
+        }
+        practice_cell = next(
+            cell
+            for cell in detail["cells"]
+            if cell["assignment_id"] == 0 and cell["sid"] == "testuser1"
+        )
+        # Four completion rows are capped at the configured three days.
+        assert practice_cell["score"] == 6.0
+        assert detail["averages"]["0"] == 6.0
+    finally:
+        async with async_session() as session:
+            await session.execute(
+                delete(UserTopicPracticeCompletion).where(
+                    UserTopicPracticeCompletion.id.in_(completion_ids)
+                )
+            )
+            await session.execute(
+                delete(CoursePractice).where(CoursePractice.id == practice_id)
+            )
+            await session.commit()
 
 
 async def test_gradebook_rejects_non_instructor(auth_student_client):
     """A non-instructor (student) is rejected by @instructor_role_required()."""
     resp = await auth_student_client.get("/instructor/grader/gradebook/data")
     assert resp.status_code in (401, 403)
+
+
+async def test_gradebook_rejects_editor_without_instructor_role(auth_editor_client):
+    """Base-course editor permission does not grant access to student grades."""
+    resp = await auth_editor_client.get("/instructor/grader/gradebook/data")
+    assert resp.status_code in (401, 403)
+
+
+async def test_gradebook_is_isolated_to_the_instructors_current_course(
+    auth_instructor_client,
+):
+    """An instructor cannot see assignments belonging to another course."""
+    import datetime
+
+    from rsptx.db.crud import create_assignment, fetch_course
+    from rsptx.db.crud.assignment import delete_assignment
+    from rsptx.db.models import AssignmentValidator
+
+    other_course = await fetch_course("overview")
+    foreign_assignment = await create_assignment(
+        AssignmentValidator(
+            course=other_course.id,
+            name="foreign_gradebook_assignment",
+            points=10,
+            released=False,
+            description="course isolation regression test",
+            duedate=datetime.datetime(2099, 1, 1),
+            visible=True,
+            from_source=False,
+            is_peer=False,
+            current_index=0,
+            peer_async_visible=False,
+            enforce_due=False,
+        )
+    )
+
+    try:
+        resp = await auth_instructor_client.get("/instructor/grader/gradebook/data")
+        assert resp.status_code == 200
+        assignment_ids = {
+            assignment["id"] for assignment in resp.json()["detail"]["assignments"]
+        }
+        assert foreign_assignment.id not in assignment_ids
+    finally:
+        await delete_assignment(foreign_assignment.id)
 
 
 async def test_gradebook_csv_is_text_csv(auth_instructor_client):
@@ -120,7 +255,7 @@ async def test_gradebook_csv_is_text_csv(auth_instructor_client):
     assert "text/csv" in resp.headers["content-type"]
     assert "attachment" in resp.headers.get("content-disposition", "")
     first_line = resp.text.splitlines()[0]
-    assert first_line.startswith("Username,Student")
+    assert first_line.startswith("Username,Student,Email")
     # Percentages are the default, and the header says so.
     assert first_line.rstrip().endswith("Total (%)")
     assert "gradebook_csv_test (%)" in first_line
@@ -1018,9 +1153,9 @@ def _csv_fixture(show_points):
             {"id": 2, "name": "Homework 2", "points": 5},
         ],
         "students": [
-            {"sid": "ada", "name": "Ada Lovelace"},
-            {"sid": "alan", "name": "Alan Turing"},
-            {"sid": "grace", "name": "Grace Hopper"},
+            {"sid": "ada", "name": "Ada Lovelace", "email": "ada@example.com"},
+            {"sid": "alan", "name": "Alan Turing", "email": "alan@example.com"},
+            {"sid": "grace", "name": "Grace Hopper", "email": "grace@example.com"},
         ],
         "cells": [
             {"sid": "ada", "assignment_id": 1, "score": 8},
@@ -1040,12 +1175,12 @@ async def test_gradebook_csv_writes_percentages_by_default():
 
     rows = _gradebook_to_csv(_csv_fixture(False)).splitlines()
 
-    assert rows[0] == "Username,Student,Quiz 1 (%),Homework 2 (%),Total (%)"
-    assert rows[1] == "ada,Ada Lovelace,80,100,86.67"
+    assert rows[0] == "Username,Student,Email,Quiz 1 (%),Homework 2 (%),Total (%)"
+    assert rows[1] == "ada,Ada Lovelace,ada@example.com,80,100,86.67"
     # Alan's ungraded homework is left out of the denominator, not scored as zero.
-    assert rows[2] == "alan,Alan Turing,60,,60"
+    assert rows[2] == "alan,Alan Turing,alan@example.com,60,,60"
     # A student with nothing graded has no total at all.
-    assert rows[3] == "grace,Grace Hopper,,,"
+    assert rows[3] == "grace,Grace Hopper,grace@example.com,,,"
 
 
 async def test_gradebook_csv_writes_points_when_course_asks():
@@ -1055,9 +1190,9 @@ async def test_gradebook_csv_writes_points_when_course_asks():
 
     rows = _gradebook_to_csv(_csv_fixture(True)).splitlines()
 
-    assert rows[0] == "Username,Student,Quiz 1 (10 pts),Homework 2 (5 pts),Total"
-    assert rows[1] == "ada,Ada Lovelace,8,5,13"
-    assert rows[2] == "alan,Alan Turing,6,,6"
+    assert rows[0] == "Username,Student,Email,Quiz 1 (10 pts),Homework 2 (5 pts),Total"
+    assert rows[1] == "ada,Ada Lovelace,ada@example.com,8,5,13"
+    assert rows[2] == "alan,Alan Turing,alan@example.com,6,,6"
 
 
 async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score():
@@ -1071,7 +1206,7 @@ async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score
 
     rows = _gradebook_to_csv(data).splitlines()
 
-    assert rows[1] == "ada,Ada Lovelace,3,3"
+    assert rows[1] == "ada,Ada Lovelace,ada@example.com,3,3"
 
 
 async def _add_reading_question(

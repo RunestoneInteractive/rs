@@ -112,6 +112,26 @@ export const studentTotalDisplay = (
 };
 
 /**
+ * Average of the per-student totals for the assignment columns currently shown.
+ * Students without any score in those columns are omitted, matching the
+ * per-assignment averages and the way an ungraded assignment is omitted from a
+ * student's total denominator.
+ */
+export const classTotalAverage = (
+  lookup: Map<string, GradebookCell>,
+  assignments: GradebookAssignment[],
+  students: GradebookStudent[],
+  showPoints: boolean
+): number | null => {
+  const totals = students
+    .map((student) => studentTotalDisplay(lookup, assignments, student.sid, showPoints))
+    .filter((total): total is number => total != null);
+
+  if (totals.length === 0) return null;
+  return Math.round((totals.reduce((sum, total) => sum + total, 0) / totals.length) * 100) / 100;
+};
+
+/**
  * The unit suffix for an assignment column header: how much it is worth in points
  * mode, a bare percent sign otherwise.
  */
@@ -121,6 +141,54 @@ export const columnUnitLabel = (points: number | null | undefined, showPoints: b
 export const formatScore = (score: number | null | undefined): string => {
   if (score == null) return "—";
   return Number.isInteger(score) ? String(score) : String(Math.round(score * 100) / 100);
+};
+
+const escapeCsvCell = (value: string | number): string => `"${String(value).replace(/"/g, '""')}"`;
+
+/**
+ * Export exactly the current gradebook view. Callers pass the already filtered
+ * and sorted students and the already filtered assignment columns, so the CSV
+ * cannot silently disagree with what the instructor is looking at.
+ */
+export const gradebookToCsv = (
+  students: GradebookStudent[],
+  assignments: GradebookAssignment[],
+  lookup: Map<string, GradebookCell>,
+  showPoints: boolean
+): string => {
+  const assignmentHeader = (assignment: GradebookAssignment) =>
+    showPoints
+      ? `${assignment.name} (${formatScore(assignment.points)} pts)`
+      : `${assignment.name} (%)`;
+  const rows: (string | number)[][] = [
+    [
+      "Username",
+      "Student",
+      "Email",
+      ...assignments.map(assignmentHeader),
+      showPoints ? "Total" : "Total (%)"
+    ]
+  ];
+
+  for (const student of students) {
+    const scores = assignments.map((assignment) => {
+      const score = getCellScore(lookup, student.sid, assignment.id);
+      const displayed = displayScore(score, assignment.points, showPoints);
+
+      return displayed == null ? "" : formatScore(displayed);
+    });
+    const total = studentTotalDisplay(lookup, assignments, student.sid, showPoints);
+
+    rows.push([
+      student.sid,
+      student.name,
+      student.email ?? "",
+      ...scores,
+      total == null ? "" : formatScore(total)
+    ]);
+  }
+
+  return `${rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n")}\r\n`;
 };
 
 /**
@@ -133,7 +201,10 @@ export const filterStudents = (students: GradebookStudent[], query: string): Gra
 
   if (!needle) return students;
   return students.filter(
-    (s) => s.name.toLowerCase().includes(needle) || s.sid.toLowerCase().includes(needle)
+    (s) =>
+      s.name.toLowerCase().includes(needle) ||
+      s.sid.toLowerCase().includes(needle) ||
+      (s.email ?? "").toLowerCase().includes(needle)
   );
 };
 

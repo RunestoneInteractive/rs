@@ -86,6 +86,7 @@ bypass-selection = true
 # target the directory itself (e.g. "**/public/runestone") -- a trailing "/*"
 # (poetry style) would NOT prune the directory.
 exclude = [
+    "**/assignment_builder",
     "**/node_modules",
     "**/out",
     "**/build",
