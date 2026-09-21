@@ -69,7 +69,17 @@ Course Settings
                         onchange="updateCourse(this,'enable_async_llm_modes')">
                     <label for="async_llm_modes">Enable Async LLM Modes for Peer Instruction</label>
                 </div>
-                <div class="setting-description">Allow per-question LLM chat mode selection in asynchronous peer instruction activities</div>
+                <div class="setting-description">Lets you choose the discussion mode for <em>each question</em> in an asynchronous peer instruction assignment. Every student who opens a question gets the mode you picked for it.</div>
+            </div>
+
+            <div class="settingsbox" id="async_conditions_box"
+                {% if enable_async_llm_modes!="true" %}style="display:none"{% endif %}>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="async_conditions" {% if enable_async_conditions=="true" %}checked{% endif %}
+                        onchange="updateCourse(this,'enable_async_conditions')">
+                    <label for="async_conditions">Randomly Assign Students to Async PI Conditions (research study)</label>
+                </div>
+                <div class="setting-description">For running a study. Adds a per-assignment switch in the assignment builder that randomly splits students between the LLM peer and the saved classmate justifications, one condition each for the whole assignment.</div>
             </div>
 
             <div class="settingsbox">

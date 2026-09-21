@@ -18,6 +18,8 @@ export type Assignment = {
   nopause: boolean;
   time_limit: number | null;
   peer_async_visible: boolean;
+  /** Enrols this assignment in the async peer instruction study. */
+  async_study: boolean;
   kind: KindOfAssignment;
   exercises: [];
   all_assignments: [];
