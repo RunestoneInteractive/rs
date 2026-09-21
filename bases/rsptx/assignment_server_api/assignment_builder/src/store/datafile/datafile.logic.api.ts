@@ -1,6 +1,6 @@
+import { notify } from "@components/ui/notify";
 import { createApi, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
-import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import {
@@ -29,14 +29,17 @@ export const DATAFILE_TOAST_COPY = {
 export const getErrorMessage = (error: FetchBaseQueryError): string => {
   if (error.status === 409) {
     const data = error.data as { detail?: string };
+
     return data?.detail || DATAFILE_TOAST_COPY.duplicateNameError;
   }
   if (error.status === 403) {
     const data = error.data as { detail?: string };
+
     return data?.detail || DATAFILE_TOAST_COPY.notOwnerError;
   }
   if (error.status === 404) {
     const data = error.data as { detail?: string };
+
     return data?.detail || DATAFILE_TOAST_COPY.notFoundError;
   }
   if (error.data && typeof error.data === "object" && "detail" in error.data) {
@@ -54,7 +57,7 @@ export const datafileApi = createApi({
     fetchDatafiles: build.query<ExistingDataFile[], void>({
       query: () => ({
         method: "GET",
-        url: `/assignment/instructor/datafiles`
+        url: "/assignment/instructor/datafiles"
       }),
       transformResponse: (response: DetailResponse<FetchDataFilesResponse>) => {
         return response.detail.datafiles || [];
@@ -98,6 +101,7 @@ export const datafileApi = createApi({
           })
           .catch((error) => {
             const message = getErrorMessage(error.error as FetchBaseQueryError);
+
             notify.error(message);
           });
       }
@@ -119,6 +123,7 @@ export const datafileApi = createApi({
           })
           .catch((error) => {
             const message = getErrorMessage(error.error as FetchBaseQueryError);
+
             notify.error(message);
           });
       }
@@ -139,6 +144,7 @@ export const datafileApi = createApi({
           })
           .catch((error) => {
             const message = getErrorMessage(error.error as FetchBaseQueryError);
+
             notify.error(message);
           });
       }

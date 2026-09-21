@@ -27,6 +27,7 @@ from rsptx.db.models import (
 )
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.comments import is_hand_graded
 from rsptx.grading_helpers.lti_push import schedule_lti1p1_score_push
 from rsptx.grading_helpers.scoring import (
     score_answer_values,
@@ -78,6 +79,22 @@ async def grade_submission(
         rslogger.debug(
             f"Scoring {submission.div_id} for {user.username} scoreSpec = {scoreSpec}"
         )
+        # A grade an instructor set by hand outranks anything this submission
+        # would earn. Without this the next save a student made silently put the
+        # autograder's score back, and the instructor had to grade the question
+        # all over again. See rsptx.grading_helpers.comments.
+        existing_grade = await fetch_question_grade(
+            user.username, user.course_name, div_id
+        )
+        if existing_grade is not None and is_hand_graded(existing_grade.comment):
+            rslogger.debug(
+                f"Keeping hand-entered grade for {user.username} {div_id}: "
+                f"{existing_grade.score} ({existing_grade.comment})"
+            )
+            scoreSpec.username = user.username
+            scoreSpec.score = existing_grade.score
+            scoreSpec.comment = existing_grade.comment
+            return scoreSpec
         if submission.event in INTERACTION_ONLY_EVENTS:
             # Videos and polls have no answer table, so there is nothing for
             # ``fetch_answers`` to look up (it would raise a KeyError on
@@ -149,9 +166,9 @@ async def grade_submission(
                 if current_score.score is None:
                     current_score.score = 0
                     # maybe if there is no score we should update it regardless of the comment?
-                if (
-                    current_score.score < scoreSpec.score
-                ) and current_score.comment == "autograded":
+                if (current_score.score < scoreSpec.score) and not is_hand_graded(
+                    current_score.comment
+                ):
                     await update_question_grade_entry(
                         user.username,
                         user.course_name,
@@ -318,6 +335,12 @@ async def score_reading_page(
     question_grade = await fetch_question_grade(
         user.username, user.course_name, reading_spec.name
     )
+    # As in grade_submission: never walk on a grade an instructor entered.
+    if question_grade and is_hand_graded(question_grade.comment):
+        rslogger.debug(
+            f"Keeping hand-entered grade for {user.username} {reading_spec.name}"
+        )
+        return
     if question_grade:
         question_grade.score = score
         await update_question_grade_entry(

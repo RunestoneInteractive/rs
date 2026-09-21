@@ -23,6 +23,13 @@
       "@components/*": ["src/components/*"]
     }
   },
-  "include": ["src", "vitest.setup.ts", "vitest.config.ts"],
+  "include": [
+    "src",
+    "e2e",
+    "vitest.setup.ts",
+    "vitest.config.ts",
+    "vite.config.ts",
+    "playwright.config.ts"
+  ],
   "exclude": ["node_modules"]
 }

@@ -28,6 +28,7 @@ from sqlalchemy import text
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
+from rsptx.db.pool_monitor import pool_snapshot
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
 
@@ -158,3 +159,20 @@ async def ready():
         )
 
     return JSONResponse({"status": "ok", "database": "ok"}, headers=_NO_CACHE)
+
+
+@router.get("/health/pool", include_in_schema=False)
+async def pool():
+    """Connection pool occupancy and event-loop lag for *this* process.
+
+    Diagnostic, not a health check -- it always returns 200. Behind a load
+    balancer each container answers only for itself, so the periodic log line
+    from ``rsptx.db.pool_monitor`` is the better way to watch the fleet; this
+    is for looking at one node right now.
+
+    Reading it: if ``checked_out`` approaches ``capacity`` while
+    ``lag_ms_max_recent`` stays small, the pool is the limit -- raise
+    ``DB_POOL_SIZE``/``DB_MAX_OVERFLOW``. If lag is large, the event loop is
+    being blocked and more connections (or more workers) will not fix it.
+    """
+    return JSONResponse(pool_snapshot(), headers=_NO_CACHE)

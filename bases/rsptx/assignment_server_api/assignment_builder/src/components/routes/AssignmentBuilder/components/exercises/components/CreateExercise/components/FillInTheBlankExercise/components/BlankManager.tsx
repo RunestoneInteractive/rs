@@ -53,6 +53,8 @@ export const BlankManager: FC<BlankManagerProps> = ({ blanks, onChange, question
 
       onChange(trimmedBlanks);
     }
+    // TODO(eslint): Audit the complete dependency list without changing current behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blankCount, blanks.length]);
 
   const updateBlank = (

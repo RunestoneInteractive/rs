@@ -15,11 +15,17 @@
         <input type="hidden" name="institution" value="{{ institution }}">
 
         <div class="section-title" id="direct-course-label">Enter Course Name Directly</div>
-        <p class="text-muted small">If your instructor gave you a specific course name, type it here.</p>
+        <p class="text-muted small">If your instructor gave you a specific course name, type it here.
+           A name you type is used even if you also pick something below.</p>
         <div class="form-group">
-            <input type="text" class="form-control" id="direct_course" aria-labelledby="direct-course-label" placeholder="e.g. luther_thinkcspy_fall25"
+            <input type="text" class="form-control" id="direct_course" name="direct_course"
+                   value="{{ direct_course or '' }}"
+                   aria-labelledby="direct-course-label" placeholder="e.g. luther_thinkcspy_fall25"
                    oninput="selectDirect(this.value)">
         </div>
+        <p class="text-muted small" id="direct_wins_note" role="status" hidden>
+            You typed a course name, so that is the course you will be enrolled in.
+        </p>
 
         {% if institution_courses %}
         <div class="section-title">Courses at Your Institution</div>

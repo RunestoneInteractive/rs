@@ -4,7 +4,6 @@ import { useState, cloneElement, MouseEvent, ReactElement } from "react";
 import { Exercise } from "@/types/exercises";
 
 import { ExercisePreview } from "./ExercisePreview";
-
 import styles from "./ExercisePreviewModal.module.css";
 
 type ExercisePreviewModalProps = Pick<Exercise, "htmlsrc"> & {

@@ -7,8 +7,10 @@ import { AnswerRendererProps } from "./types";
 export const FitbAnswerView: React.FC<AnswerRendererProps> = (props) => {
   const { answer } = props;
   let values: string[] = [];
+
   try {
     const parsed = JSON.parse(answer);
+
     values = Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
   } catch {
     values = answer ? answer.split(",") : [];

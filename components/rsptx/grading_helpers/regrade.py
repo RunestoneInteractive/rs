@@ -5,11 +5,13 @@ from sqlalchemy import and_, select
 
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import (
+    count_reading_activities,
     fetch_assignment_scores,
     fetch_deadline_exception,
     fetch_grade,
     fetch_question_grade,
     fetch_users_for_course,
+    get_course_origin,
     upsert_grade,
 )
 from rsptx.db.models import (
@@ -20,6 +22,10 @@ from rsptx.db.models import (
     QuestionGrade,
     QuestionValidator,
     SelectedQuestion,
+)
+from rsptx.grading_helpers.comments import (
+    AUTOGRADE_COMMENT,
+    is_autograder_comment,
 )
 from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.logging import rslogger
@@ -35,8 +41,6 @@ from rsptx.grading_helpers.scoring import (
     score_peer_values,
     PEER_SCORE_SENTINEL,
 )
-
-MANUAL_COMMENT = "autograded"
 
 
 class RegradeOptions(BaseModel):
@@ -203,6 +207,81 @@ async def _regrade_interaction_question(
     return item
 
 
+def page_url_suffix(origin: Optional[str], chapter: str, subchapter: str) -> str:
+    """How a page view for this subchapter ends in ``useinfo.div_id``.
+
+    A PreTeXt book serves each page as ``<subchapter>.html``; a Sphinx book
+    puts it under its chapter, ``<chapter>/<subchapter>.html``.  Either can be
+    logged behind a path prefix, so callers match on the ending rather than the
+    whole value.
+    """
+    if origin == "PreTeXt":
+        return f"{subchapter}.html"
+    return f"{chapter}/{subchapter}.html"
+
+
+async def _regrade_reading_question(
+    item: RegradeDiffItem,
+    sid: str,
+    question: QuestionValidator,
+    aq,
+    course: CoursesValidator,
+    assignment: AssignmentValidator,
+    options: RegradeOptions,
+    dry_run: bool,
+) -> RegradeDiffItem:
+    """Re-grade a reading: a whole page, scored on how much of it was done.
+
+    A reading has no answer of its own.  What it has is
+    ``activities_required``: do that many of the activities on the page and the
+    reading is worth its full points, otherwise nothing.  That is the rule the
+    reader sees in the progress bar while they read, and the rule the legacy
+    autograder applied (``rs_grading.py``); the page itself counts as one of
+    the activities, done as soon as they open it.
+
+    Scoring this server side is what lets an instructor grade a reading at all
+    after the fact.  Reading credit is otherwise only ever awarded by the
+    browser as the student reads, so a student who did the reading late -- the
+    browser refuses to score them once the deadline has passed -- could never
+    be given the points without the instructor typing them in by hand.  A
+    re-grade with the deadline off now picks them up.  See issue #1493.
+    """
+    deadline = None
+    if options.enforce_deadline:
+        accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
+        deadline = _effective_deadline(assignment, accommodation)
+
+    origin = await get_course_origin(course.base_course)
+    completed = await count_reading_activities(
+        chapter=question.chapter,
+        subchapter=question.subchapter,
+        base_course=course.base_course,
+        course_name=course.course_name,
+        sid=sid,
+        page_url_suffix=page_url_suffix(origin, question.chapter, question.subchapter),
+        deadline=deadline,
+    )
+
+    if completed == 0:
+        # The student never opened the page (or not before the deadline).
+        # Leave whatever grade they have alone rather than writing a zero, the
+        # same as a question with no submissions.
+        item.skipped = "no_submission"
+        return item
+
+    required = aq.activities_required or 0
+    new_score = float(aq.points or 0) if completed >= required else 0.0
+    rslogger.debug(
+        f"Reading {question.name} for {sid}: {completed} of {required} "
+        f"activities -> {new_score}"
+    )
+    item.new_score = new_score
+
+    if not dry_run:
+        await _upsert_autograde(sid, course.course_name, question.name, new_score)
+    return item
+
+
 async def regrade_one(
     course: CoursesValidator,
     sid: str,
@@ -228,7 +307,7 @@ async def regrade_one(
         if (
             existing is not None
             and existing.score is not None
-            and existing.comment != MANUAL_COMMENT
+            and not is_autograder_comment(existing.comment)
             and not options.overwrite_manual
         ):
             item.skipped = "manual"
@@ -246,6 +325,15 @@ async def regrade_one(
                 real_q = await fetch_question(resolved)
                 if real_q:
                     scoring_type = real_q.question_type
+
+        # A reading is a page, not a question: there is no answer to score, so
+        # it has to be handled before the no_table bail-out below -- otherwise
+        # every reading on the assignment is silently skipped and the re-grade
+        # preview shows the whole class going back to "no score".
+        if scoring_type == "page":
+            return await _regrade_reading_question(
+                item, sid, question, aq, course, assignment, options, dry_run
+            )
 
         # Videos and polls keep their submissions in useinfo, not an answer
         # table, so they have to be handled before the no_table bail-out below --
@@ -345,12 +433,12 @@ async def _upsert_autograde(
                     course_name=course_name,
                     div_id=div_id,
                     score=score,
-                    comment=MANUAL_COMMENT,
+                    comment=AUTOGRADE_COMMENT,
                 )
             )
         else:
             row.score = score
-            row.comment = MANUAL_COMMENT
+            row.comment = AUTOGRADE_COMMENT
 
 
 def apply_threshold_score(
@@ -566,8 +654,9 @@ async def recompute_totals_for(
     LMS) for the given students. When ``sids`` is empty/None every student in
     the course is recomputed. Returns the number of students processed.
 
-    This is used by the manual multi-grade flow, where individual grades are
-    written through ``POST /grade`` (which does not itself recompute totals).
+    This is used by the manual grading flow: ``POST /grade`` calls it after
+    writing each question grade, and the grader's bulk ``POST /recompute_totals``
+    calls it for a whole set of students at once.
     """
     return len(
         await recompute_totals_detail(

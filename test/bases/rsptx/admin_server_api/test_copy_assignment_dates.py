@@ -21,6 +21,8 @@ from zoneinfo import ZoneInfo
 from rsptx.admin_server_api.routers import instructor
 from rsptx.admin_server_api.routers.instructor import _term_start_utc
 
+pytestmark = pytest.mark.asyncio(loop_scope="session")
+
 UTC = datetime.timezone.utc
 CHICAGO = ZoneInfo("America/Chicago")
 

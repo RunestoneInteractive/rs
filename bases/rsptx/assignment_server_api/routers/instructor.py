@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import datetime
 import json
@@ -22,7 +23,6 @@ from fastapi.responses import (
     JSONResponse,
     StreamingResponse,
 )
-from sqlalchemy import create_engine
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
 
@@ -92,6 +92,8 @@ from rsptx.db.crud.assignment import (
     is_assignment_visible_to_students,
 )
 from rsptx.auth.session import auth_manager, is_instructor
+from rsptx.db.sync_session import engine as eng
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.templates import format_course_datetime, get_shared_templates
 from rsptx.configuration import settings
 from rsptx.response_helpers import construct_course_url
@@ -295,25 +297,16 @@ def aggregate_peer_votes(votes: List[str]):
     return {"counts": counts}
 
 
-@router.get("/gradebook")
-async def get_assignment_gb(
-    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
-):
-    # get the course
-    course = await fetch_course(user.course_name)
-    course_attrs = await fetch_all_course_attributes(course.id)
-    show_points = course_attrs.get("show_points", "false") == "true"
+def _build_gradebook(course, show_points: bool) -> dict:
+    """Build the instructor gradebook table for ``course``.
 
-    if settings.server_config == "development":
-        dburl = settings.dev_dburl
-    elif settings.server_config == "production":
-        dburl = settings.dburl
-    eng = create_engine(dburl)
+    Blocking: a series of large pandas/psycopg2 queries plus the HTML render.
+    Async callers must dispatch this with ``asyncio.to_thread`` so it does not
+    stall the event loop -- see ``get_assignment_gb``.
 
-    user_is_instructor = await is_instructor(request, user=user)
-    if not user_is_instructor:
-        return RedirectResponse(url="/")
-
+    :return: the pieces of template context the gradebook page needs.
+    :rtype: dict
+    """
     classid = course.id
 
     df = pd.read_sql(
@@ -531,28 +524,53 @@ async def get_assignment_gb(
             names[row.username] = row.first_name + " " + row.last_name
 
     # pt = pt.drop(columns=["username"], axis=1)
-    templates = get_shared_templates()
     # rename the columns in cols to cols_plus_points
     rename_dict = {old: new for old, new in zip(cols, display_cols)}
     pt = pt.rename(columns=rename_dict)
 
+    return {
+        "table_html": pt.to_html(
+            table_id="table",
+            columns=base_cols + display_cols,
+            index=False,
+            na_rep="",
+            formatters=formatter_map,
+        ),
+        "names": names,
+        "assignment_id_by_column": assignment_id_by_column,
+    }
+
+
+@router.get("/gradebook")
+async def get_assignment_gb(
+    request: Request, user=Depends(auth_manager), response_class=HTMLResponse
+):
+    # get the course
+    course = await fetch_course(user.course_name)
+    course_attrs = await fetch_all_course_attributes(course.id)
+    show_points = course_attrs.get("show_points", "false") == "true"
+
+    user_is_instructor = await is_instructor(request, user=user)
+    if not user_is_instructor:
+        return RedirectResponse(url="/")
+
+    # _build_gradebook is blocking (pandas + psycopg2), so keep it off the event
+    # loop; on a large course it runs long enough to stall every other request
+    # in this process and hold their database connections open meanwhile.
+    gb = await asyncio.to_thread(_build_gradebook, course, show_points)
+
+    templates = get_shared_templates()
     return templates.TemplateResponse(
         "assignment/instructor/gradebook.html",
         {
-            "table_html": pt.to_html(
-                table_id="table",
-                columns=base_cols + display_cols,
-                index=False,
-                na_rep="",
-                formatters=formatter_map,
-            ),
-            "pt": names,
+            "table_html": gb["table_html"],
+            "pt": gb["names"],
             "course": course,
             "user": user.username,
             "request": request,
             "is_instructor": user_is_instructor,
             "student_page": False,
-            "assignment_id_by_column": json.dumps(assignment_id_by_column),
+            "assignment_id_by_column": json.dumps(gb["assignment_id_by_column"]),
             # The drill-down popup needs this to re-render a cell in the same
             # units the table was built with after recomputing a total.
             "show_points": json.dumps(show_points),
@@ -658,6 +676,10 @@ async def get_student_assignment_scores(
     questions = await fetch_student_assignment_scores(
         assignment_id, username, course.course_name
     )
+    # "autograded" and the hand-graded marker are bookkeeping, not feedback --
+    # the drill-down should only show words an instructor actually wrote.
+    for q in questions:
+        q["comment"] = display_comment(q["comment"])
     grade = await fetch_grade(student.id, assignment_id)
 
     first = (student.first_name or "").strip()
@@ -1514,22 +1536,25 @@ async def do_download_assignment(
             detail=f"Assignment questions for {assignment_id} not found",
         )
 
+    # ``tz_offset`` is UTC minus local time in hours (Date.getTimezoneOffset() / 60),
+    # and useinfo timestamps are stored as naive UTC, so local time is the stored
+    # timestamp *minus* the offset -- as in analytics.py and rsptx.practice.core.
+    tz_offset_hours = 0.0
     if RS_info:
         rslogger.debug(f"RS_info Cookie {RS_info}")
         # Note that to get to the value of the cookie you must use ``.value``
         try:
-            parsed_js = json.loads(RS_info)
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
         except Exception:
-            parsed_js = {}
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    tzoffset = parsed_js.get("tz_offset", None)
-    dd = datetime.timedelta(hours=int(tzoffset) if tzoffset is not None else 0)
+    dd = datetime.timedelta(hours=tz_offset_hours)
 
     csv_buffer = io.StringIO()
     csv_writer = csv.writer(csv_buffer)
     csv_writer.writerow(["Timestamp", "SID", "Div ID", "Event", "Act"])
     for row in res:
-        csv_row = [row.ts + dd, row.sid, row.name, row.event, row.act]
+        csv_row = [row.ts - dd, row.sid, row.name, row.event, row.act]
         csv_writer.writerow(csv_row)
     csv_buffer.seek(0)
 
@@ -1588,13 +1613,10 @@ async def do_assignment_summary_data(
     response_class=JSONResponse,
 ):
     course = await fetch_course(user.course_name)
-    if settings.server_config == "development":
-        dburl = settings.dev_dburl
-    elif settings.server_config == "production":
-        dburl = settings.dburl
-
-    summary_data, question_metadata = create_assignment_summary(
-        assignment_id, course, dburl
+    # create_assignment_summary is blocking (pandas + psycopg2), so keep it off
+    # the event loop; a single call spans every *_answers table for the course.
+    summary_data, question_metadata = await asyncio.to_thread(
+        create_assignment_summary, assignment_id, course
     )
     return make_json_response(
         status=status.HTTP_200_OK,

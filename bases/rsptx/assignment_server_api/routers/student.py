@@ -13,6 +13,7 @@
 #
 # Standard library
 # ----------------
+import asyncio
 import csv
 import io
 from typing import Optional
@@ -60,6 +61,8 @@ from rsptx.db.crud import (
     get_book_chapters,
     get_book_subchapters,
 )
+from .course_guard import assignment_course_redirect
+from rsptx.grading_helpers.comments import UNGRADED_COMMENT, display_comment
 from rsptx.grading_helpers.core import check_for_exceptions
 from rsptx.grading_helpers.regrade import RegradeOptions, regrade_batch
 
@@ -201,6 +204,7 @@ async def get_assignments(
         lti1p1=is_lti1p1_course,
         now=now,
         visibility_map=visibility_map,
+        term_start_date=course.term_start_date,
         settings=settings,
         base_url=construct_course_url(course),
         activity_info="{}",
@@ -496,7 +500,19 @@ async def studyclues_query(
     rslogger.debug(
         f"Logging in to StudyClues with params: {params} and url: {runestone_login_url}"
     )
-    response = requests.get(runestone_login_url, params=params)
+    # requests is blocking, so hand both StudyClues round trips to a thread:
+    # this is a third-party service and a slow reply must not stall the event
+    # loop (and with it every other request this process is serving).
+    try:
+        response = await asyncio.to_thread(
+            requests.get, runestone_login_url, params=params, timeout=30
+        )
+    except requests.RequestException as err:
+        rslogger.error(f"StudyClues login request failed: {err}")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "StudyClues login request failed"},
+        )
     if response.status_code != 200:
         rslogger.error(
             f"StudyClues login request failed with status {response.status_code}: {response.text}"
@@ -525,7 +541,7 @@ async def studyclues_query(
         "source_priorities": {"GITHUB_FILE": "prioritize"},
     }
 
-    try:
+    def _post_query():
         with requests.Session() as session:
             upstream_response = session.post(
                 query_studyclues_post_url,
@@ -533,7 +549,10 @@ async def studyclues_query(
                 timeout=30,
             )
             upstream_response.raise_for_status()
-            studyclues_response = upstream_response.json()
+            return upstream_response.json()
+
+    try:
+        studyclues_response = await asyncio.to_thread(_post_query)
     except requests.RequestException as err:
         rslogger.error(f"StudyClues request failed: {err}")
         return make_json_response(
@@ -675,6 +694,19 @@ async def doAssignment(
         )
 
         return RedirectResponse("/assignment/student/chooseAssignment")
+
+    # The link only carries an assignment id, so a student whose active course
+    # is a different one would otherwise work this assignment against the wrong
+    # course and be scored zero in the course it belongs to (issue #1494).
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/student/doAssignment?assignment_id={assignment_id}",
+    )
+    if wrong_course:
+        return wrong_course
+
     user_is_instructor = await is_instructor(request, user=user)
 
     if assignment.is_peer or assignment.kind == "Peer":
@@ -800,12 +832,12 @@ async def doAssignment(
         if grade:
             score, comment = grade.score, grade.comment
         else:
-            score, comment = 0, "ungraded"
+            score, comment = 0, UNGRADED_COMMENT
 
         if score is None:
             score = 0
 
-        is_incorrect = score == 0 and comment != "ungraded"
+        is_incorrect = score == 0 and comment != UNGRADED_COMMENT
 
         chap_label = q.Question.chapter
         subchap_label = q.Question.subchapter
@@ -836,7 +868,11 @@ async def doAssignment(
             score=score,
             is_incorrect=is_incorrect,
             points=q.AssignmentQuestion.points,
-            comment=comment,
+            # Only the instructor's own words; "autograded" and friends are
+            # bookkeeping and the page shows the scoring method instead.
+            comment=display_comment(comment),
+            # There is a question_grades row for this question, whatever it says.
+            has_grade=comment != UNGRADED_COMMENT,
             name=q.Question.name,
             qnumber=q.Question.qnumber,
             question_type=q.Question.question_type,
@@ -1008,6 +1044,11 @@ async def doAssignment(
         del course_attrs["ptx_js_version"]
     else:
         ptx_js_version = "0.2"
+    # A book built without WeBWorK does not load pretext-webwork.js in its
+    # generated _base.html, but an assignment may include WeBWorK questions
+    # borrowed from another book.  Let the template know it must load the
+    # WeBWorK support itself in that case.
+    needs_webwork = any(q["question_type"] == "webwork" for q in questionslist)
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
         request=request,
@@ -1020,6 +1061,7 @@ async def doAssignment(
         questions_score=questions_score,
         readings_score=readings_score,
         user=user,
+        term_start_date=course.term_start_date,
         user_id=user.username,  # _base.html for ptx student pages needs user_id
         base_course=course.base_course,
         # gradeRecordingUrl=URL('assignments', 'record_grade'),
@@ -1036,6 +1078,7 @@ async def doAssignment(
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=ptx_js_version,
         webwork_js_version=webwork_js_version,
+        needs_webwork=needs_webwork,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
@@ -1119,8 +1162,11 @@ async def getassignmentgrade(
 
         ret["max"] = a_q.points if (a_q and a_q.released) else ""
 
-        if result.comment:
-            ret["comment"] = result.comment
+        # Only words an instructor wrote; the graders' own bookkeeping is not
+        # feedback and has no business in the student's grade popup.
+        feedback = display_comment(result.comment)
+        if feedback:
+            ret["comment"] = feedback
 
     return JSONResponse(content=ret)
 

@@ -43,6 +43,7 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
   const selectedDatafilesInfo = selectedExistingDataFiles
     .map((acid) => {
       const existingFile = allDatafiles.find((df: ExistingDataFile) => df.acid === acid);
+
       return {
         acid,
         filename: existingFile?.filename

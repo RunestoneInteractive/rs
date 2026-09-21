@@ -1,11 +1,11 @@
 import { Switch, Text, Tooltip } from "@mantine/core";
 import { modals } from "@mantine/modals";
+import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
+import { useSetAssignmentReleasedMutation } from "@store/grader/grader.logic.api";
 import React from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import { notify } from "@/components/ui/notify";
-import { useGetAssignmentsQuery } from "@store/assignment/assignment.logic.api";
-import { useSetAssignmentReleasedMutation } from "@store/grader/grader.logic.api";
 
 import styles from "../Grader.module.css";
 
@@ -30,8 +30,20 @@ export const ReleaseGradesControl: React.FC<ReleaseGradesControlProps> = ({
 
   const apply = async (next: boolean) => {
     try {
-      await setReleased({ assignment_id: assignmentId, released: next }).unwrap();
-      notify.success(next ? "Grades released to students" : "Grades hidden from students");
+      const res = await setReleased({ assignment_id: assignmentId, released: next }).unwrap();
+
+      if (!next) {
+        notify.success("Grades hidden from students");
+        return;
+      }
+      // Releasing is also what un-gates LTI passback, so it flushes grades
+      // entered while the assignment was hidden. Only say so when a linked LMS
+      // actually received something.
+      notify.success(
+        res.lms_pushed
+          ? `Grades released to students, and ${res.lms_pushed} sent to your LMS`
+          : "Grades released to students"
+      );
     } catch {
       notify.error("Couldn't update grade visibility. Try again.");
     }

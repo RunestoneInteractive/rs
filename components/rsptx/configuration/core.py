@@ -131,6 +131,81 @@ class Settings(BaseSettings):
     # Setting db_echo to True makes for a LOT of sqlalchemy output - it gives you the SQL for every query!
     db_echo: bool = False
 
+    # Connection pool sizing. These apply to the PostgreSQL engines only; SQLite
+    # uses SQLAlchemy's default pool, which does not accept these arguments.
+    #
+    # When the servers talk to PostgreSQL through pgbouncer in ``transaction``
+    # pool mode -- the production configuration -- a slot in the pool below is a
+    # cheap client connection that pgbouncer multiplexes onto its much smaller
+    # set of real server connections. Sizing these generously therefore costs
+    # very little, and a pool that is too small shows up as
+    # ``QueuePool limit of size N overflow M reached`` under perfectly ordinary
+    # load. Without pgbouncer, ``db_pool_size + db_max_overflow`` per server
+    # process is the real ceiling on backends and must stay well under
+    # PostgreSQL's ``max_connections``.
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+
+    # How long a request waits for a free connection before giving up. The
+    # SQLAlchemy default is 30 seconds, which converts pool exhaustion into a
+    # request that hangs for half a minute and then fails anyway. Failing fast
+    # keeps the event loop moving and makes the problem obvious in the logs.
+    db_pool_timeout: int = 10
+
+    # Recycle connections after this many seconds. Guards against a connection
+    # that has been idle long enough for pgbouncer, a load balancer or a NAT
+    # table to have dropped it out from under us.
+    db_pool_recycle: int = 1800
+
+    # The synchronous engine backs the pandas-based reports. It serves far fewer
+    # requests than the async engine, so it gets a smaller pool of its own.
+    db_sync_pool_size: int = 5
+    db_sync_max_overflow: int = 10
+
+    # Book server only. Compiled book pages are cached on disk as Jinja bytecode
+    # (see ``rsptx.book_server_api.routers.books``), roughly 1.03x the size of
+    # each page's HTML. Nothing in Jinja evicts, so a long-lived container tends
+    # toward the size of every page it has ever served -- about 1.1GB for the
+    # current corpus. This is the budget the pruner keeps it under; set it to 0
+    # to disable pruning and let the cache grow.
+    book_template_cache_mb: int = 512
+
+    @property
+    def pool_settings(self) -> dict:
+        """Return the pool keyword arguments for ``create_engine``.
+
+        Empty for SQLite, whose default pool rejects ``pool_size`` and friends.
+        Callers splat this into the engine constructor rather than passing the
+        arguments unconditionally and catching the resulting error, so a genuine
+        misconfiguration is not silently downgraded to a default-sized pool.
+
+        :return: kwargs suitable for ``create_engine``/``create_async_engine``.
+        :rtype: dict
+        """
+        if self.database_type == DatabaseType.SQLite:
+            return {}
+        return dict(
+            pool_size=self.db_pool_size,
+            max_overflow=self.db_max_overflow,
+            pool_timeout=self.db_pool_timeout,
+            pool_recycle=self.db_pool_recycle,
+            pool_pre_ping=True,
+        )
+
+    @property
+    def sync_pool_settings(self) -> dict:
+        """``pool_settings`` with the smaller sizes used by the sync engine.
+
+        :return: kwargs suitable for ``create_engine``.
+        :rtype: dict
+        """
+        settings_dict = self.pool_settings
+        if not settings_dict:
+            return {}
+        settings_dict["pool_size"] = self.db_sync_pool_size
+        settings_dict["max_overflow"] = self.db_sync_max_overflow
+        return settings_dict
+
     # The docker-compose.yml file will set the REDIS_URI environment variable
     redis_uri: str = "redis://localhost:6379/0"
 

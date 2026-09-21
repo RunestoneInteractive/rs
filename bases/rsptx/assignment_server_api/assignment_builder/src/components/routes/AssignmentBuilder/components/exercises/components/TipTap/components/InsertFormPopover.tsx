@@ -1,11 +1,10 @@
-import { Button, Group, TextInput } from "@mantine/core";
-import { Editor } from "@tiptap/core";
-import { FC, FormEvent, KeyboardEvent, useEffect, useState } from "react";
-
 import {
   InsertFormKind,
   InsertFormRequest
 } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/extensions/InsertFormBridge";
+import { Button, Group, TextInput } from "@mantine/core";
+import { Editor } from "@tiptap/core";
+import { FC, FormEvent, KeyboardEvent, useEffect, useState } from "react";
 
 import styles from "./InsertFormPopover.module.css";
 

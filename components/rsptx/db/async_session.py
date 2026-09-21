@@ -15,8 +15,9 @@
 # -------------------
 # Use asyncio for SQLAlchemy -- see `SQLAlchemy Asynchronous I/O (asyncio) <https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html>`_.
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import select
 from cryptography.fernet import Fernet
 from typing import TypeAlias
@@ -38,18 +39,32 @@ extra_settings = (
     if settings.book_server_config == BookServerConfig.test
     else dict(echo=settings.db_echo)
 )
-try:
-    engine = create_async_engine(
-        settings.database_url, pool_size=10, connect_args=connect_args, **extra_settings
-    )
-except Exception as e:
-    rslogger.error(f"Error creating database engine: {e}")
-    engine = create_async_engine(
-        settings.database_url, connect_args=connect_args, **extra_settings
-    )
+# ``pool_settings`` is empty for SQLite, whose default pool does not accept
+# these arguments; see ``rsptx.configuration.core.Settings.pool_settings`` for
+# what the sizes mean and how they interact with pgbouncer.
+engine = create_async_engine(
+    settings.database_url,
+    connect_args=connect_args,
+    **settings.pool_settings,
+    **extra_settings,
+)
 
 # This creates the SessionLocal class.  An actual session is an instance of this class.
-async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+async_session = async_sessionmaker(engine, expire_on_commit=False)
+
+
+def pool_status() -> str:
+    """Return a one-line summary of the connection pool's occupancy.
+
+    Useful when tracking down ``QueuePool limit ... reached`` errors: log this
+    periodically (or expose it on a health endpoint) to see whether connections
+    are being held longer than expected.
+
+    :return: e.g. ``Pool size: 10  Connections in pool: 3 ...``
+    :rtype: str
+    """
+    return engine.pool.status()
+
 
 # This creates the base class we will use to create models
 Base: TypeAlias = declarative_base()  # type: ignore

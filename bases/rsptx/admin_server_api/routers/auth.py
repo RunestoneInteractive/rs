@@ -446,6 +446,7 @@ async def courses_page(request: Request, institution: str = ""):
             "open_books": open_books,
             "institution_courses": institution_courses,
             "institution": institution,
+            "direct_course": "",
             "error": None,
             **(await _navbar_context(user)),
         },
@@ -455,15 +456,25 @@ async def courses_page(request: Request, institution: str = ""):
 @router.post("/courses", response_class=HTMLResponse)
 async def courses_post(
     request: Request,
-    course_name: str = Form(...),
+    course_name: str = Form(default=""),
+    direct_course: str = Form(default=""),
     institution: str = Form(default=""),
 ):
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
 
-    course = await fetch_course(course_name)
-    if not course or not course.id:
+    # A typed course name is the one an instructor handed out, so it wins over
+    # any book or institution course the student also clicked. Letting the radio
+    # win enrolled them in the open base course instead, where the work they did
+    # counted for nothing and looked identical to the real course. See #1489.
+    # The rule lives here rather than only in the page's JavaScript so that it
+    # holds however the form is submitted.
+    typed = direct_course.strip()
+    chosen = typed or course_name.strip()
+
+    async def reenter(error: str):
+        """Re-render the form, keeping what the student typed."""
         open_books = await fetch_library_books()
         institution_courses = (
             await fetch_courses_by_institution(institution) if institution else []
@@ -476,9 +487,19 @@ async def courses_post(
                 "open_books": open_books,
                 "institution_courses": institution_courses,
                 "institution": institution,
-                "error": f"Course '{course_name}' not found. Please check the name and try again.",
+                "direct_course": typed,
+                "error": error,
                 **(await _navbar_context(user)),
             },
+        )
+
+    if not chosen:
+        return await reenter("Please enter a course name or choose a book.")
+
+    course = await fetch_course(chosen)
+    if not course or not course.id:
+        return await reenter(
+            f"Course '{chosen}' not found. Please check the name and try again."
         )
 
     already_enrolled = await user_in_course(user.id, course.id)
@@ -609,6 +630,8 @@ async def my_courses_page(
     requested_course: str = "",
     current_course: str = "",
     requested_path: str = "",
+    requested_assignment: str = "",
+    next: str = "",
 ):
     """List the user's courses.
 
@@ -620,6 +643,11 @@ async def my_courses_page(
     * ``bad_page``/``page_course`` -- the course exists but has no such page
     * ``requested_course``/``current_course``/``requested_path`` -- the course
       they asked for is not their active one
+
+    The assignment server bounces people here the same way when an assignment
+    link points at a course that is not their active one, naming the assignment
+    in ``requested_assignment`` and passing the link itself in ``next`` so that
+    switching courses takes them straight back to it.
 
     Without those the page gives no hint why the reader was redirected, which
     is what the old web2py ``courses.html`` explained. It also offered a
@@ -636,6 +664,14 @@ async def my_courses_page(
     if requested_course and requested_path:
         browse_url = await _browse_url(requested_course, requested_path)
 
+    # When we know exactly which course they need and they are already in it,
+    # the page can offer one button instead of making them find the row in a
+    # list that runs to dozens of courses.
+    enrolled_in_requested = requested_course and any(
+        c["course_name"] == requested_course
+        for c in ctx["class_courses"] + ctx["open_books"]
+    )
+
     return templates.TemplateResponse(
         "admin/auth/my_courses.html",
         {
@@ -647,6 +683,9 @@ async def my_courses_page(
             "page_course": page_course,
             "requested_course": requested_course,
             "current_course": current_course,
+            "requested_assignment": requested_assignment,
+            "enrolled_in_requested": enrolled_in_requested,
+            "next": _safe_next(next, default=""),
             "browse_url": browse_url,
             **ctx,
         },
@@ -654,8 +693,15 @@ async def my_courses_page(
 
 
 @router.post("/my_courses/switch", response_class=HTMLResponse)
-async def my_courses_switch(request: Request, course_name: str = Form(...)):
-    """Switch the user's active course."""
+async def my_courses_switch(
+    request: Request, course_name: str = Form(...), next: str = Form("")
+):
+    """Switch the user's active course.
+
+    ``next`` lets a caller that sent the user here -- a book page or an
+    assignment link in the wrong course -- get them back to what they clicked
+    once the switch is done.
+    """
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
@@ -676,7 +722,7 @@ async def my_courses_switch(request: Request, course_name: str = Form(...)):
     await update_user(
         user.id, {"course_name": course.course_name, "course_id": course.id}
     )
-    return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(_safe_next(next), status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/my_courses/drop", response_class=HTMLResponse)

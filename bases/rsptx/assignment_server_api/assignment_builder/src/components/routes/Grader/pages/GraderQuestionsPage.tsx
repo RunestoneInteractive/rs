@@ -1,23 +1,23 @@
 import { Button, Center, Checkbox, Loader, Tooltip } from "@mantine/core";
+import { useGetGraderQuestionsQuery } from "@store/grader/grader.logic.api";
 import { ColumnDef, FilterFn } from "@tanstack/react-table";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
-import { useGetGraderQuestionsQuery } from "@store/grader/grader.logic.api";
 
+import styles from "../Grader.module.css";
 import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
 import { MultiGradeDialog } from "../components/MultiGradeDialog";
 import { RegradeWizard } from "../components/RegradeWizard";
 import { ReleaseGradesControl } from "../components/ReleaseGradesControl";
 import { ThresholdControl } from "../components/ThresholdControl";
 import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import styles from "../Grader.module.css";
-import { effectiveViewMode, isAutogradeable } from "../state/graderSelectors";
 import { useViewModeStorage } from "../hooks/useViewModeStorage";
-import { getDemoQuestionsFor } from "../tour/graderDemoData";
+import { effectiveViewMode, isAutogradeable } from "../state/graderSelectors";
 import { useGraderTourContext } from "../tour/GraderTourContext";
+import { getDemoQuestionsFor } from "../tour/graderDemoData";
 
 const friendlyType = (t: string) => {
   const map: Record<string, string> = {
@@ -30,12 +30,16 @@ const friendlyType = (t: string) => {
     dragndrop: "Drag & drop",
     codelens: "Codelens",
     matching: "Matching",
-    webwork: "WeBWorK"
+    webwork: "WeBWorK",
+    page: "Reading"
   };
+
   return map[t] || t;
 };
 
-const MANUALLY_SCORED_TYPES = new Set(["shortanswer"]);
+// Types with no notion of a correct answer: what counts is the score on the
+// grade, whether a human put it there (short answer) or the reading rule did.
+const SCORE_BASED_CORRECT_TYPES = new Set(["shortanswer", "page"]);
 
 const PARTIAL_CREDIT_TYPES = new Set([
   "dragndrop",
@@ -54,17 +58,16 @@ type QuestionData = NonNullable<ReturnType<typeof getDemoQuestionsFor>>;
 type QuestionRow = QuestionData["questions"][number];
 
 interface QuestionStats {
+  attemptsPerStudent: number;
   correctPct: number;
   pointsPct: number;
-  isManual: boolean;
   usePartial: boolean;
-  correctLabel: string;
   correctTooltip: string;
   avgTooltip: string;
 }
 
 const computeStats = (q: QuestionRow): QuestionStats => {
-  const isManual = MANUALLY_SCORED_TYPES.has(q.question_type);
+  const isManual = SCORE_BASED_CORRECT_TYPES.has(q.question_type);
   const usePartial = PARTIAL_CREDIT_TYPES.has(q.question_type) && q.avg_percent != null;
 
   const correctPct = usePartial
@@ -75,8 +78,8 @@ const computeStats = (q: QuestionRow): QuestionStats => {
 
   const pointsPct = q.points > 0 ? (q.average_score / q.points) * 100 : 0;
   const avgDenominator = q.graded_count ?? 0;
+  const attemptsPerStudent = q.answered_count > 0 ? q.total_attempts / q.answered_count : 0;
 
-  const correctLabel = usePartial ? "avg. credit" : isManual ? "fully scored" : "fully correct";
   const correctTooltip = usePartial
     ? `Mean partial credit across all answers (${q.question_type})`
     : isManual
@@ -87,11 +90,10 @@ const computeStats = (q: QuestionRow): QuestionStats => {
     : "No graded submissions yet";
 
   return {
+    attemptsPerStudent,
     correctPct,
     pointsPct,
-    isManual,
     usePartial,
-    correctLabel,
     correctTooltip,
     avgTooltip
   };
@@ -148,11 +150,14 @@ export const GraderQuestionsPage: React.FC = () => {
   const typeOptions = useMemo(() => {
     if (!data) return [] as { label: string; value: string }[];
     const unique = Array.from(new Set(data.questions.map((q) => q.question_type)));
+
     return unique
       .map((t) => ({ label: friendlyType(t), value: t }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [data]);
 
+  // TODO(eslint): Stabilize the fallback collection without changing loading behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allQuestions = data?.questions ?? [];
 
   const columns = useMemo<ColumnDef<QuestionRow, unknown>[]>(
@@ -216,7 +221,7 @@ export const GraderQuestionsPage: React.FC = () => {
       },
       {
         accessorKey: "answered_count",
-        header: "Answered",
+        header: "Students attempted",
         filterFn: numericEquals,
         meta: {
           headerStyle: { width: 130 },
@@ -232,21 +237,21 @@ export const GraderQuestionsPage: React.FC = () => {
         )
       },
       {
-        accessorKey: "correct_count",
-        header: "Correct",
-        filterFn: numericEquals,
+        id: "attempts_per_student",
+        header: "Attempts / student",
+        accessorFn: (row) => (row.answered_count > 0 ? row.total_attempts / row.answered_count : 0),
+        enableColumnFilter: false,
         meta: {
-          headerStyle: { width: 130 },
+          headerStyle: { width: 160 },
           align: "right",
-          cellClassName: "numeric",
-          filter: { variant: "numeric", placeholder: "=" }
+          cellClassName: "numeric"
         },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
+
           return (
-            <span title={stats.correctTooltip}>
-              <strong>{row.original.correct_count}</strong>
-              <span className={styles.cellSubtle}> {stats.correctLabel}</span>
+            <span title="Average number of attempts among students who attempted the question">
+              <strong>{stats.attemptsPerStudent.toFixed(1)}</strong>
             </span>
           );
         }
@@ -258,6 +263,7 @@ export const GraderQuestionsPage: React.FC = () => {
         meta: { headerStyle: { width: 140 }, align: "right", cellClassName: "numeric" },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
+
           return (
             <span title={stats.avgTooltip}>
               <strong className={styles.cellStrong}>{row.original.average_score}</strong>
@@ -287,6 +293,7 @@ export const GraderQuestionsPage: React.FC = () => {
         meta: { headerStyle: { width: 150 }, align: "right", cellClassName: "numeric" },
         cell: ({ row }) => {
           const stats = computeStats(row.original);
+
           return (
             <div className={styles.percentCell}>
               <span title={stats.correctTooltip}>
@@ -383,7 +390,7 @@ export const GraderQuestionsPage: React.FC = () => {
             onClick={() => setShowMultiGrade(true)}
             data-tour="grader-multigrade-button"
           >
-            Multi-grade…
+            Grade manually…
           </Button>
         </Tooltip>
         <Button
@@ -392,7 +399,7 @@ export const GraderQuestionsPage: React.FC = () => {
           size="xs"
           onClick={() => setShowExtraTime(true)}
         >
-          Extra time…
+          Deadline accommodations…
         </Button>
         {hasSelection && (
           <span className={styles.selectionChip}>
@@ -467,6 +474,7 @@ export const GraderQuestionsPage: React.FC = () => {
         {data.questions.map((q) => {
           const stats = computeStats(q);
           const selected = selectedQuestionIds.includes(q.id);
+
           return (
             <div
               key={q.id}
@@ -501,11 +509,15 @@ export const GraderQuestionsPage: React.FC = () => {
                     data-tour="grader-q-answered"
                     title="Distinct students who submitted at least one attempt"
                   >
-                    <Icon name="users" size={14} /> <strong>{q.answered_count}</strong> answered
+                    <Icon name="users" size={14} /> <strong>{q.answered_count}</strong> students
+                    attempted
                   </span>
-                  <span data-tour="grader-q-correct" title={stats.correctTooltip}>
-                    <Icon name="check-circle" size={14} /> <strong>{q.correct_count}</strong>{" "}
-                    {stats.correctLabel}
+                  <span
+                    data-tour="grader-q-attempts"
+                    title="Average number of attempts among students who attempted the question"
+                  >
+                    <Icon name="history" size={14} />{" "}
+                    <strong>{stats.attemptsPerStudent.toFixed(1)}</strong> attempts / student
                   </span>
                 </div>
                 <div className={styles.metaRow}>

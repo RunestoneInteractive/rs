@@ -47,11 +47,12 @@ Option spec:
 
 <h3>Accessibility</h3>
 
-Each clickable area is rendered as a checkbox: it is reachable with the Tab key
-and is selected or unselected with Enter or the space bar. The set of clickable
-areas is a group named by the <code>data-question</code> text, and a screen
-reader announces the selected state of each area, the running selection count,
-and the result of Check Me.
+Each clickable area is rendered as a checkbox. The set of clickable areas has
+one stop in the page Tab order: arrow keys move between choices, Home and End
+move to the first and last choices, and Enter or the space bar selects or
+unselects the focused choice. Tab leaves the group. The group is named by the
+<code>data-question</code> text, and a screen reader announces the selected
+state of each area, the running selection count, and the result of Check Me.
 
 A clickable area is named by its own contents, so authors should make sure that
 content stands on its own. In particular, an image used as a clickable area

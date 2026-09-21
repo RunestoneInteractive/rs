@@ -30,12 +30,14 @@ export const getStudentStatus = (
   if (s.attempts === 0 && s.score == null) return "no_submission";
 
   if (isAutogradeManual(q?.autograde)) {
-    if (s.score != null || (s.comment && s.comment.length > 0)) return "graded";
+    if (s.score != null || s.hand_graded || (s.comment && s.comment.length > 0)) return "graded";
     return "pending";
   }
 
   if (s.score != null) {
-    if (s.comment && s.comment.length > 0) return "graded";
+    // hand_graded covers the instructor who changed a score without typing a
+    // comment: the server marks that row, so it still counts as graded here.
+    if (s.hand_graded || (s.comment && s.comment.length > 0)) return "graded";
     return "autograded";
   }
   return "pending";
@@ -66,8 +68,10 @@ export const getQuestionProgress = (
     inProgress: 0,
     donePct: 0
   };
+
   for (const a of answers) {
     const st = getStudentStatus(a, q, opts);
+
     if (st === "graded") out.graded++;
     else if (st === "autograded") out.autograded++;
     else if (st === "pending") out.pending++;
@@ -75,6 +79,7 @@ export const getQuestionProgress = (
     else if (st === "in_progress") out.inProgress++;
   }
   const done = out.graded + out.autograded;
+
   out.donePct = out.total ? (done / out.total) * 100 : 0;
   return out;
 };
@@ -87,6 +92,7 @@ export const findNextUngradedSid = (
 ): string | null => {
   for (let i = fromIndex + 1; i < answers.length; i++) {
     const st = getStudentStatus(answers[i], q, opts);
+
     if (st === "pending" || st === "in_progress") return answers[i].sid;
   }
   return null;

@@ -1,7 +1,7 @@
+import { notify } from "@components/ui/notify";
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { Exercise } from "@/types/exercises";
 
 import { ActivitiesRequiredCell } from "./ActivitiesRequiredCell";
@@ -17,8 +17,6 @@ vi.mock("@components/ui/notify", () => ({
     clean: vi.fn()
   }
 }));
-
-import { notify } from "@components/ui/notify";
 
 const reading = {
   id: 7,

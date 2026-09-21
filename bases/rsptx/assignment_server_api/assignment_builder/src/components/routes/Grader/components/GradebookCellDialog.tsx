@@ -10,11 +10,6 @@ import {
   Table,
   Text
 } from "@mantine/core";
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-
-import { Icon } from "@/components/ui/Icon";
-import { notify } from "@/components/ui/notify";
 import type {
   GradebookAssignment,
   GradebookStudent,
@@ -25,6 +20,11 @@ import {
   useGetStudentAssignmentScoresQuery,
   useRegradeMutation
 } from "@store/grader/grader.logic.api";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
+import { Icon } from "@/components/ui/Icon";
+import { notify } from "@/components/ui/notify";
 
 import styles from "../Grader.module.css";
 import { formatScore, isTotalStale, questionScoreSum } from "../state/gradebookSelectors";
@@ -224,9 +224,9 @@ export const GradebookCellDialog: React.FC<GradebookCellDialogProps> = ({
                       >
                         {label}
                       </Anchor>
-                      {/* "autograded" is the placeholder the autograder writes;
-                          only a real instructor comment is worth showing. */}
-                      {q.comment && q.comment !== "autograded" && (
+                      {/* The server strips the graders' own bookkeeping
+                          comments, so anything left is the instructor's. */}
+                      {q.comment && (
                         <Text size="xs" fs="italic" c="dimmed">
                           {q.comment}
                         </Text>

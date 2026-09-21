@@ -348,6 +348,25 @@ export const NON_CONTENT_PAGES = [
     "search.html",
 ];
 
+export function isCourseStarted() {
+    let startDate = eBookConfig.termStartDate; // format is "2026-09-22"
+    if (!startDate) {
+        return false;
+    }
+    let today = new Date();
+    let start = new Date(startDate);
+    return today >= start;
+}
+
+function courseNotStartedMessage() {
+    const formattedDate = new Date(eBookConfig.termStartDate).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    return ("Course has not started yet. Progress will be tracked starting on " + formattedDate);
+}
+
 /** True when pathname names one of the NON_CONTENT_PAGES. */
 export function isNonContentPage(pathname = window.location.pathname) {
     let page = pathname.split("/").pop().toLowerCase();
@@ -439,6 +458,11 @@ export class PageProgressBar {
             value = (100 * this.total) / this.possible;
         } catch (e) {
             value = 0;
+        }
+        let progressText = document.getElementById("scprogress-activity-count");
+        // Warn if course not started
+        if(progressText && !isCourseStarted()) {
+            progressText.appendChild(document.createTextNode(courseNotStartedMessage()));
         }
         // Replace #subchapterprogress div with a native <progress> element if not already done
         let subchapterprogress = document.getElementById("subchapterprogress");
@@ -1080,6 +1104,22 @@ async function handlePageSetup() {
             }
         }
     }
+
+    // PTX generated pages may have stale HTML. Forcibly re-render the content
+    // of the progress container. Any logic that modifies the progress container
+    // should be done after this point, or it will be overwritten.
+    const scprogresscontainer = document.getElementById(
+        "scprogresscontainer",
+    );
+    if (scprogresscontainer)
+        scprogresscontainer.innerHTML = `
+            <div id="scprogress-activity-count">
+                You have attempted <span id="scprogresstotal"></span> of
+                <span id="scprogressposs"></span> activities on this page.
+            </div>
+            <div id="subchapterprogress" aria-label="Page progress"></div>
+        `;
+
     console.log(`This page served by ${eBookConfig.served_by}`);
     if (eBookConfig.isLoggedIn) {
         mess = `username: ${eBookConfig.username}`;
@@ -1094,7 +1134,23 @@ async function handlePageSetup() {
             }
         }
         document.dispatchEvent(new Event("runestone:login"));
+
         addReadingList();
+
+        // Warn if the course has not started yet
+        if (!isCourseStarted()) {
+            const ptxContent = document.getElementById("ptx-content");
+            if (ptxContent) {
+                const warningContainer = document.createElement("div");
+                warningContainer.className = "ptx-runestone-container";
+                const warningDiv = document.createElement("div");
+                warningDiv.className = "course-not-started-warning alert alert-danger";
+                warningDiv.textContent = courseNotStartedMessage();
+                warningContainer.appendChild(warningDiv);
+                ptxContent.insertBefore(warningContainer, ptxContent.firstChild);
+            }
+        }
+
         // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
         // This is a temporary measure to limit the widget to courses that are known to work well with it and to avoid showing it on non-book pages where it may not be as useful.
         if (shouldShowStudyCluesWidget()) {

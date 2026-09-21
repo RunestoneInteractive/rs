@@ -30,6 +30,7 @@ import botocore.config
 
 # Local application imports
 # -------------------------
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.crud import (
@@ -120,7 +121,10 @@ async def get_assessment_results(
     # get grade and instructor feedback if Any
     grades = await fetch_question_grade(sid, request_data.course, request_data.div_id)
     if grades:
-        ret["comment"] = grades.comment
+        # The graders' own bookkeeping words ("autograded" and the hand-graded
+        # marker) are not feedback and used to be shown to the student next to
+        # their score.
+        ret["comment"] = display_comment(grades.comment)
         ret["score"] = grades.score
     rslogger.debug(f"Returning {ret}")
     return make_json_response(detail=ret)

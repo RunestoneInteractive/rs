@@ -1,5 +1,6 @@
 import { Editor } from "@tiptap/react";
 import React from "react";
+
 import defaultStyles from "../Editor.module.css";
 
 interface TableRowMenuProps {
@@ -34,6 +35,7 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
 
     // Find the position of the clicked row in the table
     const table = rowElement.closest("table");
+
     if (!table) return;
 
     const rows = Array.from(table.querySelectorAll("tr"));
@@ -47,9 +49,11 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
 
     // Find the table node and calculate the position
     let tablePos = -1;
+
     doc.descendants((node, pos) => {
       if (node.type.name === "table") {
         const domNode = view.nodeDOM(pos);
+
         if (domNode === table) {
           tablePos = pos;
           return false;
@@ -61,8 +65,10 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
 
     // Calculate position by traversing rows
     let currentPos = tablePos + 1; // Start inside table
+
     for (let i = 0; i < rowIndex; i++) {
       const rowNode = doc.nodeAt(currentPos);
+
       if (rowNode) {
         currentPos += rowNode.nodeSize;
       }
@@ -82,6 +88,7 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
     if (!rowElement) return;
 
     const table = rowElement.closest("table");
+
     if (!table) return;
 
     const rows = Array.from(table.querySelectorAll("tr"));
@@ -93,9 +100,11 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
     const { doc } = state;
 
     let tablePos = -1;
+
     doc.descendants((node, pos) => {
       if (node.type.name === "table") {
         const domNode = view.nodeDOM(pos);
+
         if (domNode === table) {
           tablePos = pos;
           return false;
@@ -106,8 +115,10 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
     if (tablePos === -1) return;
 
     let currentPos = tablePos + 1;
+
     for (let i = 0; i < rowIndex; i++) {
       const rowNode = doc.nodeAt(currentPos);
+
       if (rowNode) {
         currentPos += rowNode.nodeSize;
       }
@@ -133,6 +144,7 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
     }
 
     const table = rowElement.closest("table");
+
     if (!table) return;
 
     const rows = Array.from(table.querySelectorAll("tr"));
@@ -144,9 +156,11 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
     const { doc } = state;
 
     let tablePos = -1;
+
     doc.descendants((node, pos) => {
       if (node.type.name === "table") {
         const domNode = view.nodeDOM(pos);
+
         if (domNode === table) {
           tablePos = pos;
           return false;
@@ -157,8 +171,10 @@ export const TableRowMenu: React.FC<TableRowMenuProps> = ({
     if (tablePos === -1) return;
 
     let currentPos = tablePos + 1;
+
     for (let i = 0; i < rowIndex; i++) {
       const rowNode = doc.nodeAt(currentPos);
+
       if (rowNode) {
         currentPos += rowNode.nodeSize;
       }

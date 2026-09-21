@@ -1,7 +1,7 @@
+import { notify } from "@components/ui/notify";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@store/baseQuery";
 import { datasetActions } from "@store/dataset/dataset.logic";
-import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import { TableDropdownOption, SectionsResponse } from "@/types/dataset";

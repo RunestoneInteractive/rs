@@ -11,6 +11,7 @@
 # Standard library
 # ----------------
 import ast
+import asyncio
 import html
 import json
 
@@ -168,6 +169,25 @@ def extract_parsons_solution(parsonsexample_code):
             if line.strip() and line.strip() != "=====":
                 clean_lines.append(html.unescape(line))
     return "\n".join(clean_lines)
+
+
+def _escape_parsons_block_markup(block_markup):
+    """
+    The generated "---"-separated block markup is about to be embedded into a
+    <pre class="parsonsblocks"> element and re-parsed from innerHTML by
+    parsons.js, so a bare "<" in the code (e.g. "if hours <= 1:") would be
+    misread as the start of an HTML tag. HTML-escape it -- the Parsons widget
+    renders entities back to their literal characters, the same way it already
+    handles the escaped DB-authored markup (see extract_parsons_code).
+
+    "<" is the only character that actually breaks parsing here -- ">" is plain
+    data in element content and "&" only matters before a valid entity name --
+    but html.escape covers "&"/">" too, which round-trip harmlessly through the
+    widget. A previous version instead inserted a space after "<", which turned
+    every "<="/"<" in the code into "< ="/"< ". The generated code never
+    contains pre-existing entities, so escaping is safe to apply unconditionally.
+    """
+    return html.escape(block_markup, quote=False)
 
 
 def _extract_suffix_code_from_htmlsrc(htmlsrc):
@@ -397,6 +417,18 @@ async def parsons_scaffolding(
         basecourse = getattr(course, "base_course", None)
         question = await fetch_question(problem_id, basecourse=basecourse)
         if not question:
+            # A cloned course keeps the original book's base_course on its
+            # question rows, and selectquestion can pull an exercise from
+            # another book, so the base-course-scoped lookup misses even
+            # though the question exists. Fall back to a global name match --
+            # the same resolution get_question_source and /htmlsrc use.
+            question = await fetch_question(problem_id)
+            if question:
+                rslogger.warning(
+                    f"CodeTailor: '{problem_id}' not in base course '{basecourse}' "
+                    f"(likely a cloned course); resolved via global name match"
+                )
+        if not question:
             rslogger.error(
                 f"CodeTailor: no question found for problem_id '{problem_id}'"
             )
@@ -497,8 +529,13 @@ async def parsons_scaffolding(
                 generate_Parsons_block,
             )
 
-            example_code = get_example_solution(
-                api_token, language, problem_description, internal_test_case
+            # Calls out to an LLM; keep the blocking client off the event loop.
+            example_code = await asyncio.to_thread(
+                get_example_solution,
+                api_token,
+                language,
+                problem_description,
+                internal_test_case,
             )
             if not example_code:
                 return (
@@ -518,7 +555,7 @@ async def parsons_scaffolding(
                 [],
                 {},
             )
-            example_block = re.sub(r"<(?=\S)", "< ", example_block)
+            example_block = _escape_parsons_block_markup(example_block)
             parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
 {example_block}
@@ -540,7 +577,10 @@ async def parsons_scaffolding(
             personalized_Parsons_block,
             personalized_solution_generation_type,
             personalized_generation_result_type,
-        ) = parsons_help(
+        ) = await asyncio.to_thread(
+            # parsons_help talks to an LLM and to jobe with blocking clients, so
+            # it has to run in a thread or it stalls the whole event loop.
+            parsons_help,
             language,
             student_code,
             problem_id,
@@ -570,8 +610,8 @@ async def parsons_scaffolding(
                 + personalized_generation_result_type
             )
         else:
-            personalized_Parsons_block = re.sub(
-                r"<(?=\S)", "< ", personalized_Parsons_block
+            personalized_Parsons_block = _escape_parsons_block_markup(
+                personalized_Parsons_block
             )
             personalized_Parsons_html = f"""
             <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">

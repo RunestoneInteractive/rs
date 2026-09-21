@@ -18,6 +18,11 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
+import { datasetSelectors } from "@store/dataset/dataset.logic";
+import {
+  searchExercisesActions,
+  searchExercisesSelectors
+} from "@store/searchExercises/searchExercises.logic";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -26,11 +31,6 @@ import {
   RowSelectionState,
   SortingState
 } from "@tanstack/react-table";
-import {
-  searchExercisesActions,
-  searchExercisesSelectors
-} from "@store/searchExercises/searchExercises.logic";
-import { datasetSelectors } from "@store/dataset/dataset.logic";
 import { useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 

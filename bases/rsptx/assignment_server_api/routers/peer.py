@@ -47,6 +47,7 @@ from rsptx.db.crud import (
     update_assignment,
 )
 from rsptx.db.models import Useinfo, UseinfoValidation
+from .course_guard import assignment_course_redirect
 from rsptx.endpoint_validators import instructor_role_required, with_course
 
 # Local application imports
@@ -448,6 +449,19 @@ async def get_peer_question(
 
     # Fetch the assignment and its questions
     assignment = await fetch_one_assignment(assignment_id)
+    if not assignment:
+        return JSONResponse(status_code=404, content={"detail": "Assignment not found"})
+
+    # A direct link carries only the assignment id, so make sure it belongs to
+    # the student's active course before letting them answer (issue #1494).
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/peer/student/question?assignment_id={assignment_id}",
+    )
+    if wrong_course:
+        return wrong_course
 
     # Get all questions for this assignment
     questions_result = await fetch_assignment_questions(assignment_id)
@@ -628,6 +642,16 @@ async def get_peer_async(
     assignment = await fetch_one_assignment(assignment_id)
     if not assignment:
         return JSONResponse(status_code=404, content={"detail": "Assignment not found"})
+
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/peer/student/async?assignment_id={assignment_id}"
+        f"&question_num={question_num}",
+    )
+    if wrong_course:
+        return wrong_course
 
     if not assignment.peer_async_visible:
         return JSONResponse(

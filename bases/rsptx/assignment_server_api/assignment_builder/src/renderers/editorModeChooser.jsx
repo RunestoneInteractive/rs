@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   setComponent,
   selectComponent,
-  selectComponentOptions,
+  selectComponentOptions
 } from "../state/componentEditor/editorSlice";
 import { setQuestionType } from "../state/interactive/interactiveSlice";
 
@@ -41,7 +41,7 @@ export function EditorChooser() {
 export const kindMap = {
   activecode: ActiveCodeCreator,
   multiplechoice: MultipleChoiceCreator,
-  shortanswer: ShortAnswerCreator,
+  shortanswer: ShortAnswerCreator
 };
 
 /**
@@ -70,9 +70,9 @@ export function EditorContainer(props) {
 
 EditorContainer.propTypes = {
   componentName: PropTypes.string,
-  editonly: PropTypes.bool,
+  editonly: PropTypes.bool
 };
 EditorContainer.defaultProps = {
   componentName: null,
-  editonly: false,
+  editonly: false
 };

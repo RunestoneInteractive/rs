@@ -22,8 +22,8 @@ import {
   ParsonsBlocksManager,
   ParsonsOptions
 } from "./components";
-import { ParsonsExerciseTour } from "./components/ParsonsExerciseTour";
 import parsonsStyles from "./components/ParsonsExercise.module.css";
+import { ParsonsExerciseTour } from "./components/ParsonsExerciseTour";
 
 export type ParsonsMode = "simple" | "enhanced";
 
@@ -224,6 +224,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               depends: undefined,
               displayOrder: undefined
             }));
+
             updateFormData("blocks", clearedBlocks);
             setMode("simple");
           }
@@ -292,6 +293,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
                     }
                     return block;
                   });
+
                   updateFormData("blocks", updatedBlocks);
                 }
               }}

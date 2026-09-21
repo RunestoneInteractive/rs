@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+
 import { assignmentSlice, assignmentActions, assignmentSelectors } from "./assignment.logic";
 
 const buildStore = (preloaded?: { assignmentTemp: { selectedAssignmentId: number | null } }) =>
@@ -10,6 +11,7 @@ const buildStore = (preloaded?: { assignmentTemp: { selectedAssignmentId: number
 describe("assignmentSlice reducer", () => {
   it("returns initial state with selectedAssignmentId null when no action dispatched", () => {
     const store = buildStore();
+
     expect(store.getState().assignmentTemp.selectedAssignmentId).toBeNull();
   });
 

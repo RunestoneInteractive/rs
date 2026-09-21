@@ -19,7 +19,7 @@ import {
   setPoints,
   setFromSource,
   setReleased,
-  fetchAssignmentQuestions,
+  fetchAssignmentQuestions
 } from "../state/assignment/assignSlice";
 
 /**
@@ -44,19 +44,19 @@ export function AssignmentPicker() {
 
   const menuStyle = {
     width: "25rem",
-    marginBottom: "10px",
+    marginBottom: "10px"
   };
 
   const optionStyle = {
     width: "12rem",
     marginRight: "10px",
     textAlign: "left",
-    float: "left",
+    float: "left"
   };
 
   const optionStyle2 = {
     width: "12rem",
-    textAlign: "end",
+    textAlign: "end"
   };
 
   const renderAssignmentOption = ({ option }) => {

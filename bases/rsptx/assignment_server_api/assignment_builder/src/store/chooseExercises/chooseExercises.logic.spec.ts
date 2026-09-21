@@ -1,12 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 
+import { Exercise } from "@/types/exercises";
+
 import {
   chooseExercisesActions,
   chooseExercisesSelectors,
   chooseExercisesSlice,
   ChooseExercisesState
 } from "./chooseExercises.logic";
-import { Exercise } from "@/types/exercises";
 
 const makeExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
   id: 1,
@@ -78,6 +79,7 @@ describe("chooseExercisesSlice reducer", () => {
       store.dispatch(chooseExercisesActions.setSelectedExercises([ex1, ex2]));
 
       const { selectedExercises } = store.getState().chooseExercises;
+
       expect(selectedExercises).toHaveLength(2);
       expect(selectedExercises[0].name).toBe("ex2");
       expect(selectedExercises[1].name).toBe("ex1");
@@ -91,6 +93,7 @@ describe("chooseExercisesSlice reducer", () => {
       store.dispatch(chooseExercisesActions.setSelectedExercises([regular, reading]));
 
       const { selectedExercises } = store.getState().chooseExercises;
+
       expect(selectedExercises).toHaveLength(1);
       expect(selectedExercises[0].name).toBe("regular");
     });
@@ -103,6 +106,7 @@ describe("chooseExercisesSlice reducer", () => {
       store.dispatch(chooseExercisesActions.setSelectedExercises([regular, page]));
 
       const { selectedExercises } = store.getState().chooseExercises;
+
       expect(selectedExercises).toHaveLength(1);
       expect(selectedExercises[0].name).toBe("regular");
     });
@@ -118,6 +122,7 @@ describe("chooseExercisesSlice reducer", () => {
 
     it("sets selectedExercises to empty array when given an empty array", () => {
       const store = buildStore();
+
       store.dispatch(chooseExercisesActions.setSelectedExercises([]));
 
       expect(store.getState().chooseExercises.selectedExercises).toEqual([]);
@@ -205,6 +210,7 @@ describe("chooseExercisesSlice reducer", () => {
       store.dispatch(chooseExercisesActions.resetSelections());
 
       const state = store.getState().chooseExercises;
+
       expect(state.exercisesToAdd).toEqual([]);
       expect(state.exercisesToRemove).toEqual([]);
       expect(state.selectedExercises).toHaveLength(1);

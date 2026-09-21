@@ -1,52 +1,52 @@
-import react from '@vitejs/plugin-react';
-import { defineConfig as viteDefineConfig } from 'vite';
-import checker from 'vite-plugin-checker';
-import commonjs from 'vite-plugin-commonjs';
-import viteTsconfig from 'vite-tsconfig-paths';
-import { defineConfig, mergeConfig } from 'vitest/config';
+import react from "@vitejs/plugin-react";
+import { defineConfig as viteDefineConfig } from "vite";
+import checker from "vite-plugin-checker";
+import commonjs from "vite-plugin-commonjs";
+import viteTsconfig from "vite-tsconfig-paths";
+import { defineConfig, mergeConfig } from "vitest/config";
 
-import svgTransformFile from './scripts/svgTransformFile';
+import svgTransformFile from "./scripts/svgTransformFile";
 
 export default mergeConfig(
   viteDefineConfig({
-    base: '/',
+    base: "/",
     plugins: [
       viteTsconfig(),
       checker({
-        typescript: true,
+        typescript: true
       }),
       {
-        name: 'transform-svg',
+        name: "transform-svg",
         transform(_, fileName) {
-          if (fileName.endsWith('.svg')) return svgTransformFile(fileName);
-        },
+          if (fileName.endsWith(".svg")) return svgTransformFile(fileName);
+        }
       },
       react(),
-      commonjs(),
-    ],
+      commonjs()
+    ]
   }),
   defineConfig({
     test: {
       globals: true,
-      environment: 'jsdom',
-      setupFiles: 'vitest.setup.ts',
+      environment: "jsdom",
+      setupFiles: "vitest.setup.ts",
       testTimeout: 10000,
       hookTimeout: 10000,
-      include: ['src/**/*.spec.*'],
+      include: ["src/**/*.spec.*"],
       clearMocks: true,
       coverage: {
-        provider: 'istanbul',
-        reporter: ['html', 'text'],
-        include: ['src/**/*.{ts,tsx}'],
-        reportOnFailure: true,
+        provider: "istanbul",
+        reporter: ["html", "text"],
+        include: ["src/**/*.{ts,tsx}"],
+        reportOnFailure: true
       },
-      pool: 'threads',
+      pool: "threads",
       poolOptions: {
         threads: {
           minThreads: 4,
-          maxThreads: 8,
-        },
-      },
-    },
-  }),
+          maxThreads: 8
+        }
+      }
+    }
+  })
 );

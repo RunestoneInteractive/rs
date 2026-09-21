@@ -6,12 +6,14 @@ Reports are generated as background tasks; results are stored in Redis
 so any server in the cluster can serve the polling responses.
 """
 
+import asyncio
 import json
 import uuid
 from typing import Optional
 
 import pandas as pd
 import redis as redis_lib
+from redis import asyncio as aioredis
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -22,9 +24,9 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
-from sqlalchemy import create_engine
 
 from rsptx.auth.session import auth_manager
+from rsptx.db.sync_session import engine
 from rsptx.configuration import settings
 from rsptx.endpoint_validators import instructor_role_required, with_course
 from rsptx.logging import rslogger
@@ -64,9 +66,43 @@ def _format_duedate(value, course_timezone: Optional[str]) -> str:
 
 TASK_TTL_SECONDS = 1800  # 30 minutes
 
+# One client of each flavour per process, built on first use. ``from_url``
+# constructs a *new* connection pool every time it is called, so calling it per
+# request leaked a pool -- and its sockets -- on every poll of a running report.
+# Both clients are internally pooled and safe to share.
+_sync_client: Optional[redis_lib.Redis] = None
+_async_client: Optional[aioredis.Redis] = None
+
 
 def _get_redis() -> redis_lib.Redis:
-    return redis_lib.from_url(settings.redis_uri, decode_responses=True)
+    """Return the shared blocking client; only use it from a worker thread."""
+    global _sync_client
+    if _sync_client is None:
+        _sync_client = redis_lib.from_url(settings.redis_uri, decode_responses=True)
+    return _sync_client
+
+
+def _get_async_redis() -> aioredis.Redis:
+    """Return the shared asyncio client, for use from request handlers.
+
+    The blocking client's ``get``/``set`` are ordinary socket round trips. Called
+    from an ``async def`` handler they stall the event loop, and the two
+    result-polling endpoints are hit every second or two for the whole life of a
+    report -- once per instructor watching one.
+    """
+    global _async_client
+    if _async_client is None:
+        _async_client = aioredis.from_url(settings.redis_uri, decode_responses=True)
+    return _async_client
+
+
+def _to_csv(records: list, na_rep: str) -> str:
+    """Render cached report records as CSV.
+
+    Blocking (pandas); call via ``asyncio.to_thread``. A full-course report is
+    a wide table -- one column per student -- so this is not free.
+    """
+    return pd.DataFrame(records).to_csv(index=False, na_rep=na_rep)
 
 
 def _task_key(task_id: str) -> str:
@@ -77,8 +113,14 @@ def _set_task(r: redis_lib.Redis, task_id: str, payload: dict) -> None:
     r.set(_task_key(task_id), json.dumps(payload), ex=TASK_TTL_SECONDS)
 
 
-def _get_task(r: redis_lib.Redis, task_id: str) -> Optional[dict]:
-    raw = r.get(_task_key(task_id))
+async def _aset_task(key: str, payload: dict) -> None:
+    """Store a task payload under the already-built ``key``."""
+    await _get_async_redis().set(key, json.dumps(payload), ex=TASK_TTL_SECONDS)
+
+
+async def _aget_task(key: str) -> Optional[dict]:
+    """Read a task payload, or None if it never existed or has expired."""
+    raw = await _get_async_redis().get(key)
     if raw is None:
         return None
     return json.loads(raw)
@@ -126,8 +168,6 @@ def _build_report(
     """Run in a BackgroundTask. Writes result JSON to Redis."""
     r = _get_redis()
     try:
-        engine = create_engine(settings.dburl)
-
         if tablekind == "correctcount":
             data = _make_correct_count(engine, course_name, base_course, chapter)
         else:
@@ -141,16 +181,23 @@ def _build_report(
         _set_task(r, task_id, {"status": "error", "message": str(exc)})
 
 
-def _chapter_clause_for_useinfo(chapter: str) -> str:
+def _chapter_clause(column: str, chapter: str, params: dict) -> str:
+    """Return a bound ``and <column> = %(chapter)s`` fragment, or ``""`` for all.
+
+    The chapter label arrives in a request body, so it is bound as a parameter
+    rather than interpolated: the previous ``f"and chapter = \'{chapter}\'"``
+    put caller-supplied text straight into the SQL.
+
+    :param column: the qualified column to compare, e.g. ``questions.chapter``.
+    :param chapter: the requested chapter label, or ``"all"``.
+    :param params: the query's parameter dict; mutated to carry ``chapter``.
+    :return: a SQL fragment to splice into the query.
+    :rtype: str
+    """
     if chapter == "all":
         return ""
-    return f"and chapter = '{chapter}'"
-
-
-def _chapter_clause_for_chapters(chapter: str, chap_labs: list) -> str:
-    if chapter == "all":
-        return ""
-    return f"and chapters.chapter_label = '{chapter}'"
+    params["chapter"] = chapter
+    return f"and {column} = %(chapter)s"
 
 
 def _student_label(last_name: str, first_name: str, username: str) -> str:
@@ -197,6 +244,34 @@ def _pad_with_enrolled(pt: pd.DataFrame, labels: list, fill_value) -> pd.DataFra
     return pt[sorted(pt.columns, key=lambda col: str(col).lower())]
 
 
+# The aggregate and pivot index for each table kind. The aggregation runs in
+# PostgreSQL rather than in pandas because the un-aggregated form of this query
+# returns one row per recorded click: for a large course that is millions of
+# rows, and building/pivoting that DataFrame holds the GIL for seconds at a
+# time. A worker thread holding the GIL stalls the event loop just as surely as
+# blocking on it directly -- which is exactly what the pool monitor reports as
+# loop lag. Aggregating first turns the result into one row per
+# (student, subchapter), which is what the report actually displays.
+_ACTIVITY_AGGREGATES = {
+    "sccount": ("count(distinct useinfo.div_id)", ["chapter", "subchapter"], False),
+    "dividmin": (
+        "min(useinfo.timestamp)",
+        ["chapter", "subchapter", "div_id"],
+        True,
+    ),
+    "dividmax": (
+        "max(useinfo.timestamp)",
+        ["chapter", "subchapter", "div_id"],
+        True,
+    ),
+}
+_DEFAULT_ACTIVITY_AGGREGATE = (
+    "count(useinfo.timestamp)",
+    ["chapter", "subchapter", "div_id"],
+    False,
+)
+
+
 def _make_activity_table(
     engine,
     course_name: str,
@@ -206,56 +281,49 @@ def _make_activity_table(
     tz_offset_hours: float,
 ) -> list:
     """Builds sccount / dividmin / dividmax pivot tables."""
-    ch_clause = _chapter_clause_for_useinfo(chapter)
+    agg_expr, idxlist, is_timestamp = _ACTIVITY_AGGREGATES.get(
+        tablekind, _DEFAULT_ACTIVITY_AGGREGATE
+    )
+    params = {"base_course": base_course, "course_name": course_name}
+    ch_clause = _chapter_clause("questions.chapter", chapter, params)
 
+    # div_id is only in the index for the per-exercise tables; leaving it out of
+    # the GROUP BY for sccount is what collapses the result to one row per
+    # subchapter per student.
+    extra_group = ", useinfo.div_id" if "div_id" in idxlist else ""
+
+    # The student label, the LTI-anonymous filter and the timezone shift all used
+    # to be per-row pandas work over the raw click log. In SQL they cost nothing.
     data = pd.read_sql_query(
         f"""
-        select sid, first_name, last_name, useinfo.timestamp, div_id, chapter, subchapter
+        select auth_user.last_name || ', ' || auth_user.first_name
+                   || ' (' || useinfo.sid || ')' as sid,
+               questions.chapter, questions.subchapter{extra_group},
+               {agg_expr} as value
         from useinfo
-        join questions on div_id = name and base_course = %(base_course)s {ch_clause}
-        join auth_user on username = useinfo.sid
-        where useinfo.course_id = %(course_name)s and active = 'T'
+        join questions on useinfo.div_id = questions.name
+                      and questions.base_course = %(base_course)s {ch_clause}
+        join auth_user on auth_user.username = useinfo.sid
+        where useinfo.course_id = %(course_name)s
+          and auth_user.active = 'T'
+          and auth_user.username !~ '^[0-9]{{38,}}@'
+        group by 1, questions.chapter, questions.subchapter{extra_group}
         """,
         engine,
-        params={"base_course": base_course, "course_name": course_name},
-        parse_dates=["timestamp"],
+        params=params,
+        parse_dates=["value"] if is_timestamp else None,
     )
-
-    # Remove LTI anonymous users (38+ digit @ usernames)
-    data = data[~data.sid.str.contains(r"^\d{38,}@", regex=True)]
-
-    # Apply timezone offset
-    tdoff = pd.Timedelta(hours=tz_offset_hours)
-    data["timestamp"] = data["timestamp"].map(lambda x: x - tdoff)
-
-    # Build student label — must match _student_label(), which is used to
-    # backfill students with no recorded activity.
-    data["sid"] = (
-        data["last_name"] + ", " + data["first_name"] + " (" + data["sid"] + ")"
-    )
-
-    if tablekind == "sccount":
-        values = "div_id"
-        afunc = "nunique"
-        idxlist = ["chapter", "subchapter"]
-    elif tablekind == "dividmin":
-        values = "timestamp"
-        afunc = "min"
-        idxlist = ["chapter", "subchapter", "div_id"]
-    elif tablekind == "dividmax":
-        values = "timestamp"
-        afunc = "max"
-        idxlist = ["chapter", "subchapter", "div_id"]
-    else:
-        values = "timestamp"
-        afunc = "count"
-        idxlist = ["chapter", "subchapter", "div_id"]
 
     if data.empty:
         rslogger.warning(f"Empty dataframe for subchapoverview {course_name}/{chapter}")
         return []
 
-    pt = data.pivot_table(index=idxlist, values=values, columns="sid", aggfunc=afunc)
+    # Vectorized, and over the aggregated frame rather than every click.
+    if is_timestamp:
+        data["value"] = data["value"] - pd.Timedelta(hours=tz_offset_hours)
+
+    # One row per (index, student) already, so "first" simply reshapes.
+    pt = data.pivot_table(index=idxlist, values="value", columns="sid", aggfunc="first")
 
     if pt.empty:
         return []
@@ -274,10 +342,8 @@ def _make_activity_table(
     )
 
     # Pull chapter/subchapter ordering info
-    if chapter == "all":
-        ch_join_clause = ""
-    else:
-        ch_join_clause = f"and chapters.chapter_label = '{chapter}'"
+    cmap_params = {"base_course": base_course}
+    ch_join_clause = _chapter_clause("chapters.chapter_label", chapter, cmap_params)
 
     cmap = pd.read_sql_query(
         f"""
@@ -288,7 +354,7 @@ def _make_activity_table(
         order by chapter_num, sub_chapter_num
         """,
         engine,
-        params={"base_course": base_course},
+        params=cmap_params,
     )
 
     act_count = pd.read_sql_query(
@@ -363,40 +429,51 @@ def _make_correct_count(
     chapter: str,
 ) -> list:
     """Builds the correctcount pivot table from all answer tables."""
-    union_parts = "\n    union\n    ".join(
-        f"(select div_id, sid, correct, percent from {tbl} where course_name = %(course_name)s)"
+    # Both the ``correct`` test and the chapter filter used to run in pandas,
+    # after every answer row in the course had been pulled out of eight tables
+    # and joined to ``questions``. Pushing them -- and the de-duplication and the
+    # count -- into SQL turns a frame with one row per submission into one row
+    # per (subchapter, student). See ``_ACTIVITY_AGGREGATES`` for why the size of
+    # that frame is what the admin server's loop lag was really about.
+    params = {"course_name": course_name, "base_course": base_course}
+    ch_clause = _chapter_clause("questions.chapter", chapter, params)
+
+    # ``union all`` rather than ``union``: the ``select distinct`` below subsumes
+    # the cross-table de-duplication the old query paid for twice.
+    union_parts = "\n            union all\n            ".join(
+        f"(select div_id, sid, percent from {tbl}"
+        f" where course_name = %(course_name)s and correct = 'T')"
         for tbl in ANSWER_TABLES
     )
     df = pd.read_sql_query(
         f"""
-        select div_id, sid, correct, percent, chapter, subchapter
+        select subchapter as chapter_label, sid, count(*) as n
         from (
+            select distinct T.div_id, T.sid, T.percent,
+                   questions.chapter, questions.subchapter
+            from (
             {union_parts}
-        ) as T
-        join questions on div_id = name and base_course = %(base_course)s
+            ) as T
+            join questions on T.div_id = questions.name
+                          and questions.base_course = %(base_course)s {ch_clause}
+        ) as d
+        group by 1, 2
         """,
         engine,
-        params={"course_name": course_name, "base_course": base_course},
+        params=params,
     )
 
-    if chapter == "all":
-        correct = df[df.correct == "T"]
-    else:
-        correct = df[(df.correct == "T") & (df.chapter == chapter)]
-
-    correct = correct.drop_duplicates()
-
-    if correct.empty:
+    if df.empty:
         return []
 
-    mtbl = correct.pivot_table(
-        index="subchapter",
+    # One row per (subchapter, student) already, so this only reshapes.
+    mtbl = df.pivot_table(
+        index="chapter_label",
         columns="sid",
-        values="correct",
-        aggfunc="count",
+        values="n",
+        aggfunc="sum",
         fill_value=0,
-    )
-    mtbl = mtbl.reset_index().rename(columns={"subchapter": "chapter_label"})
+    ).reset_index()
     mtbl.sort_values("chapter_label", inplace=True)
 
     # Ensure all enrolled students appear (even those with 0 correct)
@@ -462,8 +539,10 @@ def _build_student_detail(
 
     # Apply timezone offset
     if not activity.empty:
-        activity["first_visit"] = activity["first_visit"].map(lambda x: x - tdoff)
-        activity["last_visit"] = activity["last_visit"].map(lambda x: x - tdoff)
+        # Vectorized: ``.map(lambda ...)`` over a datetime column is a Python
+        # call per row, and every one of them holds the GIL.
+        activity["first_visit"] = activity["first_visit"] - tdoff
+        activity["last_visit"] = activity["last_visit"] - tdoff
 
     # ------------------------------------------------------------------
     # 2. Answers from all graded answer tables
@@ -645,6 +724,24 @@ def _build_student_detail(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_chapters(base_course: str) -> list:
+    """Return the chapter list for ``base_course``.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+    """
+    chapters_df = pd.read_sql_query(
+        """
+        select chapter_name, chapter_label
+        from chapters
+        where course_id = %(base_course)s
+        order by chapter_num
+        """,
+        engine,
+        params={"base_course": base_course},
+    )
+    return chapters_df.to_dict(orient="records")
+
+
 @router.get("/subchapoverview", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
@@ -654,18 +751,7 @@ async def get_subchapoverview(
     course=None,
 ):
     """Serve the chapter overview report shell page."""
-    engine = create_engine(settings.dburl)
-    chapters_df = pd.read_sql_query(
-        """
-        select chapter_name, chapter_label
-        from chapters
-        where course_id = %(base_course)s
-        order by chapter_num
-        """,
-        engine,
-        params={"base_course": course.base_course},
-    )
-    chapters = chapters_df.to_dict(orient="records")
+    chapters = await asyncio.to_thread(_fetch_chapters, course.base_course)
 
     context = {
         "request": request,
@@ -715,8 +801,7 @@ async def generate_subchapoverview(
         )
 
     task_id = str(uuid.uuid4())
-    r = _get_redis()
-    _set_task(r, task_id, {"status": "pending"})
+    await _aset_task(_task_key(task_id), {"status": "pending"})
 
     background_tasks.add_task(
         _build_report,
@@ -743,8 +828,7 @@ async def get_subchapoverview_result(
     user=Depends(auth_manager),
 ):
     """Poll Redis for the status/result of a previously submitted report task."""
-    r = _get_redis()
-    payload = _get_task(r, task_id)
+    payload = await _aget_task(_task_key(task_id))
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -763,16 +847,14 @@ async def download_subchapoverview_csv(
     course=None,
 ):
     """Stream the cached report as a CSV download."""
-    r = _get_redis()
-    payload = _get_task(r, task_id)
+    payload = await _aget_task(_task_key(task_id))
     if payload is None or payload.get("status") != "complete":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found, not yet complete, or expired",
         )
 
-    df = pd.DataFrame(payload["data"])
-    csv_content = df.to_csv(index=False, na_rep=" ")
+    csv_content = await asyncio.to_thread(_to_csv, payload["data"], " ")
 
     filename = f"data_for_{course.course_name}.csv"
     return StreamingResponse(
@@ -795,13 +877,6 @@ def _set_ao_task(r: redis_lib.Redis, task_id: str, payload: dict) -> None:
     r.set(_ao_task_key(task_id), json.dumps(payload), ex=TASK_TTL_SECONDS)
 
 
-def _get_ao_task(r: redis_lib.Redis, task_id: str) -> Optional[dict]:
-    raw = r.get(_ao_task_key(task_id))
-    if raw is None:
-        return None
-    return json.loads(raw)
-
-
 # ---------------------------------------------------------------------------
 # Assignment Overview — background report generation
 # ---------------------------------------------------------------------------
@@ -816,7 +891,6 @@ def _build_assignment_report(
     """Run in a BackgroundTask. Builds per-question stats for an assignment."""
     r = _get_redis()
     try:
-        engine = create_engine(settings.dburl)
         data = _make_assignment_table(
             engine, assignment_id, course_name, tz_offset_hours
         )
@@ -908,12 +982,8 @@ def _make_assignment_table(
         parse_dates=["first_interaction", "last_interaction"],
     )
     if not interactions.empty:
-        interactions["first_interaction"] = interactions["first_interaction"].map(
-            lambda x: x - tdoff
-        )
-        interactions["last_interaction"] = interactions["last_interaction"].map(
-            lambda x: x - tdoff
-        )
+        interactions["first_interaction"] = interactions["first_interaction"] - tdoff
+        interactions["last_interaction"] = interactions["last_interaction"] - tdoff
 
     # 4. Per-question scores from question_grades (use grades table as primary source)
     scores = pd.read_sql_query(
@@ -1127,12 +1197,8 @@ def _build_assignment_student_detail(
         parse_dates=["first_interaction", "last_interaction"],
     )
     if not interactions.empty:
-        interactions["first_interaction"] = interactions["first_interaction"].map(
-            lambda x: x - tdoff
-        )
-        interactions["last_interaction"] = interactions["last_interaction"].map(
-            lambda x: x - tdoff
-        )
+        interactions["first_interaction"] = interactions["first_interaction"] - tdoff
+        interactions["last_interaction"] = interactions["last_interaction"] - tdoff
 
     scores = pd.read_sql_query(
         """
@@ -1202,6 +1268,25 @@ def _build_assignment_student_detail(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_assignments(course_name: str) -> list:
+    """Return the non-peer assignments for ``course_name``, newest due first.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+    """
+    assignments_df = pd.read_sql_query(
+        """
+        SELECT a.id, a.name, a.duedate, a.points
+        FROM assignments a
+        JOIN courses c ON c.id = a.course
+        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
+        ORDER BY a.duedate DESC NULLS LAST
+        """,
+        engine,
+        params={"course_name": course_name},
+    )
+    return assignments_df.to_dict(orient="records")
+
+
 @router.get("/assignmentoverview", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
@@ -1216,19 +1301,7 @@ async def get_assignmentoverview(
     If ``assignment_id`` is supplied as a query parameter the template will
     pre-select that assignment and auto-generate the report on page load.
     """
-    engine = create_engine(settings.dburl)
-    assignments_df = pd.read_sql_query(
-        """
-        SELECT a.id, a.name, a.duedate, a.points
-        FROM assignments a
-        JOIN courses c ON c.id = a.course
-        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
-        ORDER BY a.duedate DESC NULLS LAST
-        """,
-        engine,
-        params={"course_name": course.course_name},
-    )
-    assignments = assignments_df.to_dict(orient="records")
+    assignments = await asyncio.to_thread(_fetch_assignments, course.course_name)
     # Convert Timestamps to strings for template rendering. duedate is stored
     # as naive UTC, so it has to be shifted into the course timezone before the
     # date is taken -- a late-evening deadline lands on the following day in
@@ -1278,8 +1351,7 @@ async def generate_assignmentoverview(
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
     task_id = str(uuid.uuid4())
-    r = _get_redis()
-    _set_ao_task(r, task_id, {"status": "pending"})
+    await _aset_task(_ao_task_key(task_id), {"status": "pending"})
 
     background_tasks.add_task(
         _build_assignment_report,
@@ -1306,8 +1378,7 @@ async def get_assignmentoverview_result(
     user=Depends(auth_manager),
 ):
     """Poll Redis for the status/result of an assignment report task."""
-    r = _get_redis()
-    payload = _get_ao_task(r, task_id)
+    payload = await _aget_task(_ao_task_key(task_id))
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1326,15 +1397,13 @@ async def download_assignmentoverview_csv(
     course=None,
 ):
     """Stream the cached assignment report as a CSV download."""
-    r = _get_redis()
-    payload = _get_ao_task(r, task_id)
+    payload = await _aget_task(_ao_task_key(task_id))
     if payload is None or payload.get("status") != "complete":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found, not yet complete, or expired",
         )
-    df = pd.DataFrame(payload["data"])
-    csv_content = df.to_csv(index=False, na_rep="")
+    csv_content = await asyncio.to_thread(_to_csv, payload["data"], "")
     filename = f"assignment_report_{course.course_name}.csv"
     return StreamingResponse(
         iter([csv_content]),
@@ -1343,27 +1412,18 @@ async def download_assignmentoverview_csv(
     )
 
 
-@router.get("/assignmentoverview/student", response_class=HTMLResponse)
-@instructor_role_required()
-@with_course()
-async def get_assignment_student_detail(
-    request: Request,
-    sid: str,
-    assignment_id: int,
-    user=Depends(auth_manager),
-    course=None,
-    RS_info: Optional[str] = Cookie(None),
-):
-    """Render the per-student drilldown for an assignment."""
-    tz_offset_hours = 0.0
-    if RS_info:
-        try:
-            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
-        except Exception:
-            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+def _load_assignment_student_detail(
+    sid: str, assignment_id: int, course_name: str, tz_offset_hours: float
+) -> tuple:
+    """Gather everything the per-student assignment drilldown renders.
 
-    engine = create_engine(settings.dburl)
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``. ``duedate`` is
+    returned raw -- the caller formats it, since that needs the course timezone.
 
+    :return: ``(student, assignment, detail, total_score)``
+    :rtype: tuple
+    :raises HTTPException: if the student or the assignment does not exist.
+    """
     student_row = pd.read_sql_query(
         """
         SELECT username, first_name, last_name, email
@@ -1393,10 +1453,9 @@ async def get_assignment_student_detail(
             detail=f"Assignment {assignment_id} not found",
         )
     assignment = assignment_row.iloc[0].to_dict()
-    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
 
     detail = _build_assignment_student_detail(
-        engine, assignment_id, course.course_name, sid, tz_offset_hours
+        engine, assignment_id, course_name, sid, tz_offset_hours
     )
 
     # Total assignment grade from grades table
@@ -1417,6 +1476,37 @@ async def get_assignment_student_detail(
         if raw is not None and pd.notna(raw):
             total_score = round(float(raw), 2)
 
+    return student, assignment, detail, total_score
+
+
+@router.get("/assignmentoverview/student", response_class=HTMLResponse)
+@instructor_role_required()
+@with_course()
+async def get_assignment_student_detail(
+    request: Request,
+    sid: str,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+    RS_info: Optional[str] = Cookie(None),
+):
+    """Render the per-student drilldown for an assignment."""
+    tz_offset_hours = 0.0
+    if RS_info:
+        try:
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
+        except Exception:
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
+
+    student, assignment, detail, total_score = await asyncio.to_thread(
+        _load_assignment_student_detail,
+        sid,
+        assignment_id,
+        course.course_name,
+        tz_offset_hours,
+    )
+    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
+
     context = {
         "request": request,
         "user": user,
@@ -1432,6 +1522,45 @@ async def get_assignment_student_detail(
     return templates.TemplateResponse(
         "admin/analytics/assignment_student_detail.html", context
     )
+
+
+def _load_student_detail(
+    sid: str, course_name: str, base_course: str, tz_offset_hours: float
+) -> tuple:
+    """Gather everything the student drilldown page renders.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+
+    :return: ``(student, data)``
+    :rtype: tuple
+    :raises HTTPException: if the student does not exist.
+    """
+    # Basic student info
+    student_row = pd.read_sql_query(
+        """
+        select username, first_name, last_name, email
+        from auth_user
+        where username = %(sid)s
+        limit 1
+        """,
+        engine,
+        params={"sid": sid},
+    )
+    if student_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student '{sid}' not found",
+        )
+    student = student_row.iloc[0].to_dict()
+
+    data = _build_student_detail(
+        engine,
+        course_name=course_name,
+        base_course=base_course,
+        sid=sid,
+        tz_offset_hours=tz_offset_hours,
+    )
+    return student, data
 
 
 @router.get("/student_detail", response_class=HTMLResponse)
@@ -1458,32 +1587,12 @@ async def get_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    engine = create_engine(settings.dburl)
-
-    # Basic student info
-    student_row = pd.read_sql_query(
-        """
-        select username, first_name, last_name, email
-        from auth_user
-        where username = %(sid)s
-        limit 1
-        """,
-        engine,
-        params={"sid": sid},
-    )
-    if student_row.empty:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{sid}' not found",
-        )
-    student = student_row.iloc[0].to_dict()
-
-    data = _build_student_detail(
-        engine,
-        course_name=course.course_name,
-        base_course=course.base_course,
-        sid=sid,
-        tz_offset_hours=tz_offset_hours,
+    student, data = await asyncio.to_thread(
+        _load_student_detail,
+        sid,
+        course.course_name,
+        course.base_course,
+        tz_offset_hours,
     )
 
     context = {

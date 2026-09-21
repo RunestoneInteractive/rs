@@ -1,6 +1,6 @@
-import { generateDragAndDropPreview } from "./dndPreview";
-
 import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
+import { generateDragAndDropPreview } from "./dndPreview";
 
 const baseLeft = [
   { id: "l1", label: "Apple" },
@@ -223,6 +223,7 @@ describe("generateDragAndDropPreview", () => {
     });
 
     const dropzoneMatches = [...result.matchAll(/data-subcomponent="dropzone"/g)];
+
     expect(dropzoneMatches.length).toBe(1);
   });
 

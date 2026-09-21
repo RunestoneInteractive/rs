@@ -1072,3 +1072,517 @@ async def test_gradebook_csv_percent_of_a_zero_point_assignment_is_the_raw_score
     rows = _gradebook_to_csv(data).splitlines()
 
     assert rows[1] == "ada,Ada Lovelace,3,3"
+
+
+async def _add_reading_question(
+    assignment_id,
+    chapter,
+    subchapter,
+    points=5,
+    activities_required=2,
+    activity_names=(),
+):
+    """Seed a reading: the page's own question row, the activities on that page,
+    and the assignment_question that assigns it. Returns the page question id."""
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import AssignmentQuestion, Question
+
+    page_name = f"{chapter}/{subchapter}"
+    async with async_session.begin() as session:
+        page = Question(
+            base_course=COURSE_NAME,
+            name=page_name,
+            chapter=chapter,
+            subchapter=subchapter,
+            question_type="page",
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=True,
+        )
+        session.add(page)
+        for name in activity_names:
+            session.add(
+                Question(
+                    base_course=COURSE_NAME,
+                    name=name,
+                    chapter=chapter,
+                    subchapter=subchapter,
+                    question_type="mchoice",
+                    timestamp=datetime.datetime(2024, 1, 1),
+                    from_source=True,
+                    optional=False,
+                )
+            )
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment_id,
+                question_id=page.id,
+                points=points,
+                autograde="interaction",
+                which_to_grade="best_answer",
+                reading_assignment=True,
+                activities_required=activities_required,
+                sorting_priority=1,
+            )
+        )
+        return page.id
+
+
+async def _set_duedate(assignment_id, duedate):
+    from sqlalchemy import update as sa_update
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import Assignment
+
+    async with async_session.begin() as session:
+        await session.execute(
+            sa_update(Assignment)
+            .where(Assignment.id == assignment_id)
+            .values(duedate=duedate)
+        )
+
+
+async def test_regrade_scores_a_reading_from_the_pages_activity(
+    auth_instructor_client,
+):
+    """Issue #1493: a reading is a page, not a question, so the re-grader used
+    to skip it with "no_table" and offer to set the whole class back to no
+    score. It now scores the page the way the progress bar does."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "regrade_reading")
+    question_id = await _add_reading_question(
+        assignment_id,
+        "read_ch",
+        "read_sub",
+        points=5,
+        activities_required=2,
+        activity_names=["read_q1", "read_q2"],
+    )
+
+    # Opening the page is one activity; answering a question on it is another.
+    await _log_useinfo("testuser1", "read_ch/read_sub.html", "page", "view")
+    await _log_useinfo("testuser1", "read_q1", "mChoice", "answer:1:correct")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["detail"]["items"][0]["new_score"] == 5
+    grade = await _grade_for("testuser1", "read_ch/read_sub")
+    assert grade is not None
+    assert grade.score == 5
+
+
+async def test_regrade_reading_scores_zero_without_enough_activities(
+    auth_instructor_client,
+):
+    """Opening the page is one activity; a reading that asks for three is not
+    earned by opening it alone."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_reading_short"
+    )
+    question_id = await _add_reading_question(
+        assignment_id,
+        "short_ch",
+        "short_sub",
+        points=5,
+        activities_required=3,
+        activity_names=["short_q1", "short_q2", "short_q3"],
+    )
+    await _log_useinfo("testuser1", "short_ch/short_sub.html", "page", "view")
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.json()["detail"]["items"][0]["new_score"] == 0
+    assert (await _grade_for("testuser1", "short_ch/short_sub")).score == 0
+
+
+async def test_regrade_reading_leaves_a_student_who_never_opened_it_alone(
+    auth_instructor_client,
+):
+    """No activity at all is "no submission", not a zero: the re-grade must not
+    manufacture a grade for a student who was never there."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "regrade_reading_absent"
+    )
+    question_id = await _add_reading_question(
+        assignment_id, "absent_ch", "absent_sub", activity_names=["absent_q1"]
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert resp.json()["detail"]["items"][0]["skipped"] == "no_submission"
+    assert await _grade_for("testuser1", "absent_ch/absent_sub") is None
+
+
+async def test_regrade_reading_can_award_late_work(auth_instructor_client):
+    """The case from issue #1493: the browser refuses to score a reading done
+    after the deadline, so the instructor needs the re-grade to give the points
+    -- which only works with the deadline enforcement turned off."""
+    import datetime
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "regrade_late")
+    question_id = await _add_reading_question(
+        assignment_id,
+        "late_ch",
+        "late_sub",
+        points=5,
+        activities_required=1,
+        activity_names=["late_q1"],
+    )
+    await _set_duedate(assignment_id, datetime.datetime(2024, 5, 1, 0, 0, 0))
+    # ...and the student read it a month after that.
+    await _log_useinfo(
+        "testuser1",
+        "late_ch/late_sub.html",
+        "page",
+        "view",
+        when=datetime.datetime(2024, 6, 1, 12, 0, 0),
+    )
+
+    on_time = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+        },
+    )
+    assert on_time.json()["detail"]["items"][0]["skipped"] == "no_submission"
+
+    late = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question_id],
+            "sids": ["testuser1"],
+            "enforce_deadline": False,
+        },
+    )
+    assert late.json()["detail"]["items"][0]["new_score"] == 5
+    assert (await _grade_for("testuser1", "late_ch/late_sub")).score == 5
+
+
+async def test_question_stats_count_readers_of_a_reading(auth_instructor_client):
+    """A reading has no answers, so the question list counts the students who
+    opened the page instead of reporting 0 for every reading."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_reading")
+    await _add_reading_question(
+        assignment_id, "stats_ch", "stats_sub", activity_names=["stats_q1"]
+    )
+    await _log_useinfo("testuser1", "stats_ch/stats_sub.html", "page", "view")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    stat = [
+        q
+        for q in resp.json()["detail"]["questions"]
+        if q["name"] == "stats_ch/stats_sub"
+    ][0]
+    assert stat["answered_count"] == 1
+
+
+async def test_saving_a_grade_without_a_comment_marks_it_hand_graded(
+    auth_instructor_client,
+):
+    """Issue #1515: the grading page saved the autograder's own "autograded"
+    placeholder back, so a hand-entered score was not protected from the next
+    re-grade. A save now stamps the row as hand graded whatever was typed."""
+    from rsptx.grading_helpers.comments import MANUAL_COMMENT
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client, "hand_grade_marker", "hand_grade_marker_q"
+    )
+
+    resp = await auth_instructor_client.post(
+        "/instructor/grader/grade",
+        json={
+            "sid": "testuser1",
+            "div_id": "hand_grade_marker_q",
+            "score": 7,
+            "comment": "autograded",
+            "assignment_id": assignment_id,
+        },
+    )
+    assert resp.status_code == 200
+    # Nothing worth showing a reader, so the response carries no comment...
+    assert resp.json()["detail"]["comment"] == ""
+
+    # ...but the row itself is marked, which is what protects the score.
+    grade = await _grade_for("testuser1", "hand_grade_marker_q")
+    assert grade.comment == MANUAL_COMMENT
+    assert grade.score == 7
+
+    # The grading page sees a hand grade with no comment to put in its box.
+    answers = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+    mine = [a for a in answers.json()["detail"]["answers"] if a["sid"] == "testuser1"][
+        0
+    ]
+    assert mine["comment"] is None
+    assert mine["hand_graded"] is True
+
+    # And a re-grade leaves it alone instead of scoring the question again.
+    regrade = await auth_instructor_client.post(
+        "/instructor/grader/regrade",
+        json={
+            "assignment_id": assignment_id,
+            "question_ids": [question.id],
+            "sids": ["testuser1"],
+            "enforce_deadline": False,
+        },
+    )
+    assert regrade.json()["detail"]["items"][0]["skipped"] == "manual"
+    assert (await _grade_for("testuser1", "hand_grade_marker_q")).score == 7
+
+
+async def test_an_autograded_row_is_not_reported_as_hand_graded(
+    auth_instructor_client,
+):
+    """A score the autograder wrote stays available for re-grading, and its
+    bookkeeping comment never reaches the instructor's comment box."""
+    from rsptx.db.crud import create_question_grade_entry
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client, "auto_grade_marker", "auto_grade_marker_q"
+    )
+    await create_question_grade_entry(
+        "testuser1", COURSE_NAME, "auto_grade_marker_q", 4
+    )
+
+    answers = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+    mine = [a for a in answers.json()["detail"]["answers"] if a["sid"] == "testuser1"][
+        0
+    ]
+    assert mine["comment"] is None
+    assert mine["hand_graded"] is False
+
+
+async def _add_select_question(
+    assignment_id, selector_div_id, served_div_id, points=5, autograde="pct_correct"
+):
+    """Seed a ``selectquestion`` wrapper plus the question it stands in for.
+
+    Returns ``(selector_question_id, served_question_id)``.
+    """
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import AssignmentQuestion, Question
+
+    async with async_session.begin() as session:
+        selector = Question(
+            base_course=COURSE_NAME,
+            name=selector_div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type="selectquestion",
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        served = Question(
+            base_course=COURSE_NAME,
+            name=served_div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type="mchoice",
+            htmlsrc="<div>the real question</div>",
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        session.add_all([selector, served])
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment_id,
+                question_id=selector.id,
+                points=points,
+                autograde=autograde,
+                which_to_grade="best_answer",
+                reading_assignment=False,
+                sorting_priority=1,
+            )
+        )
+        return selector.id, served.id
+
+
+async def _serve_selected_question(sid, selector_div_id, served_div_id):
+    from rsptx.db.crud import create_selected_question
+
+    await create_selected_question(sid, selector_div_id, served_div_id)
+
+
+async def _log_mchoice_answer(sid, div_id, answer, correct=True, when=None):
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import MchoiceAnswers
+
+    async with async_session.begin() as session:
+        session.add(
+            MchoiceAnswers(
+                timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
+                sid=sid,
+                div_id=div_id,
+                course_name=COURSE_NAME,
+                answer=answer,
+                correct=correct,
+                percent=1.0 if correct else 0.0,
+            )
+        )
+
+
+async def test_answers_list_resolves_selectquestion(auth_instructor_client):
+    """A selectquestion shows the work the student actually did.
+
+    Regression for issue #1481: the grade is filed under the wrapper but the
+    answer is filed under the question the student was served, so reading the
+    wrapper's own div_id reported "No submission" for a whole class that had
+    already been graded.
+    """
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "answers_selectq")
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "answers_selectq_wrapper", "answers_selectq_real"
+    )
+    await _serve_selected_question(
+        "testuser1", "answers_selectq_wrapper", "answers_selectq_real"
+    )
+    await _log_mchoice_answer("testuser1", "answers_selectq_real", "0", correct=True)
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": selector_id},
+    )
+    assert resp.status_code == 200
+    mine = [a for a in resp.json()["detail"]["answers"] if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    assert mine[0]["attempts"] == 1
+    assert mine[0]["answer"] == "0"
+    assert mine[0]["correct"] is True
+    # The preview has to render the served question, not the wrapper.
+    assert mine[0]["selected_div_id"] == "answers_selectq_real"
+    assert mine[0]["selected_question_type"] == "mchoice"
+    assert mine[0]["selected_htmlsrc"] == "<div>the real question</div>"
+
+
+async def test_answers_list_selectquestion_without_selection(auth_instructor_client):
+    """A student the selectquestion was never served to still reads as
+    "No submission".
+
+    Without a ``selected_questions`` row there is nothing tying that student to
+    the question, so an answer sitting under it is somebody else's business --
+    the same call the re-grader makes.
+    """
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(
+        auth_instructor_client, "answers_selectq_none"
+    )
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "answers_selectq_none_wrapper", "answers_selectq_none_real"
+    )
+    await _log_mchoice_answer("testuser1", "answers_selectq_none_real", "1")
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": selector_id},
+    )
+    assert resp.status_code == 200
+    mine = [a for a in resp.json()["detail"]["answers"] if a["sid"] == "testuser1"]
+    assert len(mine) == 1
+    assert mine[0]["attempts"] == 0
+    assert mine[0]["answer"] is None
+    assert mine[0]["selected_div_id"] is None
+
+
+async def test_question_stats_count_selectquestion_answers(auth_instructor_client):
+    """The question list counts a selectquestion as answered."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_selectq")
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "stats_selectq_wrapper", "stats_selectq_real"
+    )
+    await _serve_selected_question(
+        "testuser1", "stats_selectq_wrapper", "stats_selectq_real"
+    )
+    await _log_mchoice_answer("testuser1", "stats_selectq_real", "2")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    stats = {q["id"]: q for q in resp.json()["detail"]["questions"]}
+    assert stats[selector_id]["answered_count"] == 1
+
+
+async def test_answer_history_resolves_selectquestion(auth_instructor_client):
+    """Every attempt on the served question shows in the wrapper's history."""
+    import datetime
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "history_selectq")
+    selector_id, _served_qid = await _add_select_question(
+        assignment_id, "history_selectq_wrapper", "history_selectq_real"
+    )
+    await _serve_selected_question(
+        "testuser1", "history_selectq_wrapper", "history_selectq_real"
+    )
+    await _log_mchoice_answer(
+        "testuser1",
+        "history_selectq_real",
+        "0",
+        correct=False,
+        when=datetime.datetime(2024, 6, 1, 12, 0, 0),
+    )
+    await _log_mchoice_answer(
+        "testuser1",
+        "history_selectq_real",
+        "2",
+        correct=True,
+        when=datetime.datetime(2024, 6, 1, 12, 5, 0),
+    )
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/history",
+        params={
+            "assignment_id": assignment_id,
+            "question_id": selector_id,
+            "sid": "testuser1",
+        },
+    )
+    assert resp.status_code == 200
+    history = resp.json()["detail"]["history"]
+    assert [h["answer"] for h in history] == ["0", "2"]
+    assert history[-1]["correct"] is True

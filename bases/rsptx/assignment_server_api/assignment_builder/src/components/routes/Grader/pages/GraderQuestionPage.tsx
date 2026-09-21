@@ -1,18 +1,19 @@
 import { Button, Center, Loader } from "@mantine/core";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-
-import { Icon } from "@/components/ui/Icon";
-import { notify } from "@/components/ui/notify";
 import {
   GraderStudentAnswer,
   useGetGraderAnswersQuery,
   useGetGraderQuestionsQuery,
   useSaveGradeMutation
 } from "@store/grader/grader.logic.api";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { GradePanel, GradePanelHandle } from "../components/GradePanel";
+import { Icon } from "@/components/ui/Icon";
+import { notify } from "@/components/ui/notify";
+
+import styles from "../Grader.module.css";
 import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
+import { GradePanel, GradePanelHandle } from "../components/GradePanel";
 import { RegradeWizard } from "../components/RegradeWizard";
 import { ShortcutsHelpDialog } from "../components/ShortcutsHelpDialog";
 import { StudentListSidebar } from "../components/StudentListSidebar";
@@ -22,10 +23,9 @@ import { useGraderHotkeys } from "../hooks/useGraderHotkeys";
 import { useGraderPrefs } from "../hooks/useGraderPrefs";
 import { usePlatform } from "../hooks/usePlatform";
 import { useStudentNavigation } from "../hooks/useStudentNavigation";
-import styles from "../Grader.module.css";
 import { studentDisplayName } from "../state/graderSelectors";
-import { getDemoAnswersFor, getDemoQuestionsFor } from "../tour/graderDemoData";
 import { useGraderTourContext } from "../tour/GraderTourContext";
+import { getDemoAnswersFor, getDemoQuestionsFor } from "../tour/graderDemoData";
 
 export const GraderQuestionPage: React.FC = () => {
   const { assignmentId, questionId, sid } = useParams();
@@ -48,6 +48,8 @@ export const GraderQuestionPage: React.FC = () => {
   const qData = isDemo ? (getDemoQuestionsFor(aid) ?? undefined) : qRealData;
   const questionMeta = qData?.questions.find((q) => q.id === qid);
 
+  // TODO(eslint): Stabilize the fallback collection without changing loading behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const answers: ReadonlyArray<GraderStudentAnswer> = data?.answers ?? [];
   const activeSid = isDemo ? demoSelected?.sid : sid;
 
@@ -65,6 +67,7 @@ export const GraderQuestionPage: React.FC = () => {
     if (sid || !data) return;
     const selectLast = (location.state as { selectLast?: boolean } | null)?.selectLast === true;
     let targetSid: string | undefined;
+
     if (selectLast && answers.length) {
       targetSid = answers[answers.length - 1].sid;
     } else if (nav.firstUngraded) {
@@ -98,18 +101,22 @@ export const GraderQuestionPage: React.FC = () => {
   }, []);
 
   const answersRef = useRef(answers);
+
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
   const navRef = useRef(nav);
+
   useEffect(() => {
     navRef.current = nav;
   }, [nav]);
   const prefsRef = useRef(prefs);
+
   useEffect(() => {
     prefsRef.current = prefs;
   }, [prefs]);
   const questionNameRef = useRef<string>(data?.question.name ?? "");
+
   useEffect(() => {
     questionNameRef.current = data?.question.name ?? "";
   }, [data?.question.name]);
@@ -213,11 +220,13 @@ export const GraderQuestionPage: React.FC = () => {
   useEffect(() => {
     if (!student?.sid) return;
     const id = student.sid;
+
     if (autoSave.status === "dirty" || autoSave.status === "saving") {
       cancelPendingAdvance();
       setDirtySids((prev) => {
         if (prev.has(id)) return prev;
         const next = new Set(prev);
+
         next.add(id);
         return next;
       });
@@ -225,10 +234,13 @@ export const GraderQuestionPage: React.FC = () => {
       setDirtySids((prev) => {
         if (!prev.has(id)) return prev;
         const next = new Set(prev);
+
         next.delete(id);
         return next;
       });
     }
+    // TODO(eslint): Audit the complete dependency list without changing auto-advance cancellation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSave.status, student?.sid]);
 
   const [help, setHelp] = useState(false);
@@ -264,6 +276,7 @@ export const GraderQuestionPage: React.FC = () => {
     await autoSave.flush();
     if (isDemo) {
       const row = answers.find((a) => a.sid === nextSid);
+
       setDemoSelected(row ?? null);
     } else {
       navigate(`/grader/${aid}/questions/${qid}/students/${encodeURIComponent(nextSid)}`);
@@ -306,7 +319,7 @@ export const GraderQuestionPage: React.FC = () => {
             size="xs"
             onClick={() => setShowExtraTime(true)}
           >
-            Extra time…
+            Deadline accommodations…
           </Button>
         </div>
       )}
@@ -384,9 +397,14 @@ export const GraderQuestionPage: React.FC = () => {
                   ref={submissionRef}
                   assignmentId={aid}
                   questionId={qid}
-                  questionName={data.question.name}
-                  questionType={data.question.question_type}
-                  htmlsrc={data.question.htmlsrc || questionMeta?.htmlsrc}
+                  /* A selectquestion is a wrapper: this student's work belongs
+                     to whichever question they were served, so preview that
+                     one. The grade still goes to the wrapper. */
+                  questionName={student.selected_div_id || data.question.name}
+                  questionType={student.selected_question_type || data.question.question_type}
+                  htmlsrc={
+                    student.selected_htmlsrc || data.question.htmlsrc || questionMeta?.htmlsrc
+                  }
                   student={student}
                 />
               )}

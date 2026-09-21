@@ -1,8 +1,53 @@
 .hparsons-input {
   padding: 15px;
+  position: relative;
+}
+.hparsons-keyboard-application {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 .hparsons-tip {
   font-style: italic;
+}
+/* Match the Parsons keyboard-only activation cue. */
+.hparsons-input [role="tooltip"].parsons-entry-hint {
+  width: fit-content;
+  padding: 4px 14px;
+  margin: 5px auto;
+  border: 1px solid var(--parsonsHintBorderColor, #216fcc);
+  border-radius: 999px;
+  background-color: var(--parsonsHintBgColor, #e8f0fe);
+  color: var(--parsonsHintColor, #11488a);
+  font-style: normal;
+  font-weight: 600;
+  animation:
+    hparsons-entry-hint-in 0.25s ease-out,
+    hparsons-entry-hint-pulse 1.1s ease-in-out 0.25s 3;
+}
+@keyframes hparsons-entry-hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hparsons-entry-hint-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--parsonsHintGlowColor, rgba(33, 111, 204, 0.4));
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hparsons-input [role="tooltip"].parsons-entry-hint {
+    animation: none;
+  }
 }
 .parsons-tooltip {
   visibility: hidden;
@@ -42,6 +87,11 @@
 }
 .parsons-block:focus-visible {
   outline: 3px solid #005fcc;
+  outline-offset: 2px;
+}
+.parsons-block[aria-selected="true"] {
+  margin-inline: 4px;
+  outline: 3px solid #3498db;
   outline-offset: 2px;
 }
 /* Screen-reader-only live region */

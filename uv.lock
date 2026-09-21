@@ -2951,7 +2951,7 @@ text = [
 
 [[package]]
 name = "pretext"
-version = "2.50.0"
+version = "2.53.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "citeproc-py" },
@@ -2972,9 +2972,9 @@ dependencies = [
     { name = "requests" },
     { name = "single-version" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/71/8c851606fdd465ca791e21932484ce90f16240d29974012011b0e0442ec0/pretext-2.50.0.tar.gz", hash = "sha256:4059e55c9c43ef2329512715889e8c951616fa3b7df1f212460d3eb71cf680eb", size = 18288560, upload-time = "2026-08-24T21:36:13.345Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/57/11/e6b91aeff350ef2054d0247b279a22a1960698a900ab3efe8f29d9b8f3c6/pretext-2.53.0.tar.gz", hash = "sha256:cbe79b5fd47da070ecefff77f68bc4b532475c26bde3f807a14a4f06501babbd", size = 19113806, upload-time = "2026-09-17T13:49:12.656Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/b7/015531993f3a18e641a61e5d97df1dd0e9ff7b009260d66646f38940d403/pretext-2.50.0-py3-none-any.whl", hash = "sha256:afd06410c9eb0bb5e4c489ee1698bbdb79bc995883e3d55c86aed70d2c146819", size = 17579062, upload-time = "2026-08-24T21:36:09.719Z" },
+    { url = "https://files.pythonhosted.org/packages/29/19/21f79212b466b31a86f5124f35e897aa9dfd1cc0a1603dc63ff3c4ea0385/pretext-2.53.0-py3-none-any.whl", hash = "sha256:7ce0b351967acefa1db2e875785bd13c977bfb857f22b86125f1bcf46f60237d", size = 18394649, upload-time = "2026-09-17T13:49:10.032Z" },
 ]
 
 [package.optional-dependencies]
@@ -3941,7 +3941,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "9.0.11"
+version = "9.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -3965,6 +3965,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastapi-login" },
     { name = "gunicorn" },
+    { name = "httpx" },
     { name = "ipyleaflet" },
     { name = "ipython" },
     { name = "itsdangerous" },
@@ -4070,6 +4071,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0,<0.116" },
     { name = "fastapi-login", specifier = ">=1.10.0,<2" },
     { name = "gunicorn", specifier = ">=20.1.0,<21" },
+    { name = "httpx", specifier = ">=0.27,<0.29" },
     { name = "ipyleaflet", specifier = ">=0.19.2,<0.20" },
     { name = "ipython", specifier = ">=8.23.0,<9" },
     { name = "itsdangerous", specifier = ">=2.2.0,<3" },

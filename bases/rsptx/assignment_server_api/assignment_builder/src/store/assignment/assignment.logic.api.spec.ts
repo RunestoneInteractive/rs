@@ -1,16 +1,16 @@
+import type { DetailResponse } from "@/types/api";
+import type { Assignment, GetAssignmentResponse, GetAssignmentsResponse } from "@/types/assignment";
+
 import {
   ASSIGNMENT_TOAST_COPY,
   assignmentApi,
-  useGetAssignmentsQuery,
-  useGetAssignmentQuery,
-  useUpdateAssignmentMutation,
   useCreateAssignmentMutation,
+  useDuplicateAssignmentMutation,
+  useGetAssignmentQuery,
+  useGetAssignmentsQuery,
   useRemoveAssignmentMutation,
-  useDuplicateAssignmentMutation
+  useUpdateAssignmentMutation
 } from "./assignment.logic.api";
-import type { Assignment } from "@/types/assignment";
-import type { DetailResponse } from "@/types/api";
-import type { GetAssignmentsResponse, GetAssignmentResponse } from "@/types/assignment";
 
 vi.mock("@components/ui/notify", () => ({
   notify: {
@@ -138,6 +138,7 @@ describe("getAssignments transformResponse", () => {
     };
 
     const transformed = response.detail.assignments;
+
     expect(transformed).toHaveLength(2);
     expect(transformed[0].id).toBe(1);
     expect(transformed[1].id).toBe(2);
@@ -152,6 +153,7 @@ describe("getAssignment transformResponse", () => {
     };
 
     const result = response.detail.assignment;
+
     expect(result.id).toBe(42);
     expect(result.name).toBe("Test Assignment");
   });
@@ -244,6 +246,7 @@ describe("getAssignments query builder", () => {
   it("builds correct GET request for assignments list", () => {
     const queryFn = () => ({ method: "GET", url: "/assignment/instructor/assignments" });
     const result = queryFn();
+
     expect(result.method).toBe("GET");
     expect(result.url).toBe("/assignment/instructor/assignments");
   });
@@ -255,6 +258,7 @@ describe("getAssignment query builder", () => {
       method: "GET",
       url: `/assignment/instructor/assignments/${id}`
     });
+
     expect(queryFn(7)).toEqual({ method: "GET", url: "/assignment/instructor/assignments/7" });
   });
 });
@@ -268,6 +272,7 @@ describe("updateAssignment query builder", () => {
       body
     });
     const result = queryFn(assignment);
+
     expect(result.method).toBe("PUT");
     expect(result.url).toBe("/assignment/instructor/assignments/3");
     expect(result.body).toBe(assignment);
@@ -282,6 +287,7 @@ describe("removeAssignment query builder", () => {
       url: `/assignment/instructor/assignments/${body.id}`
     });
     const result = queryFn(assignment);
+
     expect(result.method).toBe("DELETE");
     expect(result.url).toBe("/assignment/instructor/assignments/9");
   });
@@ -294,6 +300,7 @@ describe("duplicateAssignment query builder", () => {
       url: `/assignment/instructor/assignments/${assignmentId}/duplicate`
     });
     const result = queryFn(15);
+
     expect(result.method).toBe("POST");
     expect(result.url).toBe("/assignment/instructor/assignments/15/duplicate");
   });

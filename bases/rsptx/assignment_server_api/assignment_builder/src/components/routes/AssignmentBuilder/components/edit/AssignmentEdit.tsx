@@ -24,13 +24,11 @@ import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
-
-import { CourseTimezoneNotice } from "./CourseTimezoneNotice";
-
 import { AssignmentReadings } from "../reading/AssignmentReadings";
-import { VisibilityControl } from "./VisibilityControl";
 
 import styles from "./AssignmentEdit.module.css";
+import { CourseTimezoneNotice } from "./CourseTimezoneNotice";
+import { VisibilityControl } from "./VisibilityControl";
 
 const YES_NO_OPTIONS = [
   { label: "Yes", value: "true" },

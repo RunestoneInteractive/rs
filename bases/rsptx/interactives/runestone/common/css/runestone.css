@@ -1433,3 +1433,10 @@ legend {
 .autopermalink {
     display: none;
 }
+
+
+.course-not-started-warning {
+    margin-bottom: 20px;
+    margin-top: 20px;
+    padding: 15px;
+}

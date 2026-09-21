@@ -1,6 +1,7 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from collections import namedtuple
-from sqlalchemy import select, update, distinct
+from datetime import datetime
+from sqlalchemy import select, update, distinct, func
 from ..models import (
     Chapter,
     ChapterValidator,
@@ -109,6 +110,118 @@ async def get_book_subchapters(course_name: str) -> List[SubChapterValidator]:
         rslogger.debug(f"{query=}")
         res = await session.execute(query)
         return [SubChapterValidator.from_orm(x) for x in res.scalars().fetchall()]
+
+
+async def count_reading_activities(
+    chapter: str,
+    subchapter: str,
+    base_course: str,
+    course_name: str,
+    sid: str,
+    page_url_suffix: str,
+    deadline: Optional[datetime] = None,
+) -> int:
+    """Count the activities one student has completed on one reading page.
+
+    This is the server-side twin of the reading progress bar (``PageProgressBar``
+    in bookfuncs.js), which is what decides whether a reading is done: the page
+    itself counts as one activity, attempted the moment the reader opens it,
+    plus one for every non-optional activity on the page they have interacted
+    with.  Interacting with the same activity twice still counts once.
+
+    A page view is logged as a ``useinfo`` row with ``event == "page"`` whose
+    ``div_id`` is the page's file name -- ``<subchapter>.html`` for a PreTeXt
+    book and ``<chapter>/<subchapter>.html`` for a Sphinx one, sometimes behind
+    a path prefix.  The caller passes whichever shape its book uses as
+    ``page_url_suffix`` and the match is on the ending.
+
+    :param chapter: the chapter label (``questions.chapter``).
+    :param subchapter: the subchapter label (``questions.subchapter``).
+    :param base_course: the base course the questions belong to.
+    :param course_name: the course whose ``useinfo`` rows to read.
+    :param sid: the student's username.
+    :param page_url_suffix: how this book's page views end, e.g.
+        ``"chapter/subchapter.html"``.
+    :param deadline: when given, activity after it does not count.
+    :return: the number of activities attempted, the page itself included.
+    """
+    # Same filter as the progress bar: only activities that came from the book
+    # source and are not marked optional are ones the reader was asked to do.
+    # The page's own question row is not an activity -- it is counted by the
+    # page view below -- and never matches a useinfo div_id anyway.
+    where_clause_common = (
+        (Question.subchapter == subchapter)
+        & (Question.chapter == chapter)
+        & (Question.from_source == True)  # noqa: E712
+        & (
+            (Question.optional == False)  # noqa: E712
+            | (Question.optional.is_(None))  # noqa: E711
+        )
+        & (Question.base_course == base_course)
+        & (Question.question_type != "page")
+    )
+
+    activity_query = (
+        select(func.count(distinct(Useinfo.div_id)))
+        .select_from(Useinfo)
+        .join(Question, Question.name == Useinfo.div_id)
+        .join(Courses, Courses.course_name == Useinfo.course_id)
+        .where(
+            where_clause_common
+            & (Useinfo.course_id == course_name)
+            & (Useinfo.sid == sid)
+            & (Useinfo.timestamp > Courses.term_start_date)
+        )
+    )
+    page_query = (
+        select(func.count())
+        .select_from(Useinfo)
+        .join(Courses, Courses.course_name == Useinfo.course_id)
+        .where(
+            (Useinfo.course_id == course_name)
+            & (Useinfo.sid == sid)
+            & (Useinfo.event == "page")
+            & (Useinfo.div_id.endswith(page_url_suffix, autoescape=True))
+            & (Useinfo.timestamp > Courses.term_start_date)
+        )
+    )
+    if deadline is not None:
+        activity_query = activity_query.where(Useinfo.timestamp <= deadline)
+        page_query = page_query.where(Useinfo.timestamp <= deadline)
+
+    async with async_session() as session:
+        activities = (await session.execute(activity_query)).scalar() or 0
+        page_views = (await session.execute(page_query)).scalar() or 0
+
+    return int(activities) + (1 if page_views else 0)
+
+
+async def fetch_page_readers(course_name: str, page_url_suffix: str) -> List[str]:
+    """The students who have opened one page of the book.
+
+    A reading has no answers to count, so this is what "answered" means for
+    one: the students who got as far as loading the page.  See
+    :func:`count_reading_activities` for how a page view is recognised.
+
+    :param course_name: the course whose ``useinfo`` rows to read.
+    :param page_url_suffix: how this book's page views end, e.g.
+        ``"chapter/subchapter.html"``.
+    :return: the distinct student usernames, in no particular order.
+    """
+    query = (
+        select(distinct(Useinfo.sid))
+        .select_from(Useinfo)
+        .join(Courses, Courses.course_name == Useinfo.course_id)
+        .where(
+            (Useinfo.course_id == course_name)
+            & (Useinfo.event == "page")
+            & (Useinfo.div_id.endswith(page_url_suffix, autoescape=True))
+            & (Useinfo.timestamp > Courses.term_start_date)
+        )
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return [sid for sid in res.scalars() if sid]
 
 
 async def fetch_page_activity_counts(

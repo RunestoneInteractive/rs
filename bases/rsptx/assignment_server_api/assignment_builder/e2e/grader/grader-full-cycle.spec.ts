@@ -25,6 +25,7 @@ const THRESHOLD_PERCENT = 70;
 interface GraderQuestionStat {
   name: string;
   answered_count: number;
+  total_attempts: number;
   correct_count: number;
 }
 
@@ -189,6 +190,7 @@ test(
       const stat = await fetchQuestionStat(page.request, assignmentId, divId);
 
       expect(stat.answered_count, "both students submitted").toBe(2);
+      expect(stat.total_attempts, "each student submitted once").toBe(2);
       expect(stat.correct_count, "only the correct submission counts").toBe(1);
 
       await gradeInSplitView(page, assignmentId, question, correctSid, CORRECT_GRADE);

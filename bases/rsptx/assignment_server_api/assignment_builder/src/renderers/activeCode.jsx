@@ -8,18 +8,18 @@ import {
   selectLanguage,
   selectStarterCode,
   selectPrefixCode,
-  selectSuffixCode,
+  selectSuffixCode
 } from "../state/activecode/acSlice";
 import {
   selectUniqueId,
   setQuestionJson,
-  setPreviewSrc,
+  setPreviewSrc
 } from "../state/interactive/interactiveSlice";
 import { setCode } from "../state/preview/previewSlice";
 
 const acStyle = {
   border: "1px solid black",
-  padding: "10px",
+  padding: "10px"
 };
 /**
  *
@@ -46,7 +46,7 @@ function ActiveCodeCreator() {
       language,
       prefix_code,
       starter_code,
-      suffix_code,
+      suffix_code
     );
 
     dispatch(setCode(code));
@@ -61,7 +61,7 @@ function ActiveCodeCreator() {
     { value: "c", label: "C" },
     { value: "javascript", label: "Javascript" },
     { value: "html", label: "HTML" },
-    { value: "sql", label: "SQL" },
+    { value: "sql", label: "SQL" }
   ];
 
   return (
@@ -126,8 +126,8 @@ function ActiveCodeCreator() {
           dispatch(
             updateField({
               field: "suffix_code",
-              newVal: e.target.value,
-            }),
+              newVal: e.target.value
+            })
           );
         }}
       ></Textarea>

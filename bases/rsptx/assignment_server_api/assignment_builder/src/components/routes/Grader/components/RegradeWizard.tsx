@@ -1,8 +1,4 @@
 import { Button, Center, Checkbox, Loader, Modal, Stepper } from "@mantine/core";
-import { ColumnDef } from "@tanstack/react-table";
-import React, { useEffect, useMemo, useState } from "react";
-
-import { DataGrid } from "@/components/ui/DataGrid";
 import {
   GraderQuestionStats,
   RegradeReport,
@@ -10,7 +6,10 @@ import {
   useRegradeMutation,
   useRegradePreviewMutation
 } from "@store/grader/grader.logic.api";
+import { ColumnDef } from "@tanstack/react-table";
+import React, { useEffect, useMemo, useState } from "react";
 
+import { DataGrid } from "@/components/ui/DataGrid";
 import stepperStyles from "@/components/ui/WizardStepper.module.css";
 
 import styles from "../Grader.module.css";
@@ -99,12 +98,14 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
 
   const toPreview = async () => {
     const res = await preview(buildRequest()).unwrap();
+
     setReport(res);
     setStep(2);
   };
 
   const doRun = async () => {
     const res = await run(buildRequest()).unwrap();
+
     setReport(res);
     onComplete?.(res);
     close();
@@ -139,8 +140,8 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
 
           {!hasGradeable && (
             <div className={styles.calloutWarning}>
-              None of the selected questions can be auto-graded. Use <strong>Multi-grade</strong> to
-              grade them by hand.
+              None of the selected questions can be auto-graded. Use <strong>Grade manually</strong>{" "}
+              to grade them by hand.
             </div>
           )}
 

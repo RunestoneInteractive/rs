@@ -1,14 +1,15 @@
-import { regenerateHtmlSrc } from "./htmlRegeneration";
 import { Exercise } from "@/types/exercises";
-import * as multiChoice from "@/utils/preview/multichoice";
-import * as fillInTheBlank from "@/utils/preview/fillInTheBlank";
-import * as parsonsPreview from "@/utils/preview/parsonsPreview";
 import * as activeCode from "@/utils/preview/activeCode";
-import * as shortAnswer from "@/utils/preview/shortAnswer";
-import * as matchingPreview from "@/utils/preview/matchingPreview";
 import * as dndPreview from "@/utils/preview/dndPreview";
-import * as poll from "@/utils/preview/poll";
+import * as fillInTheBlank from "@/utils/preview/fillInTheBlank";
 import * as iframePreview from "@/utils/preview/iframePreview";
+import * as matchingPreview from "@/utils/preview/matchingPreview";
+import * as multiChoice from "@/utils/preview/multichoice";
+import * as parsonsPreview from "@/utils/preview/parsonsPreview";
+import * as poll from "@/utils/preview/poll";
+import * as shortAnswer from "@/utils/preview/shortAnswer";
+
+import { regenerateHtmlSrc } from "./htmlRegeneration";
 
 const baseExercise: Exercise = {
   id: 1,
@@ -382,7 +383,8 @@ describe("regenerateHtmlSrc", () => {
 
   describe("unsupported question type (default case)", () => {
     it("replaces id, data-component, data-question, and name attributes in existing HTML", () => {
-      const htmlSrc = `<div id="old_name" data-component="old_name" data-question="old_name" name="old_name" name='old_name'></div>`;
+      const htmlSrc =
+        '<div id="old_name" data-component="old_name" data-question="old_name" name="old_name" name=\'old_name\'></div>';
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "clickablearea",
@@ -393,14 +395,14 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "new_name");
 
-      expect(result).toContain(`id="new_name"`);
-      expect(result).toContain(`data-component="new_name"`);
-      expect(result).toContain(`data-question="new_name"`);
-      expect(result).not.toContain(`id="old_name"`);
+      expect(result).toContain('id="new_name"');
+      expect(result).toContain('data-component="new_name"');
+      expect(result).toContain('data-question="new_name"');
+      expect(result).not.toContain('id="old_name"');
     });
 
     it("replaces multiple occurrences of old name in HTML", () => {
-      const htmlSrc = `<div id="old_name"></div><span id="old_name"></span>`;
+      const htmlSrc = '<div id="old_name"></div><span id="old_name"></span>';
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "selectquestion",
@@ -411,11 +413,11 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "new_name");
 
-      expect(result).toBe(`<div id="new_name"></div><span id="new_name"></span>`);
+      expect(result).toBe('<div id="new_name"></div><span id="new_name"></span>');
     });
 
     it("returns original htmlsrc when oldName is empty", () => {
-      const htmlSrc = `<div id="old_name"></div>`;
+      const htmlSrc = '<div id="old_name"></div>';
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "selectquestion",
@@ -430,7 +432,7 @@ describe("regenerateHtmlSrc", () => {
     });
 
     it("returns original htmlsrc when newName is empty", () => {
-      const htmlSrc = `<div id="old_name"></div>`;
+      const htmlSrc = '<div id="old_name"></div>';
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "selectquestion",
@@ -450,7 +452,7 @@ describe("regenerateHtmlSrc", () => {
       vi.spyOn(multiChoice, "generateMultiChoicePreview").mockImplementation(() => {
         throw new Error("preview error");
       });
-      const htmlSrc = `<div id="old_name"></div>`;
+      const htmlSrc = '<div id="old_name"></div>';
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "mchoice",
@@ -461,11 +463,11 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "new_name");
 
-      expect(result).toContain(`id="new_name"`);
+      expect(result).toContain('id="new_name"');
     });
 
     it("falls back to updateNameInHtml when question_json is invalid JSON", () => {
-      const htmlSrc = `<div id="old_name"></div>`;
+      const htmlSrc = '<div id="old_name"></div>';
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "mchoice",
@@ -476,7 +478,7 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "new_name");
 
-      expect(result).toContain(`id="new_name"`);
+      expect(result).toContain('id="new_name"');
     });
   });
 });

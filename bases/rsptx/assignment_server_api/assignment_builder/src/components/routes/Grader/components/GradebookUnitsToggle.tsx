@@ -1,8 +1,8 @@
 import { SegmentedControl, Tooltip } from "@mantine/core";
+import { useSetGradebookUnitsMutation } from "@store/grader/grader.logic.api";
 import React from "react";
 
 import { notify } from "@/components/ui/notify";
-import { useSetGradebookUnitsMutation } from "@store/grader/grader.logic.api";
 
 interface GradebookUnitsToggleProps {
   /** Whether the course currently shows raw points instead of percentages. */

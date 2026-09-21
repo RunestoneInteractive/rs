@@ -2,7 +2,7 @@
 # Select Question Support
 # -----------------------
 
-from typing import Optional
+from typing import Dict, Optional
 from sqlalchemy import select, update
 
 from ..models import SelectedQuestion, SelectedQuestionValidator
@@ -78,3 +78,43 @@ async def update_selected_question(sid: str, selector_id: str, selected_id: str)
     async with async_session.begin() as session:
         await session.execute(stmt)
     rslogger.debug("SUCCESS")
+
+
+async def fetch_selected_id(sid: str, selector_id: str) -> Optional[str]:
+    """
+    Return the ``selected_id`` a student was served for a ``selectquestion``,
+    or ``None`` when that student has never been served one.
+
+    Unlike :func:`fetch_selected_question` this tolerates a missing row, which
+    is the normal case for a student who has not opened the page yet.
+
+    :param sid: str, the student id
+    :param selector_id: str, the div_id of the selectquestion
+    :return: the div_id of the question the student actually saw, or None
+    """
+    query = select(SelectedQuestion.selected_id).where(
+        (SelectedQuestion.sid == sid) & (SelectedQuestion.selector_id == selector_id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.scalars().first()
+
+
+async def fetch_selected_ids_for_selector(selector_id: str) -> Dict[str, str]:
+    """
+    Return ``{sid: selected_id}`` for every student served by one
+    ``selectquestion``.
+
+    The grading interface needs the whole class at once: a selectquestion is a
+    wrapper, and a student's answer is stored under the question they were
+    actually served, not under the wrapper.  See issue #1481.
+
+    :param selector_id: str, the div_id of the selectquestion
+    :return: a mapping of student id to the div_id that student was served
+    """
+    query = select(SelectedQuestion.sid, SelectedQuestion.selected_id).where(
+        SelectedQuestion.selector_id == selector_id
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {sid: selected for sid, selected in res.all() if sid and selected}

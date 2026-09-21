@@ -3,21 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { renderWithMantine, screen, waitFor } from "@/test/renderWithMantine";
 import { ShareableTreeCourse } from "@/types/assignmentSharing";
 
-import {
-  ImportAssignmentModal,
-  buildSelectionKeys,
-  buildTree
-} from "./ImportAssignmentModal";
+import { ImportAssignmentModal, buildSelectionKeys, buildTree } from "./ImportAssignmentModal";
 
-const {
-  treeHolder,
-  previewHolder,
-  importMock,
-  importCourseMock,
-  treeSkipSpy,
-  treeParamsSpy
-} = vi.hoisted(
-  () => ({
+const { treeHolder, previewHolder, importMock, importCourseMock, treeSkipSpy, treeParamsSpy } =
+  vi.hoisted(() => ({
     treeHolder: {
       value: {
         courses: [
@@ -120,8 +109,7 @@ const {
     importCourseMock: vi.fn(),
     treeSkipSpy: vi.fn(),
     treeParamsSpy: vi.fn()
-  })
-);
+  }));
 
 vi.mock("@store/assignment/assignment.logic.api", () => ({
   useShareableTreeQuery: (params: unknown, options: { skip: boolean }) => {
@@ -251,9 +239,7 @@ describe("ImportAssignmentModal", () => {
     renderWithMantine(<ImportAssignmentModal visible onHide={onHide} />);
     await user.click(screen.getByRole("checkbox", { name: "Select cs101-fall" }));
 
-    expect(
-      screen.getByRole("button", { name: "Import 2 assignments" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import 2 assignments" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Import 2 assignments" }));
 

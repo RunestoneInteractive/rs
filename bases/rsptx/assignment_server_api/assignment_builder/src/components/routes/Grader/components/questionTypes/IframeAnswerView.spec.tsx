@@ -1,7 +1,7 @@
+import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
 import React from "react";
 
 import { renderWithMantine, screen, waitFor } from "@/test/renderWithMantine";
-import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
 
 import { extractFrameSpec, IframeAnswerView } from "./IframeAnswerView";
 import { AnswerRendererProps } from "./types";

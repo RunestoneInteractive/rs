@@ -2,7 +2,6 @@ import userEvent from "@testing-library/user-event";
 import { ReactNode } from "react";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { CreateExerciseFormType } from "@/types/exercises";
 
 import { ActiveCodeExerciseSettings } from "./ActiveCodeExerciseSettings";

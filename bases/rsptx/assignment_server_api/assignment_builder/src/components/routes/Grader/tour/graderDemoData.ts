@@ -1,10 +1,11 @@
-import type { Assignment } from "@/types/assignment";
 import type {
   GraderAnswersResponse,
   GraderHistoryResponse,
   GraderQuestionsResponse,
   GraderStudentAnswer
 } from "@store/grader/grader.logic.api";
+
+import type { Assignment } from "@/types/assignment";
 
 export const DEMO_ASSIGNMENT_ID = 900001;
 export const DEMO_ALT_ASSIGNMENT_ID = 900002;
@@ -76,6 +77,7 @@ while i &lt; 5: i += 1; print(i)</code><br/>
 const iso = (d: Date) => d.toISOString();
 const daysFromNow = (n: number) => {
   const d = new Date();
+
   d.setDate(d.getDate() + n);
   return iso(d);
 };
@@ -160,6 +162,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "all_or_nothing",
       which_to_grade: "best_answer",
       answered_count: 22,
+      total_attempts: 41,
       correct_count: 17,
       average_score: 3.9
     },
@@ -171,6 +174,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "unittest",
       which_to_grade: "last_answer",
       answered_count: 20,
+      total_attempts: 56,
       correct_count: 11,
       average_score: 5.2
     },
@@ -182,6 +186,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "manual",
       which_to_grade: "best_answer",
       answered_count: 18,
+      total_attempts: 25,
       correct_count: 14,
       average_score: 3.4
     },
@@ -193,6 +198,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "all_or_nothing",
       which_to_grade: "first_answer",
       answered_count: 24,
+      total_attempts: 37,
       correct_count: 19,
       average_score: 2.6
     },
@@ -204,6 +210,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "manual",
       which_to_grade: "manual",
       answered_count: 15,
+      total_attempts: 18,
       correct_count: 0,
       average_score: 3.1
     },
@@ -215,6 +222,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "all_or_nothing",
       which_to_grade: "best_answer",
       answered_count: 19,
+      total_attempts: 31,
       correct_count: 12,
       average_score: 2.0
     },
@@ -226,6 +234,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "all_or_nothing",
       which_to_grade: "best_answer",
       answered_count: 17,
+      total_attempts: 29,
       correct_count: 10,
       average_score: 2.6
     },
@@ -237,6 +246,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "interact",
       which_to_grade: "last_answer",
       answered_count: 13,
+      total_attempts: 13,
       correct_count: 13,
       average_score: 3.0
     },
@@ -248,6 +258,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "all_or_nothing",
       which_to_grade: "best_answer",
       answered_count: 16,
+      total_attempts: 27,
       correct_count: 9,
       average_score: 1.3
     },
@@ -259,6 +270,7 @@ export const DEMO_QUESTIONS: GraderQuestionsResponse = {
       autograde: "all_or_nothing",
       which_to_grade: "best_answer",
       answered_count: 8,
+      total_attempts: 12,
       correct_count: 5,
       average_score: 1.4
     }
@@ -312,6 +324,7 @@ const lastNames = [
 
 const mchoiceAnswer = (i: number) => {
   const choices = ["0", "1", "2", "3"];
+
   return choices[i % choices.length];
 };
 
@@ -327,6 +340,7 @@ export const DEMO_ANSWERS: GraderAnswersResponse = {
     const correct = i % 3 !== 2;
     const partial = !correct && i % 5 === 0;
     const attempts = (i % 4) + 1;
+
     return {
       sid: i === 0 ? DEMO_STUDENT_SID : `demo-student-${i + 1}`,
       first_name: firstNames[i],
@@ -430,6 +444,7 @@ export const DEMO_HISTORY: GraderHistoryResponse = {
 
 export const getDemoHistoryFor = (sid: string): GraderHistoryResponse => {
   const student = DEMO_ANSWERS.answers.find((a) => a.sid === sid);
+
   if (!student) return { history: [], useinfo: [] };
   if (sid === DEMO_STUDENT_SID) return DEMO_HISTORY;
 
@@ -445,6 +460,7 @@ export const getDemoHistoryFor = (sid: string): GraderHistoryResponse => {
     const attemptAnswer = isLast ? finalAnswer : (distractors[i % distractors.length] ?? "1");
     const attemptCorrect = isLast ? finalCorrect : false;
     const attemptPercent = isLast ? finalPercent : i === total - 2 ? 0.5 : 0;
+
     return {
       id: i + 1,
       answer: attemptAnswer,
@@ -480,7 +496,8 @@ export const getDemoQuestionsFor = (aid: number): GraderQuestionsResponse | null
         ...q,
         id: q.id + 10_000,
         name: `alt_${q.name}`,
-        answered_count: Math.max(0, q.answered_count - 4 - i)
+        answered_count: Math.max(0, q.answered_count - 4 - i),
+        total_attempts: Math.max(0, q.total_attempts - 6 - i)
       }))
     };
   }
@@ -506,6 +523,7 @@ export const getDemoQuestionsFor = (aid: number): GraderQuestionsResponse | null
 export const getDemoAnswersFor = (aid: number, qid: number): GraderAnswersResponse | null => {
   if (aid === DEMO_ASSIGNMENT_ID && qid === DEMO_QUESTION_ID) return DEMO_ANSWERS;
   const qMeta = getDemoQuestionsFor(aid)?.questions.find((q) => q.id === qid);
+
   if (!qMeta) return null;
   return {
     question: {

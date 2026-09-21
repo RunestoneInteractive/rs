@@ -41,6 +41,75 @@ x-needs-preflight: &needs-preflight
     condition: service_completed_successfully
     required: true
 
+# ---------------------------------------------------------------------------
+# Reusable environment fragments.
+#
+# `environment:` is written in mapping form (KEY: value) rather than list form
+# (- KEY=value) so these fragments can be merged into a service with
+# `<<: [*fragment, ...]`. Add a new shared variable here once instead of in
+# every service. A key written directly in a service overrides a merged one,
+# and when two fragments define the same key the FIRST one in the list wins,
+# so keep the fragments below disjoint.
+#
+# Quote values that YAML would otherwise retype: "1" (number), "*" (alias),
+# and anything that looks like a boolean - compose rejects true/false here.
+# ---------------------------------------------------------------------------
+
+# Database URLs. DC_* variants let a container reach a database that the host
+# addresses differently (e.g. host.docker.internal).
+x-db-url-env: &db-url-env
+  DEV_DBURL: ${DC_DEV_DBURL:-$DEV_DBURL}
+  DBURL: ${DC_DBURL:-$DBURL}
+
+# Connection pool sizing; see sample.env for what these mean.
+x-db-pool-env: &db-pool-env
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+  DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+  DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-10}
+  DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
+  DB_SYNC_POOL_SIZE: ${DB_SYNC_POOL_SIZE:-5}
+  DB_SYNC_MAX_OVERFLOW: ${DB_SYNC_MAX_OVERFLOW:-10}
+
+x-db-env: &db-env
+  <<: [*db-url-env, *db-pool-env]
+
+# Anything that runs rsptx code inside a container.
+x-container-env: &container-env
+  BOOK_PATH: /usr/books
+  SERVER_CONFIG: ${SERVER_CONFIG}
+  RUNESTONE_PATH: /usr/src/app
+  REDIS_URI: redis://${REDIS_HOST}:6379/0
+  DOCKER_COMPOSE: "1"
+  JWT_SECRET: ${JWT_SECRET}
+
+# The FastAPI web servers: book, assignment, admin.
+x-web-env: &web-env
+  <<: [*container-env, *db-env]
+  AUTHOR_SERVER_URL: ${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
+
+# Shared uvicorn tuning. UVICORN_WORKERS is per-service, so it is not here.
+x-uvicorn-env: &uvicorn-env
+  UVICORN_USER: www-data
+  UVICORN_GROUP: www-data
+  UVICORN_MAX_REQUESTS: "5000"
+  UVICORN_MAX_REQUESTS_JITTER: "30"
+  UVICORN_TIMEOUT: "60"
+
+x-lti1p3-env: &lti1p3-env
+  LTI1P3_PUBLIC_KEY: ${LTI1P3_PUBLIC_KEY}
+  LTI1P3_PRIVATE_KEY: ${LTI1P3_PRIVATE_KEY}
+
+# Anonymous, opt-out usage telemetry (see sample.env / README)
+x-telemetry-env: &telemetry-env
+  TELEMETRY_ENABLED: ${TELEMETRY_ENABLED:-true}
+  TELEMETRY_URL: ${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
+  TELEMETRY_REGION: ${TELEMETRY_REGION:-}
+  TELEMETRY_INSTITUTION: ${TELEMETRY_INSTITUTION:-}
+
+x-celery-env: &celery-env
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/0
+
 services:
 
   redis:
@@ -54,7 +123,7 @@ services:
   # services depend on this completing successfully, so a stale file stops the
   # stack at `up` instead of breaking mysteriously at runtime.
   preflight:
-    image: ghcr.io/runestoneinteractive/rs-book
+    image: ghcr.io/runestoneinteractive/rs-book:${RS_VERSION:-latest}
     restart: "no"
     command: check_compose_version.sh
     environment:
@@ -117,13 +186,13 @@ services:
   jobe:
     build:
       context: ./projects/jobe
-    image: ghcr.io/runestoneinteractive/rs-jobe
+    image: ghcr.io/runestoneinteractive/rs-jobe:${RS_VERSION:-latest}
     restart: always
 
   book:
     build:
       context: ./projects/book_server
-    image: ghcr.io/runestoneinteractive/rs-book
+    image: ghcr.io/runestoneinteractive/rs-book:${RS_VERSION:-latest}
     hostname: book_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -143,38 +212,18 @@ services:
       - ${BOOK_PATH}:/usr/books
 
     environment:
-      - BOOK_PATH=/usr/books
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - RUNESTONE_HOST=${RUNESTONE_HOST}
-      - RUNESTONE_PATH=/usr/src/app
-      - REDIS_URI=redis://${REDIS_HOST}:6379/0
-      # Note: host.docker.internal refers back to the host so we can just use a local instance
-      # of postgresql
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
-      - DOCKER_COMPOSE=1
-      - JWT_SECRET=${JWT_SECRET}
-      - FERNET_SECRET=${FERNET_SECRET}
-      - UVICORN_WORKERS=${UVICORN_WORKERS:-2}
-      - UVICORN_USER=www-data
-      - UVICORN_GROUP=www-data
-      - UVICORN_MAX_REQUESTS=5000
-      - UVICORN_MAX_REQUESTS_JITTER=30
-      - UVICORN_TIMEOUT=60
-      - LOGIN_URL=/admin/auth/login
-      - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
-      - WORKER_NAME=${HOSTNAME}
-      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
-      - SPACES_KEY=${SPACES_KEY}
-      - SPACES_SECRET=${SPACES_SECRET}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
-      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
-      # Anonymous, opt-out usage telemetry (see sample.env / README)
-      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
-      - TELEMETRY_URL=${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
-      - TELEMETRY_REGION=${TELEMETRY_REGION:-}
-      - TELEMETRY_INSTITUTION=${TELEMETRY_INSTITUTION:-}
+      <<: [*web-env, *uvicorn-env, *lti1p3-env, *telemetry-env]
+      RUNESTONE_HOST: ${RUNESTONE_HOST}
+      LOAD_BALANCER_HOST: ${LOAD_BALANCER_HOST}
+      WORKER_NAME: ${HOSTNAME}
+      LOGIN_URL: /admin/auth/login
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      FERNET_SECRET: ${FERNET_SECRET}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      SPACES_KEY: ${SPACES_KEY}
+      SPACES_SECRET: ${SPACES_SECRET}
+      # Disk budget for the compiled-book-page cache; see sample.env.
+      BOOK_TEMPLATE_CACHE_MB: ${BOOK_TEMPLATE_CACHE_MB:-512}
 
     depends_on:
       <<: *needs-preflight
@@ -194,7 +243,7 @@ services:
   assignment:
     build:
       context: ./projects/assignment_server
-    image: ghcr.io/runestoneinteractive/rs-assignment
+    image: ghcr.io/runestoneinteractive/rs-assignment:${RS_VERSION:-latest}
     hostname: assignment_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -211,27 +260,10 @@ services:
       - ${BOOK_PATH}:/usr/books
 
     environment:
-      - BOOK_PATH=/usr/books
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - RUNESTONE_PATH=/usr/src/app
-      - REDIS_URI=redis://${REDIS_HOST}:6379/0
-      # Note: host.docker.internal refers back to the host so we can just use a local instance
-      # of postgresql
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
-      - DOCKER_COMPOSE=1
-      - JWT_SECRET=${JWT_SECRET}
-      - FERNET_SECRET=${FERNET_SECRET}
-      - UVICORN_WORKERS=3
-      - UVICORN_USER=www-data
-      - UVICORN_GROUP=www-data
-      - UVICORN_MAX_REQUESTS=5000
-      - UVICORN_MAX_REQUESTS_JITTER=30
-      - UVICORN_TIMEOUT=60
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
-      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
-      - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
+      <<: [*web-env, *uvicorn-env, *lti1p3-env]
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      FERNET_SECRET: ${FERNET_SECRET}
+      UVICORN_WORKERS: "3"
 
     depends_on:
       <<: *needs-preflight
@@ -254,7 +286,7 @@ services:
     build:
       context: ./
       dockerfile: projects/nginx/Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-nginx
+    image: ghcr.io/runestoneinteractive/rs-nginx:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: always
@@ -297,7 +329,7 @@ services:
     build:
       context: ./
       dockerfile: projects/caddy/Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-caddy
+    image: ghcr.io/runestoneinteractive/rs-caddy:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: always
@@ -343,7 +375,7 @@ services:
       context: ./
       dockerfile: projects/nginx_dstart_dev/Dockerfile
     #image: registry.digitalocean.com/runestone-registry/rs-nginx
-    image: ghcr.io/runestoneinteractive/rs-nginx-dstart-dev
+    image: ghcr.io/runestoneinteractive/rs-nginx-dstart-dev:${RS_VERSION:-latest}
     restart: always
     ports:
       # ports are specified host:container
@@ -359,40 +391,29 @@ services:
     build:
       context: ./
       dockerfile: projects/rsmanage/Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-rsmanage
+    image: ghcr.io/runestoneinteractive/rs-rsmanage:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
       - ${BOOK_PATH}:/usr/books
 
     environment:
-      - BOOK_PATH=/usr/books
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - RUNESTONE_HOST=${RUNESTONE_HOST}
-      - RUNESTONE_PATH=/usr/src/app
-      - REDIS_URI=redis://${REDIS_HOST}:6379/0
-      - DC_DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DC_DBURL=${DC_DBURL:-$DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
-      - DOCKER_COMPOSE=1
-      - LOG_LEVEL=${LOG_LEVEL:-WARN}
-      - FERNET_SECRET=${FERNET_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
-      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-runestone}
-      # Anonymous, opt-out usage telemetry (see sample.env / README)
-      - TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-true}
-      - TELEMETRY_URL=${TELEMETRY_URL:-https://runestone.academy/admin/telemetry/checkin}
-      - TELEMETRY_REGION=${TELEMETRY_REGION:-}
-      - TELEMETRY_INSTITUTION=${TELEMETRY_INSTITUTION:-}
+      <<: [*container-env, *db-url-env, *telemetry-env]
+      RUNESTONE_HOST: ${RUNESTONE_HOST}
+      # rsmanage also reads the DC_-prefixed names directly.
+      DC_DEV_DBURL: ${DC_DEV_DBURL:-$DEV_DBURL}
+      DC_DBURL: ${DC_DBURL:-$DBURL}
+      LOG_LEVEL: ${LOG_LEVEL:-WARN}
+      FERNET_SECRET: ${FERNET_SECRET}
+      WEB2PY_PRIVATE_KEY: ${WEB2PY_PRIVATE_KEY}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-runestone}
 
   author:
     profiles: [ "author" ]
     build:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-author
-    image: ghcr.io/runestoneinteractive/rs-author
+    image: ghcr.io/runestoneinteractive/rs-author:${RS_VERSION:-latest}
     hostname: author_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -407,14 +428,11 @@ services:
       - ${BOOK_PATH}:/books
       - $HOME/downloads:/usr/src/app/downloads
     environment:
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
-      - RUNESTONE_PATH=/usr/src/app
-      - JWT_SECRET=${JWT_SECRET}
+      <<: [*db-env, *celery-env]
+      SERVER_CONFIG: ${SERVER_CONFIG}
+      LOAD_BALANCER_HOST: ${LOAD_BALANCER_HOST}
+      RUNESTONE_PATH: /usr/src/app
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       <<: *needs-preflight
       redis:
@@ -429,7 +447,7 @@ services:
     build:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-worker
-    image: ghcr.io/runestoneinteractive/rs-worker
+    image: ghcr.io/runestoneinteractive/rs-worker:${RS_VERSION:-latest}
     hostname: worker_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -443,16 +461,13 @@ services:
       - ${SSH_AUTH_SOCK:-/tmp}:/ssh-agent # forward host ssh agent
       - $HOME/downloads:/usr/src/app/downloads
     environment:
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - RUNESTONE_PATH=/usr/src/app
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
-      - JWT_SECRET=${JWT_SECRET}
-      - SSH_AUTH_SOCK=/ssh-agent
-      - NUM_SERVERS=${NUM_SERVERS:-1}
-      - BOOK_PATH=/books
+      <<: [*db-env, *celery-env]
+      SERVER_CONFIG: ${SERVER_CONFIG}
+      RUNESTONE_PATH: /usr/src/app
+      JWT_SECRET: ${JWT_SECRET}
+      BOOK_PATH: /books
+      SSH_AUTH_SOCK: /ssh-agent
+      NUM_SERVERS: ${NUM_SERVERS:-1}
     depends_on:
       author:
         condition: service_started
@@ -468,7 +483,7 @@ services:
     build:
       context: ./projects/admin_server
       dockerfile: Dockerfile
-    image: ghcr.io/runestoneinteractive/rs-admin
+    image: ghcr.io/runestoneinteractive/rs-admin:${RS_VERSION:-latest}
     extra_hosts:
       - host.docker.internal:host-gateway
     container_name: admin
@@ -483,27 +498,17 @@ services:
       - ${BOOK_PATH}:/usr/books
 
     environment:
-      - BOOK_PATH=/usr/books
-      - LOAD_BALANCER_HOST=${LOAD_BALANCER_HOST}
-      - SERVER_CONFIG=${SERVER_CONFIG}
-      - RUNESTONE_PATH=/usr/src/app
-      - RUNESTONE_HOST=${RUNESTONE_HOST}
-      - WEB2PY_PRIVATE_KEY=${WEB2PY_PRIVATE_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - MAILGUN_API_KEY=${MAILGUN_API_KEY}
-      - MAILGUN_DOMAIN=${MAILGUN_DOMAIN}
-      - EMAIL_SENDER=${EMAIL_SENDER}
-      # - DEV_DBURL postgresql://runestone:runestone@host.docker.internal/runestone_dev
-      - REDIS_URI=redis://${REDIS_HOST}:6379/0
-      # Note: host.docker.internal refers back to the host so we can just use a local instance
-      # of postgresql
-      - DEV_DBURL=${DC_DEV_DBURL:-$DEV_DBURL}
-      - DBURL=${DC_DBURL:-$DBURL}
-      - DOCKER_COMPOSE=1
-      - LTI1P3_PUBLIC_KEY=${LTI1P3_PUBLIC_KEY}
-      - LTI1P3_PRIVATE_KEY=${LTI1P3_PRIVATE_KEY}
-      - AUTHOR_SERVER_URL=${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
-      - FORWARDED_ALLOW_IPS=*
+      <<: [*web-env, *lti1p3-env]
+      RUNESTONE_HOST: ${RUNESTONE_HOST}
+      LOAD_BALANCER_HOST: ${LOAD_BALANCER_HOST}
+      WEB2PY_PRIVATE_KEY: ${WEB2PY_PRIVATE_KEY}
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY}
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN}
+      EMAIL_SENDER: ${EMAIL_SENDER}
+      # Trust X-Forwarded-* from the reverse proxy in front of this service.
+      FORWARDED_ALLOW_IPS: "*"
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS}
+      CERTBOT_EMAIL: ${CERTBOT_EMAIL}
 
     depends_on:
       <<: *needs-preflight

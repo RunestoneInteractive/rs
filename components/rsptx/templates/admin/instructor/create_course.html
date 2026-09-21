@@ -147,7 +147,8 @@
             <label><input type="checkbox" name="allowpairs" value="true" {% if submitted is defined and submitted.allowpairs == 'true' %}checked{% endif %}> Enable <strong>experimental</strong> pair programming features.</label><br>
             <label><input type="checkbox" name="instructor" value="yes" {% if submitted is defined and submitted.instructor == 'yes' %}checked{% else %}checked{% endif %}> Make me the Instructor of this course.</label><br>
             <label for="startdate">Term start date</label>
-            <input type="date" name="startdate" id="startdate" class="form-control" required value="{{ submitted.startdate if submitted is defined else current_date }}">
+            <input type="date" name="startdate" id="startdate" class="form-control" required value="{{ submitted.startdate if submitted is defined else current_date }}" aria-describedby="startdate-hint">
+            <small class="form-text text-muted" id="startdate-hint">Set this to the first day students will be able to do work in the course. Student work before this date will not be counted.</small>
         </div>
         <div class="form-section">
             <div class="step-title">Step 6: (Optional !!): Support Runestone Academy</div>

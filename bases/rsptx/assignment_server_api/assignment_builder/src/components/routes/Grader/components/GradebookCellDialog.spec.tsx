@@ -1,8 +1,8 @@
+import type { StudentAssignmentScoresResponse } from "@store/grader/grader.logic.api";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-import type { StudentAssignmentScoresResponse } from "@store/grader/grader.logic.api";
 
 import { GradebookCellDialog } from "./GradebookCellDialog";
 
@@ -42,7 +42,9 @@ const detail: StudentAssignmentScoresResponse = {
       qnumber: "1.2.3",
       points: 5,
       score: 5,
-      comment: "autograded"
+      // The server sends no comment for an auto-graded question: its own
+      // bookkeeping words are stripped before they reach us.
+      comment: null
     },
     { id: 2, name: "q_two", qnumber: null, points: 5, score: 3, comment: "nice work" }
   ]
@@ -103,7 +105,7 @@ describe("GradebookCellDialog", () => {
     expect(screen.getByText("1.2.3")).toBeInTheDocument();
     // ...but a question without a number falls back to it.
     expect(screen.getByText("q_two")).toBeInTheDocument();
-    // A real instructor comment shows; the autograder's placeholder does not.
+    // An instructor comment shows; a question with none says nothing extra.
     expect(screen.getByText("nice work")).toBeInTheDocument();
     expect(screen.queryByText("autograded")).not.toBeInTheDocument();
   });

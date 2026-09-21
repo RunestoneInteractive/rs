@@ -1,8 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { createRef } from "react";
-import { useDragAndDropConnections } from "./index";
 
 import { CONNECTION_TOAST_COPY } from "../../../shared/connections";
+
+import { useDragAndDropConnections } from "./index";
 
 vi.mock("../DragAndDropExercise.module.css", () => ({
   default: {

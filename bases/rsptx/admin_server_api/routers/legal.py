@@ -58,7 +58,7 @@ LEGAL_DOCS = {
     },
     "accessibility": {
         "title": "Accessibility & VPAT",
-        "updated": "January 2026",
+        "updated": "August 2026",
         "template": "legal/accessibility.html",
         "blurb": "Our commitment to accessibility and our WCAG 2.1 AA "
         "Voluntary Product Accessibility Template (VPAT/ACR).",

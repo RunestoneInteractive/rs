@@ -451,3 +451,94 @@ async def test_push_carries_the_course_id_for_the_lti_version_lookup():
     assignment, course_id, updates = push.await_args.args
     assert course_id == _course().id
     assert assignment.id == _assignment().id
+
+
+def test_page_url_suffix_follows_the_books_markup_system():
+    # A PreTeXt book serves each page at the top level...
+    assert regrade.page_url_suffix("PreTeXt", "ch", "sub") == "sub.html"
+    # ...a Sphinx book puts it under its chapter.
+    assert regrade.page_url_suffix("Runestone", "ch", "sub") == "ch/sub.html"
+    # An unlabelled book is the Sphinx shape, which is what most books are.
+    assert regrade.page_url_suffix(None, "ch", "sub") == "ch/sub.html"
+
+
+async def test_a_reading_is_scored_all_or_nothing_on_activities_done():
+    """The reading rule: do ``activities_required`` of the page's activities --
+    opening the page counts as one -- and the reading is worth full points."""
+    item = RegradeDiffItem(sid="s1", question_id=7, div_id="ch/sub")
+    question = SimpleNamespace(name="ch/sub", chapter="ch", subchapter="sub")
+    aq = SimpleNamespace(points=5, activities_required=3)
+    course = SimpleNamespace(id=1, course_name="testcourse", base_course="base")
+
+    with (
+        patch.object(regrade, "get_course_origin", AsyncMock(return_value="Runestone")),
+        patch.object(regrade, "count_reading_activities", AsyncMock(return_value=3)),
+        patch.object(regrade, "_upsert_autograde", AsyncMock()) as upsert,
+    ):
+        result = await regrade._regrade_reading_question(
+            item,
+            "s1",
+            question,
+            aq,
+            course,
+            _assignment(),
+            RegradeOptions(enforce_deadline=False),
+            dry_run=False,
+        )
+
+    assert result.new_score == 5
+    assert upsert.await_args.args[3] == 5
+
+
+async def test_a_reading_left_untouched_when_the_student_never_opened_it():
+    item = RegradeDiffItem(sid="s1", question_id=7, div_id="ch/sub")
+    question = SimpleNamespace(name="ch/sub", chapter="ch", subchapter="sub")
+    aq = SimpleNamespace(points=5, activities_required=1)
+    course = SimpleNamespace(id=1, course_name="testcourse", base_course="base")
+
+    with (
+        patch.object(regrade, "get_course_origin", AsyncMock(return_value=None)),
+        patch.object(regrade, "count_reading_activities", AsyncMock(return_value=0)),
+        patch.object(regrade, "_upsert_autograde", AsyncMock()) as upsert,
+    ):
+        result = await regrade._regrade_reading_question(
+            item,
+            "s1",
+            question,
+            aq,
+            course,
+            _assignment(),
+            RegradeOptions(enforce_deadline=False),
+            dry_run=False,
+        )
+
+    assert result.skipped == "no_submission"
+    assert result.new_score is None
+    upsert.assert_not_called()
+
+
+async def test_a_reading_with_no_activities_required_needs_only_the_page():
+    """activities_required is not always set on older assignments; the page
+    itself is then the whole requirement."""
+    item = RegradeDiffItem(sid="s1", question_id=7, div_id="ch/sub")
+    question = SimpleNamespace(name="ch/sub", chapter="ch", subchapter="sub")
+    aq = SimpleNamespace(points=4, activities_required=None)
+    course = SimpleNamespace(id=1, course_name="testcourse", base_course="base")
+
+    with (
+        patch.object(regrade, "get_course_origin", AsyncMock(return_value=None)),
+        patch.object(regrade, "count_reading_activities", AsyncMock(return_value=1)),
+        patch.object(regrade, "_upsert_autograde", AsyncMock()),
+    ):
+        result = await regrade._regrade_reading_question(
+            item,
+            "s1",
+            question,
+            aq,
+            course,
+            _assignment(),
+            RegradeOptions(enforce_deadline=False),
+            dry_run=False,
+        )
+
+    assert result.new_score == 4

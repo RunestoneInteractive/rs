@@ -1,13 +1,20 @@
-import { renderHook, act } from "@testing-library/react";
+import { notify } from "@components/ui/notify";
 import { configureStore } from "@reduxjs/toolkit";
-import { Provider } from "react-redux";
-import React from "react";
 import { assignmentSlice } from "@store/assignment/assignment.logic";
 import { assignmentExerciseSlice } from "@store/assignmentExercise/assignmentExercise.logic";
+import {
+  useGetExercisesQuery,
+  useRemoveAssignmentExercisesMutation
+} from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { exercisesSlice } from "@store/exercises/exercises.logic";
 import { readingsSlice } from "@store/readings/readings.logic";
-import { useExercisesSelector } from "./useExercisesSelector";
+import { renderHook, act } from "@testing-library/react";
+import React from "react";
+import { Provider } from "react-redux";
+
 import type { Exercise } from "@/types/exercises";
+
+import { useExercisesSelector } from "./useExercisesSelector";
 
 vi.mock("@store/assignmentExercise/assignmentExercise.logic.api", () => ({
   useGetExercisesQuery: vi.fn(),
@@ -25,12 +32,6 @@ vi.mock("@components/ui/notify", () => ({
     clean: vi.fn()
   }
 }));
-
-import {
-  useGetExercisesQuery,
-  useRemoveAssignmentExercisesMutation
-} from "@store/assignmentExercise/assignmentExercise.logic.api";
-import { notify } from "@components/ui/notify";
 
 const mockRefetchExercises = vi.fn();
 const mockRemoveExercisesPost = vi.fn();
@@ -198,6 +199,7 @@ describe("useExercisesSelector — success state", () => {
 
     expect(result.current).toHaveProperty("assignmentExercises");
     const exercises = (result.current as any).assignmentExercises as Exercise[];
+
     expect(exercises.every((ex) => !ex.reading_assignment)).toBe(true);
     expect(exercises.every((ex) => ex.question_type !== "page")).toBe(true);
   });
@@ -220,6 +222,7 @@ describe("useExercisesSelector — success state", () => {
     });
 
     const chapters = (result.current as any).chapters;
+
     expect(chapters).toHaveLength(2);
     expect(chapters[0]).toEqual({ value: "ch1", label: "Chapter 1" });
     expect(chapters[1]).toEqual({ value: "ch2", label: "Chapter 2" });
@@ -253,6 +256,7 @@ describe("useExercisesSelector — success state", () => {
     });
 
     const r = result.current as any;
+
     if ("assignmentExercises" in r) {
       expect(r.isExercisesError).toBe(true);
     } else {
@@ -292,6 +296,7 @@ describe("useExercisesSelector — success state", () => {
     });
 
     const exercises = (result.current as any).assignmentExercises as Exercise[];
+
     expect(exercises.map((e) => e.id)).toEqual([2, 3, 1]);
   });
 });
