@@ -1,4 +1,5 @@
 import re
+import inspect
 from typing import Dict, Iterable, List, Optional, Tuple
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.exc import IntegrityError
@@ -569,7 +570,9 @@ async def create_question_grade_entry(
         async with async_session.begin() as session:
             session.add(new_qg)
     except (IntegrityError, UniqueViolationError) as e:
-        rslogger.error(f"IntegrityError: {e} id = {new_qg.id}")
+        # get the name of the function that called me
+        caller = inspect.stack()[1].function
+        rslogger.error(f"IntegrityError: {e} id = {new_qg.id} called from {caller}")
         return None
     return QuestionGradeValidator.from_orm(new_qg)
 
