@@ -1,13 +1,12 @@
 .selectwidthauto {
-     width:auto !important;
-     display: inline-block !important;
-     margin: 5px;
+    width: auto !important;
+    display: inline-block !important;
+    margin: 5px;
 }
 
 input.input-validation-error {
     border: 1px solid #e80c4d;
 }
-
 
 .dark-mode .fillintheblank_section input[type="text"] {
     color: unset;
@@ -21,4 +20,21 @@ input.input-validation-error {
 
 .ptx-runestone-container .fitb-feedback:empty {
     margin-top: 0;
+}
+
+/*
+ * Visible to screen readers only: the spoken "Correct:"/"Incorrect:" prefixes
+ * and the overall grade summary, whose visual channel is the check/cross mark
+ * and the alert colour.
+ */
+.fitb-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }

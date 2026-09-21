@@ -129,6 +129,7 @@ export default class FITB extends RunestoneBase {
         this.setupBlanks();
         this.caption = "Fill in the Blank";
         this.addCaption("runestone");
+        this.setGroupLabel();
 
         // Define a promise which imports any libraries needed by dynamic problems.
         this.dyn_imports = {};
@@ -147,8 +148,9 @@ export default class FITB extends RunestoneBase {
                     // Allow for local imports, usually from problems defined outside the Runestone Components.
                     // Relative URL should be relative to document base, not this library
                     default:
-                        const absoluteUrl = new URL(import_, document.baseURI).href;
-                        import_promises.push( 
+                        const absoluteUrl = new URL(import_, document.baseURI)
+                            .href;
+                        import_promises.push(
                             import(/* webpackIgnore: true */ absoluteUrl),
                         );
                         break;
@@ -230,7 +232,7 @@ export default class FITB extends RunestoneBase {
                 this.indicate_component_ready();
             });
         });
-        this.queueMathJax(this.descriptionDiv);
+        this.typesetPrompt();
     }
 
     // Find the script tag containing JSON in a given root DOM node.
@@ -286,6 +288,7 @@ export default class FITB extends RunestoneBase {
             this.compareButton = document.createElement("button");
             this.compareButton.className = "btn btn-default";
             this.compareButton.id = this.origElem.id + "_bcomp";
+            this.compareButton.type = "button";
             this.compareButton.disabled = true;
             this.compareButton.name = "compare";
             this.compareButton.textContent = t("msg_fitb_compare_me");
@@ -303,7 +306,10 @@ export default class FITB extends RunestoneBase {
         if (this.dyn_vars) {
             this.randomizeButton = document.createElement("button");
             this.randomizeButton.className = "btn btn-default";
-            this.randomizeButton.id = this.origElem.id + "_bcomp";
+            // Not ``_bcomp``; that is the compare button's id, and dynamic
+            // problems that offer both would have produced a duplicate id.
+            this.randomizeButton.id = this.origElem.id + "_brand";
+            this.randomizeButton.type = "button";
             this.randomizeButton.name = "randomize";
             this.randomizeButton.textContent = t("msg_fitb_randomize");
             this.randomizeButton.addEventListener(
@@ -321,8 +327,12 @@ export default class FITB extends RunestoneBase {
     renderFITBFeedbackDiv() {
         this.feedBackDiv = document.createElement("div");
         this.feedBackDiv.id = this.divid + "_feedback";
+        // ``role="status"`` is an implicitly polite live region. The previous
+        // ``role="alert"`` was assertive, contradicting the polite setting
+        // beside it and interrupting whatever the screen reader was saying.
+        this.feedBackDiv.setAttribute("role", "status");
         this.feedBackDiv.setAttribute("aria-live", "polite");
-        this.feedBackDiv.setAttribute("role", "alert");
+        this.feedBackDiv.setAttribute("aria-atomic", "true");
         this.feedBackDiv.classList.add("fitb-feedback");
         this.containerDiv.appendChild(this.feedBackDiv);
     }
@@ -330,7 +340,19 @@ export default class FITB extends RunestoneBase {
     clearFeedbackDiv() {
         // Setting the ``outerHTML`` removes this from the DOM. Use an alternative process -- remove the class (which makes it red/green based on grading) and content.
         this.feedBackDiv.innerHTML = "";
-        this.feedBackDiv.className = "";
+        // Keep ``fitb-feedback``; only the alert colouring is per-grade.
+        this.feedBackDiv.className = "fitb-feedback";
+        this.clearBlankFeedback();
+    }
+
+    // Drop the per-blank grading state, so a stale ``aria-describedby`` never
+    // points at feedback that has already been removed from the page.
+    clearBlankFeedback() {
+        for (const blank of this.blankArray || []) {
+            blank.classList.remove("input-validation-error");
+            blank.removeAttribute("aria-invalid");
+            blank.removeAttribute("aria-describedby");
+        }
     }
 
     // Update the problem's description based on dynamically-generated content.
@@ -373,12 +395,147 @@ export default class FITB extends RunestoneBase {
         );
         ba.forEach((el) => {
             el.className = "form form-control selectwidthauto";
-            el.setAttribute("aria-label", "input area");
         });
         this.blankArray = Array.from(ba);
         for (let blank of this.blankArray) {
             blank.addEventListener("change", this.recordAnswered.bind(this));
         }
+        this.labelBlanks();
+    }
+
+    /*========================================
+    ====  Accessible names for the blanks  ====
+    ========================================*/
+    // Name the exercise as a whole, so entering it announces what it is rather
+    // than an anonymous group of text boxes.
+    setGroupLabel() {
+        this.containerDiv.setAttribute("role", "group");
+        this.containerDiv.setAttribute(
+            "aria-label",
+            this.question_label
+                ? t("msg_fitb_group_label_numbered", this.question_label)
+                : t("msg_fitb_group_label"),
+        );
+    }
+
+    // A screen reader announces a form field's accessible name when focus lands
+    // on it and nothing else -- the prompt text around the field is never read
+    // in forms mode. Every blank was named "input area", so tabbing into a
+    // question said nothing about the question. Build each name out of the
+    // prompt instead, spelling out every blank in that prompt as "blank 1",
+    // "blank 2", ... so the gaps have audible positions.
+    labelBlanks() {
+        const total = this.blankArray.length;
+        this.blankArray.forEach((blank, i) => {
+            const context = this.blankContext(blank, i);
+            let label;
+            if (total === 1) {
+                label = context
+                    ? t("msg_fitb_blank_label_single", context)
+                    : t("msg_fitb_blank_fallback_single");
+            } else {
+                label = context
+                    ? t("msg_fitb_blank_label", i + 1, total, context)
+                    : t("msg_fitb_blank_fallback", i + 1, total);
+            }
+            blank.setAttribute("aria-label", label);
+        });
+    }
+
+    // The prompt text to read out for blank ``i``.
+    blankContext(blank, i) {
+        const block = this.blankBlock(blank);
+        let text = this.blankContextText(block);
+        // Newlines are only significant in a code listing, and there the useful
+        // context is the blank's own line: reading a whole program aloud on
+        // every Tab is as unusable as reading nothing. Fall back to the entire
+        // listing for a blank that sits alone on its line, which says nothing
+        // by itself.
+        if (block.tagName.toLowerCase() === "pre") {
+            const marker = t("msg_fitb_blank_n", i + 1);
+            const line = text.split("\n").find((l) => l.includes(marker));
+            if (line !== undefined && line.replace(marker, "").trim()) {
+                text = line;
+            }
+        }
+        return (
+            text
+                .replace(/\s+/g, " ")
+                // A blank is padded with spaces so it never runs into the words
+                // beside it; pull the padding back off punctuation, which
+                // otherwise reads as "blank 1 , then".
+                .replace(/\s+([,.;:!?)\]}])/g, "$1")
+                .trim()
+        );
+    }
+
+    // The block the blank sits in -- its sentence, list item or table cell --
+    // which is the useful unit of context. Falls back to the whole prompt.
+    blankBlock(blank) {
+        const block = blank.closest(
+            "p,li,dd,dt,td,th,pre,blockquote,section,div,h1,h2,h3,h4,h5,h6",
+        );
+        return block && this.descriptionDiv.contains(block)
+            ? block
+            : this.descriptionDiv;
+    }
+
+    // Flatten an element into the text a screen reader would hear, with each
+    // blank replaced by its spoken number. Whitespace is not normalized here.
+    blankContextText(root) {
+        const parts = [];
+        const walk = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                parts.push(node.nodeValue);
+                return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return;
+            }
+            // Skip whatever is already hidden from assistive technology. This
+            // also drops MathJax's visual output, leaving its assistive MathML.
+            if (node.getAttribute("aria-hidden") === "true") {
+                return;
+            }
+            const tag = node.tagName.toLowerCase();
+            if (tag === "script" || tag === "style" || tag === "template") {
+                return;
+            }
+            const blankIndex = this.blankArray.indexOf(node);
+            if (blankIndex !== -1) {
+                parts.push(` ${t("msg_fitb_blank_n", blankIndex + 1)} `);
+                return;
+            }
+            if (tag === "br") {
+                parts.push(" ");
+                return;
+            }
+            if (tag === "img") {
+                parts.push(` ${node.getAttribute("alt") || ""} `);
+                return;
+            }
+            if (tag === "input" || tag === "select" || tag === "textarea") {
+                // Some other control the author put in the prompt: read the
+                // name it carries rather than descending into it.
+                parts.push(` ${node.getAttribute("aria-label") || ""} `);
+                return;
+            }
+            for (const child of node.childNodes) {
+                walk(child);
+            }
+        };
+        walk(root);
+        // Whitespace is left as-is; the caller decides whether newlines matter.
+        return parts.join("");
+    }
+
+    // MathJax rewrites the prompt asynchronously, after the blanks have been
+    // named; rebuild the names once it is done so they hold the typeset text
+    // instead of raw LaTeX.
+    typesetPrompt() {
+        return this.queueMathJax(this.descriptionDiv).then(() =>
+            this.labelBlanks(),
+        );
     }
 
     // This tells timed questions that the fitb blanks received some interaction.
@@ -393,7 +550,7 @@ export default class FITB extends RunestoneBase {
         // Restore the seed first, since the dynamic render clears all the blanks.
         this.seed = data.seed;
         this.renderDynamicContent();
-        this.queueMathJax(this.descriptionDiv);
+        this.typesetPrompt();
 
         var arr;
         // Restore answers from storage retrieval done in RunestoneBase.
@@ -438,7 +595,7 @@ export default class FITB extends RunestoneBase {
             this.problemHtml = data.problemHtml;
             if (this.problemHtml) {
                 this.descriptionDiv.innerHTML = this.problemHtml;
-                this.queueMathJax(this.descriptionDiv);
+                this.typesetPrompt();
                 this.setupBlanks();
             }
         }
@@ -531,7 +688,7 @@ export default class FITB extends RunestoneBase {
             //
             this.seed = Math.floor(Math.random() * 2 ** 32);
             this.renderDynamicContent();
-            this.queueMathJax(this.descriptionDiv);
+            this.typesetPrompt();
         } else {
             // This is the server-side case. Send a request to the `results <getAssessResults>` endpoint with ``new_seed`` set to True.
             const request = new Request("/assessment/results", {
@@ -554,11 +711,11 @@ export default class FITB extends RunestoneBase {
             const res = data.detail;
             this.seed = res.seed;
             this.descriptionDiv.innerHTML = res.problemHtml;
-            this.queueMathJax(this.descriptionDiv);
+            this.typesetPrompt();
             this.setupBlanks();
         }
         // When getting a new seed, clear all the old answers and feedback.
-        this.given_arr = Array(this.blankArray.len).fill("");
+        this.given_arr = Array(this.blankArray.length).fill("");
         this.blankArray.forEach((el) => (el.value = ""));
         this.clearFeedbackDiv();
         this.saveAnswersLocallyOnly();
@@ -626,30 +783,40 @@ export default class FITB extends RunestoneBase {
     ===     display feedback     ===
     ==============================*/
     renderFeedback() {
+        // Start from a clean slate: a previous grade may have left an
+        // ``aria-describedby`` pointing at feedback about to be replaced.
+        this.clearBlankFeedback();
         if (this.correct) {
             this.feedBackDiv.className = "alert alert-info fitb-feedback";
-            for (let j = 0; j < this.blankArray.length; j++) {
-                this.blankArray[j].classList.remove("input-validation-error");
-            }
         } else {
             if (this.displayFeed === null) {
                 this.displayFeed = "";
             }
-            for (let j = 0; j < this.blankArray.length; j++) {
-                if (this.isCorrectArray[j] !== true) {
-                    this.blankArray[j].classList.add("input-validation-error");
-                } else {
-                    this.blankArray[j].classList.remove(
-                        "input-validation-error",
-                    );
-                }
-            }
             this.feedBackDiv.className = "alert alert-danger fitb-feedback";
         }
-        var feedback_html = "<ul>";
+        // Mark the blanks themselves. The red border is invisible to a screen
+        // reader; ``aria-invalid`` is what it reports when focus returns.
+        for (let j = 0; j < this.blankArray.length; j++) {
+            const wrong = !this.correct && this.isCorrectArray[j] !== true;
+            this.blankArray[j].classList.toggle(
+                "input-validation-error",
+                wrong,
+            );
+            this.blankArray[j].setAttribute(
+                "aria-invalid",
+                wrong ? "true" : "false",
+            );
+        }
+
+        // A single piece of feedback is not a list; don't make a screen reader
+        // announce "list, 1 item" for it.
+        const single = this.displayFeed.length === 1;
+        const list = single
+            ? document.createDocumentFragment()
+            : document.createElement("ul");
         for (var i = 0; i < this.displayFeed.length; i++) {
             let df = this.displayFeed[i];
-            let fm = this.isCorrectArray[i] === true ? "✔️" : "✖️";
+            const ok = this.isCorrectArray[i] === true;
             // Render any dynamic feedback in the provided feedback, for client-side grading of dynamic problems.
             if (typeof this.dyn_vars === "string") {
                 df = renderDynamicFeedback(
@@ -665,17 +832,40 @@ export default class FITB extends RunestoneBase {
                         ? df[0].parentElement.innerHTML
                         : "No feedback provided";
             }
-            feedback_html += `<li>${fm} ${df}</li>`;
+            const item = document.createElement(single ? "span" : "li");
+            item.id = `${this.divid}_feedback_${i}`;
+            // The check or cross is decoration -- screen readers either skip it
+            // or read the emoji's name. Hide it and say the word instead.
+            const mark = document.createElement("span");
+            mark.setAttribute("aria-hidden", "true");
+            mark.textContent = ok ? "✔️" : "✖️";
+            const spoken = document.createElement("span");
+            spoken.className = "fitb-sr-only";
+            spoken.textContent = `${
+                ok ? t("msg_fitb_correct") : t("msg_fitb_incorrect")
+            } `;
+            const body = document.createElement("span");
+            body.innerHTML = df ?? "";
+            item.append(mark, document.createTextNode(" "), spoken, body);
+            list.appendChild(item);
+            // Tie the feedback to the blank it grades, so tabbing back into a
+            // wrong answer repeats why it was wrong.
+            if (this.blankArray[i]) {
+                this.blankArray[i].setAttribute("aria-describedby", item.id);
+            }
         }
-        feedback_html += "</ul>";
-        // Remove the list if it's just one element.
-        if (this.displayFeed.length == 1) {
-            feedback_html = feedback_html.slice(
-                "<ul><li>".length,
-                -"</li></ul>".length,
-            );
+        this.feedBackDiv.innerHTML = "";
+        if (this.displayFeed.length > 1) {
+            // With several blanks the per-blank marks are easy to lose track
+            // of; lead the announcement with the overall verdict.
+            const summary = document.createElement("div");
+            summary.className = "fitb-sr-only";
+            summary.textContent = this.correct
+                ? t("msg_fitb_result_correct")
+                : t("msg_fitb_result_incorrect");
+            this.feedBackDiv.appendChild(summary);
         }
-        this.feedBackDiv.innerHTML = feedback_html;
+        this.feedBackDiv.appendChild(list);
         if (typeof MathJax !== "undefined") {
             this.queueMathJax(this.feedBackDiv);
         }
@@ -704,11 +894,14 @@ export default class FITB extends RunestoneBase {
         }
     }
     compareFITB(data, status, whatever) {
-        var answers = data.detail.res;
-        var misc = data.detail.miscdata;
-        var body = "<table>";
-        body += "<tr><th>Answer</th><th>Count</th></tr>";
-        for (var row in answers) {
+        const answers = data.detail.res;
+        const titleId = `${this.divid}_compare_title`;
+        // A real header row, marked up as one, so a screen reader can announce
+        // the column when reading down the table.
+        let body = "<table><thead><tr>";
+        body += "<th scope='col'>Answer</th><th scope='col'>Count</th>";
+        body += "</tr></thead><tbody>";
+        for (const row in answers) {
             body +=
                 "<tr><td>" +
                 answers[row].answer +
@@ -716,22 +909,10 @@ export default class FITB extends RunestoneBase {
                 answers[row].count +
                 " times</td></tr>";
         }
-        body += "</table>";
-        var html =
-            "<div class='modal fade'>" +
-            "    <div class='modal-dialog compare-modal'>" +
-            "        <div class='modal-content'>" +
-            "            <div class='modal-header'>" +
-            "                <button type='button' class='close' aria-hidden='true'>&times;</button>" +
-            "                <h4 class='modal-title'>Top Answers</h4>" +
-            "            </div>" +
-            "            <div class='modal-body'>" +
-            body +
-            "            </div>" +
-            "        </div>" +
-            "    </div>" +
-            "</div>";
+        body += "</tbody></table>";
+
         // Simple modal without Bootstrap/jQuery
+        const previouslyFocused = document.activeElement;
         const overlay = document.createElement("div");
         overlay.style.position = "fixed";
         overlay.style.inset = "0";
@@ -740,6 +921,12 @@ export default class FITB extends RunestoneBase {
 
         const dialog = document.createElement("div");
         dialog.className = "compare-modal";
+        // Announce this as a dialog named by its heading, and hide the page
+        // behind it from assistive technology while it is open.
+        dialog.setAttribute("role", "dialog");
+        dialog.setAttribute("aria-modal", "true");
+        dialog.setAttribute("aria-labelledby", titleId);
+        dialog.tabIndex = -1;
         dialog.style.maxWidth = "720px";
         dialog.style.margin = "10vh auto";
         dialog.style.background = "#fff";
@@ -747,19 +934,59 @@ export default class FITB extends RunestoneBase {
         dialog.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
         dialog.style.padding = "16px";
 
+        const close = () => {
+            document.removeEventListener("keydown", onKeydown, true);
+            overlay.remove();
+            // Put the user back where they were, not at the top of the page.
+            if (previouslyFocused && previouslyFocused.focus) {
+                previouslyFocused.focus();
+            }
+        };
+        // Escape closes, and Tab cycles inside the dialog: ``aria-modal`` tells
+        // a screen reader the rest of the page is inert, but does not keep the
+        // keyboard from tabbing out into it.
+        const onKeydown = (ev) => {
+            if (ev.key === "Escape") {
+                ev.preventDefault();
+                close();
+                return;
+            }
+            if (ev.key !== "Tab") {
+                return;
+            }
+            const focusable = dialog.querySelectorAll(
+                "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+            );
+            if (!focusable.length) {
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (ev.shiftKey && document.activeElement === first) {
+                ev.preventDefault();
+                last.focus();
+            } else if (!ev.shiftKey && document.activeElement === last) {
+                ev.preventDefault();
+                first.focus();
+            }
+        };
+
         const header = document.createElement("div");
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
-        closeBtn.textContent = "×";
-        closeBtn.setAttribute("aria-hidden", "true");
+        // The glyph is decoration; the button needs a name that can be spoken.
+        const closeGlyph = document.createElement("span");
+        closeGlyph.setAttribute("aria-hidden", "true");
+        closeGlyph.textContent = "\u00d7";
+        closeBtn.appendChild(closeGlyph);
+        closeBtn.setAttribute("aria-label", t("msg_fitb_close"));
         closeBtn.style.float = "right";
         closeBtn.className = "btn btn-light";
-        closeBtn.onclick = function () {
-            document.body.removeChild(overlay);
-        };
+        closeBtn.onclick = close;
         const title = document.createElement("h4");
         title.className = "modal-title";
-        title.textContent = "Top Answers";
+        title.id = titleId;
+        title.textContent = t("msg_fitb_top_answers");
         header.appendChild(closeBtn);
         header.appendChild(title);
 
@@ -769,12 +996,23 @@ export default class FITB extends RunestoneBase {
         dialog.appendChild(header);
         dialog.appendChild(modalBody);
         overlay.appendChild(dialog);
+        overlay.addEventListener("click", (ev) => {
+            if (ev.target === overlay) {
+                close();
+            }
+        });
         document.body.appendChild(overlay);
+        document.addEventListener("keydown", onKeydown, true);
+        dialog.focus();
     }
 
     disableInteraction() {
         for (var i = 0; i < this.blankArray.length; i++) {
-            this.blankArray[i].disabled = true;
+            // Read-only rather than disabled: a disabled input is skipped by
+            // the keyboard and by screen readers, so a student reviewing a
+            // finished timed exam could no longer hear what they answered.
+            this.blankArray[i].readOnly = true;
+            this.blankArray[i].setAttribute("aria-disabled", "true");
         }
     }
 }

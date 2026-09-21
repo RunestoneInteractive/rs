@@ -41,9 +41,10 @@ export default class TimedFITB extends FITB {
         }
     }
     hideFeedback() {
-        for (var i = 0; i < this.blankArray.length; i++) {
-            this.blankArray[i].classList.remove("input-validation-error");
-        }
+        // Also drops each blank's aria-describedby: hidden text is still read
+        // out when a description points at it, so leaving the links in place
+        // would announce feedback the student is not supposed to have yet.
+        this.clearBlankFeedback();
         this.feedBackDiv.style.display = "none";
     }
 
