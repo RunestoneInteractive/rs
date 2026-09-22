@@ -33,9 +33,7 @@
     <p class="text-muted">
         Found something wrong on a page — a typo, a broken example, an activity
         that won't run? Tell us about it below. We've filled in what we already
-        know; just describe the problem and hit submit. If you have a GitHub account,
-        you can <a href="https://github.com/RunestoneInteractive/rs/issues">file it directly</a>,
-        that way you can track the issue and get updates when it's fixed.
+        know; just describe the problem and hit submit.
     </p>
 
     {% if errors %}
@@ -84,8 +82,18 @@
                       placeholder="What did you expect to happen, and what happened instead? Include anything you typed or clicked.  Include the full contents of any popup error messages.  If you know about the Javascript console look for errors there.">{{ submitted.description }}</textarea>
         </div>
 
+        <!-- Outside the <details> below on purpose: collapsed is its resting
+             state, and a warning nobody expands to see is no warning at all. -->
+        <div class="alert alert-warning" id="console_log_too_long" hidden>
+            The console log is <span id="console_log_over"></span> longer than
+            the "File it on GitHub as me" link can carry. We'll include the most
+            recent messages plus any errors and warnings; if you need the rest,
+            open the console log below, copy it, and paste it into the issue
+            once GitHub opens.
+        </div>
+
         <details class="form-group" id="console_log_group" hidden>
-            <summary>Browser console log (collected automatically)</summary>
+            <summary>Browser console log (collected automatically)<span id="console_log_size"></span></summary>
             <small class="form-text text-muted">Recent console messages and
                 errors from your browser. They help us diagnose the problem, but
                 you're welcome to review, edit, or clear this before submitting.</small>
@@ -93,7 +101,19 @@
                       placeholder="(no console output was captured)">{{ submitted.console_log }}</textarea>
         </details>
 
-        <button type="submit" class="btn btn-rs-primary">Submit Report</button>
+        <div class="form-group">
+            <button type="submit" class="btn btn-rs-primary">Submit Report</button>
+            <button type="submit" class="btn btn-rs-secondary mt-3"
+                    formaction="/admin/problem/report/github" formtarget="_blank">
+                File it on GitHub as me
+            </button>
+            <small class="form-text text-muted">
+                Have a GitHub account? The second button opens GitHub in a new
+                tab with this report already filled in. Because the issue is
+                filed under your own account, you'll be notified when we reply
+                or fix it. Nothing is sent until you press Submit over there.
+            </small>
+        </div>
     </form>
     <p class="text-muted small">Note: we may use your username to follow up on the issue via email if necessary.</p>
 
@@ -115,6 +135,55 @@
                 }
                 if (group && field && field.value) {
                     group.hidden = false;
+                }
+                // Show how much was captured, and warn when it won't fit in
+                // the prefilled-issue link.  The server measured how much room
+                // the log has left once the rest of the report is encoded; all
+                // we do here is keep that in step with the description as it
+                // is typed, since both share the one URL budget.
+                var size = document.getElementById("console_log_size");
+                var warning = document.getElementById("console_log_too_long");
+                var over = document.getElementById("console_log_over");
+                var desc = document.getElementById("description");
+                var budget = {{ log_budget|default(0, true)|int }};
+                var descAtLoad = desc ? desc.value : "";
+
+                // Length after percent-encoding, matching Python's quote_plus:
+                // encodeURIComponent leaves !'()* alone where quote_plus
+                // escapes them, so count those as three characters each.
+                var encodedLen = function (s) {
+                    if (!s) return 0;
+                    return encodeURIComponent(s)
+                        .replace(/%20/g, "+")
+                        .replace(/[!'()*]/g, "%XX").length;
+                };
+
+                var update = function () {
+                    var n = field.value.length;
+                    if (size) {
+                        size.textContent = n
+                            ? " — " + n.toLocaleString() + " characters"
+                            : "";
+                    }
+                    if (!warning) return;
+                    // Anything typed into the description since load comes out
+                    // of the log's share of the URL.
+                    var room = budget - (desc
+                        ? encodedLen(desc.value) - encodedLen(descAtLoad)
+                        : 0);
+                    var excess = encodedLen(field.value) - room;
+                    warning.hidden = excess <= 0;
+                    if (over) {
+                        over.textContent = excess > 0
+                            ? "about " + Math.ceil(excess / 100) * 100 + " characters"
+                            : "";
+                    }
+                };
+
+                if (field) {
+                    update();
+                    field.addEventListener("input", update);
+                    if (desc) desc.addEventListener("input", update);
                 }
             } catch (e) {
                 /* sessionStorage unavailable; leave the field hidden and empty. */
