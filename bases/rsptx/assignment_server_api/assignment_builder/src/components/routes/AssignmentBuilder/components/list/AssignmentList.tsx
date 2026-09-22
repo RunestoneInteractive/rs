@@ -16,6 +16,7 @@ import { ColumnDef, OnChangeFn, RowSelectionState, SortingState } from "@tanstac
 import classNames from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 import { Assignment } from "@/types/assignment";
 import { formatUTCDateForDisplay } from "@/utils/date";
 
@@ -47,6 +48,7 @@ interface AssignmentListProps {
 
 const SORT_STORAGE_KEY = "assignmentList_sortField";
 const ORDER_STORAGE_KEY = "assignmentList_sortOrder";
+const PAGINATION_STORAGE_PREFIX = "assignmentList";
 const TABLE_MIN_WIDTH = 880;
 const SKELETON_ROW_COUNT = 6;
 
@@ -131,6 +133,10 @@ export const AssignmentList = ({
     }
     return assignments.filter((a) => a.name?.toLowerCase().includes(query));
   }, [assignments, globalFilter]);
+
+  const [pagination, setPagination] = usePersistedPagination(PAGINATION_STORAGE_PREFIX, {
+    rowCount: filteredAssignments.length
+  });
 
   const selectedAssignments = useMemo(
     () => filteredAssignments.filter((assignment) => rowSelection[String(assignment.id)]),
@@ -439,6 +445,8 @@ export const AssignmentList = ({
               getRowId={(row) => String(row.id)}
               sorting={sorting}
               onSortingChange={handleSortingChange}
+              pagination={pagination}
+              onPaginationChange={setPagination}
               enableRowSelection
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}

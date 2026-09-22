@@ -108,7 +108,8 @@ export default class Parsons extends RunestoneBase {
         // HTML parser (a well-known <pre> quirk), silently de-indenting only the
         // first block relative to every other block. Blank leading/trailing lines
         // within a block are still discarded further down, per block.
-        this.initializeLines(fulltext.trimEnd());
+        // - Note - reverted the above after request from barbarer trimEnd -> trim
+        this.initializeLines(fulltext.trim());
         this.initializeView();
         this.caption = "Parsons";
         this.addCaption("runestone");

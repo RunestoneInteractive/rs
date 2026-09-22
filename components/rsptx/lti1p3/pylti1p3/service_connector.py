@@ -114,14 +114,14 @@ class ServiceConnector:
         try:
             r = await self._requests_session.post(auth_url, data=auth_request)
             if not r.ok:
-                rslogger.error(
-                    f"get_access_token post failed: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+                rslogger.debug(
+                    f"get_access_token post failed: {r.status} - {r.reason}. Headers: {r.headers}."
                 )
                 raise LtiServiceException(r)
         except Exception:
             raw_body = await r.text()
-            rslogger.error(
-                f"get_access_token exception caught: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+            rslogger.debug(
+                f"get_access_token exception caught: {r.status} - {r.reason}. Headers: {r.headers}."
             )
             raise LtiServiceException(r)
         if r.content_type == "application/json":
@@ -134,8 +134,8 @@ class ServiceConnector:
                 response = json.loads(raw_body)
             except json.JSONDecodeError:
                 r.reason = "JSON decode error"
-                rslogger.error(
-                    f"get_access_token json decode error: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+                rslogger.debug(
+                    f"get_access_token json decode error: {r.status} - {r.reason}. Headers: {r.headers}. Full body: {raw_body}"
                 )
                 raise LtiServiceException(r)
 
@@ -192,7 +192,8 @@ class ServiceConnector:
             raise LtiException("Unsupported HTTP method: " + method)
 
         if not r.ok:
-            rslogger.error(
+            # Detailed logging of the response should only be required for debugging
+            rslogger.debug(
                 f"Service request failed: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
             )
             raise LtiServiceException(r)

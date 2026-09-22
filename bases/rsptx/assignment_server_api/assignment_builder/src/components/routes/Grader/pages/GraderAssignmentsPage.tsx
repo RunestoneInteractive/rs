@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
+import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 import { parseUTCDate } from "@/utils/date";
 
 import styles from "../Grader.module.css";
@@ -20,6 +21,7 @@ import { DEMO_ASSIGNMENTS } from "../tour/graderDemoData";
 
 const VIEW_MODES = ["cards", "table"] as const satisfies readonly GraderViewMode[];
 const VIEW_MODE_STORAGE_KEY = "grader.assignmentsViewMode";
+const PAGINATION_STORAGE_PREFIX = "grader.assignmentsTable";
 
 const formatDate = (iso?: string | null) => {
   if (!iso) return "No due date";
@@ -84,6 +86,10 @@ export const GraderAssignmentsPage: React.FC = () => {
   const activeViewMode = effectiveViewMode<GraderViewMode>(isDemo, viewMode, "cards");
 
   const [dateRange, setDateRange] = useState<[Date | null, Date | null] | null>(null);
+
+  const [pagination, setPagination] = usePersistedPagination(PAGINATION_STORAGE_PREFIX, {
+    rowCount: assignments?.length
+  });
 
   const columns = useMemo<ColumnDef<AssignmentRow, unknown>[]>(() => {
     const [startDate, endDate] = dateRange ?? [null, null];
@@ -244,7 +250,8 @@ export const GraderAssignmentsPage: React.FC = () => {
             enableColumnFilters
             enableSortingRemoval={false}
             initialSorting={[{ id: "duedate", desc: false }]}
-            initialPageSize={25}
+            pagination={pagination}
+            onPaginationChange={setPagination}
             ariaLabel="Assignments"
             emptyMessage="No assignments match the current filters."
           />

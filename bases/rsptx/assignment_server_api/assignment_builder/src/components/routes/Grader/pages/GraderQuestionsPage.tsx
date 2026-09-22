@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
+import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 
 import styles from "../Grader.module.css";
 import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
@@ -53,6 +54,7 @@ const PARTIAL_CREDIT_TYPES = new Set([
 
 const VIEW_MODES = ["cards", "table"] as const satisfies readonly GraderViewMode[];
 const VIEW_MODE_STORAGE_KEY = "grader.questionsViewMode";
+const PAGINATION_STORAGE_PREFIX = "grader.questionsTable";
 
 type QuestionData = NonNullable<ReturnType<typeof getDemoQuestionsFor>>;
 type QuestionRow = QuestionData["questions"][number];
@@ -159,6 +161,11 @@ export const GraderQuestionsPage: React.FC = () => {
   // TODO(eslint): Stabilize the fallback collection without changing loading behavior.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const allQuestions = data?.questions ?? [];
+
+  const [pagination, setPagination] = usePersistedPagination(PAGINATION_STORAGE_PREFIX, {
+    rowCount: allQuestions.length,
+    resetKey: id
+  });
 
   const columns = useMemo<ColumnDef<QuestionRow, unknown>[]>(
     () => [
@@ -457,7 +464,8 @@ export const GraderQuestionsPage: React.FC = () => {
             onRowClick={(row) => navigate(`/grader/${id}/questions/${row.id}`)}
             enableColumnFilters
             enableSortingRemoval={false}
-            initialPageSize={25}
+            pagination={pagination}
+            onPaginationChange={setPagination}
             ariaLabel="Questions"
             emptyMessage="No questions match the current filters."
           />
