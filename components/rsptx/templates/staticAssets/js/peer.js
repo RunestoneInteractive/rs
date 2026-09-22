@@ -461,7 +461,10 @@ function connect(event) {
                     for (const key in adict) {
                         let currAnswer = adict[key];
                         let newpeer = document.createElement("p");
-                        newpeer.innerHTML = `${key}: <strong>${currAnswer}</strong>`;
+                        newpeer.innerText = `${key}: `;
+                        const strong = document.createElement("strong");
+                        strong.innerText = currAnswer;
+                        newpeer.appendChild(strong);
                         peerlist.appendChild(newpeer);
                     }
                     break;
