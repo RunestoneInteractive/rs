@@ -23,7 +23,7 @@ import pandas as pd
 # -------------------
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from rsptx.auth.session import auth_manager
+from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import (
@@ -1326,6 +1326,8 @@ async def publish_message(
     data = await request.json()
     rslogger.info(f"Publishing peer message: {data}")
 
+    user_is_instructor = await is_instructor(request, user=user)
+
     try:
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
         r.publish("peermessages", json.dumps(data))
@@ -1337,11 +1339,18 @@ async def publish_message(
             "enableChat",
             "enableFaceChat",
         ):
-            r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
-            if data.get("message") in ("enableVote", "enableNext") and data.get(
-                "assignment_id"
-            ):
-                r.delete(f"assignment_{data['assignment_id']}_state")
+            # Safeguard so students can't change the state
+            if user_is_instructor:
+                r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
+                if data.get("message") in ("enableVote", "enableNext") and data.get(
+                    "assignment_id"
+                ):
+                    r.delete(f"assignment_{data['assignment_id']}_state")
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"User {user.username} is not an instructor in this runestone course.",
+                )
 
         # Track message count for text messages
         if data.get("type") == "text":
