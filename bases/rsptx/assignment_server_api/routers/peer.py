@@ -1347,9 +1347,11 @@ async def publish_message(
                 ):
                     r.delete(f"assignment_{data['assignment_id']}_state")
             else:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f"User {user.username} is not an instructor in this runestone course.",
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": f"User {user.username} is not an instructor in this runestone course."
+                    },
                 )
 
         # Track message count for text messages
