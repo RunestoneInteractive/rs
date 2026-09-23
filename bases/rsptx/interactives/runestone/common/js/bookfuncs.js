@@ -1005,48 +1005,7 @@ function shouldShowStudyCluesWidget() {
         return false;
     }
 
-    const enabledBasecourses = [
-        "csawesome2",
-        "py4e-int",
-        "thinkcspy",
-        "httlacs",
-        "PTXSB",
-        "cppds2",
-    ];
-    const enabledCourses = [
-        "bc_ai4all_f26",
-        "bc_cppds_s26",
-        "bc_cppds2_f26",
-        "csawesome2_studyclues_test",
-        "csawesome2-MOOC",
-        "DukeCS101-Fall26",
-        "DukeCS101SP26",
-        "F26-SI201-MW",
-        "F26-SI201-TTh",
-        "httlacs_studyclues_test",
-        "mcd-csa-canvas",
-        "mcd-csa-schoology",
-        "oberlincollege_httlacs_summer26_clues",
-        "py4e_studyclues_test",
-        "SI201-W26-MW",
-        "SI201-W26-TTh",
-        "test_py4e-int_api",
-        "Test-py4e-int",
-        "umsi101_fall26",
-        "virginiatech_py4e-int_spring26",
-        "virginiatech_py4eint_fall26",
-    ];
-    const host = window.location.hostname;
-
-    if (host === "localhost") {
-        return enabledBasecourses.includes(eBookConfig.basecourse);
-    }
-
-    if (host === "runestone.academy") {
-        return enabledCourses.includes(eBookConfig.course);
-    }
-
-    return false;
+    return eBookConfig.course_attrs?.studyClues === "True";
 }
 
 async function handlePageSetup() {
@@ -1152,8 +1111,7 @@ async function handlePageSetup() {
             }
         }
 
-        // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
-        // This is a temporary measure to limit the widget to courses that are known to work well with it and to avoid showing it on non-book pages where it may not be as useful.
+        // Only show the StudyClues widget on book/assignment pages for courses with the studyClues attribute set.
         if (shouldShowStudyCluesWidget()) {
             createStudyCluesWidget();
         }

@@ -652,6 +652,7 @@ async def serve_page(
         show_ethical_ad=serve_ad,
         worker_name=worker_name,
         appname="runestone",  # for peer+ links
+        course_attrs=course_attrs,
         **course_attrs,
     )
     # See `templates <https://fastapi.tiangolo.com/advanced/templates/>`_.
