@@ -1,6 +1,6 @@
 import re
 import inspect
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
 from sqlalchemy.exc import IntegrityError
 
@@ -126,8 +126,7 @@ async def fetch_flagged_questions(base_course: str) -> List[QuestionValidator]:
     query = (
         select(Question)
         .where(
-            (Question.base_course == base_course)
-            & (Question.review_flag == True)  # noqa: E712
+            (Question.base_course == base_course) & (Question.review_flag == True)  # noqa: E712
         )
         .order_by(Question.chapter, Question.name)
     )
@@ -137,17 +136,36 @@ async def fetch_flagged_questions(base_course: str) -> List[QuestionValidator]:
         return [QuestionValidator.from_orm(x) for x in res.scalars().fetchall()]
 
 
+async def fetch_assigned_question_ids(question_ids: Iterable[int]) -> Set[int]:
+    """Return the question ids that are referenced by at least one assignment."""
+    ids = set(question_ids)
+    if not ids:
+        return set()
+
+    query = select(AssignmentQuestion.question_id).where(
+        AssignmentQuestion.question_id.in_(ids)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return set(res.scalars().all())
+
+
 async def delete_question_by_name(name: str, base_course: str) -> int:
     """
-    Delete a question identified by its name (div_id) within a base course.
-    ``(base_course, name)`` is unique, so at most one row is removed.
+    Delete an unassigned question identified by its name (div_id) within a base
+    course. ``(base_course, name)`` is unique, so at most one row is removed.
 
     :param name: str, the name (div_id) of the question
     :param base_course: str, the base course the question belongs to
     :return: int, the number of rows deleted
     """
+    assigned = (
+        select(AssignmentQuestion.id)
+        .where(AssignmentQuestion.question_id == Question.id)
+        .exists()
+    )
     stmt = delete(Question).where(
-        (Question.name == name) & (Question.base_course == base_course)
+        (Question.name == name) & (Question.base_course == base_course) & ~assigned
     )
 
     async with async_session.begin() as session:

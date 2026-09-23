@@ -1,0 +1,72 @@
+{% extends "admin/_admin_base.html" %}
+{% set needs_jquery = true %}
+
+{% block title %}
+Edit Question
+{% endblock %}
+
+{% block page_css %}
+{% include 'common/static_assets.html' %}
+<style>
+    .editorial-edit-form textarea {
+        min-height: 16rem;
+        width: 100%;
+        font-family: monospace;
+    }
+
+    .editorial-edit-form .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'common/ebook_config.html' %}
+
+<div class="admin-page">
+    <div class="page-header">
+        <h1>Edit Question</h1>
+        <p>
+            <strong>{{ question.name }}</strong> in
+            <strong>{{ question.base_course }}</strong>
+        </p>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <form id="editorial-edit-form" class="editorial-edit-form" method="post"
+        data-question-id="{{ question.id }}">
+        <div class="form-group">
+            <label for="question-source">Question source</label>
+            <textarea id="question-source" name="question" required>{{ question.question or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="question-html">Rendered HTML</label>
+            <p class="help-block">
+                Keep this synchronized with the source so the updated question is
+                visible immediately. The question identifier cannot be changed.
+            </p>
+            <textarea id="question-html" name="htmlsrc" required>{{ question.htmlsrc or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="question-difficulty">Difficulty</label>
+            <input id="question-difficulty" name="difficulty" type="number"
+                min="0" max="5" step="0.1"
+                value="{{ question.difficulty if question.difficulty is not none else '' }}">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a class="btn btn-default" href="/admin/editor/manage_exercises">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="/staticAssets/js/admin/manage_exercises.js?v=1257-edit-1"></script>
+{% endblock %}

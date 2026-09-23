@@ -18,17 +18,23 @@ from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.crud import (
     delete_question_by_name,
+    fetch_assigned_question_ids,
     fetch_all_course_attributes,
     fetch_course,
     fetch_editor_basecourses,
     fetch_flagged_questions,
     fetch_question,
+    fetch_question_by_id,
     get_book_chapters,
     update_question,
 )
 from rsptx.endpoint_validators import editor_role_required
 from rsptx.logging import rslogger
-from rsptx.response_helpers.core import get_webpack_static_imports, make_json_response
+from rsptx.response_helpers.core import (
+    canonical_utcnow,
+    get_webpack_static_imports,
+    make_json_response,
+)
 from rsptx.templates import get_shared_templates
 
 router = APIRouter(
@@ -63,12 +69,12 @@ async def manage_exercises(
 ):
     """
     Display every question flagged for review in the base courses this user
-    edits, with controls to delete a question or clear its flag.
+    edits, with controls to edit or delete a question, or clear its flag.
     """
     course = await fetch_course(user.course_name)
     base_courses = await fetch_editor_basecourses(user.id)
 
-    questions = []
+    flagged_questions = []
     # Chapter labels are what the questions table stores; map them to the
     # human-readable chapter titles, per base course.
     chapter_titles = {}
@@ -77,19 +83,24 @@ async def manage_exercises(
             chapter.chapter_label: chapter.chapter_name
             for chapter in await get_book_chapters(base_course)
         }
-        for q in await fetch_flagged_questions(base_course):
-            questions.append(
-                {
-                    "name": q.name,
-                    "base_course": q.base_course,
-                    "chapter": q.chapter,
-                    "chapter_title": chapter_titles[base_course].get(q.chapter, ""),
-                    "subchapter": q.subchapter,
-                    "difficulty": q.difficulty,
-                    "question_type": q.question_type,
-                    "htmlsrc": q.htmlsrc,
-                }
-            )
+        flagged_questions.extend(await fetch_flagged_questions(base_course))
+
+    assigned_ids = await fetch_assigned_question_ids(q.id for q in flagged_questions)
+    questions = [
+        {
+            "id": q.id,
+            "name": q.name,
+            "base_course": q.base_course,
+            "chapter": q.chapter,
+            "chapter_title": chapter_titles[q.base_course].get(q.chapter, ""),
+            "subchapter": q.subchapter,
+            "difficulty": q.difficulty,
+            "question_type": q.question_type,
+            "htmlsrc": q.htmlsrc,
+            "assigned": q.id in assigned_ids,
+        }
+        for q in flagged_questions
+    ]
 
     course_attrs = await fetch_all_course_attributes(course.id)
     templates = get_shared_templates()
@@ -113,6 +124,12 @@ async def manage_exercises(
 class QuestionRequest(BaseModel):
     name: str
     base_course: str
+
+
+class QuestionEditRequest(BaseModel):
+    question: str
+    htmlsrc: str
+    difficulty: float | None = None
 
 
 async def _editable_question(user, body: QuestionRequest):
@@ -139,6 +156,85 @@ async def _editable_question(user, body: QuestionRequest):
     return question, None
 
 
+async def _editable_question_by_id(user, question_id: int):
+    """Resolve a question id only when the caller edits its base course."""
+    question = await fetch_question_by_id(question_id)
+    if not question:
+        return None, make_json_response(
+            status=status.HTTP_404_NOT_FOUND,
+            detail={"status": "Error", "message": "Question not found."},
+        )
+
+    base_courses = await fetch_editor_basecourses(user.id)
+    if question.base_course not in base_courses:
+        return None, make_json_response(
+            status=status.HTTP_403_FORBIDDEN,
+            detail={"status": "Error", "message": "You do not edit that base course."},
+        )
+    return question, None
+
+
+@router.get("/questions/{question_id}/edit", response_class=HTMLResponse)
+@editor_role_required()
+async def edit_question_page(
+    request: Request,
+    question_id: int,
+    user=Depends(auth_manager),
+):
+    """Display the focused editor for a question in the review queue."""
+    question, err = await _editable_question_by_id(user, question_id)
+    if err:
+        return err
+
+    course = await fetch_course(user.course_name)
+    course_attrs = await fetch_all_course_attributes(course.id)
+    context = {
+        "request": request,
+        "user": user,
+        "course": course,
+        "is_instructor": True,
+        "student_page": False,
+        "question": question,
+        "wp_imports": _safe_webpack_imports(course),
+        "course_attrs": course_attrs,
+        "latex_preamble": course_attrs.get("latex_macros", ""),
+        "webwork_js_version": course_attrs.get("webwork_js_version", "2.20"),
+        "settings": settings,
+    }
+    return get_shared_templates().TemplateResponse(
+        "admin/editor/edit_question.html", context
+    )
+
+
+@router.post("/questions/{question_id}/edit", response_class=JSONResponse)
+@editor_role_required()
+async def edit_question(
+    request: Request,
+    question_id: int,
+    body: QuestionEditRequest,
+    user=Depends(auth_manager),
+):
+    """Save editorial changes without allowing the question id to change."""
+    question, err = await _editable_question_by_id(user, question_id)
+    if err:
+        return err
+
+    question.question = body.question
+    question.htmlsrc = body.htmlsrc
+    question.difficulty = body.difficulty
+    question.timestamp = canonical_utcnow()
+    try:
+        await update_question(question)
+    except Exception as e:
+        rslogger.error(f"Error updating question {question.name}: {e}")
+        return make_json_response(
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"status": "Error", "message": f"Failed to update: {e}"},
+        )
+
+    return make_json_response(detail={"status": "Success"})
+
+
 @router.post("/delete_question", response_class=JSONResponse)
 @editor_role_required()
 async def delete_question(
@@ -151,13 +247,31 @@ async def delete_question(
     if err:
         return err
 
+    if question.id in await fetch_assigned_question_ids([question.id]):
+        return make_json_response(
+            status=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "Error",
+                "message": "Assigned questions cannot be deleted.",
+            },
+        )
+
     try:
-        await delete_question_by_name(body.name, body.base_course)
+        deleted = await delete_question_by_name(body.name, body.base_course)
     except Exception as e:
         rslogger.error(f"Error deleting question {body.name}: {e}")
         return make_json_response(
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"status": "Error", "message": f"Failed to delete: {e}"},
+        )
+
+    if not deleted:
+        return make_json_response(
+            status=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "Error",
+                "message": "The question was assigned or changed before deletion.",
+            },
         )
 
     return make_json_response(detail={"status": "Success"})

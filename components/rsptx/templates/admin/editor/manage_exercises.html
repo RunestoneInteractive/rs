@@ -64,9 +64,9 @@ Editorial Page
     </div>
 
     <h3>Questions for Review</h3>
-    <p>Please delete the questions that are clearly inappropriate or just
-        experimental. If a question is fine as it stands, clear its flag to take
-        it off this list.</p>
+    <p>Please edit questions with minor issues, delete questions that are clearly
+        inappropriate or experimental, or clear the flag when a question is fine
+        as it stands. Assigned questions cannot be deleted.</p>
 
     {% if questions %}
     <div id="questions" class="runestone-sphinx">
@@ -85,9 +85,13 @@ Editorial Page
 
             <div class="question-actions">
                 <button type="button" class="btn btn-danger"
+                    {% if q.assigned %}disabled title="Assigned questions cannot be deleted"{% endif %}
                     onclick="deleteQuestion('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
                     Delete
                 </button>
+                <a class="btn btn-primary" href="/admin/editor/questions/{{ q.id }}/edit">
+                    Edit
+                </a>
                 <button type="button" class="btn btn-primary"
                     onclick="clearFlag('{{ q.name }}', '{{ q.base_course }}', 'flagged-{{ loop.index0 }}')">
                     Clear Flag
