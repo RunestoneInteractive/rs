@@ -1176,12 +1176,22 @@ async def save_exception(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
+    # Blank time_limit / due_date fields from the form mean "no change" --
+    # store NULL, not an empty string, which the numeric columns reject.
+    def blank_to_none(value):
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
+    time_limit = blank_to_none(request_data.get("time_limit"))
+    due_date = blank_to_none(request_data.get("due_date"))
+
     # save the exception
     res = await create_deadline_exception(
         course.id,
         request_data["sid"],
-        request_data["time_limit"],
-        request_data["due_date"],
+        time_limit,
+        due_date,
         request_data["visible"],
         request_data["assignment_id"],
         request_data["allowLink"],
