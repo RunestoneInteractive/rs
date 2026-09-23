@@ -126,7 +126,8 @@ async def fetch_flagged_questions(base_course: str) -> List[QuestionValidator]:
     query = (
         select(Question)
         .where(
-            (Question.base_course == base_course) & (Question.review_flag == True)  # noqa: E712
+            (Question.base_course == base_course)
+            & (Question.review_flag == True)  # noqa: E712
         )
         .order_by(Question.chapter, Question.name)
     )
