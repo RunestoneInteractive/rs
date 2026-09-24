@@ -22,10 +22,11 @@ import pandas as pd
 # Third-party imports
 # -------------------
 from fastapi import APIRouter, Body, Depends, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from rsptx.auth.session import auth_manager
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
+from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.db.crud import (
     count_distinct_student_answers,
     count_peer_messages,
@@ -35,6 +36,7 @@ from rsptx.db.crud import (
     fetch_assignment_questions,
     fetch_assignments,
     fetch_course_students,
+    fetch_deadline_exception,
     fetch_last_useinfo_peergroup,
     fetch_lti_version,
     fetch_one_assignment,
@@ -47,6 +49,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import Useinfo, UseinfoValidation
 from .course_guard import assignment_course_redirect
 from rsptx.endpoint_validators import instructor_role_required, with_course
+from rsptx.grading_helpers.core import check_for_exceptions
 
 # Local application imports
 # -------------------------
@@ -160,12 +163,17 @@ async def get_peer_instructor(
         key=lambda x: x.duedate if x.duedate else datetime.datetime.min, reverse=True
     )
 
+    # Whether students can see each assignment right now, honoring visible_on
+    # and hidden_on as well as the visible flag (same rule as chooseAssignment)
+    visibility_map = {a.id: is_assignment_visible_to_students(a) for a in assignments}
+
     context = {
         "course": course,
         "user": user,
         "request": request,
         "is_instructor": True,
         "assignments": assignments,
+        "visibility_map": visibility_map,
         "settings": settings,
     }
 
@@ -381,7 +389,6 @@ async def get_peer_review(
     rslogger.info(
         f"Peer review for assignment {assignment_id} - not yet implemented, redirecting"
     )
-    from fastapi.responses import RedirectResponse
 
     return RedirectResponse(
         url=f"/assignment/instructor/reviewPeerAssignment?assignment_id={assignment_id}"
@@ -405,14 +412,25 @@ async def get_peer_student(
     rslogger.info(f"Rendering peer student page for user: {user.username}")
     templates = get_shared_templates()
 
-    # Fetch visible peer assignments for the student
-    all_assignments = await fetch_assignments(
+    # Fetch peer assignments that are visible now; the SQL filter honors
+    # visible_on and hidden_on as well as the visible flag.
+    assignments = await fetch_assignments(
         course.course_name, is_peer=True, is_visible=True
     )
-    # Filter for peer assignments that are visible
-    assignments = [
-        a for a in all_assignments if (a.is_peer or a.kind == "Peer") and a.visible
-    ]
+    # A student granted a visibility exception sees the assignment even when
+    # it is hidden for everyone else. (allowLink only permits the direct link,
+    # so it does not add the assignment to the list.)
+    accommodations = await fetch_deadline_exception(
+        course.id, user.username, fetch_all=True
+    )
+    exception_ids = {a.assignment_id for a in accommodations if a.visible}
+    if exception_ids:
+        all_peer = await fetch_assignments(course.course_name, is_peer=True)
+        assignments = list(assignments) + [
+            a
+            for a in all_peer
+            if a.id in exception_ids and not is_assignment_visible_to_students(a)
+        ]
 
     # Sort by due date (most recent first)
     assignments.sort(
@@ -460,6 +478,20 @@ async def get_peer_question(
     )
     if wrong_course:
         return wrong_course
+
+    # Hidden assignments are off limits except to instructors and students
+    # granted an exception, the same rule doAssignment applies.
+    if not is_assignment_visible_to_students(assignment):
+        deadline_exception = await check_for_exceptions(user, assignment_id)
+        if not (
+            await is_instructor(request, user=user)
+            or deadline_exception.visible
+            or deadline_exception.allowLink
+        ):
+            rslogger.warning(
+                f"Attempt to access invisible peer assignment {assignment_id} by {user.username}"
+            )
+            return RedirectResponse("/assignment/peer/student")
 
     # Get all questions for this assignment
     questions_result = await fetch_assignment_questions(assignment_id)
@@ -1287,8 +1319,12 @@ async def set_assignment_visibility(
             status_code=403, content={"detail": "Assignment not in this course"}
         )
 
-    # Update visibility
+    # An explicit toggle overrides any schedule, matching the assignment
+    # builder's plain "visible"/"hidden" modes. Leaving visible_on or hidden_on
+    # in place would let the schedule contradict the toggle.
     assignment.visible = visible
+    assignment.visible_on = None
+    assignment.hidden_on = None
     try:
         await update_assignment(assignment, pi_update=True)
     except Exception as e:
