@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import JSActiveCode from "../js/activecode_js.js";
 import HTMLActiveCode from "../js/activecode_html.js";
+import LiveCode from "../js/livecode.js";
 
 function makeFixture({ id, code, lang }) {
     document.body.innerHTML = `
@@ -74,5 +75,29 @@ describe("HTMLActiveCode", () => {
         const ac = new HTMLActiveCode({ orig, useRunestoneServices: false });
         await ac.runProg();
         expect(ac.output.srcdoc).toContain("<p>content</p>");
+    });
+});
+
+describe("LiveCode", () => {
+    it("associates the program-input label with its textarea", () => {
+        const orig = makeFixture({
+            id: "test_live_1",
+            code: "int main() {}",
+            lang: "c",
+        });
+        orig.querySelector("textarea").setAttribute(
+            "data-stdin",
+            "program input",
+        );
+
+        const ac = new LiveCode({ orig, useRunestoneServices: false });
+        expect(ac.stdin_el.labels[0].getAttribute("for")).toBe(
+            "test_live_1_stdin",
+        );
+        expect(ac.stdin_el.labels[0].outerHTML).toContain(
+            'for="test_live_1_stdin"',
+        );
+        expect(ac.stdin_el.labels).toHaveLength(1);
+        expect(ac.stdin_el.labels[0].textContent).toBe("Input for Program");
     });
 });

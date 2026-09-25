@@ -1590,18 +1590,22 @@ export class ActiveCode extends RunestoneBase {
         checkPartner.id = `${this.divid}_part`;
         ctrlDiv.appendChild(checkPartner);
         var plabel = document.createElement("label");
-        plabel.for = `${this.divid}_part`;
+        plabel.setAttribute("for", checkPartner.id);
         plabel.textContent = "Pair?";
         ctrlDiv.appendChild(plabel);
+        var partnerLabel = document.createElement("label");
+        partnerLabel.textContent = "With:";
+        partnerLabel.style.display = "none";
+        ctrlDiv.appendChild(partnerLabel);
         checkPartner.addEventListener(
             "click",
             function () {
                 if (this.partner) {
                     this.partner = false;
                     partnerTextBox.style.display = "none";
+                    partnerLabel.style.display = "none";
                     this.partner = "";
                     partnerTextBox.value = "";
-                    plabel.textContent = "Pair?";
                 } else {
                     let didAgree = localStorage.getItem("partnerAgree");
                     if (!didAgree) {
@@ -1617,13 +1621,15 @@ export class ActiveCode extends RunestoneBase {
                         }
                     }
                     this.partner = true;
-                    plabel.textContent = "with: ";
+                    partnerLabel.style.display = "";
                     partnerTextBox.style.display = "";
                 }
             }.bind(this),
         );
         var partnerTextBox = document.createElement("input");
         partnerTextBox.type = "text";
+        partnerTextBox.id = `${this.divid}_partner`;
+        partnerLabel.setAttribute("for", partnerTextBox.id);
         ctrlDiv.appendChild(partnerTextBox);
         partnerTextBox.style.display = "none";
         partnerTextBox.addEventListener(

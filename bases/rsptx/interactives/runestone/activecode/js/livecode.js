@@ -75,11 +75,12 @@ export default class LiveCode extends ActiveCode {
     outputfun(a) {}
     createInputElement() {
         let inputContainer = document.createElement("div");
+        const inputId = this.divid + "_stdin";
         var label = document.createElement("label");
-        label.for = this.divid + "_stdin";
+        label.setAttribute("for", inputId);
         label.textContent = t("msg_activecode_input_prg");
         var input = document.createElement("textarea");
-        input.id = this.divid + "_stdin";
+        input.id = inputId;
         input.classList.add("activecode__stdin");
         input.value = this.stdin;
         input.setAttribute("rows", "3");
