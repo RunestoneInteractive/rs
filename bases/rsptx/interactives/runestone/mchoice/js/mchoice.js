@@ -54,9 +54,8 @@ export default class MultipleChoice extends RunestoneBase {
         this.createMCForm();
         this.addCaption("runestone");
         this.checkServer("mChoice", true);
-        // https://docs.mathjax.org/en/latest/options/startup/startup.html
-        // https://docs.mathjax.org/en/latest/web/configuration.html#startup-action
-        // runestoneMathReady is defined in the preamble for all PTX authored books
+        // queueMathJax waits for page-level MathJax readiness when configured,
+        // then updates option labels from the rendered content.
         this.queueMathJax(this.containerDiv).then(() => {
             this.updateMathJaxOptionLabels();
             this.disableOptionMathJaxTabStops();

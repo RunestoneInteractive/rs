@@ -164,13 +164,7 @@ export default class ShortAnswer extends RunestoneBase {
             this.containerDiv.appendChild(attachDiv);
         }
         this.origElem.replaceWith(this.containerDiv);
-        // This is a stopgap measure for when MathJax is not loaded at all.  There is another
-        // more difficult case that when MathJax is loaded asynchronously we will get here
-        // before MathJax is loaded.  In that case we will need to implement something
-        // like `the solution described here <https://stackoverflow.com/questions/3014018/how-to-detect-when-mathjax-is-fully-loaded>`_
-        if (typeof MathJax !== "undefined") {
-            this.queueMathJax(this.containerDiv);
-        }
+        this.queueMathJax(this.containerDiv);
     }
 
     renderMath(value) {

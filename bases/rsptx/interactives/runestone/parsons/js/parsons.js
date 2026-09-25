@@ -976,18 +976,7 @@ export default class Parsons extends RunestoneBase {
         for (i = 0; i < blocks.length; i++) {
             const item = blocks[i].view;
             if (isMath) {
-                if (typeof runestoneMathReady !== "undefined") {
-                    await runestoneMathReady.then(
-                        async () => await self.queueMathJax(item),
-                    );
-                } else {
-                    if (
-                        typeof MathJax !== "undefined" &&
-                        typeof MathJax.startup !== "undefined"
-                    ) {
-                        await self.queueMathJax(item);
-                    }
-                }
+                await self.queueMathJax(item);
             }
             areaWidth = Math.max(areaWidth, item.getBoundingClientRect().width);
         }
@@ -1112,151 +1101,144 @@ export default class Parsons extends RunestoneBase {
             this.options.language == "math" ||
             this.options.language == "text"
         ) {
-            if (
-                typeof MathJax !== "undefined" &&
-                typeof MathJax.startup !== "undefined"
-            ) {
-                // Since aQueue is the same AutoQueue instance that processes the per-block items,
-                // enqueueing outerDiv directly guarantees it runs after all per-block items
-                // already in the queue have been typeset. The .then() then fires with all
-                // blocks fully rendered at their final heights.
-                self.aQueue.enqueue(self.outerDiv).then(() => {
-                    // Recalculate areaWidth and areaHeight from all blocks (source + answer)
-                    // now that MathJax has rendered to final dimensions.
-                    var newAreaWidth = 0;
-                    var newAreaHeight = 20;
-                    var height_add = self.options.numbered != undefined ? 1 : 0;
-                    var sourceBlocks = self.sourceBlocks();
-                    var answerBlocks = self.answerBlocks();
-                    var allBlocks = sourceBlocks.concat(answerBlocks);
+            // queueMathJax uses the same AutoQueue instance that processed the
+            // per-block items, so this runs after their final layout is ready.
+            self.queueMathJax(self.outerDiv).then(() => {
+                // Recalculate areaWidth and areaHeight from all blocks (source + answer)
+                // now that MathJax has rendered to final dimensions.
+                var newAreaWidth = 0;
+                var newAreaHeight = 20;
+                var height_add = self.options.numbered != undefined ? 1 : 0;
+                var sourceBlocks = self.sourceBlocks();
+                var answerBlocks = self.answerBlocks();
+                var allBlocks = sourceBlocks.concat(answerBlocks);
 
-                    // First pass: find max natural width across all blocks
-                    for (var i = 0; i < allBlocks.length; i++) {
-                        var blockViewEl = allBlocks[i].view;
-                        blockViewEl.style.width = ""; // release fixed width to get natural width
-                        var bvStyle = getComputedStyle(blockViewEl);
-                        var bvWidth =
-                            blockViewEl.getBoundingClientRect().width +
-                            parseFloat(bvStyle.marginLeft || 0) +
-                            parseFloat(bvStyle.marginRight || 0);
-                        newAreaWidth = Math.max(newAreaWidth, bvWidth);
+                // First pass: find max natural width across all blocks
+                for (var i = 0; i < allBlocks.length; i++) {
+                    var blockViewEl = allBlocks[i].view;
+                    blockViewEl.style.width = ""; // release fixed width to get natural width
+                    var bvStyle = getComputedStyle(blockViewEl);
+                    var bvWidth =
+                        blockViewEl.getBoundingClientRect().width +
+                        parseFloat(bvStyle.marginLeft || 0) +
+                        parseFloat(bvStyle.marginRight || 0);
+                    newAreaWidth = Math.max(newAreaWidth, bvWidth);
+                }
+
+                var baseWidth = newAreaWidth - 22;
+                var answerWidth =
+                    newAreaWidth +
+                    self.indent * self.options.pixelsPerIndent -
+                    22;
+
+                // Second pass: apply correct width and accumulate height
+                for (var i = 0; i < allBlocks.length; i++) {
+                    var blockEl = allBlocks[i].view;
+                    blockEl.style.width = baseWidth + "px";
+                    var bStyle = getComputedStyle(blockEl);
+                    var outerH =
+                        blockEl.getBoundingClientRect().height +
+                        parseFloat(bStyle.marginTop || 0) +
+                        parseFloat(bStyle.marginBottom || 0);
+                    var addition = 3.8;
+                    if (outerH != 38) {
+                        addition = (3.1 * (outerH - 38)) / 21;
                     }
+                    newAreaHeight += outerH + height_add * addition;
+                }
 
-                    var baseWidth = newAreaWidth - 22;
-                    var answerWidth =
-                        newAreaWidth +
-                        self.indent * self.options.pixelsPerIndent -
-                        22;
+                self.areaWidth = newAreaWidth;
+                self.areaHeight = newAreaHeight;
 
-                    // Second pass: apply correct width and accumulate height
-                    for (var i = 0; i < allBlocks.length; i++) {
-                        var blockEl = allBlocks[i].view;
-                        blockEl.style.width = baseWidth + "px";
-                        var bStyle = getComputedStyle(blockEl);
-                        var outerH =
-                            blockEl.getBoundingClientRect().height +
-                            parseFloat(bStyle.marginTop || 0) +
-                            parseFloat(bStyle.marginBottom || 0);
-                        var addition = 3.8;
-                        if (outerH != 38) {
-                            addition = (3.1 * (outerH - 38)) / 21;
-                        }
-                        newAreaHeight += outerH + height_add * addition;
-                    }
+                // Resize source and answer areas
+                self.sourceArea.style.width = newAreaWidth + 2 + "px";
+                self.sourceArea.style.height = newAreaHeight + "px";
+                self.answerArea.style.width =
+                    self.options.pixelsPerIndent * self.indent +
+                    newAreaWidth +
+                    2 +
+                    "px";
+                self.answerArea.style.height = newAreaHeight + "px";
 
-                    self.areaWidth = newAreaWidth;
-                    self.areaHeight = newAreaHeight;
+                // Reposition source blocks
+                var positionTop = 0;
+                for (var i = 0; i < sourceBlocks.length; i++) {
+                    var sv = sourceBlocks[i].view;
+                    sv.style.left = "0px";
+                    sv.style.top = positionTop + "px";
+                    sv.style.width = baseWidth + "px";
+                    sv.style.zIndex = 2;
+                    var svStyle = getComputedStyle(sv);
+                    positionTop +=
+                        sv.getBoundingClientRect().height +
+                        parseFloat(svStyle.marginTop || 0) +
+                        parseFloat(svStyle.marginBottom || 0);
+                }
 
-                    // Resize source and answer areas
-                    self.sourceArea.style.width = newAreaWidth + 2 + "px";
-                    self.sourceArea.style.height = newAreaHeight + "px";
-                    self.answerArea.style.width =
-                        self.options.pixelsPerIndent * self.indent +
-                        newAreaWidth +
-                        2 +
-                        "px";
-                    self.answerArea.style.height = newAreaHeight + "px";
-
-                    // Reposition source blocks
-                    var positionTop = 0;
-                    for (var i = 0; i < sourceBlocks.length; i++) {
-                        var sv = sourceBlocks[i].view;
-                        sv.style.left = "0px";
-                        sv.style.top = positionTop + "px";
-                        sv.style.width = baseWidth + "px";
-                        sv.style.zIndex = 2;
-                        var svStyle = getComputedStyle(sv);
-                        positionTop +=
-                            sv.getBoundingClientRect().height +
-                            parseFloat(svStyle.marginTop || 0) +
-                            parseFloat(svStyle.marginBottom || 0);
-                    }
-
-                    // Reposition paired distractor brackets
-                    for (var i = 0; i < self.pairedBins.length; i++) {
-                        var bin = self.pairedBins[i];
-                        var matching = [];
-                        for (var j = 0; j < sourceBlocks.length; j++) {
-                            if (sourceBlocks[j].matchesBin(bin)) {
-                                matching.push(sourceBlocks[j]);
-                            }
-                        }
-                        var div = self.pairedDivs[i];
-                        if (matching.length == 0) {
-                            div.style.display = "none";
-                        } else {
-                            div.style.display = "";
-                            var height = -5;
-                            var lastView = matching[matching.length - 1].view;
-                            var firstView = matching[0].view;
-                            var lastTop =
-                                parseFloat(getComputedStyle(lastView).top) || 0;
-                            var firstTop =
-                                parseFloat(getComputedStyle(firstView).top) ||
-                                0;
-                            height += lastTop;
-                            height -= firstTop;
-                            var lastStyle = getComputedStyle(lastView);
-                            height +=
-                                lastView.getBoundingClientRect().height +
-                                parseFloat(lastStyle.marginTop || 0) +
-                                parseFloat(lastStyle.marginBottom || 0);
-                            div.style.left = "-6px";
-                            div.style.top = getComputedStyle(firstView).top;
-                            div.style.width = baseWidth + 34 + "px";
-                            div.style.height = height + "px";
-                            div.style.zIndex = 1;
-                            div.style.textIndent = "-30px";
-                            div.style.paddingTop = (height - 70) / 2 + "px";
-                            div.style.overflow = "visible";
-                            div.style.fontSize = "43px";
-                            div.style.verticalAlign = "middle";
-                            div.style.color =
-                                "var(--parsonsLabelColor, #5858e0)";
-                            div.innerHTML =
-                                "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
+                // Reposition paired distractor brackets
+                for (var i = 0; i < self.pairedBins.length; i++) {
+                    var bin = self.pairedBins[i];
+                    var matching = [];
+                    for (var j = 0; j < sourceBlocks.length; j++) {
+                        if (sourceBlocks[j].matchesBin(bin)) {
+                            matching.push(sourceBlocks[j]);
                         }
                     }
-
-                    // Reposition answer blocks
-                    positionTop = 0;
-                    for (var i = 0; i < answerBlocks.length; i++) {
-                        var block = answerBlocks[i];
-                        var indent =
-                            block.indent * self.options.pixelsPerIndent;
-                        var bv = block.view;
-                        bv.style.left = indent + "px";
-                        bv.style.top = positionTop + "px";
-                        bv.style.width = answerWidth - indent + "px";
-                        bv.style.zIndex = 2;
-                        var bvStyle2 = getComputedStyle(bv);
-                        positionTop +=
-                            bv.getBoundingClientRect().height +
-                            parseFloat(bvStyle2.marginTop || 0) +
-                            parseFloat(bvStyle2.marginBottom || 0);
+                    var div = self.pairedDivs[i];
+                    if (matching.length == 0) {
+                        div.style.display = "none";
+                    } else {
+                        div.style.display = "";
+                        var height = -5;
+                        var lastView = matching[matching.length - 1].view;
+                        var firstView = matching[0].view;
+                        var lastTop =
+                            parseFloat(getComputedStyle(lastView).top) || 0;
+                        var firstTop =
+                            parseFloat(getComputedStyle(firstView).top) ||
+                            0;
+                        height += lastTop;
+                        height -= firstTop;
+                        var lastStyle = getComputedStyle(lastView);
+                        height +=
+                            lastView.getBoundingClientRect().height +
+                            parseFloat(lastStyle.marginTop || 0) +
+                            parseFloat(lastStyle.marginBottom || 0);
+                        div.style.left = "-6px";
+                        div.style.top = getComputedStyle(firstView).top;
+                        div.style.width = baseWidth + 34 + "px";
+                        div.style.height = height + "px";
+                        div.style.zIndex = 1;
+                        div.style.textIndent = "-30px";
+                        div.style.paddingTop = (height - 70) / 2 + "px";
+                        div.style.overflow = "visible";
+                        div.style.fontSize = "43px";
+                        div.style.verticalAlign = "middle";
+                        div.style.color =
+                            "var(--parsonsLabelColor, #5858e0)";
+                        div.innerHTML =
+                            "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
                     }
-                });
-            }
+                }
+
+                // Reposition answer blocks
+                positionTop = 0;
+                for (var i = 0; i < answerBlocks.length; i++) {
+                    var block = answerBlocks[i];
+                    var indent =
+                        block.indent * self.options.pixelsPerIndent;
+                    var bv = block.view;
+                    bv.style.left = indent + "px";
+                    bv.style.top = positionTop + "px";
+                    bv.style.width = answerWidth - indent + "px";
+                    bv.style.zIndex = 2;
+                    var bvStyle2 = getComputedStyle(bv);
+                    positionTop +=
+                        bv.getBoundingClientRect().height +
+                        parseFloat(bvStyle2.marginTop || 0) +
+                        parseFloat(bvStyle2.marginBottom || 0);
+                }
+            });
         }
     }
     // Make the problem, rather than an individual block, keyboard accessible.
