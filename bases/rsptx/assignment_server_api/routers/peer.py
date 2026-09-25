@@ -1325,7 +1325,7 @@ async def publish_message(
 
     try:
         data = await request.json()
-    except:
+    except ValueError:
         return JSONResponse(
             status_code=400,
             content={"detail": "Invalid JSON request body"},
