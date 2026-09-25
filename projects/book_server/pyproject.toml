@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.115.0,<0.116.0",
     # Per the uvicorn docs, install the standard (not minimal) extras.
     "uvicorn[standard]>=0.17.0,<0.18.0",
+    "greenlet>=3.2.2,<4",
     "gunicorn>=20.0.0,<21 ; sys_platform != 'win32'",
     "Jinja2>=3.1.0,<4",
     "aiofiles>=0.8.0,<0.9.0",
@@ -40,7 +41,8 @@ dependencies = [
     "lxml>=6.0,<7",
     "oauth2>=1.9",
     "jwcrypto>=1.5.6,<2",
-    "psycopg2-binary>=2.0.0,<3",
+    "psycopg[binary]>=3.2.0,<4",
+    "psycopg2-binary>=2.9.7,<3",
     "openai>=1.59.3,<2",
     "javalang>=0.13.0,<0.14.0",
 ]
