@@ -264,12 +264,17 @@ export interface LateStudent {
   name: string;
   first_name?: string | null;
   last_name?: string | null;
+  extension_days: number;
+  effective_due_date: string;
+  first_late_activity_at: string;
 }
 
 export interface LateStudentsResponse {
   assignment_id: number;
   assignment_name: string;
   enforce_due: boolean;
+  due_date: string;
+  course_timezone: string;
   students: LateStudent[];
 }
 

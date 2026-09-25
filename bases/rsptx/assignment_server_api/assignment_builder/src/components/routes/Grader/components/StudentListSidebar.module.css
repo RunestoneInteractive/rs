@@ -42,6 +42,22 @@
   color: var(--rs-text-muted);
   font-weight: var(--rs-font-weight-semibold);
 }
+.deadline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  color: var(--rs-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.deadline svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.deadline strong {
+  color: var(--rs-text-strong);
+  font-weight: var(--rs-font-weight-semibold);
+}
 
 .legendRow {
   display: flex;
@@ -98,18 +114,51 @@
   background: var(--rs-brand-50);
   box-shadow: inset 3px 0 0 var(--rs-brand-500);
 }
+.item.late {
+  background: var(--mantine-color-red-0);
+  box-shadow: inset 3px 0 0 var(--mantine-color-red-6);
+}
+.item.late:hover {
+  background: var(--mantine-color-red-1);
+}
+.item.late.active {
+  background: var(--mantine-color-red-0);
+  box-shadow:
+    inset 3px 0 0 var(--mantine-color-red-6),
+    inset 0 0 0 1px var(--rs-brand-500);
+}
 
 .itemBody {
   flex: 1;
   min-width: 0;
 }
+.itemNameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
 .itemName {
+  flex: 1;
+  min-width: 0;
   font-weight: var(--rs-font-weight-semibold);
   color: var(--rs-text-strong);
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.lateBadge {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: var(--rs-radius-sm);
+  background: var(--mantine-color-red-1);
+  color: var(--mantine-color-red-9);
+  font-size: 10px;
+  font-weight: var(--rs-font-weight-bold);
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 .itemMeta {
   display: flex;
