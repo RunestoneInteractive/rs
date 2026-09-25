@@ -665,6 +665,16 @@ class Assignment(Base, IdMixin):
     current_index = Column(Integer, default=0)
     enforce_due = Column(Web2PyBoolean)
     peer_async_visible = Column(Web2PyBoolean, default=False)
+    # Enrols this assignment in the async peer instruction study: each student
+    # is randomly assigned one discussion condition and keeps it for every
+    # question here. Only has an effect while the course-level
+    # ``enable_async_conditions`` attribute is on.
+    #
+    # Nullable with no Python-side default, matching ``is_private`` below:
+    # sqlalchemy_to_pydantic hands a column's ``default`` to Pydantic as-is, so
+    # ``default=False`` would make the generated validator reject every caller
+    # that omits the field. The read path treats NULL as "not in a study".
+    async_study = Column(Web2PyBoolean)
     kind = Column(String(128))
     # When False this assignment is discoverable and importable by instructors
     # in other courses. Nullable with no Python-side default, matching
