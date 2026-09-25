@@ -43,6 +43,18 @@
     margin-bottom: 10px;
 }
 
+.activecode-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .ac_sep {
     background: var(--componentBorderColor);
     display: inline-block;
@@ -224,7 +236,10 @@
 }
 
 /* decorate locked lines that do not have lock marker */
-.CodeMirror__locked-line .CodeMirror-gutter-wrapper:not(:has(.CodeMirror__gutter-locked-marker)):before {
+.CodeMirror__locked-line
+    .CodeMirror-gutter-wrapper:not(
+        :has(.CodeMirror__gutter-locked-marker)
+    ):before {
     content: " ";
     display: block;
     width: 2px;
@@ -347,22 +362,22 @@
 
 /* CodeTailor-related CSS START */
 .scaffolding-container {
-  margin-right: 20px;
-  position: fixed;
-  right: 0px;
-  max-height: 100%;
-  overflow-y: scroll;
-  top: 0px;
-  padding-top: 60px;
-  z-index: 999;
+    margin-right: 20px;
+    position: fixed;
+    right: 0px;
+    max-height: 100%;
+    overflow-y: scroll;
+    top: 0px;
+    padding-top: 60px;
+    z-index: 999;
 }
 
 .scaffolding-container .ac_actions {
-  display: none;
+    display: none;
 }
 
 .scaffolding-container.hidden {
-  display: none;
+    display: none;
 }
 
 .parsons-scaffolding {
@@ -374,11 +389,11 @@
     box-shadow: 10px 5px 5px gray;
 }
 
-.scaffolding-loading-prompt.loading{
+.scaffolding-loading-prompt.loading {
     display: block;
 }
 
-.scaffolding-loading-prompt{
+.scaffolding-loading-prompt {
     display: none;
     text-align: center;
     background-color: #ffebae;
@@ -395,12 +410,12 @@
 /* open CodeTailor*/
 /* #ED7014 left the white label at 3.03:1; #BC580E keeps the orange at 4.63:1. */
 button.parsons-scaffolding-btn {
-  background-color: #BC580E !important;
-  color: white !important;
+    background-color: #bc580e !important;
+    color: white !important;
 }
 
 button.reopen-help-btn {
-    background-color: #BC580E !important;
+    background-color: #bc580e !important;
     color: white !important;
 }
 
@@ -409,7 +424,7 @@ button.reopen-help-btn {
 }
 
 #loading-spinner {
-    border: 4px solid #ED7014;
+    border: 4px solid #ed7014;
     border-top: 4px solid #084887;
     border-bottom: 4px solid #084887;
     border-radius: 50%;
@@ -420,7 +435,11 @@ button.reopen-help-btn {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 /* CodeTailor-related CSS END */

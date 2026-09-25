@@ -162,6 +162,8 @@ export class ActiveCode extends RunestoneBase {
         this.codelens = null;
         this.controlDiv = null;
         this.historyScrubber = null;
+        this.actionStatus = null;
+        this.actionStatusTimer = null;
         this.timestamps = ["Original"];
         this.autorun = this.parseBooleanAttribute(orig, "data-autorun");
         this.outputLineCount = 0;
@@ -1420,6 +1422,15 @@ export class ActiveCode extends RunestoneBase {
             this.enableChatCodes(ctrlDiv);
         }
 
+        const actionStatus = document.createElement("div");
+        actionStatus.id = `${this.divid}_action_status`;
+        actionStatus.classList.add("activecode-sr-only");
+        actionStatus.setAttribute("role", "status");
+        actionStatus.setAttribute("aria-live", "polite");
+        actionStatus.setAttribute("aria-atomic", "true");
+        ctrlDiv.appendChild(actionStatus);
+        this.actionStatus = actionStatus;
+
         this.outerDiv.prepend(ctrlDiv);
         if (this.question) {
             if (this.question.innerHTML.match(/^\s+$/)) {
@@ -1448,10 +1459,10 @@ export class ActiveCode extends RunestoneBase {
         butt.classList.add("btn", "save-button");
         ctrlDiv.appendChild(butt);
         this.downloadButton = butt;
-        butt.addEventListener(
-            "click",
-            this.downloadFile.bind(this, this.language),
-        );
+        butt.addEventListener("click", () => {
+            this.downloadFile(this.language);
+            this.announceAction(t("msg_activecode_downloaded"));
+        });
         butt.setAttribute("type", "button");
     }
 
@@ -1507,7 +1518,18 @@ export class ActiveCode extends RunestoneBase {
         butt.style.marginLeft = "10px";
         this.reformatButton = butt;
         ctrlDiv.appendChild(butt);
-        butt.addEventListener("click", this.reformat.bind(this));
+        butt.addEventListener("click", () => {
+            this.reformat();
+            this.announceAction(t("msg_activecode_reformatted"));
+        });
+    }
+
+    announceAction(message) {
+        clearTimeout(this.actionStatusTimer);
+        this.actionStatus.textContent = "";
+        this.actionStatusTimer = setTimeout(() => {
+            this.actionStatus.textContent = message;
+        }, 0);
     }
 
     enableAudioTours(ctrlDiv) {

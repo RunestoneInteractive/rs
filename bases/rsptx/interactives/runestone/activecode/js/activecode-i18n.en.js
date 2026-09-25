@@ -16,6 +16,8 @@ load({
         msg_activecode_show_in_codelens: "Show in CodeLens",
         msg_activecode_hide_codelens: "Hide Codelens",
         msg_activecode_reformat: "Reformat",
+        msg_activecode_reformatted: "Code reformatted.",
+        msg_activecode_downloaded: "Code downloaded.",
 
         msg_activecode_parse_error:
             "A parse error means that Python does not understand the syntax on the line the error message points out. Common examples are forgetting commas beteween arguments or forgetting a : on a for statement",
@@ -128,7 +130,8 @@ load({
         msg_activecode_unit_test_results: "Unit Test Results",
         msg_activecode_test_run_error: "Runtime error",
         msg_activecode_test_compile_error: "Compiler error",
-        msg_activecode_iotest_results: "IO tests completed. See table for results.",
+        msg_activecode_iotest_results:
+            "IO tests completed. See table for results.",
         msg_activecode_assertions_checked: "Assertions checked:",
     },
 });

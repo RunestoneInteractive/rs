@@ -1,7 +1,7 @@
 // Characterization tests for the ActiveCode component. These describe the
 // behavior of the component as observed on a book page. Note: deliberately
 // NO jquery-globals import here -- activecode must work without jQuery.
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ActiveCode } from "../js/activecode.js";
 
 // Build the same DOM a book page provides: a div.runestone wrapper around the
@@ -164,12 +164,26 @@ describe("controls", () => {
         expect(ac.runButton.getAttribute("type")).toBe("button");
         expect(ac.runButton.classList.contains("run-button")).toBe(true);
         expect(ac.controlDiv.classList.contains("ac_actions")).toBe(true);
+        expect(ac.actionStatus.getAttribute("role")).toBe("status");
+        expect(ac.actionStatus.getAttribute("aria-live")).toBe("polite");
+        expect(ac.actionStatus.getAttribute("aria-atomic")).toBe("true");
     });
 
     it("adds a Download button when data-enabledownload is set", () => {
         const ac = makeActiveCode({ attrs: "data-enabledownload" });
         expect(ac.downloadButton).toBeTruthy();
         expect(ac.downloadButton.textContent).toBe("Download");
+    });
+
+    it("announces when code is downloaded", async () => {
+        const ac = makeActiveCode({ attrs: "data-enabledownload" });
+        ac.downloadFile = vi.fn();
+
+        ac.downloadButton.click();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(ac.downloadFile).toHaveBeenCalledWith("python");
+        expect(ac.actionStatus.textContent).toBe("Code downloaded.");
     });
 
     it("adds a Reformat button only for curly-brace languages", () => {
@@ -185,6 +199,27 @@ describe("controls", () => {
         const ac = makeActiveCode();
         ac.enableSaveLoad();
         expect(ac.runButton.textContent).toBe("Save & Run");
+    });
+
+    it("announces when code is reformatted", async () => {
+        const ac = makeActiveCode({ lang: "javascript" });
+
+        ac.reformatButton.click();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(ac.actionStatus.textContent).toBe("Code reformatted.");
+    });
+
+    it("associates labels with both pair-programming controls", () => {
+        const ac = makeActiveCode();
+        const controls = document.createElement("div");
+        ac.setupPartner(controls);
+        const [checkbox, partner] = controls.querySelectorAll("input");
+
+        expect(checkbox.labels[0].getAttribute("for")).toBe(checkbox.id);
+        expect(checkbox.labels[0].textContent).toBe("Pair?");
+        expect(partner.labels[0].getAttribute("for")).toBe(partner.id);
+        expect(partner.labels[0].textContent).toBe("With:");
     });
 });
 
