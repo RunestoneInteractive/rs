@@ -23,7 +23,7 @@ import pandas as pd
 # -------------------
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from rsptx.auth.session import auth_manager, is_instructor
+from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import (
@@ -1320,15 +1320,28 @@ async def publish_message(
     """
     import json
     import os
-
+    from rsptx.auth.session import is_instructor
     import redis
 
     data = await request.json()
     rslogger.info(f"Publishing peer message: {data}")
-
+    # Get the user's authentication
     user_is_instructor = await is_instructor(request, user=user)
 
     try:
+
+        # Reject if the user is trying to broadcast or use a control without permission
+        if not user_is_instructor and (
+            data.get("broadcast") or data.get("type") == "control"
+        ):
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "detail": f"User {user.username} is not an instructor in this runestone course."
+                },
+            )
+
+        # Now that the permission is checked, we can publish
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
         r.publish("peermessages", json.dumps(data))
 
@@ -1339,20 +1352,11 @@ async def publish_message(
             "enableChat",
             "enableFaceChat",
         ):
-            # Safeguard so students can't change the state
-            if user_is_instructor:
-                r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
-                if data.get("message") in ("enableVote", "enableNext") and data.get(
-                    "assignment_id"
-                ):
-                    r.delete(f"assignment_{data['assignment_id']}_state")
-            else:
-                return JSONResponse(
-                    status_code=401,
-                    content={
-                        "detail": f"User {user.username} is not an instructor in this runestone course."
-                    },
-                )
+            r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
+            if data.get("message") in ("enableVote", "enableNext") and data.get(
+                "assignment_id"
+            ):
+                r.delete(f"assignment_{data['assignment_id']}_state")
 
         # Track message count for text messages
         if data.get("type") == "text":
