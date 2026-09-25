@@ -1339,7 +1339,7 @@ async def publish_message(
 
         # Reject if the user is trying to broadcast or use a control without permission
         if not user_is_instructor and (
-            data.get("broadcast") or data.get("type") == "control"
+            data.get("broadcast") or data.get("type") != "text"
         ):
             return JSONResponse(
                 status_code=401,
