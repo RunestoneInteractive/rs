@@ -156,8 +156,6 @@ describe("HParsons block grading", () => {
             blocks: MATH_BLOCKS,
             blockAnswer: "0 1 2",
         });
-        // Allow the initial deferred MathJax render to finish first.
-        await new Promise((resolve) => setTimeout(resolve, 20));
         const block = hp.hparsonsInput.querySelector(".parsons-block");
         hp.queueMathJax.mockImplementationOnce((mathBlock) => {
             mathBlock.innerHTML = `
@@ -186,7 +184,6 @@ describe("HParsons block grading", () => {
             blocks: MATH_BLOCKS,
             blockAnswer: "0 1 2",
         });
-        await new Promise((resolve) => setTimeout(resolve, 20));
 
         let completeRender;
         hp.queueMathJax.mockImplementationOnce(
