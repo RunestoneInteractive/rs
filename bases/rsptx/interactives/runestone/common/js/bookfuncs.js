@@ -1329,7 +1329,6 @@ window.addEventListener("DOMContentLoaded", function (event) {
             linkAnchor.ariaLabel = ariaLabel;
         }
         if (!url) {
-            title = "californiastateunivertyoffullerton_active-calc-proteus_winter26"
             const info = document.createElement("span");
             info.className = linkAnchor.className;
             if (title.length > 30) {
