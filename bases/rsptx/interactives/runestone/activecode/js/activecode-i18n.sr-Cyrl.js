@@ -16,6 +16,9 @@ load({
         msg_activecode_reformat: "Реформат",
         msg_activecode_reformatted: "Кôд је преформатиран.",
         msg_activecode_downloaded: "Кôд је преузет.",
+        msg_activecode_running: "Програм се извршава.",
+        msg_activecode_program_output: "Излаз програма: $1",
+        msg_activecode_no_output: "Програм је завршен. Нема излаза.",
 
         msg_sctivecode_parse_error:
             "Синтаксна грешка (parse error) значи да Пајтон не разуме синтаксу у линији кога на коју порука о грешци указује. Типични примери овакве грешке су заборавлјена двотачка код 'if' или 'for' исказа или заборављена запета између аргумената код позива функције",

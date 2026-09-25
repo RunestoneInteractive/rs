@@ -16,7 +16,7 @@ export default class HTMLActiveCode extends ActiveCode {
     async runProg() {
         let saveCode = "True";
         this.saveCode = await this.manage_scrubber(saveCode);
-        this.outDiv.style.visibility = "visible";
+        this.showOutput();
 
         if (this.suffix) {
             // Build without suffix — we inject the harness + suffix ourselves

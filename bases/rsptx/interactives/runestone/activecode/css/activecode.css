@@ -84,8 +84,16 @@
 .ac_output {
     margin-top: 10px;
     margin-bottom: -10px;
-    visibility: hidden;
     background-color: inherit;
+}
+
+/* Keep visible output available for navigation without reserving space before
+   the first run. The separate, pre-mounted status announces completed output. */
+.ac_output--collapsed {
+    height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    overflow: hidden;
 }
 
 .ac_output pre {

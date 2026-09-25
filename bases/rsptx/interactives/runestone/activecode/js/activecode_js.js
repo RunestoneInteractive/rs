@@ -44,7 +44,7 @@ export default class JSActiveCode extends ActiveCode {
         }
         this.output.textContent = "";
         this.outDiv.style.display = "";
-        this.outDiv.style.visibility = "visible";
+        this.showOutput();
         try {
             eval(prog);
             this.errinfo = "success";

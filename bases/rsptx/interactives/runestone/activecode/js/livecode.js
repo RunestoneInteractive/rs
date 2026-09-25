@@ -597,9 +597,9 @@ export default class LiveCode extends ActiveCode {
     async submitToJobe() {
         var data = this.json_runspec;
         let host = this.JOBE_SERVER + this.resource;
-        this.runButton.disabled = true;
+        if (!this.runInProgress) this.runButton.disabled = true;
         this.outDiv.style.display = "";
-        this.outDiv.style.visibility = "visible";
+        this.showOutput();
         if (this.errDiv) {
             this.errDiv.remove();
         }

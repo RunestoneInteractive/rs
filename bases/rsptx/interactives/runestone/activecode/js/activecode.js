@@ -164,6 +164,9 @@ export class ActiveCode extends RunestoneBase {
         this.historyScrubber = null;
         this.actionStatus = null;
         this.actionStatusTimer = null;
+        this.runningStatusTimer = null;
+        this.runInProgress = false;
+        this.outputAnnouncementTimer = null;
         this.timestamps = ["Original"];
         this.autorun = this.parseBooleanAttribute(orig, "data-autorun");
         this.outputLineCount = 0;
@@ -260,6 +263,9 @@ export class ActiveCode extends RunestoneBase {
 
         this.createEditor();
         this.createOutput();
+        // Keep the output mounted so assistive technology registers its live
+        // region before the first run, but do not reserve empty visual space.
+        this.outDiv.classList.add("ac_output--collapsed");
         this.createControls();
         if (getDataValue(orig, "caption")) {
             this.caption = getDataValue(orig, "caption");
@@ -477,9 +483,10 @@ export class ActiveCode extends RunestoneBase {
         // keyboard shortcuts for run (ctrl/cmd + s) and comment (ctrl/cmd + /)
         this.containerDiv.addEventListener("keydown", function (e) {
             if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
-                if (acElement.runButton.disabled) return;
-                acElement.runButton.click();
                 e.preventDefault();
+                if (acElement.runButton.disabled || acElement.runInProgress)
+                    return;
+                acElement.runButton.click();
             }
             if (e.code === "Slash" && (e.ctrlKey || e.metaKey)) {
                 if (typeof editor.toggleComment === "function") {
@@ -655,27 +662,97 @@ export class ActiveCode extends RunestoneBase {
     }
 
     async runButtonHandler() {
-        // Disable the run button until the run is finished.
-        this.runButton.disabled = true;
-
-        //reset the css that indicates editor needs saving
-        this.editor.getWrapperElement().style.borderTopColor = null;
-        this.editor.getWrapperElement().style.borderBottomColor = null;
+        if (this.runButton.disabled || this.runInProgress) return;
+        // Keep the focused button available to assistive technology. Native
+        // disabling announces "Unavailable"; this guard prevents another run.
+        this.runInProgress = true;
+        clearTimeout(this.actionStatusTimer);
+        clearTimeout(this.outputAnnouncementTimer);
+        this.actionStatus.textContent = "";
+        // Announce only a run that stays silent long enough to need feedback.
+        this.runningStatusTimer = setTimeout(() => {
+            if (
+                this.runInProgress &&
+                !this.inputRow &&
+                !this.output?.textContent.trim()
+            ) {
+                this.actionStatus.textContent = t("msg_activecode_running");
+            }
+        }, 150);
+        this.showOutput();
 
         try {
-            await this.runProg();
-        } catch (e) {
-            console.log(`there was an error ${e} running the code`);
+            // Reset the CSS that indicates the editor needs saving.
+            this.editor.getWrapperElement().style.borderTopColor = null;
+            this.editor.getWrapperElement().style.borderBottomColor = null;
+
+            try {
+                await this.runProg();
+            } catch (e) {
+                console.log(`there was an error ${e} running the code`);
+            }
+            if (this.logResults) {
+                this.logCurrentAnswer();
+            }
+            this.runCoaches();
+            this.renderFeedback();
+            if (!this.announcesOutputOnResult) {
+                this.announceProgramOutput();
+            }
+            this.runCount += 1;
+            this.toggleAlert();
+        } finally {
+            clearTimeout(this.runningStatusTimer);
+            this.runInProgress = false;
+            if (this.actionStatus.textContent === t("msg_activecode_running")) {
+                this.actionStatus.textContent = "";
+            }
         }
-        if (this.logResults) {
-            this.logCurrentAnswer();
-        }
-        this.runCoaches();
-        this.renderFeedback();
-        // The run is finished; re-enable the button.
-        this.runButton.disabled = false;
-        this.runCount += 1;
-        this.toggleAlert();
+    }
+
+    showOutput() {
+        // Keep the visible output available for navigation without reserving
+        // visual space before the first run. The separate status announces it.
+        this.outDiv.classList.remove("ac_output--collapsed");
+    }
+
+    announceProgramOutput() {
+        if (this.output?.tagName === "IFRAME") return;
+        // Read the complete rendered output after each run. The separate
+        // status announces it, including identical output on later runs,
+        // without making the visible output a competing live region.
+        // SQL errors append their message on a short timer, so capture after
+        // those messages have joined the result.
+        this.outputAnnouncementTimer = setTimeout(() => {
+            const stdoutText = (
+                this.outDiv.innerText ?? this.outDiv.textContent
+            ).trim();
+            const errorPre =
+                this.errinfo !== "success" &&
+                (this.errDiv?.querySelector("pre") ??
+                    this.eContainer?.querySelector("pre"));
+            const errorText = errorPre
+                ? (errorPre.innerText ?? errorPre.textContent).trim()
+                : "";
+            const outputText = [
+                stdoutText === t("msg_activecode_compiling_running")
+                    ? ""
+                    : stdoutText,
+                errorText,
+            ]
+                .filter(Boolean)
+                .join("\n");
+            if (outputText) {
+                this.announceAction(
+                    t("msg_activecode_program_output", outputText),
+                );
+            } else if (
+                this.errinfo === "success" &&
+                this.output?.tagName === "PRE"
+            ) {
+                this.announceAction(t("msg_activecode_no_output"));
+            }
+        }, 20);
     }
 
     // CodeTailor function part starts here //
@@ -1525,6 +1602,7 @@ export class ActiveCode extends RunestoneBase {
     }
 
     announceAction(message) {
+        clearTimeout(this.outputAnnouncementTimer);
         clearTimeout(this.actionStatusTimer);
         this.actionStatus.textContent = "";
         this.actionStatusTimer = setTimeout(() => {
@@ -1867,10 +1945,8 @@ export class ActiveCode extends RunestoneBase {
         this.outDiv = outDiv;
         this.output = document.createElement("pre");
         this.output.id = this.divid + "_stdout";
-        this.output.setAttribute("aria-label", "Output");
-        this.output.setAttribute("aria-live", "polite");
-        this.output.setAttribute("aria-atomic", "true");
-        this.output.setAttribute("role", "log");
+        // The status announces completed output; a live log here duplicates
+        // the first result and adds its "Output" label to later announcements.
         this.output.innerHTML = "";
         this.output.style.maxHeight = "400px";
         this.output.style.overflow = "auto";
@@ -2363,9 +2439,9 @@ Yet another is that there is an internal error.  The internal error message is: 
     // painted while we wait.  See #475.
     inputfun(promptText) {
         return new Promise((resolve) => {
-            // A program can call input() on a run that started with the output
-            // pane still hidden -- never leave the field where it can't be seen.
-            this.outDiv.style.visibility = "visible";
+            // A program can call input() outside the usual run-button path;
+            // never leave the field in the visually collapsed output pane.
+            this.showOutput();
             this.removeInputRow();
 
             let row = document.createElement("span");
@@ -2782,11 +2858,11 @@ Yet another is that there is an internal error.  The internal error message is: 
         Sk.canvas = this.graphics.id; //todo: get rid of this here and in image
         if (!noUI) {
             this.saveCode = await this.manage_scrubber(this.saveCode);
-            this.runButton.disabled = true;
+            if (!this.runInProgress) this.runButton.disabled = true;
             if (this.historyScrubber) {
                 this.historyScrubber.disabled = true;
             }
-            this.outDiv.style.visibility = "visible";
+            this.showOutput();
         }
         try {
             await Sk.misceval.asyncToPromise(
@@ -2822,7 +2898,7 @@ Yet another is that there is an internal error.  The internal error message is: 
                 this.addErrorMessage(err);
             }, 10);
         } finally {
-            this.runButton.disabled = false;
+            if (!this.runInProgress) this.runButton.disabled = false;
             this.firstAfterRun = true;
             if (typeof window.allVisualizers != "undefined") {
                 for (const e of Object.values(window.allVisualizers)) {

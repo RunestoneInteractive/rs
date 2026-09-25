@@ -18,6 +18,9 @@ load({
         msg_activecode_reformat: "Reformat",
         msg_activecode_reformatted: "Code reformatted.",
         msg_activecode_downloaded: "Code downloaded.",
+        msg_activecode_running: "Running program.",
+        msg_activecode_program_output: "Program output: $1",
+        msg_activecode_no_output: "Program finished. No output.",
 
         msg_activecode_parse_error:
             "A parse error means that Python does not understand the syntax on the line the error message points out. Common examples are forgetting commas beteween arguments or forgetting a : on a for statement",

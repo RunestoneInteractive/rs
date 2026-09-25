@@ -16,6 +16,9 @@ load({
         msg_activecode_reformat: "Reformatar",
         msg_activecode_reformatted: "Código reformatado.",
         msg_activecode_downloaded: "Código baixado.",
+        msg_activecode_running: "Executando o programa.",
+        msg_activecode_program_output: "Saída do programa: $1",
+        msg_activecode_no_output: "Programa concluído. Nenhuma saída.",
 
         msg_activecode_parse_error:
             "Um erro de Parse significa que Python não entende a sintaxe da linha que a mensagem de erro aponta. Exemplos comuns são esquecer vírgulas entre argumentos ou esquecer ':' em um comando for.",

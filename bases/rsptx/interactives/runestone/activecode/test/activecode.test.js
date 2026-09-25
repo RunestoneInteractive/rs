@@ -302,12 +302,124 @@ describe("output area", () => {
     it("creates stdout, graphics, coach, codelens and error containers", () => {
         const ac = makeActiveCode();
         expect(ac.output.id).toBe("test_ac_1_stdout");
-        expect(ac.output.getAttribute("role")).toBe("log");
+        expect(ac.output.getAttribute("role")).toBeNull();
+        expect(ac.output.getAttribute("aria-live")).toBeNull();
+        expect(ac.output.getAttribute("aria-atomic")).toBeNull();
+        expect(ac.output.getAttribute("aria-label")).toBeNull();
         expect(ac.graphics.id).toBe("test_ac_1_graphics");
         expect(ac.codecoach.style.display).toBe("none");
         expect(ac.codelens.style.display).toBe("none");
         expect(ac.eContainer.id).toBe("test_ac_1_errinfo");
         expect(ac.eContainer.style.visibility).toBe("hidden");
+    });
+
+    it("announces the first output through the separate status only", async () => {
+        const ac = makeActiveCode();
+        expect(ac.outDiv.classList.contains("ac_output--collapsed")).toBe(true);
+        expect(ac.outDiv.style.visibility).toBe("");
+        expect(ac.actionStatus.isConnected).toBe(true);
+
+        ac.runProg = vi.fn(async () => {
+            expect(ac.outDiv.classList.contains("ac_output--collapsed")).toBe(
+                false,
+            );
+            ac.output.textContent = "first output";
+        });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        await ac.runButtonHandler();
+
+        expect(ac.output.textContent).toBe("first output");
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe(
+                "Program output: first output",
+            ),
+        );
+    });
+
+    it("keeps Run focused and announces a slow run without allowing a second run", async () => {
+        const ac = makeActiveCode();
+        let finishRun;
+        ac.runProg = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    finishRun = resolve;
+                }),
+        );
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+        ac.runButton.focus();
+
+        const firstRun = ac.runButtonHandler();
+        await ac.runButtonHandler();
+
+        expect(ac.runProg).toHaveBeenCalledTimes(1);
+        expect(ac.runButton.disabled).toBe(false);
+        expect(document.activeElement).toBe(ac.runButton);
+        await new Promise((resolve) => setTimeout(resolve, 170));
+        expect(ac.actionStatus.textContent).toBe("Running program.");
+
+        finishRun();
+        await firstRun;
+        expect(ac.actionStatus.textContent).toBe("");
+        expect(ac.runInProgress).toBe(false);
+    });
+
+    it("distinguishes repeated output from no output on consecutive runs", async () => {
+        const ac = makeActiveCode({ code: "print(42)" });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        await ac.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.actionStatus.textContent).toBe("Program output: 42");
+
+        const secondRun = ac.runButtonHandler();
+        expect(ac.actionStatus.textContent).toBe("");
+        await secondRun;
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.actionStatus.textContent).toBe("Program output: 42");
+
+        ac.editor.setValue("pass");
+        await ac.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.actionStatus.textContent).toBe(
+            "Program finished. No output.",
+        );
+        expect(ac.runCount).toBe(3);
+    });
+
+    it("announces successful runs that produce no output", async () => {
+        const ac = makeActiveCode({ code: "value = 42" });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        await ac.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+
+        expect(ac.errinfo).toBe("success");
+        expect(ac.output.textContent).toBe("");
+        expect(ac.actionStatus.textContent).toBe(
+            "Program finished. No output.",
+        );
+    });
+
+    it("includes a delayed program error in the completed readback", async () => {
+        const ac = makeActiveCode({ code: "print(undefined_name)" });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        await ac.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+
+        expect(ac.actionStatus.textContent).toContain("Program output:");
+        expect(ac.actionStatus.textContent).toContain("NameError");
     });
 });
 

@@ -31,8 +31,8 @@ import { ActiveCode } from "./activecode.js";
 //     that instance's placeholderDiv (reparenting it in the DOM), reloads the
 //     iframe src to reset the engine, and queues the payload for dispatch once
 //     the "ready" message arrives.
-//   - All run buttons across all instances are disabled during a run and
-//     re-enabled only after a "result" or "error" message is received.
+//   - Other instances are disabled while the engine runs. The active
+//     Run button stays enabled, and repeated activations are ignored.
 // -----------------------------------------------------------------------------
 const GodotShellSingleton = {
     // The one shared <iframe>.
@@ -49,6 +49,9 @@ const GodotShellSingleton = {
 
     // The run queued while the iframe is reloading: { instance, payload } | null.
     pendingRun: null,
+
+    // True until the shared engine reports a result or error.
+    busy: false,
 
     // -------------------------------------------------------------------------
     // Called by each GodotActiveCode constructor. Triggers init() on the first
@@ -84,7 +87,7 @@ const GodotShellSingleton = {
 
     // -------------------------------------------------------------------------
     // Called when an instance's Run button is clicked.
-    // Orchestrates: disable buttons → move iframe → reload → queue payload.
+    // Orchestrates: mark engine busy → move iframe → reload → queue payload.
     // -------------------------------------------------------------------------
     requestRun(instance, payload) {
         this._setAllRunButtons(false);
@@ -205,6 +208,7 @@ const GodotShellSingleton = {
     _onResult(data) {
         if (this.owner) this.owner._onResult(data);
         this._setAllRunButtons(true);
+        if (this.owner) this.owner.announceProgramOutput();
     },
 
     // -------------------------------------------------------------------------
@@ -213,6 +217,13 @@ const GodotShellSingleton = {
     _onError(message) {
         if (this.owner) this.owner._onError(message);
         this._setAllRunButtons(true);
+        if (
+            this.owner &&
+            typeof message === "string" &&
+            message.startsWith("SCRIPT ERROR:")
+        ) {
+            this.owner.announceProgramOutput();
+        }
     },
 
     // -------------------------------------------------------------------------
@@ -257,9 +268,10 @@ const GodotShellSingleton = {
     },
 
     // -------------------------------------------------------------------------
-    // Enables or disables the Run button on every registered instance.
+    // Updates engine availability on every registered instance.
     // -------------------------------------------------------------------------
     _setAllRunButtons(enabled) {
+        this.busy = !enabled;
         // when the run buttons are set to true
         // the run is over.
         if (enabled && this.logGdResults) {
@@ -268,7 +280,7 @@ const GodotShellSingleton = {
         for (let inst of this.instances) {
             if (inst.runButton) {
                 setTimeout(() => {
-                    inst.runButton.disabled = !enabled;
+                    inst.runButton.disabled = this.busy && inst !== this.owner;
                 }, 100);
                 
             }
@@ -279,6 +291,8 @@ const GodotShellSingleton = {
 export default class GodotActiveCode extends ActiveCode {
     constructor(opts) {
         super(opts);
+        // The engine posts its output after runProg returns.
+        this.announcesOutputOnResult = true;
         //console.log("GodotActiveCode constructor called for", opts.orig.id);
 
         // Resolve the base URL for the Godot shell export.
@@ -534,6 +548,13 @@ export default class GodotActiveCode extends ActiveCode {
     // Override runProg() — called when the student clicks Run.
     // Reads the student's code from the editor and delegates to the singleton.
     // -------------------------------------------------------------------------
+    async runButtonHandler() {
+        // The base handler finishes when the request is sent, while the shared
+        // engine remains busy until it posts a result or error.
+        if (GodotShellSingleton.busy) return;
+        return super.runButtonHandler();
+    }
+
     async runProg(noUI, logResults) {
         if (typeof logResults === "undefined") {
             this.logGdResults = true;
@@ -543,6 +564,7 @@ export default class GodotActiveCode extends ActiveCode {
         var saveCode = "True";
 
         // Clear previous output and results table for this instance.
+        this.showOutput();
         $(this.output).text("Running…");
         $(this.output).css("visibility", "visible");
         $(this.output).removeClass("error");
