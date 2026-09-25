@@ -610,6 +610,9 @@ async def _async_condition_for(sid: str, assignment_id: int) -> Optional[int]:
         if condition is None:
             condition = random.randrange(len(ASYNC_CONDITION_MODES))
             await create_user_experiment_entry(sid, experiment_id, condition)
+            stored = await fetch_user_experiment(sid, experiment_id)
+            if stored is not None:
+                condition = stored
             rslogger.info(
                 f"async PI: assigned {sid} to condition {condition} for {experiment_id}"
             )
