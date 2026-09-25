@@ -1444,13 +1444,40 @@ async def publish_message(
     """
     import json
     import os
-
+    from rsptx.auth.session import is_instructor
     import redis
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except ValueError:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Invalid JSON request body"},
+        )
+
     rslogger.info(f"Publishing peer message: {data}")
+    # Get the user's authentication
+    user_is_instructor = await is_instructor(request, user=user)
+
+    # Reject if the user is trying to broadcast or use a control without permission
+    if not user_is_instructor and (data.get("broadcast") or data.get("type") != "text"):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "detail": f"User {user.username} is not an instructor in this runestone course."
+            },
+        )
 
     try:
+        # Prevent impersonation, `from` was originally sent from the request but in the frontend
+        # `user` is simply pulled from user.username, same for `sender`
+        # see peer_instructor.html , peer_async.html and peer_question.html
+        if data.get("type") == "text":
+            data["from"] = user.username
+        else:
+            data["sender"] = user.username
+
+        # Now that the permission is checked, we can publish
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
         r.publish("peermessages", json.dumps(data))
 
@@ -1469,14 +1496,10 @@ async def publish_message(
 
         # Track message count for text messages
         if data.get("type") == "text":
-            res = r.hget(f"{course.course_name}_state", "mess_count")
-            if res is not None:
-                mess_count = int(res) + 1
-            else:
-                mess_count = 1
-            r.hset(f"{course.course_name}_state", "mess_count", str(mess_count))
+            r.hincrby(f"{course.course_name}_state", "mess_count", 1)
 
         return JSONResponse(content={"status": "success"})
+
     except Exception as e:
         rslogger.error(f"Error publishing message: {e}")
         return JSONResponse(
