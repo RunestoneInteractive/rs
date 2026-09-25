@@ -12,14 +12,18 @@ function makeFixture({
     lang = "python",
     attrs = "",
     question = "",
+    contextHeadingLevel = null,
 } = {}) {
-    document.body.innerHTML = `
+    const component = `
       <div class="runestone">
         <div data-component="activecode" id="${id}" class="ac_section">
           ${question}
           <textarea data-lang="${lang}" ${attrs}>${code}</textarea>
         </div>
       </div>`;
+    document.body.innerHTML = contextHeadingLevel
+        ? `<section><h${contextHeadingLevel}>Section title</h${contextHeadingLevel}>${component}</section>`
+        : component;
     return document.getElementById(id);
 }
 
@@ -70,6 +74,25 @@ describe("construction", () => {
         const ac = makeActiveCode();
         const rsDiv = ac.containerDiv.closest("div.runestone");
         expect(rsDiv.classList.contains("notAnswered")).toBe(true);
+    });
+
+    it("puts generated headings below the containing authored heading", () => {
+        let ac = makeActiveCode({ contextHeadingLevel: 1 });
+        expect(ac.codecoach.querySelector("h2")?.textContent).toBe(
+            "Code Coach",
+        );
+
+        ac = makeActiveCode({ id: "test_ac_2", contextHeadingLevel: 4 });
+        expect(ac.codecoach.querySelector("h5")?.textContent).toBe(
+            "Code Coach",
+        );
+    });
+
+    it("caps generated heading levels at h6", () => {
+        const ac = makeActiveCode({ contextHeadingLevel: 6 });
+        expect(ac.codecoach.querySelector("h6")?.textContent).toBe(
+            "Code Coach",
+        );
     });
 });
 

@@ -33,8 +33,6 @@ import "codemirror/addon/hint/sql-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
 
-
-
 // for CodeTailor
 import { renderRunestoneComponent } from "../../common/js/renderComponent.js";
 
@@ -72,12 +70,36 @@ const codeIndent = () =>
             .getPropertyValue("--code-editor-indentation") || 4,
     );
 
+// Headings created by ActiveCode belong below the nearest authored heading
+// that contains the component. Looking at ancestors instead of the previous
+// heading avoids unrelated headings (for example, hidden dialogs) and headings
+// injected by an earlier interactive on the page.
+export function getSubheadingTagName(element) {
+    for (
+        let ancestor = element.parentElement;
+        ancestor;
+        ancestor = ancestor.parentElement
+    ) {
+        const heading = ancestor.querySelector(
+            ":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6, " +
+                ":scope > header > h1, :scope > header > h2, :scope > header > h3, " +
+                ":scope > header > h4, :scope > header > h5, :scope > header > h6",
+        );
+        if (heading) {
+            const level = Number(heading.tagName.substring(1));
+            return `h${Math.min(level + 1, 6)}`;
+        }
+    }
+    return "h2";
+}
+
 // separate into constructor and init
 export class ActiveCode extends RunestoneBase {
     constructor(opts) {
         super(opts);
         var orig = opts.orig.querySelector("textarea");
         this.containerDiv = opts.orig;
+        this.subheadingTagName = getSubheadingTagName(opts.orig);
         this.useRunestoneServices = opts.useRunestoneServices;
         this.python3 = true;
         this.origElem = orig;
@@ -274,6 +296,13 @@ export class ActiveCode extends RunestoneBase {
         // variables for CodeTailor
         this.helpLoaded = false;
         this.prevHelpedCode = null;
+    }
+
+    createSubheading(text) {
+        const heading = document.createElement(this.subheadingTagName);
+        heading.classList.add("activecode-subheading");
+        heading.textContent = text;
+        return heading;
     }
 
     createEditor(index) {
@@ -1839,8 +1868,9 @@ export class ActiveCode extends RunestoneBase {
         coachDiv.setAttribute("aria-atomic", "true");
         coachDiv.setAttribute("role", "log");
         coachDiv.style.display = "none";
-        let coachHead = coachDiv.appendChild(document.createElement("h3"));
-        coachHead.textContent = t("msg_activecode_code_coach");
+        coachDiv.appendChild(
+            this.createSubheading(t("msg_activecode_code_coach")),
+        );
         this.outerDiv.appendChild(coachDiv);
         this.codecoach = coachDiv;
 
@@ -1997,7 +2027,7 @@ export class ActiveCode extends RunestoneBase {
             if (report["version"] == 2) {
                 // new version; would be better to embed this in HTML for the activecode
                 body =
-                    "<h4>Grade Report</h4>" +
+                    "<h3>Grade Report</h3>" +
                     "<p>This question: " +
                     report["grade"];
                 if (report["released"]) {
@@ -2010,7 +2040,7 @@ export class ActiveCode extends RunestoneBase {
                 body += report["comment"] + "</p>";
             } else {
                 body =
-                    "<h4>Grade Report</h4>" +
+                    "<h3>Grade Report</h3>" +
                     "<p>This assignment: " +
                     report["grade"] +
                     "</p>" +
@@ -2025,14 +2055,14 @@ export class ActiveCode extends RunestoneBase {
                     "</p>";
             }
         } else {
-            body = "<h4>The server did not return any grade information</h4>";
+            body = "<h3>The server did not return any grade information</h3>";
         }
         var dialog = document.createElement("dialog");
         dialog.classList.add("ac_grade_summary_dialog");
         dialog.innerHTML = `<div class="modal-content">
                       <div class="modal-header">
                         <button type="button" class="close" aria-label="Close">&times;</button>
-                        <h4 class="modal-title">Assignment Feedback</h4>
+                        <h2 class="modal-title">Assignment Feedback</h2>
                       </div>
                       <div class="modal-body">
                         ${body}
@@ -2123,9 +2153,7 @@ export class ActiveCode extends RunestoneBase {
         // Add the error message
         this.errLastRun = true;
         console.log(err);
-        var errHead = document.createElement("h3");
-        errHead.innerHTML = "Error";
-        this.eContainer.appendChild(errHead);
+        this.eContainer.appendChild(this.createSubheading("Error"));
         var errText = this.eContainer.appendChild(
             document.createElement("pre"),
         );
@@ -2155,10 +2183,10 @@ Yet another is that there is an internal error.  The internal error message is: 
         var to = errString.indexOf(":");
         var errName = errString.substring(0, to);
         errText.innerHTML = errString;
-        this.eContainer.insertAdjacentHTML("beforeend", "<h3>Description</h3>");
+        this.eContainer.appendChild(this.createSubheading("Description"));
         var errDesc = this.eContainer.appendChild(document.createElement("p"));
         errDesc.innerHTML = errorText[errName];
-        this.eContainer.insertAdjacentHTML("beforeend", "<h3>To Fix</h3>");
+        this.eContainer.appendChild(this.createSubheading("To Fix"));
         var errFix = this.eContainer.appendChild(document.createElement("p"));
         errFix.innerHTML = errorText[errName + "Fix"];
         var moreInfo = "../ErrorHelp/" + errName.toLowerCase() + ".html";

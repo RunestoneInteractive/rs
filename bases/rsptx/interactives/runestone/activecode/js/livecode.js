@@ -841,8 +841,7 @@ export default class LiveCode extends ActiveCode {
         if (this.errDiv) {
             this.errDiv.remove();
         }
-        var errHead = document.createElement("h3");
-        errHead.innerHTML = "Error";
+        const errHead = this.createSubheading("Error");
         var eContainer = this.outerDiv.appendChild(
             document.createElement("div"),
         );

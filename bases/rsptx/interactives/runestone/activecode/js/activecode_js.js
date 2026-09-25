@@ -57,8 +57,7 @@ export default class JSActiveCode extends ActiveCode {
     addErrorMessage(err) {
         // Add the error message
         this.errLastRun = true;
-        var errHead = document.createElement("h3");
-        errHead.innerHTML = "Error";
+        const errHead = this.createSubheading("Error");
         this.eContainer = this.outerDiv.appendChild(
             document.createElement("div"),
         );

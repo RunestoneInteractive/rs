@@ -7,7 +7,6 @@ import GodotActiveCode from "./activecode_gdscript";
 import CodeMirror from "codemirror";
 import { registerGDScriptMode } from "./codemirror_gdscript-mode.js";
 
-
 import {
     TimedActiveCode,
     TimedLiveCode,
@@ -167,12 +166,12 @@ export default class ACFactory {
         var html = `<div class="ptx-runestone-container">
             <div id="ac_modal_${divid}" class="scratch-ac-modal">
                 <div class="ac-modal-content">
-                  <div class="ac-modal-header">
+                  <header class="ac-modal-header">
                     <button type="button" class="close first-focusable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="ac-modal-title">Scratch ActiveCode (${
+                    <h2 class="ac-modal-title">Scratch ActiveCode (${
                         languageNames[lang.toLowerCase()] || lang
-                    })</h4>
-                  </div>
+                    })</h2>
+                  </header>
                   <div class="ac-modal-body">
                   <div data-component="activecode" id=${divid}>
                   <div id=${divid}_question class="ac_question"><p>Use this area for writing code or taking notes.</p></div>
