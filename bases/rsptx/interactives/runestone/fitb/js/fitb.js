@@ -866,9 +866,7 @@ export default class FITB extends RunestoneBase {
             this.feedBackDiv.appendChild(summary);
         }
         this.feedBackDiv.appendChild(list);
-        if (typeof MathJax !== "undefined") {
-            this.queueMathJax(this.feedBackDiv);
-        }
+        this.queueMathJax(this.feedBackDiv);
     }
 
     /*==================================

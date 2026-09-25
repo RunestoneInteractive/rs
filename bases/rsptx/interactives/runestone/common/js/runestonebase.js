@@ -603,37 +603,22 @@ export default class RunestoneBase {
         return `${this.constructor.name}: ${this.divid}`;
     }
 
+    /**
+     * Queue MathJax rendering for `component`.
+     *
+     * This is the only MathJax entry point interactive components should use.
+     * It serializes typesetting for this Runestone component and waits for the
+     * page's initial MathJax pass when one is configured. The returned promise
+     * always resolves to `null` when MathJax is unavailable or failed to load,
+     * allowing callers to perform their post-render layout and accessibility
+     * work in `.then()` without their own feature checks or polling. A genuine
+     * MathJax typesetting error still rejects the promise.
+     *
+     * Templates that define `window.runestoneMathReady` must settle it after
+     * either a successful initial typeset or a MathJax load failure.
+     */
     queueMathJax(component) {
-        if (typeof MathJax === "undefined") {
-            console.log("Error -- MathJax is not loaded");
-            return Promise.resolve(null);
-        } else {
-            // See - https://docs.mathjax.org/en/latest/advanced/typeset.html
-            // Per the above we should keep track of the promises and only call this
-            // a second time if all previous promises have resolved.
-            // Create a queue of components
-            // should wait until defaultPageReady is defined
-            // If defaultPageReady is not defined then just enqueue the components.
-            // Once defaultPageReady is defined
-            // the window.runestoneMathReady promise will be fulfilled when the
-            // initial typesetting is complete.
-            if (MathJax.typesetPromise) {
-                if (typeof window.runestoneMathReady !== "undefined") {
-                    return window.runestoneMathReady.then(() =>
-                        this.aQueue.enqueue(component),
-                    );
-                } else {
-                    return this.aQueue.enqueue(component);
-                }
-            } else {
-                console.log(`Waiting on MathJax!! ${MathJax.typesetPromise}`);
-                return new Promise((resolve, reject) => {
-                    setTimeout(() => {
-                        this.queueMathJax(component).then(resolve, reject);
-                    }, 200);
-                });
-            }
-        }
+        return this.aQueue.enqueue(component);
     }
 
     decorateStatus() {
@@ -700,44 +685,60 @@ class AutoQueue extends Queue {
         });
     }
 
+    async getMathJax() {
+        // PreTeXt/Runestone pages resolve this after their initial page-level
+        // typesetting pass. Standalone pages can use MathJax's startup promise.
+        const readiness =
+            window.runestoneMathReady ?? globalThis.MathJax?.startup?.promise;
+        if (readiness) {
+            try {
+                await readiness;
+            } catch {
+                return null;
+            }
+        }
+
+        const mathJax = globalThis.MathJax;
+        return typeof mathJax?.typesetPromise === "function" ? mathJax : null;
+    }
+
     async dequeue() {
         if (this._pendingPromise) return false;
 
         let item = super.dequeue();
 
         if (!item) return false;
-        let qq = this;
+        this._pendingPromise = true;
         try {
-            this._pendingPromise = true;
+            const mathJax = await this.getMathJax();
+            if (!mathJax) {
+                item.resolve(null);
+                return true;
+            }
 
-            let payload = await window.runestoneMathReady.then(
-                async function () {
-                    console.log(
-                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`,
-                    );
-                    if (qq.preamble) {
-                        // Typesetting the preamble registers its \newcommand and
-                        // \DeclareMathOperator definitions with the TeX input jax.
-                        // Those definitions are global and persist for every later
-                        // typesetPromise call on the page, so the component does not
-                        // need its own copy of the preamble -- see issue #1248, where
-                        // prepending a copy put the raw macro source on screen.
-                        await MathJax.typesetPromise([qq.preamble]);
-                        console.log(
-                            `MathJax typeset the preamble for ${item.component.id}`,
-                        );
-                    }
-                    return await MathJax.typesetPromise([item.component]);
-                },
+            console.log(
+                `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${this.preamble?.innerHTML}`,
             );
-
-            this._pendingPromise = false;
+            if (this.preamble) {
+                // Typesetting the preamble registers its \newcommand and
+                // \DeclareMathOperator definitions with the TeX input jax.
+                // Those definitions are global and persist for every later
+                // typesetPromise call on the page, so the component does not
+                // need its own copy of the preamble -- see issue #1248, where
+                // prepending a copy put the raw macro source on screen.
+                await mathJax.typesetPromise([this.preamble]);
+                console.log(
+                    `MathJax typeset the preamble for ${item.component.id}`,
+                );
+            }
+            const payload = await mathJax.typesetPromise([item.component]);
             item.resolve(payload);
         } catch (e) {
-            this._pendingPromise = false;
             item.reject(e);
         } finally {
-            // If there are more items in the queue, continue processing them
+            // Always release the queue before starting the next item. In
+            // particular, no-op MathJax work must not strand later entries.
+            this._pendingPromise = false;
             this.dequeue();
         }
 
