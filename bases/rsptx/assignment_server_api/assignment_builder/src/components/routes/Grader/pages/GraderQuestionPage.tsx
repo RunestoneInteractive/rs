@@ -1,8 +1,10 @@
 import { Button, Center, Loader } from "@mantine/core";
 import {
   GraderStudentAnswer,
+  LateStudent,
   useGetGraderAnswersQuery,
   useGetGraderQuestionsQuery,
+  useGetLateStudentsQuery,
   useSaveGradeMutation
 } from "@store/grader/grader.logic.api";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -44,9 +46,19 @@ export const GraderQuestionPage: React.FC = () => {
     { assignmentId: aid, questionId: qid },
     { skip: !aid || !qid || isDemo }
   );
+  const { data: lateStudentsData } = useGetLateStudentsQuery(aid, {
+    skip: !aid || isDemo
+  });
   const data = isDemo ? (getDemoAnswersFor(aid, qid) ?? undefined) : realData;
   const qData = isDemo ? (getDemoQuestionsFor(aid) ?? undefined) : qRealData;
   const questionMeta = qData?.questions.find((q) => q.id === qid);
+  const lateStudentsBySid = useMemo(
+    () =>
+      new Map<string, LateStudent>(
+        lateStudentsData?.students.map((lateStudent) => [lateStudent.username, lateStudent]) ?? []
+      ),
+    [lateStudentsData?.students]
+  );
 
   // TODO(eslint): Stabilize the fallback collection without changing loading behavior.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,6 +356,12 @@ export const GraderQuestionPage: React.FC = () => {
           question={questionMeta}
           activeSid={activeSid}
           dirtySids={dirtySids}
+          lateStudentsBySid={lateStudentsBySid}
+          assignmentDueDate={lateStudentsData?.due_date ?? qData?.assignment.duedate}
+          courseTimezone={
+            lateStudentsData?.course_timezone ?? window.eBookConfig?.courseTimezone ?? "UTC"
+          }
+          deadlineEnforced={lateStudentsData?.enforce_due}
           onSelect={selectSid}
           hideGraded={hideGraded}
           onToggleHideGraded={setHideGraded}

@@ -1,8 +1,10 @@
 import { Button, Progress, TextInput } from "@mantine/core";
-import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
+import { GraderStudentAnswer, LateStudent } from "@store/grader/grader.logic.api";
 import React, { useMemo, useRef } from "react";
 
 import { Icon } from "@/components/ui/Icon";
+import { formatInTimezone } from "@/utils/courseTimezone";
+import { parseUTCDate } from "@/utils/date";
 
 import {
   getQuestionProgress,
@@ -21,6 +23,10 @@ interface Props {
   question?: { autograde?: string };
   activeSid?: string;
   dirtySids?: ReadonlySet<string>;
+  lateStudentsBySid?: ReadonlyMap<string, LateStudent>;
+  assignmentDueDate?: string | null;
+  courseTimezone?: string;
+  deadlineEnforced?: boolean;
   onSelect: (sid: string) => void;
   hideGraded: boolean;
   onToggleHideGraded: (v: boolean) => void;
@@ -31,6 +37,10 @@ export const StudentListSidebar: React.FC<Props> = ({
   question,
   activeSid,
   dirtySids,
+  lateStudentsBySid,
+  assignmentDueDate,
+  courseTimezone = "UTC",
+  deadlineEnforced,
   onSelect,
   hideGraded,
   onToggleHideGraded
@@ -64,6 +74,15 @@ export const StudentListSidebar: React.FC<Props> = ({
             {progress.graded + progress.autograded} / {progress.total}
           </span>
         </div>
+        {assignmentDueDate && (
+          <div className={styles.deadline} title="Assignment deadline in the course timezone">
+            <Icon name="calendar" size={13} />
+            <span>
+              Deadline: <strong>{formatUtcInTimezone(assignmentDueDate, courseTimezone)}</strong>
+              {deadlineEnforced === false && " (not enforced)"}
+            </span>
+          </div>
+        )}
         <Progress
           value={progress.donePct}
           size={4}
@@ -105,6 +124,9 @@ export const StudentListSidebar: React.FC<Props> = ({
         {filtered.map((a) => {
           const status = getStudentStatus(a, question, { dirtySids });
           const active = a.sid === activeSid;
+          const lateStudent = lateStudentsBySid?.get(a.sid);
+          const late = lateStudent != null;
+          const lateTitle = lateStudent ? getLateWorkTitle(lateStudent, courseTimezone) : undefined;
 
           return (
             <li
@@ -112,7 +134,8 @@ export const StudentListSidebar: React.FC<Props> = ({
               role="option"
               aria-selected={active}
               data-tour={active ? "grader-active-student" : undefined}
-              className={`${styles.item} ${active ? styles.active : ""}`}
+              title={lateTitle}
+              className={`${styles.item} ${active ? styles.active : ""} ${late ? styles.late : ""}`}
               onClick={() => onSelect(a.sid)}
               tabIndex={0}
               onKeyDown={(e) => {
@@ -124,7 +147,14 @@ export const StudentListSidebar: React.FC<Props> = ({
             >
               <StatusDot status={status} />
               <div className={styles.itemBody}>
-                <div className={styles.itemName}>{studentDisplayName(a)}</div>
+                <div className={styles.itemNameRow}>
+                  <div className={styles.itemName}>{studentDisplayName(a)}</div>
+                  {late && (
+                    <span className={styles.lateBadge} title={lateTitle}>
+                      Late
+                    </span>
+                  )}
+                </div>
                 <div className={styles.itemMeta}>
                   <span className={styles.itemSid}>{a.sid}</span>
                   <span>·</span>
@@ -138,6 +168,21 @@ export const StudentListSidebar: React.FC<Props> = ({
       </ul>
     </aside>
   );
+};
+
+const formatUtcInTimezone = (value: string, timeZone: string): string =>
+  formatInTimezone(parseUTCDate(value), timeZone);
+
+const getLateWorkTitle = (student: LateStudent, timeZone: string): string => {
+  const extension = student.extension_days
+    ? `\nExtension: ${student.extension_days} day${student.extension_days === 1 ? "" : "s"}`
+    : "";
+
+  return [
+    "Late work",
+    `Effective deadline: ${formatUtcInTimezone(student.effective_due_date, timeZone)}${extension}`,
+    `First activity after deadline: ${formatUtcInTimezone(student.first_late_activity_at, timeZone)}`
+  ].join("\n");
 };
 
 const StatusDot: React.FC<{ status: StudentGradingStatus }> = ({ status }) => (
