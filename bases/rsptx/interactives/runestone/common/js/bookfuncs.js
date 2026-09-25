@@ -461,7 +461,7 @@ export class PageProgressBar {
         }
         let progressText = document.getElementById("scprogress-activity-count");
         // Warn if course not started
-        if(progressText && !isCourseStarted()) {
+        if (progressText && !isCourseStarted()) {
             progressText.appendChild(document.createTextNode(courseNotStartedMessage()));
         }
         // Replace #subchapterprogress div with a native <progress> element if not already done
@@ -549,7 +549,7 @@ export class PageProgressBar {
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
                 this.activitiesAttempted >=
-                    this.assignment_spec.activities_required
+                this.assignment_spec.activities_required
             ) {
                 console.log("Required activities completed");
                 this.sendCompletedReadingScore().then(() => {
@@ -1298,7 +1298,9 @@ window.addEventListener("DOMContentLoaded", function (event) {
         // All we should assume about the item template is that it has an anchor element
         const link = itemTemplate.content.cloneNode(true);
         const linkAnchor = link.querySelector("a");
-        linkAnchor.href = url;
+        if (url) {
+            linkAnchor.href = url;
+        }
         linkAnchor.innerText = "";
         const contentSpan = document.createElement("span");
         contentSpan.style.display = "inline-flex";
@@ -1326,9 +1328,29 @@ window.addEventListener("DOMContentLoaded", function (event) {
         if (ariaLabel) {
             linkAnchor.ariaLabel = ariaLabel;
         }
+        if (!url) {
+            title = "californiastateunivertyoffullerton_active-calc-proteus_winter26"
+            const info = document.createElement("span");
+            info.className = linkAnchor.className;
+            if (title.length > 30) {
+                info.innerText = title.slice(0, 12) + "..." + title.slice(-15);
+                // add hover to show full title
+                info.title = title;
+                info.style.cursor = "help";
+            } else {
+                info.innerText = title;
+            }
+            info.style.display = "flex";
+            info.style.justifyContent = "center";
+            info.style.alignItems = "center";
+            linkAnchor.replaceWith(info);
+        }
         // return entire item template, not just link
         return link;
     }
+    // limit length of eBookConfig.course to 30 characters to prevent overly long course names in the menu but preserve the last 15 characters
+    menuContentArea.appendChild(makeLink(null, eBookConfig.course));
+    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
 
     menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home", "home"));
     menuContentArea.appendChild(
