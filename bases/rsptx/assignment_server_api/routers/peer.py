@@ -1323,7 +1323,14 @@ async def publish_message(
     from rsptx.auth.session import is_instructor
     import redis
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Invalid JSON request body"},
+        )
+
     rslogger.info(f"Publishing peer message: {data}")
     # Get the user's authentication
     user_is_instructor = await is_instructor(request, user=user)
