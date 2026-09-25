@@ -691,7 +691,11 @@ class AutoQueue extends Queue {
         const readiness =
             window.runestoneMathReady ?? globalThis.MathJax?.startup?.promise;
         if (readiness) {
-            await readiness;
+            try {
+                await readiness;
+            } catch {
+                return null;
+            }
         }
 
         const mathJax = globalThis.MathJax;
