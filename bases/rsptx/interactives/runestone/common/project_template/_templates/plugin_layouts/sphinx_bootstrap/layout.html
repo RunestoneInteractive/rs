@@ -31,6 +31,15 @@
 
 <script>
 var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
+window.addEventListener("error", function(event) {
+  const target = event.target;
+  if (
+    target?.tagName === "SCRIPT" &&
+    /mathjax/i.test(target.src)
+  ) {
+    window.rsMathReady(null);
+  }
+}, true);
 window.MathJax = {
   "tex": {
     "inlineMath": [
@@ -93,11 +102,17 @@ window.MathJax = {
   },
   "startup": {
     pageReady() {
-      return MathJax.startup.defaultPageReady().then(function () {
-      console.log("in ready function");
-      rsMathReady();
-      }
-    )}
+      return MathJax.startup.defaultPageReady().then(
+        function () {
+          console.log("in ready function");
+          window.rsMathReady(MathJax);
+        },
+        function (error) {
+          console.error("MathJax failed during page setup", error);
+          window.rsMathReady(null);
+        },
+      );
+    }
   }
 };
 </script>
