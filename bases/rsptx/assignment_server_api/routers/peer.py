@@ -31,6 +31,7 @@ from rsptx.db.crud import (
     count_distinct_student_answers,
     count_peer_messages,
     create_useinfo_entry,
+    create_user_experiment_entry,
     fetch_all_course_attributes,
     fetch_api_token,
     fetch_assignment_questions,
@@ -43,6 +44,7 @@ from rsptx.db.crud import (
     fetch_question,
     fetch_recent_student_answers,
     fetch_student_answers_in_timerange,
+    fetch_user_experiment,
     replace_user_experiment_entries,
     update_assignment,
 )
@@ -595,6 +597,65 @@ async def _llm_enabled_async(course_id: int) -> bool:
     return token is not None and bool(token.token)
 
 
+# Async PI study conditions
+# =========================
+# Condition 0 discusses with the LLM peer, condition 1 reads saved classmate
+# justifications. The mapping is deliberate: adding a condition later means
+# adding to this dict, not editing the page.
+ASYNC_CONDITION_MODES = {0: "llm", 1: "standard"}
+
+
+def resolve_study_mode(question_async_mode: str, condition: Optional[int]) -> str:
+    """Return the mode a student in the study gets, given their condition.
+
+    With no condition to serve -- the assignment is not in a study, the course
+    toggle is off, or the lookup failed -- the question's own mode stands, so
+    an assignment outside the study is untouched by any of this.
+    """
+    if condition is None:
+        return question_async_mode
+    return ASYNC_CONDITION_MODES.get(condition, question_async_mode)
+
+
+def async_condition_experiment_id(assignment_id: int) -> str:
+    """Name the experiment a student's async PI condition is stored under.
+
+    Keyed on the assignment, not the question, so a student stays in one
+    condition for every question in that assignment (a between-subjects
+    design), while a later assignment randomizes independently.
+    """
+    return f"async_pi_cond_{assignment_id}"
+
+
+async def _async_condition_for(sid: str, assignment_id: int) -> Optional[int]:
+    """Return this student's condition for an assignment, assigning on first visit.
+
+    Reuses the ``user_experiment`` table that the book server's A/B question
+    selection already uses, so the assignment is server side and survives a
+    different browser or cleared cookies.
+
+    :return: the condition number, or ``None`` if it could not be determined.
+    """
+    experiment_id = async_condition_experiment_id(assignment_id)
+    try:
+        condition = await fetch_user_experiment(sid, experiment_id)
+        if condition is None:
+            condition = random.randrange(len(ASYNC_CONDITION_MODES))
+            await create_user_experiment_entry(sid, experiment_id, condition)
+            stored = await fetch_user_experiment(sid, experiment_id)
+            if stored is not None:
+                condition = stored
+            rslogger.info(
+                f"async PI: assigned {sid} to condition {condition} for {experiment_id}"
+            )
+        return condition
+    except Exception:
+        # Never block a student from working because assignment failed; the
+        # caller falls back to the question's own configured mode.
+        rslogger.exception(f"Failed to resolve async PI condition for {sid}")
+        return None
+
+
 @router.get("/student/async", response_class=HTMLResponse)
 @with_course()
 async def get_peer_async(
@@ -668,7 +729,20 @@ async def get_peer_async(
     question_async_mode = (
         (getattr(aq, "async_mode", None) or "standard") if aq else "standard"
     )
-    if async_llm_modes_enabled:
+
+    # On an assignment in the study, the student's assigned condition decides
+    # the mode instead of whatever each question is set to, so they see one
+    # condition across the whole assignment. Assignments outside the study, and
+    # every course without the toggle on, are untouched.
+    async_conditions_enabled = (
+        course_attrs.get("enable_async_conditions", "false") == "true"
+    )
+    async_condition = None
+    if async_conditions_enabled and bool(assignment.async_study):
+        async_condition = await _async_condition_for(user.username, assignment_id)
+    question_async_mode = resolve_study_mode(question_async_mode, async_condition)
+
+    if async_llm_modes_enabled or async_condition is not None:
         question_use_llm = question_async_mode in ("llm", "analogies")
         llm_enabled = question_use_llm and has_api_token
     else:
@@ -688,7 +762,15 @@ async def get_peer_async(
                 sid=user.username,
                 div_id=current_question.name if current_question else "",
                 event="pi_mode",
-                act=json.dumps({"mode": pi_mode}),
+                act=json.dumps(
+                    {
+                        "mode": pi_mode,
+                        "condition": async_condition,
+                        "experiment_id": async_condition_experiment_id(assignment_id),
+                    }
+                    if async_condition is not None
+                    else {"mode": pi_mode}
+                ),
                 timestamp=datetime.datetime.utcnow(),
             )
         )
@@ -734,6 +816,18 @@ async def get_peer_async(
     }
 
     return templates.TemplateResponse("assignment/student/peer_async.html", context)
+
+
+def parse_peergroup_members(act: str, sid: str) -> set[str]:
+    try:
+        _, members = act.split(":", 1)
+    except (AttributeError, ValueError):
+        return set()
+
+    group = {m.strip() for m in members.split(",") if m.strip()}
+    if sid:
+        group.add(sid)
+    return group
 
 
 def split_ab_conditions(
@@ -892,15 +986,9 @@ async def make_pairs(
             useinfos = await fetch_last_useinfo_peergroup(course.course_name)
             in_person_groups = []
             for u in useinfos:
-                # act format peergroup:student1,student2,...
-                try:
-                    _, members = u.act.split(":", 1)
-                    grp = set(members.split(","))
-                    if u.sid not in grp:
-                        grp.add(u.sid)
+                grp = parse_peergroup_members(u.act, u.sid)
+                if grp:
                     in_person_groups.append(grp)
-                except Exception:  # defensive; malformed rows shouldn't break pairing
-                    continue
 
             # Group answering students into their recorded verbal clusters and
             # split those clusters across the two conditions. See
@@ -1761,16 +1849,49 @@ def _html_to_text(html: str) -> str:
     return text.strip()
 
 
+_ANSWER_LI_RE = re.compile(
+    r"<li\b([^>]*\bdata-component\s*=\s*[\"']answer[\"'][^>]*)>(.*?)</li>",
+    re.I | re.S,
+)
+_MCHOICE_LI_RE = re.compile(r"<li\b[^>]*>.*?</li>", re.I | re.S)
+_DATA_CORRECT_RE = re.compile(r"data-correct(?:\s*=\s*[\"']?(\w+))?", re.I)
+
+
+# returns stem, lettered choices, labels of the correct ones
+def parse_mchoice_htmlsrc(htmlsrc: str) -> tuple[str, list[str], list[str]]:
+    if not htmlsrc:
+        return "", [], []
+
+    choices: list[str] = []
+    correct: list[str] = []
+    for i, match in enumerate(_ANSWER_LI_RE.finditer(htmlsrc)):
+        attrs, body = match.group(1), match.group(2)
+        label = chr(65 + i)
+        text = _html_to_text(body)
+        choices.append(f"{label}. {text}" if text else f"{label}.")
+
+        marked = _DATA_CORRECT_RE.search(attrs)
+        if marked and (marked.group(1) or "yes").lower() not in ("no", "false"):
+            correct.append(label)
+
+    stem = _html_to_text(_MCHOICE_LI_RE.sub("", htmlsrc))
+    return stem, choices, correct
+
+
 async def _get_mcq_context_async(div_id: str):
-    # Return (question_text, code_text, choices) for the LLM peer prompt.
+    # Return (question_text, code_text, choices, correct_labels) for the LLM
+    # peer prompt. correct_labels lets the peer confirm a student who has
+    # reasoned their way to the right answer instead of only ever asking
+    # another question; without it the model has no way to know.
     try:
         q = await fetch_question(div_id)
         if not q:
             rslogger.error(f"_get_mcq_context_async: no question row for {div_id}")
-            return "", "", []
+            return "", "", [], []
 
         question = ""
         choices: list[str] = []
+        correct_labels: list[str] = []
 
         qjson = getattr(q, "question_json", None)
         if qjson:
@@ -1781,9 +1902,21 @@ async def _get_mcq_context_async(div_id: str):
                 for i, opt in enumerate(qjson.get("optionList", []) or []):
                     choice_text = _html_to_text(opt.get("choice", ""))
                     if choice_text:
-                        choices.append(f"{chr(65 + i)}. {choice_text}")
+                        label = chr(65 + i)
+                        choices.append(f"{label}. {choice_text}")
+                        if opt.get("correct"):
+                            correct_labels.append(label)
             except Exception as e:
                 rslogger.warning(f"Could not parse question_json for {div_id}: {e}")
+
+        if not choices:
+            stem, html_choices, html_correct = parse_mchoice_htmlsrc(
+                (getattr(q, "htmlsrc", "") or "").strip()
+            )
+            if html_choices:
+                choices = html_choices
+                correct_labels = html_correct
+                question = question or stem
 
         if not question:
             raw_question = (getattr(q, "question", "") or "").strip()
@@ -1796,10 +1929,10 @@ async def _get_mcq_context_async(div_id: str):
         code = ""
         if not question:
             rslogger.warning(f"_get_mcq_context_async: no question text for {div_id}")
-        return question, code, choices
+        return question, code, choices, correct_labels
     except Exception:
         rslogger.exception(f"_get_mcq_context_async failed for {div_id}")
-        return "", "", []
+        return "", "", [], []
 
 
 async def _call_openai_async(messages: list, course_id: int) -> str:
@@ -2016,7 +2149,7 @@ async def get_async_llm_reflection(
     except Exception:
         rslogger.exception("Failed to log LLM user message")
 
-    question, code, choices = await _get_mcq_context_async(div_id)
+    question, code, choices, correct_labels = await _get_mcq_context_async(div_id)
 
     reflection_text = (data.get("reflection") or "").strip()
     if not reflection_text and messages:
@@ -2083,10 +2216,12 @@ async def get_async_llm_reflection(
         "the question and its answer choices are shown below. only talk about what is actually there. if there is no code in the question never mention code and never ask them to trace code.\n"
         "only speak in lower case. keep messages short, 1 to 3 sentences. casual informal language with the occasional typo. no commas. no em dashes. no line breaks. no gendered language.\n"
         "do not sound like a teacher and do not explain the problem step by step.\n"
-        "NEVER signal whether the student is right or wrong. that includes verdicts ('correct', 'wrong'), hedges ('not quite', 'almost', 'close', 'not yet'), and agreement markers anywhere in the message ('exactly', 'right', 'yeah', 'yes', 'true', 'good point', 'makes sense', 'thats it', 'perfect', 'youre on the right track'). do not open with them and do not slip them in mid sentence. if you notice yourself agreeing, rewrite the whole message as a question instead.\n"
-        "every message must begin with a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm') or with 'so' followed by an observation.\n"
+        "you are told below which choice is correct. that is for you to steer with, not to hand over. never state the correct choice before the student has worked their way to it, never reveal it because they asked, or because they are stuck, or because the conversation is dragging, and never reference feedback or grading. do not pretend to have picked an answer yourself.\n"
+        "THE MOMENT WHAT THE STUDENT SAYS MATCHES THE CORRECT CHOICE, CONFIRM IT AND STOP ASKING. this outranks every other rule here about asking questions. they do not have to name the letter or repeat the choice back to you — if the substance of what they just said is the correct choice, that counts, even if it is short, informal, or only half a sentence. say it plainly ('yeah thats what i got too', 'yeah that sounds right') and tell them to go vote. do not ask another question, do not make them justify it a second time, do not test it once more to be sure. carrying on interrogating a student who is already right is the single worst thing you can do here.\n"
+        "while they are still working, do not hand out verdicts or agreement markers ('exactly', 'right', 'yeah', 'true', 'good point', 'makes sense', 'perfect'). those belong only to the moment described above.\n"
+        "if their reasoning is heading somewhere wrong, do not validate it and do not announce that it is wrong either. name the specific thing in the question that their reasoning has to account for and ask what it does to their answer.\n"
+        "every message must begin with a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm') or with 'so' followed by an observation — except the confirming message above, which can open with agreement.\n"
         "never end on a rhetorical question whose obvious answer tells them they are wrong. keep questions open — 'where does that put you' not 'does that even exist'.\n"
-        "never say which choice is correct, never hint at it, and never reference feedback or grading. do not pretend to have picked an answer yourself.\n"
         "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words.\n"
         "if their explanation describes a different option than the one they selected, ask them about that gap without saying which is right, like 'wait you said X but you picked Y whats the connection'.\n"
         "be aware of common misconceptions but never introduce one yourself. never invent information that is not in the question. if you are unsure say so instead of guessing, and hedge often.\n"
@@ -2096,7 +2231,7 @@ async def get_async_llm_reflection(
 
     # Analogy-specific rules only apply when the student picked a theme
     analogy_flow_rules = (
-        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves. never validate it, never deny it, just ask them to examine it through the scenario.\n"
+        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves, unless it is the reasoning that gets them to the correct choice, in which case confirm it.\n"
         "IF THE STUDENT SWITCHES TO THE REAL PROBLEM, FOLLOW THEM. the moment they use actual terms from the question (file paths, commands, directories, git words, variable names) switch to those terms and finish the conversation there. never pull them back into the scenario after they have made that jump — that is the transfer you want.\n"
         "IF THE STUDENT SAYS THEY ARE CONFUSED OR LOST, state the mapping plainly in one message — say which thing in the scenario is which thing in the question — then ask your next question. do not answer confusion with more scenario.\n"
         "otherwise keep follow-ups inside the scenario and stay in theme vocabulary rather than mixing in CS terms.\n"
@@ -2104,15 +2239,15 @@ async def get_async_llm_reflection(
         "if the student has answered your question twice without the conversation moving, stop asking about the scenario and connect it back to the real question.\n"
         "when you reference a structural detail in a follow-up, restate it briefly in the same message — do not assume they remember the structure from earlier.\n"
         "have them trace the scenario step by step, then once they seem to have the structure, bridge back and ask them to apply that reasoning to the actual question. do not let the analogy float without connecting it back.\n"
-        "never connect the analogy conclusion to a specific answer choice yourself — ask them what it tells them about the problem and let them make that link.\n\n"
+        "do not make the link from the analogy conclusion to a specific answer choice for them — ask what it tells them about the problem and let them make it. once they have made that link and it is the correct choice, confirm it.\n\n"
     )
 
     generic_flow_rules = (
         "stay grounded in the actual question — do not invent metaphors, analogies, or hypothetical scenarios.\n"
         "IF THE STUDENT SAYS THEY ARE CONFUSED OR ASKS YOU TO BREAK IT DOWN, do not bounce the question straight back at them. give them one concrete place to start — name the specific line or value to look at first and ask what that one part does. never answer confusion with only another open question.\n"
         "ask them to walk through the question step by step in their own words. only talk about code if code actually appears in the question above.\n"
-        "if the student introduces a new assumption or claim, ask them to test it against the question itself rather than validating or denying it.\n"
-        "never connect a conclusion back to a specific answer choice — ask them what it tells them about the problem and let them make that link.\n\n"
+        "if the student introduces a new assumption or claim, ask them to test it against the question itself rather than validating it, unless it is the reasoning that gets them to the correct choice, in which case confirm it.\n"
+        "do not connect a conclusion back to a specific answer choice for them — ask what it tells them about the problem and let them make that link. once they have made it and it is the correct choice, confirm it.\n\n"
     )
 
     context_suffix = ""
@@ -2122,6 +2257,12 @@ async def get_async_llm_reflection(
         context_suffix += f"code:\n{code}\n\n"
     if choices:
         context_suffix += "answer choices:\n" + "\n".join(choices) + "\n\n"
+    if correct_labels:
+        context_suffix += (
+            "the correct choice is: "
+            + ", ".join(correct_labels)
+            + " (for steering only — never state this before they reach it themselves)\n\n"
+        )
     if selected:
         context_suffix += f"the other student chose: {selected}\n\n"
 

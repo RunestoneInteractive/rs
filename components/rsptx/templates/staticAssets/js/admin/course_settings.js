@@ -26,6 +26,28 @@ async function updateCourse(element, setting) {
     }
 }
 
+// The study condition setting only means anything once async LLM modes are on,
+// so keep it out of sight until then rather than showing a dead checkbox. The
+// page renders the correct initial state itself; this only keeps up with the
+// checkbox without a reload.
+(function initAsyncConditionsVisibility() {
+    const llmModes = document.getElementById("async_llm_modes");
+    const box = document.getElementById("async_conditions_box");
+    if (!llmModes || !box) return;
+
+    llmModes.addEventListener("change", () => {
+        box.style.display = llmModes.checked ? "" : "none";
+
+        const conditions = document.getElementById("async_conditions");
+        // Turning the modes off would leave a study running with no way to
+        // see or stop it, so turn the study off too.
+        if (!llmModes.checked && conditions && conditions.checked) {
+            conditions.checked = false;
+            updateCourse(conditions, "enable_async_conditions");
+        }
+    });
+})();
+
 // Populate timezone selector and set a sensible default
 (function initTimezoneSelector() {
     const select = document.getElementById("timezone_select");

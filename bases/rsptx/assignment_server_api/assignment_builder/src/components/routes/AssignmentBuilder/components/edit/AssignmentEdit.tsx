@@ -16,6 +16,7 @@ import {
   Tooltip,
   UnstyledButton
 } from "@mantine/core";
+import { useHasApiKeyQuery } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import classNames from "classnames";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
@@ -69,6 +70,8 @@ export const AssignmentEdit = ({
   setValue
 }: AssignmentEditProps) => {
   const { isExercisesError, isExercisesLoading } = useExercisesSelector();
+  // The study setting is meaningless outside a course set up to run one, so it should not confuse instructors
+  const { data: { asyncConditionsEnabled = false } = {} } = useHasApiKeyQuery();
 
   if (isExercisesError) {
     return <ErrorState title="Couldn't load this assignment" message="Refresh the page." />;
@@ -296,6 +299,24 @@ export const AssignmentEdit = ({
             )}
           />
         </div>
+        {asyncConditionsEnabled && (
+          <div className={styles.settingRow}>
+            <label>Randomize study conditions</label>
+            <Controller
+              name="async_study"
+              control={control}
+              render={({ field }) => (
+                <SegmentedControl
+                  value={String(field.value ?? false)}
+                  onChange={(value) => field.onChange(value === "true")}
+                  data={YES_NO_OPTIONS}
+                  size="sm"
+                  aria-label="Randomize study conditions"
+                />
+              )}
+            />
+          </div>
+        )}
       </div>
     </Paper>
   );

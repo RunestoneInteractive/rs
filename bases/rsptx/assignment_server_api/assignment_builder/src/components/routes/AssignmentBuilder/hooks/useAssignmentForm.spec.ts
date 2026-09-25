@@ -20,6 +20,7 @@ const makeAssignment = (overrides: Partial<Assignment> = {}): Assignment => ({
   nopause: false,
   time_limit: null,
   peer_async_visible: false,
+  async_study: false,
   kind: "Regular",
   exercises: [],
   all_assignments: [],
