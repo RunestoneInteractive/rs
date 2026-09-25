@@ -1367,14 +1367,10 @@ async def publish_message(
 
         # Track message count for text messages
         if data.get("type") == "text":
-            res = r.hget(f"{course.course_name}_state", "mess_count")
-            if res is not None:
-                mess_count = int(res) + 1
-            else:
-                mess_count = 1
-            r.hset(f"{course.course_name}_state", "mess_count", str(mess_count))
+            r.hincrby(f"{course.course_name}_state", "mess_count", 1)
 
         return JSONResponse(content={"status": "success"})
+
     except Exception as e:
         rslogger.error(f"Error publishing message: {e}")
         return JSONResponse(
