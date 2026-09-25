@@ -605,7 +605,6 @@ async function sendMessage(event) {
 
     let mess = {
         type: "text",
-        from: `${user}`,
         message: messageText,
         time: Date.now(),
         broadcast: false,
@@ -637,7 +636,6 @@ function warnAndStopVote(event) {
 
     let mess = {
         type: "control",
-        sender: `${user}`,
         message: "countDownAndStop",
         broadcast: true,
         course_name: eBookConfig.course,
@@ -712,7 +710,6 @@ async function enableFaceChat(event) {
 
     let mess = {
         type: "control",
-        sender: `${user}`,
         message: "enableFaceChat",
         broadcast: true,
         course_name: eBookConfig.course,
@@ -740,7 +737,6 @@ function startVote2(event) {
     startTime2 = new Date().toUTCString();
     let mess = {
         type: "control",
-        sender: `${user}`,
         message: "enableVote",
         broadcast: true,
         course_name: eBookConfig.course,
@@ -788,7 +784,6 @@ async function clearPartners(event) {
 function enableNext() {
     let mess = {
         type: "control",
-        sender: `${user}`,
         message: "enableNext",
         broadcast: true,
         course_name: eBookConfig.course,

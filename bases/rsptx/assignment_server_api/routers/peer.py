@@ -1334,7 +1334,6 @@ async def publish_message(
     rslogger.info(f"Publishing peer message: {data}")
     # Get the user's authentication
     user_is_instructor = await is_instructor(request, user=user)
-
     try:
 
         # Reject if the user is trying to broadcast or use a control without permission
@@ -1347,6 +1346,14 @@ async def publish_message(
                     "detail": f"User {user.username} is not an instructor in this runestone course."
                 },
             )
+
+        # Prevent impersonation, `from` was originally sent from the request but in the frontend
+        # `user` is simply pulled from user.username, same for `sender`
+        # see peer_instructor.html , peer_async.html and peer_question.html
+        if data.get("type") == "text":
+            data["from"] = user.username
+        else:
+            data["sender"] = user.username
 
         # Now that the permission is checked, we can publish
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
