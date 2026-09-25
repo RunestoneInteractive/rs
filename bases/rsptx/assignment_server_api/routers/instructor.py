@@ -360,6 +360,8 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
         first = (s.get("first_name") or "").strip()
         last = (s.get("last_name") or "").strip()
         s["name"] = (f"{first} {last}").strip() or s["username"]
+        s["effective_due_date"] = s["effective_due_date"].isoformat()
+        s["first_late_activity_at"] = s["first_late_activity_at"].isoformat()
 
     return make_json_response(
         status=status.HTTP_200_OK,
@@ -367,6 +369,8 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
             "assignment_id": assignment_id,
             "assignment_name": assignment.name,
             "enforce_due": bool(assignment.enforce_due),
+            "due_date": assignment.duedate.isoformat(),
+            "course_timezone": course.timezone or "UTC",
             "students": students,
         },
     )

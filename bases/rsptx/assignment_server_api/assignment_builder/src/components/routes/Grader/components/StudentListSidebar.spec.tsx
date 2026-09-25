@@ -114,6 +114,39 @@ describe("StudentListSidebar", () => {
     expect(within(selected).getByText("Bob Stone")).toBeInTheDocument();
   });
 
+  it("highlights students who submitted work after the deadline", () => {
+    renderSidebar({
+      assignmentDueDate: "2020-01-01T00:00:00",
+      courseTimezone: "UTC",
+      deadlineEnforced: true,
+      lateStudentsBySid: new Map([
+        [
+          "s2",
+          {
+            username: "s2",
+            name: "Bob Stone",
+            extension_days: 0,
+            effective_due_date: "2020-01-01T00:00:00",
+            first_late_activity_at: "2020-06-01T00:00:00"
+          }
+        ]
+      ])
+    });
+
+    const lateRow = screen.getByRole("option", { name: /Bob Stone.*Late/i });
+    const onTimeRow = screen.getByRole("option", { name: /Ada Lovelace/i });
+    const lateBadge = within(lateRow).getByText("Late");
+
+    expect(lateRow).toHaveClass(/late/);
+    expect(screen.getByText(/Deadline:/)).toHaveTextContent(/2020/);
+    expect(lateBadge).toHaveAttribute("title", expect.stringContaining("Effective deadline:"));
+    expect(lateBadge).toHaveAttribute(
+      "title",
+      expect.stringContaining("First activity after deadline:")
+    );
+    expect(onTimeRow).not.toHaveClass(/late/);
+  });
+
   it("labels each status dot with its accessible status name", () => {
     renderSidebar();
 

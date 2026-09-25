@@ -278,6 +278,8 @@ async def test_late_students_lists_late_student(
     detail = resp.json()["detail"]
     assert detail["assignment_id"] == late_work_assignment.id
     assert detail["enforce_due"] is True
+    assert detail["due_date"] == LATE_DUEDATE.isoformat()
+    assert detail["course_timezone"]
 
     usernames = [s["username"] for s in detail["students"]]
     assert "testuser1" in usernames
@@ -285,6 +287,9 @@ async def test_late_students_lists_late_student(
 
     late = next(s for s in detail["students"] if s["username"] == "testuser1")
     assert late["name"]  # a display name is always provided
+    assert late["extension_days"] == 0
+    assert late["effective_due_date"] == LATE_DUEDATE.isoformat()
+    assert late["first_late_activity_at"] == AFTER_DUE.isoformat()
 
 
 async def test_late_students_not_enforced_is_empty(
