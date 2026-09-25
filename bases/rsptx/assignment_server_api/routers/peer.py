@@ -1334,19 +1334,17 @@ async def publish_message(
     rslogger.info(f"Publishing peer message: {data}")
     # Get the user's authentication
     user_is_instructor = await is_instructor(request, user=user)
+
+    # Reject if the user is trying to broadcast or use a control without permission
+    if not user_is_instructor and (data.get("broadcast") or data.get("type") != "text"):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "detail": f"User {user.username} is not an instructor in this runestone course."
+            },
+        )
+
     try:
-
-        # Reject if the user is trying to broadcast or use a control without permission
-        if not user_is_instructor and (
-            data.get("broadcast") or data.get("type") != "text"
-        ):
-            return JSONResponse(
-                status_code=401,
-                content={
-                    "detail": f"User {user.username} is not an instructor in this runestone course."
-                },
-            )
-
         # Prevent impersonation, `from` was originally sent from the request but in the frontend
         # `user` is simply pulled from user.username, same for `sender`
         # see peer_instructor.html , peer_async.html and peer_question.html
