@@ -10,6 +10,9 @@ web2py version used -- and an editor only ever sees questions from the base
 courses listed for them in ``editor_basecourse``.
 """
 
+import json
+from typing import Any
+
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
@@ -98,6 +101,7 @@ async def manage_exercises(
             "question_type": q.question_type,
             "htmlsrc": q.htmlsrc,
             "assigned": q.id in assigned_ids,
+            "has_question_json": q.question_json is not None,
         }
         for q in flagged_questions
     ]
@@ -127,9 +131,7 @@ class QuestionRequest(BaseModel):
 
 
 class QuestionEditRequest(BaseModel):
-    question: str
-    htmlsrc: str
-    difficulty: float | None = None
+    question_json: dict[str, Any]
 
 
 async def _editable_question(user, body: QuestionRequest):
@@ -185,6 +187,14 @@ async def edit_question_page(
     question, err = await _editable_question_by_id(user, question_id)
     if err:
         return err
+    if question.question_json is None:
+        return make_json_response(
+            status=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "Error",
+                "message": "Legacy questions without question_json cannot be edited.",
+            },
+        )
 
     course = await fetch_course(user.course_name)
     course_attrs = await fetch_all_course_attributes(course.id)
@@ -195,6 +205,9 @@ async def edit_question_page(
         "is_instructor": True,
         "student_page": False,
         "question": question,
+        "formatted_question_json": json.dumps(
+            question.question_json, indent=2, ensure_ascii=False
+        ),
         "wp_imports": _safe_webpack_imports(course),
         "course_attrs": course_attrs,
         "latex_preamble": course_attrs.get("latex_macros", ""),
@@ -214,14 +227,20 @@ async def edit_question(
     body: QuestionEditRequest,
     user=Depends(auth_manager),
 ):
-    """Save editorial changes without allowing the question id to change."""
+    """Save a question's Assignment Builder JSON without changing its identity."""
     question, err = await _editable_question_by_id(user, question_id)
     if err:
         return err
+    if question.question_json is None:
+        return make_json_response(
+            status=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "Error",
+                "message": "Legacy questions without question_json cannot be edited.",
+            },
+        )
 
-    question.question = body.question
-    question.htmlsrc = body.htmlsrc
-    question.difficulty = body.difficulty
+    question.question_json = body.question_json
     question.timestamp = canonical_utcnow()
     try:
         await update_question(question)

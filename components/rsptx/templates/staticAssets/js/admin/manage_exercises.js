@@ -63,17 +63,24 @@ function clearFlag(qname, baseCourse, cardId) {
 async function saveQuestionEdit(event) {
     event.preventDefault();
     const form = event.currentTarget;
-    const difficultyValue = form.elements.difficulty.value;
-    const body = {
-        question: form.elements.question.value,
-        htmlsrc: form.elements.htmlsrc.value,
-        difficulty: difficultyValue === "" ? null : Number(difficultyValue)
-    };
+    let questionJson;
+
+    try {
+        questionJson = JSON.parse(form.elements.question_json.value);
+    } catch (error) {
+        showAlert(`Question JSON is invalid: ${error.message}`, "error");
+        return;
+    }
+
+    if (questionJson === null || Array.isArray(questionJson) || typeof questionJson !== "object") {
+        showAlert("Question JSON must be an object.", "error");
+        return;
+    }
 
     try {
         const data = await postJSON(
             `/admin/editor/questions/${form.dataset.questionId}/edit`,
-            body
+            { question_json: questionJson }
         );
         if (data.detail && data.detail.status === "Success") {
             window.location.assign("/admin/editor/manage_exercises");

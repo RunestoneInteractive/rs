@@ -20,6 +20,7 @@ from rsptx.db.crud import (  # noqa: E402
     fetch_assignment_by_name,
     fetch_course,
     fetch_question,
+    update_question,
 )
 from rsptx.db.models import (  # noqa: E402
     AssignmentQuestionValidator,
@@ -33,10 +34,20 @@ EDITED_BASE_COURSE = "overview"
 OTHER_BASE_COURSE = "fopp"
 
 
-async def _make_question(name, base_course=EDITED_BASE_COURSE, flagged=True):
+async def _make_question(
+    name, base_course=EDITED_BASE_COURSE, flagged=True, with_question_json=True
+):
     """Create (or return) a question, flagged for review by default."""
+    question_json = (
+        {"type": "shortanswer", "prompt": "Flagged for review?"}
+        if with_question_json
+        else None
+    )
     existing = await fetch_question(name, basecourse=base_course)
     if existing:
+        existing.question_json = question_json
+        existing.review_flag = flagged
+        await update_question(existing)
         return existing
     return await create_question(
         QuestionValidator(
@@ -49,6 +60,7 @@ async def _make_question(name, base_course=EDITED_BASE_COURSE, flagged=True):
             htmlsrc=f"<p>html for {name}</p>",
             timestamp=canonical_utcnow(),
             question_type="shortanswer",
+            question_json=question_json,
             is_private=False,
             from_source=False,
             review_flag=flagged,
@@ -113,6 +125,17 @@ async def test_manage_exercises_lists_flagged_questions(auth_editor_client):
     assert "editor_test_unflagged" not in resp.text
 
 
+async def test_manage_exercises_disables_edit_for_legacy_question(auth_editor_client):
+    question = await _make_question("editor_test_legacy", with_question_json=False)
+
+    resp = await auth_editor_client.get("/editor/manage_exercises")
+
+    assert resp.status_code == 200
+    assert "This legacy question cannot be edited because it does not have question_json." in resp.text
+    assert 'class="disabled-action-tooltip" tabindex="0"' in resp.text
+    assert f"/editor/questions/{question.id}/edit" not in resp.text
+
+
 async def test_manage_exercises_skips_other_peoples_books(auth_editor_client):
     """Flagged questions from a base course the editor does not edit are hidden."""
     await _make_question("editor_test_other_book", base_course=OTHER_BASE_COURSE)
@@ -142,6 +165,7 @@ async def test_edit_question_page(auth_editor_client):
 
     assert resp.status_code == 200
     assert "editor_test_edit_page" in resp.text
+    assert "Question JSON" in resp.text
     assert "Flagged for review?" in resp.text
 
 
@@ -151,18 +175,35 @@ async def test_edit_question(auth_editor_client):
     resp = await auth_editor_client.post(
         f"/editor/questions/{question.id}/edit",
         json={
-            "question": "Updated editorial source",
-            "htmlsrc": "<p>Updated editorial HTML</p>",
-            "difficulty": 2.5,
+            "question_json": {
+                "type": "shortanswer",
+                "prompt": "Updated editorial prompt",
+            }
         },
     )
 
     assert resp.status_code == 200
     updated = await fetch_question("editor_test_edit_me", basecourse=EDITED_BASE_COURSE)
-    assert updated.question == "Updated editorial source"
-    assert updated.htmlsrc == "<p>Updated editorial HTML</p>"
-    assert updated.difficulty == 2.5
+    assert updated.question_json == {
+        "type": "shortanswer",
+        "prompt": "Updated editorial prompt",
+    }
+    assert updated.question == "Flagged for review?"
+    assert updated.htmlsrc == "<p>html for editor_test_edit_me</p>"
     assert updated.review_flag is True
+
+
+async def test_edit_question_rejects_legacy_question(auth_editor_client):
+    question = await _make_question("editor_test_legacy_edit", with_question_json=False)
+
+    page = await auth_editor_client.get(f"/editor/questions/{question.id}/edit")
+    save = await auth_editor_client.post(
+        f"/editor/questions/{question.id}/edit",
+        json={"question_json": {"type": "shortanswer"}},
+    )
+
+    assert page.status_code == 409
+    assert save.status_code == 409
 
 
 async def test_edit_question_rejects_unedited_base_course(auth_editor_client):
@@ -172,7 +213,7 @@ async def test_edit_question_rejects_unedited_base_course(auth_editor_client):
 
     resp = await auth_editor_client.post(
         f"/editor/questions/{question.id}/edit",
-        json={"question": "No", "htmlsrc": "<p>No</p>", "difficulty": 1},
+        json={"question_json": {"type": "shortanswer", "prompt": "No"}},
     )
 
     assert resp.status_code == 403
