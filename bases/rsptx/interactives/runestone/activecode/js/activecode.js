@@ -389,6 +389,10 @@ export class ActiveCode extends RunestoneBase {
             }).observe(wrapper);
         }
         editor.on("keydown", (cm, event) => {
+            if (this.handleRunShortcut(event)) {
+                event.stopPropagation();
+                return;
+            }
             // give the user a visual cue that they have changed but not saved
             editor.getWrapperElement().style.borderTopColor = "#b43232";
             editor.getWrapperElement().style.borderBottomColor = "#b43232";
@@ -450,8 +454,6 @@ export class ActiveCode extends RunestoneBase {
                 e.preventDefault();
             });
         }
-        // capture current this for use in event handler
-        let acElement = this;
 
         // document level event handler for tab key to handle context switching
         // detect if tab key was used to get into the editor
@@ -481,13 +483,8 @@ export class ActiveCode extends RunestoneBase {
             }
         });
         // keyboard shortcuts for run (ctrl/cmd + s) and comment (ctrl/cmd + /)
-        this.containerDiv.addEventListener("keydown", function (e) {
-            if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                if (acElement.runButton.disabled || acElement.runInProgress)
-                    return;
-                acElement.runButton.click();
-            }
+        this.containerDiv.addEventListener("keydown", (e) => {
+            if (this.handleRunShortcut(e)) return;
             if (e.code === "Slash" && (e.ctrlKey || e.metaKey)) {
                 if (typeof editor.toggleComment === "function") {
                     editor.toggleComment();
@@ -659,6 +656,20 @@ export class ActiveCode extends RunestoneBase {
                 );
             }
         });
+    }
+
+    handleRunShortcut(event) {
+        if (
+            !(event.ctrlKey || event.metaKey) ||
+            (event.code !== "KeyS" && event.key?.toLowerCase() !== "s")
+        ) {
+            return false;
+        }
+        event.preventDefault();
+        // Use the button's click path so run announcements, feedback, and
+        // any other click listeners receive the same event as a pointer click.
+        this.runButton?.click();
+        return true;
     }
 
     async runButtonHandler() {

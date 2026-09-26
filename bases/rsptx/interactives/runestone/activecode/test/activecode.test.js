@@ -169,6 +169,45 @@ describe("controls", () => {
         expect(ac.actionStatus.getAttribute("aria-atomic")).toBe("true");
     });
 
+    it.each([
+        [
+            "Ctrl-S in the editor",
+            { key: "s", code: "KeyS", ctrlKey: true },
+            "editor",
+        ],
+        ["Meta-S without event.code", { key: "s", metaKey: true }, "editor"],
+        [
+            "Ctrl-S on a control",
+            { key: "s", code: "KeyS", ctrlKey: true },
+            "control",
+        ],
+    ])("uses the Run button click path for %s", async (_, keys, target) => {
+        const ac = makeActiveCode({ code: "print(42)" });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+        const onClick = vi.fn();
+        ac.runButton.addEventListener("click", onClick);
+
+        const event = new KeyboardEvent("keydown", {
+            ...keys,
+            bubbles: true,
+            cancelable: true,
+        });
+        const source =
+            target === "editor" ? ac.editor.getInputField() : ac.runButton;
+        source.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(onClick).toHaveBeenCalledTimes(1);
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.runCount).toBe(1);
+        expect(ac.logCurrentAnswer).toHaveBeenCalledTimes(1);
+        expect(ac.runCoaches).toHaveBeenCalledTimes(1);
+        expect(ac.renderFeedback).toHaveBeenCalledTimes(1);
+        expect(ac.actionStatus.textContent).toBe("Program output: 42");
+    });
+
     it("adds a Download button when data-enabledownload is set", () => {
         const ac = makeActiveCode({ attrs: "data-enabledownload" });
         expect(ac.downloadButton).toBeTruthy();
