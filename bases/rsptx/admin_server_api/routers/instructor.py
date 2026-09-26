@@ -511,6 +511,7 @@ async def get_course_settings(
         "show_points": course_attrs.get("show_points") == "true",
         "groupsize": course_attrs.get("groupsize", "3"),
         "enable_async_llm_modes": course_attrs.get("enable_async_llm_modes", "false"),
+        "enable_async_conditions": course_attrs.get("enable_async_conditions", "false"),
         "use_pretext_student_pages": str(
             course_attr_is_true(course_attrs, "use_pretext_student_pages", default=True)
         ).lower(),

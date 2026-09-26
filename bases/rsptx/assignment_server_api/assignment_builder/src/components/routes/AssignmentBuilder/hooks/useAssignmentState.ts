@@ -15,6 +15,7 @@ export const useAssignmentState = () => {
     setValue("nofeedback", false);
     setValue("time_limit", null);
     setValue("peer_async_visible", false);
+    setValue("async_study", false);
 
     // Set type-specific defaults
     if (type === "Timed") {

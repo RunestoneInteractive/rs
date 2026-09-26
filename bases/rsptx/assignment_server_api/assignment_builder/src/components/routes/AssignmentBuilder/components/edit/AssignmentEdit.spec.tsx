@@ -15,6 +15,14 @@ vi.mock("@/hooks/useExercisesSelector", () => ({
   useExercisesSelector: () => exercisesSelectorMock()
 }));
 
+const hasApiKeyMock = vi.fn(() => ({
+  data: { hasApiKey: true, asyncLlmModesEnabled: true, asyncConditionsEnabled: false }
+}));
+
+vi.mock("@store/assignmentExercise/assignmentExercise.logic.api", () => ({
+  useHasApiKeyQuery: () => hasApiKeyMock()
+}));
+
 vi.mock("../reading/AssignmentReadings", () => ({
   AssignmentReadings: () => <div data-testid="readings-tab" />
 }));

@@ -13,6 +13,7 @@ classifiers = [
 ]
 dependencies = [
     "fastapi>=0.115.0,<0.116",
+    "greenlet>=3.2.2,<4",
     "celery>=5.2.7,<6",
     "aiofiles>=0.8.0,<0.9",
     "Jinja2>=3.0.0,<4",
@@ -23,7 +24,8 @@ dependencies = [
     "uvicorn>=0.18.2,<0.19",
     "pretext>=2.36.0,<3",
     "SQLAlchemy>=2.0.0,<3",
-    "psycopg2-binary>=2.9.3,<3",
+    "psycopg[binary]>=3.2.0,<4",
+    "psycopg2-binary>=2.9.7,<3",
     "fastapi-login>=1.10.0,<2",
     "myst-parser>=1.0.0,<2",
     "sphinx-reredirects>=0.1.1,<0.2",

@@ -93,6 +93,7 @@ const baseAssignment = {
   nopause: false,
   time_limit: null,
   peer_async_visible: false,
+  async_study: false,
   exercises: [] as [],
   all_assignments: [] as [],
   search_results: [] as [],

@@ -115,9 +115,9 @@ Peer Instruction - Instructor
                         <div class="form-check form-switch">
                             <input class="form-check-input visibility-toggle" type="checkbox" role="switch"
                                 id="vis-{{ assignment.id }}" data-assignment-id="{{ assignment.id }}"
-                                {% if assignment.visible %}checked{% endif %}>
+                                {% if visibility_map[assignment.id] %}checked{% endif %}>
                             <label class="form-check-label" for="vis-{{ assignment.id }}">
-                                {{ 'Visible' if assignment.visible else 'Hidden' }}
+                                {{ 'Visible' if visibility_map[assignment.id] else 'Hidden' }}
                             </label>
                         </div>
                     </td>

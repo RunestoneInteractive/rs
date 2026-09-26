@@ -40,6 +40,7 @@ dependencies = [
     "botocore>=1.29.87,<2",
     "pyflakes>=3.0.1,<4",
     "pandas>=2.3.0,<3",
+    "psycopg[binary]>=3.2.0,<4",
     "psycopg2-binary>=2.9.7,<3",
     "pydantic-settings>=2.0.3,<3",
     "pyjwt>=2.0.0,<3",

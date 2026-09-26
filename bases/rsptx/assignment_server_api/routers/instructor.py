@@ -360,6 +360,8 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
         first = (s.get("first_name") or "").strip()
         last = (s.get("last_name") or "").strip()
         s["name"] = (f"{first} {last}").strip() or s["username"]
+        s["effective_due_date"] = s["effective_due_date"].isoformat()
+        s["first_late_activity_at"] = s["first_late_activity_at"].isoformat()
 
     return make_json_response(
         status=status.HTTP_200_OK,
@@ -367,6 +369,8 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
             "assignment_id": assignment_id,
             "assignment_name": assignment.name,
             "enforce_due": bool(assignment.enforce_due),
+            "due_date": assignment.duedate.isoformat(),
+            "course_timezone": course.timezone or "UTC",
             "students": students,
         },
     )
@@ -1176,12 +1180,22 @@ async def save_exception(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
+    # Blank time_limit / due_date fields from the form mean "no change" --
+    # store NULL, not an empty string, which the numeric columns reject.
+    def blank_to_none(value):
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
+    time_limit = blank_to_none(request_data.get("time_limit"))
+    due_date = blank_to_none(request_data.get("due_date"))
+
     # save the exception
     res = await create_deadline_exception(
         course.id,
         request_data["sid"],
-        request_data["time_limit"],
-        request_data["due_date"],
+        time_limit,
+        due_date,
         request_data["visible"],
         request_data["assignment_id"],
         request_data["allowLink"],
@@ -1454,17 +1468,21 @@ async def add_api_token(
 @instructor_role_required()
 @with_course()
 async def has_api_key(request: Request, user=Depends(auth_manager), course=None):
-    """Return whether the course has at least one API token configured and whether async LLM modes are enabled."""
+    """Return whether the course has an API token and which async peer instruction settings are on."""
     tokens = await fetch_all_api_tokens(course.id)
     course_attrs = await fetch_all_course_attributes(course.id)
     async_llm_modes_enabled = (
         course_attrs.get("enable_async_llm_modes", "false") == "true"
+    )
+    async_conditions_enabled = (
+        course_attrs.get("enable_async_conditions", "false") == "true"
     )
     return make_json_response(
         status=status.HTTP_200_OK,
         detail={
             "has_api_key": len(tokens) > 0,
             "async_llm_modes_enabled": async_llm_modes_enabled,
+            "async_conditions_enabled": async_conditions_enabled,
         },
     )
 

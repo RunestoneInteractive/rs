@@ -195,14 +195,21 @@ async def fetch_late_students_for_assignment(assignment_id: int) -> List[dict]:
     behavior of the grading helpers.
 
     :param assignment_id: int, the id of the assignment to check
-    :return: List[dict], one entry per late student with ``username``,
-        ``first_name`` and ``last_name``, ordered by name
+    :return: List[dict], one entry per late student with their effective
+        deadline and first activity after it, ordered by name
     """
+    extension_days = func.coalesce(DeadlineException.duedate, 0)
+    effective_due_date = Assignment.duedate + func.make_interval(
+        0, 0, 0, extension_days
+    )
     query = (
         select(
             Useinfo.sid,
             AuthUser.first_name,
             AuthUser.last_name,
+            extension_days.label("extension_days"),
+            effective_due_date.label("effective_due_date"),
+            func.min(Useinfo.timestamp).label("first_late_activity_at"),
         )
         .select_from(Useinfo)
         .join(Courses, Courses.course_name == Useinfo.course_id)
@@ -228,14 +235,16 @@ async def fetch_late_students_for_assignment(assignment_id: int) -> List[dict]:
             and_(
                 Assignment.id == assignment_id,
                 Assignment.enforce_due == True,  # noqa: E712
-                Useinfo.timestamp
-                > Assignment.duedate
-                + func.make_interval(
-                    0, 0, 0, func.coalesce(DeadlineException.duedate, 0)
-                ),
+                Useinfo.timestamp > effective_due_date,
             )
         )
-        .distinct()
+        .group_by(
+            Useinfo.sid,
+            AuthUser.first_name,
+            AuthUser.last_name,
+            extension_days,
+            effective_due_date,
+        )
         .order_by(AuthUser.last_name, AuthUser.first_name, Useinfo.sid)
     )
     async with async_session() as session:
@@ -245,6 +254,9 @@ async def fetch_late_students_for_assignment(assignment_id: int) -> List[dict]:
                 "username": row.sid,
                 "first_name": row.first_name,
                 "last_name": row.last_name,
+                "extension_days": row.extension_days,
+                "effective_due_date": row.effective_due_date,
+                "first_late_activity_at": row.first_late_activity_at,
             }
             for row in res.all()
         ]

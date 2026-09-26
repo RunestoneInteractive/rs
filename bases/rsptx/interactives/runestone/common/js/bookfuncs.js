@@ -461,7 +461,7 @@ export class PageProgressBar {
         }
         let progressText = document.getElementById("scprogress-activity-count");
         // Warn if course not started
-        if(progressText && !isCourseStarted()) {
+        if (progressText && !isCourseStarted()) {
             progressText.appendChild(document.createTextNode(courseNotStartedMessage()));
         }
         // Replace #subchapterprogress div with a native <progress> element if not already done
@@ -549,7 +549,7 @@ export class PageProgressBar {
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
                 this.activitiesAttempted >=
-                    this.assignment_spec.activities_required
+                this.assignment_spec.activities_required
             ) {
                 console.log("Required activities completed");
                 this.sendCompletedReadingScore().then(() => {
@@ -1005,48 +1005,7 @@ function shouldShowStudyCluesWidget() {
         return false;
     }
 
-    const enabledBasecourses = [
-        "csawesome2",
-        "py4e-int",
-        "thinkcspy",
-        "httlacs",
-        "PTXSB",
-        "cppds2",
-    ];
-    const enabledCourses = [
-        "bc_ai4all_f26",
-        "bc_cppds_s26",
-        "bc_cppds2_f26",
-        "csawesome2_studyclues_test",
-        "csawesome2-MOOC",
-        "DukeCS101-Fall26",
-        "DukeCS101SP26",
-        "F26-SI201-MW",
-        "F26-SI201-TTh",
-        "httlacs_studyclues_test",
-        "mcd-csa-canvas",
-        "mcd-csa-schoology",
-        "oberlincollege_httlacs_summer26_clues",
-        "py4e_studyclues_test",
-        "SI201-W26-MW",
-        "SI201-W26-TTh",
-        "test_py4e-int_api",
-        "Test-py4e-int",
-        "umsi101_fall26",
-        "virginiatech_py4e-int_spring26",
-        "virginiatech_py4eint_fall26",
-    ];
-    const host = window.location.hostname;
-
-    if (host === "localhost") {
-        return enabledBasecourses.includes(eBookConfig.basecourse);
-    }
-
-    if (host === "runestone.academy") {
-        return enabledCourses.includes(eBookConfig.course);
-    }
-
-    return false;
+    return eBookConfig.course_attrs?.studyClues === "True";
 }
 
 async function handlePageSetup() {
@@ -1152,8 +1111,7 @@ async function handlePageSetup() {
             }
         }
 
-        // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
-        // This is a temporary measure to limit the widget to courses that are known to work well with it and to avoid showing it on non-book pages where it may not be as useful.
+        // Only show the StudyClues widget on book/assignment pages for courses with the studyClues attribute set.
         if (shouldShowStudyCluesWidget()) {
             createStudyCluesWidget();
         }
@@ -1340,7 +1298,9 @@ window.addEventListener("DOMContentLoaded", function (event) {
         // All we should assume about the item template is that it has an anchor element
         const link = itemTemplate.content.cloneNode(true);
         const linkAnchor = link.querySelector("a");
-        linkAnchor.href = url;
+        if (url) {
+            linkAnchor.href = url;
+        }
         linkAnchor.innerText = "";
         const contentSpan = document.createElement("span");
         contentSpan.style.display = "inline-flex";
@@ -1368,9 +1328,28 @@ window.addEventListener("DOMContentLoaded", function (event) {
         if (ariaLabel) {
             linkAnchor.ariaLabel = ariaLabel;
         }
+        if (!url) {
+            const info = document.createElement("span");
+            info.className = linkAnchor.className;
+            if (title.length > 30) {
+                info.innerText = title.slice(0, 12) + "..." + title.slice(-15);
+                // add hover to show full title
+                info.title = title;
+                info.style.cursor = "help";
+            } else {
+                info.innerText = title;
+            }
+            info.style.display = "flex";
+            info.style.justifyContent = "center";
+            info.style.alignItems = "center";
+            linkAnchor.replaceWith(info);
+        }
         // return entire item template, not just link
         return link;
     }
+    // limit length of eBookConfig.course to 30 characters to prevent overly long course names in the menu but preserve the last 15 characters
+    menuContentArea.appendChild(makeLink(null, eBookConfig.course));
+    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
 
     menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home", "home"));
     menuContentArea.appendChild(

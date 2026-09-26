@@ -53,6 +53,7 @@ describe("postLogMessage", () => {
         eBookConfig.useRunestoneServices = false;
         eBookConfig.new_server_prefix = "/ns";
         vi.restoreAllMocks();
+        vi.unstubAllGlobals();
         document.body.innerHTML = "";
     });
 
@@ -169,5 +170,63 @@ describe("postLogMessage", () => {
 
         expect(alertSpy).toHaveBeenCalledOnce();
         expect(alertSpy.mock.calls[0][0]).toContain("offline");
+    });
+});
+
+describe("MathJax queue", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it("settles each queued item when MathJax fails to load", async () => {
+        vi.stubGlobal("MathJax", { startup: {} });
+        vi.stubGlobal("runestoneMathReady", Promise.resolve(null));
+        const rb = makeComponent();
+
+        await expect(
+            Promise.all([
+                rb.queueMathJax(document.createElement("div")),
+                rb.queueMathJax(document.createElement("div")),
+            ]),
+        ).resolves.toEqual([null, null]);
+        expect(rb.aQueue._pendingPromise).toBe(false);
+    });
+
+    it("uses MathJax startup readiness outside a Runestone page", async () => {
+        const typesetPromise = vi.fn().mockResolvedValue(undefined);
+        const component = document.createElement("div");
+        vi.stubGlobal("MathJax", {
+            startup: { promise: Promise.resolve() },
+            typesetPromise,
+        });
+        vi.stubGlobal("runestoneMathReady", undefined);
+        const rb = makeComponent();
+
+        await expect(rb.queueMathJax(component)).resolves.toBeUndefined();
+        expect(typesetPromise).toHaveBeenCalledWith([component]);
+    });
+
+    it("continues with later items after a typesetting error", async () => {
+        const firstComponent = document.createElement("div");
+        const secondComponent = document.createElement("div");
+        const typesetError = new Error("typesetting failed");
+        const typesetPromise = vi
+            .fn()
+            .mockRejectedValueOnce(typesetError)
+            .mockResolvedValueOnce(undefined);
+        vi.stubGlobal("MathJax", {
+            startup: { promise: Promise.resolve() },
+            typesetPromise,
+        });
+        vi.stubGlobal("runestoneMathReady", undefined);
+        const rb = makeComponent();
+
+        const firstRender = rb.queueMathJax(firstComponent);
+        const secondRender = rb.queueMathJax(secondComponent);
+
+        await expect(firstRender).rejects.toBe(typesetError);
+        await expect(secondRender).resolves.toBeUndefined();
+        expect(typesetPromise).toHaveBeenNthCalledWith(1, [firstComponent]);
+        expect(typesetPromise).toHaveBeenNthCalledWith(2, [secondComponent]);
     });
 });
