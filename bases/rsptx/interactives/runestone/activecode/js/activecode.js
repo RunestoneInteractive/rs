@@ -1867,22 +1867,30 @@ export class ActiveCode extends RunestoneBase {
         // A native range input replaces the old jQuery UI slider.
         var scrubber = document.createElement("input");
         scrubber.type = "range";
-        scrubber.min = 0;
-        scrubber.max = this.history.length - 1;
-        scrubber.value = this.history.length - 1;
+        scrubber.min = 1;
+        scrubber.max = this.history.length;
+        scrubber.value = this.history.length;
         scrubber.step = 1;
         scrubber.classList.add("ac_history_scrubber");
         scrubber.setAttribute("aria-label", "History slider");
         this.timestampP = document.createElement("span");
+        const updateStatus = (pos) => {
+            const status = `${this.timestamps[pos]} - ${pos + 1} of ${
+                this.history.length
+            }`;
+            this.timestampP.textContent = status;
+            // The native range value is a position; expose the matching
+            // visible revision and timestamp as its accessible value.
+            scrubber.setAttribute("aria-valuetext", status);
+        };
         this.slideit = function (ev) {
-            let pos = Number(scrubber.value);
+            let pos = Number(scrubber.value) - 1;
             let submittedCode = this.history[pos];
             let code = this.readdLockedCode(submittedCode);
             this.editor.setValue(code);
             this.setLockedRegions();
             var curVal = this.timestamps[pos];
-            let outOf = this.history.length;
-            this.timestampP.textContent = `${curVal} - ${pos + 1} of ${outOf}`;
+            updateStatus(pos);
             // "input" events fire continuously while dragging; only log once
             // the position settles (the "change" event, or a programmatic
             // call passing null).
@@ -1913,25 +1921,23 @@ export class ActiveCode extends RunestoneBase {
                 }
             }
             i = i - 1;
-            scrubber.value = Math.max(i, 0);
-            let submittedCode = this.history[Number(scrubber.value)];
+            scrubber.value = Math.max(i, 0) + 1;
+            let submittedCode = this.history[Number(scrubber.value) - 1];
             let code = this.readdLockedCode(submittedCode);
             this.editor.setValue(code);
             this.setLockedRegions();
         } else if (pos_last) {
-            scrubber.value = this.history.length - 1;
-            let submittedCode = this.history[Number(scrubber.value)];
+            scrubber.value = this.history.length;
+            let submittedCode = this.history[Number(scrubber.value) - 1];
             let code = this.readdLockedCode(submittedCode);
             this.editor.setValue(code);
             this.setLockedRegions();
         } else {
-            scrubber.value = 0;
+            scrubber.value = 1;
         }
         this.setHighlightLines();
-        let pos = Number(scrubber.value);
-        let outOf = this.history.length;
-        let ts = this.timestamps[pos];
-        this.timestampP.textContent = `${ts} - ${pos + 1} of ${outOf}`;
+        let pos = Number(scrubber.value) - 1;
+        updateStatus(pos);
         this.historyScrubber = scrubber;
         this.runButton.insertAdjacentElement("afterend", scrubberDiv);
     } // end definition of helper
@@ -2038,7 +2044,7 @@ export class ActiveCode extends RunestoneBase {
         const currentCode = this.editor.getValue();
         let lastCode;
         if (this.historyScrubber) {
-            lastCode = this.history[this.historyScrubber.value];
+            lastCode = this.history[this.historyScrubber.value - 1];
         } else {
             return 0;
         }
@@ -2612,13 +2618,13 @@ Yet another is that there is an internal error.  The internal error message is: 
         let userCode = this.trimLockedCode(this.editor.getValue());
         if (
             this.historyScrubber &&
-            this.history[Number(this.historyScrubber.value)] != userCode
+            this.history[Number(this.historyScrubber.value) - 1] != userCode
         ) {
             saveCode = "True";
             this.history.push(userCode);
             this.timestamps.push(new Date().toLocaleString());
-            this.historyScrubber.max = this.history.length - 1;
-            this.historyScrubber.value = this.history.length - 1;
+            this.historyScrubber.max = this.history.length;
+            this.historyScrubber.value = this.history.length;
             // Unlike the old jQuery UI slider, setting .value does not fire
             // an event, so update the editor and label explicitly.
             this.slideit(null);

@@ -78,8 +78,8 @@ var TimedActiveCodeMixin = {
         this.editor.refresh();
         if (this.historyScrubber !== null) {
             // the scrubber is a range input; reset its bounds and position
-            this.historyScrubber.max = this.history.length - 1;
-            this.historyScrubber.value = this.history.length - 1;
+            this.historyScrubber.max = this.history.length;
+            this.historyScrubber.value = this.history.length;
             this.slideit(null);
         }
         if (taken) {
@@ -145,7 +145,6 @@ export class TimedSQLActiveCode extends SQLActiveCode {
     }
 }
 Object.assign(TimedSQLActiveCode.prototype, TimedActiveCodeMixin);
-
 
 export class TimedGodotActiveCode extends GodotActiveCode {
     constructor(opts) {

@@ -673,7 +673,28 @@ describe("history scrubber", () => {
         expect(ac.historyScrubber.getAttribute("aria-label")).toBe(
             "History slider",
         );
-        expect(ac.timestampP.textContent).toContain("1 of 1");
+        expect(ac.historyScrubber.min).toBe("1");
+        expect(ac.historyScrubber.max).toBe("1");
+        expect(ac.timestampP.textContent).toBe("Original - 1 of 1");
+        expect(ac.historyScrubber.value).toBe("1");
+        expect(ac.historyScrubber.getAttribute("aria-valuetext")).toBe(
+            ac.timestampP.textContent,
+        );
+    });
+
+    it("starts on the latest revision when requested", () => {
+        const ac = makeActiveCode({ code: "print('v1')" });
+        ac.history.push("print('v2')");
+        ac.timestamps.push("Saved revision");
+
+        ac.renderScrubber(true);
+
+        expect(ac.historyScrubber.value).toBe("2");
+        expect(ac.editor.getValue()).toBe("print('v2')");
+        expect(ac.timestampP.textContent).toBe("Saved revision - 2 of 2");
+        expect(ac.historyScrubber.getAttribute("aria-valuetext")).toBe(
+            ac.timestampP.textContent,
+        );
     });
 
     it("restores older code when the scrubber moves", async () => {
@@ -681,12 +702,23 @@ describe("history scrubber", () => {
         ac.editor.setValue("print('v2')");
         await ac.manage_scrubber("False");
         expect(ac.history).toEqual(["print('v1')", "print('v2')"]);
+        expect(ac.historyScrubber.max).toBe("2");
+        expect(ac.historyScrubber.value).toBe("2");
         expect(ac.timestampP.textContent).toContain("2 of 2");
+        expect(ac.historyScrubber.getAttribute("aria-valuetext")).toBe(
+            ac.timestampP.textContent,
+        );
         // drag back to the first revision
-        ac.historyScrubber.value = 0;
+        ac.historyScrubber.value = 1;
         ac.historyScrubber.dispatchEvent(new Event("input"));
         expect(ac.editor.getValue()).toBe("print('v1')");
         expect(ac.timestampP.textContent).toContain("1 of 2");
+        expect(ac.historyScrubber.getAttribute("aria-valuetext")).toBe(
+            ac.timestampP.textContent,
+        );
+        expect(ac.computeEditDistance()).toBe(0);
+        await ac.manage_scrubber("False");
+        expect(ac.history).toHaveLength(2);
     });
 });
 
