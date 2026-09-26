@@ -131,8 +131,9 @@ async def test_manage_exercises_disables_edit_for_legacy_question(auth_editor_cl
     resp = await auth_editor_client.get("/editor/manage_exercises")
 
     assert resp.status_code == 200
-    assert "This legacy question cannot be edited because it does not have question_json." in resp.text
-    assert 'class="disabled-action-tooltip" tabindex="0"' in resp.text
+    assert 'title="This legacy question cannot be edited"' in resp.text
+    assert 'class="disabled-action-tooltip"' in resp.text
+    assert 'tabindex="0"' in resp.text
     assert f"/editor/questions/{question.id}/edit" not in resp.text
 
 
