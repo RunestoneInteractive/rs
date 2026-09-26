@@ -6,12 +6,27 @@ the questions readers have flagged in the books an editor edits, clearing a
 flag, and deleting a question.
 """
 
+import datetime
+
 import pytest
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
-from rsptx.db.crud import create_question, fetch_question  # noqa: E402
-from rsptx.db.models import QuestionValidator  # noqa: E402
+from rsptx.db.crud import (  # noqa: E402
+    create_assignment,
+    create_assignment_question,
+    create_question,
+    fetch_assigned_question_ids,
+    fetch_assignment_by_name,
+    fetch_course,
+    fetch_question,
+    update_question,
+)
+from rsptx.db.models import (  # noqa: E402
+    AssignmentQuestionValidator,
+    AssignmentValidator,
+    QuestionValidator,
+)
 from rsptx.response_helpers.core import canonical_utcnow  # noqa: E402
 
 # The editor fixture edits ``overview``; ``fopp`` is a base course they do not.
@@ -19,10 +34,20 @@ EDITED_BASE_COURSE = "overview"
 OTHER_BASE_COURSE = "fopp"
 
 
-async def _make_question(name, base_course=EDITED_BASE_COURSE, flagged=True):
+async def _make_question(
+    name, base_course=EDITED_BASE_COURSE, flagged=True, with_question_json=True
+):
     """Create (or return) a question, flagged for review by default."""
+    question_json = (
+        {"type": "shortanswer", "prompt": "Flagged for review?"}
+        if with_question_json
+        else None
+    )
     existing = await fetch_question(name, basecourse=base_course)
     if existing:
+        existing.question_json = question_json
+        existing.review_flag = flagged
+        await update_question(existing)
         return existing
     return await create_question(
         QuestionValidator(
@@ -35,9 +60,47 @@ async def _make_question(name, base_course=EDITED_BASE_COURSE, flagged=True):
             htmlsrc=f"<p>html for {name}</p>",
             timestamp=canonical_utcnow(),
             question_type="shortanswer",
+            question_json=question_json,
             is_private=False,
             from_source=False,
             review_flag=flagged,
+        )
+    )
+
+
+async def _assign_question(question):
+    """Attach a question to a stable test assignment."""
+    if question.id in await fetch_assigned_question_ids([question.id]):
+        return
+
+    course = await fetch_course(EDITED_BASE_COURSE)
+    assignment = await fetch_assignment_by_name("editorial_test_assignment", course.id)
+    if assignment is None:
+        assignment = await create_assignment(
+            AssignmentValidator(
+                course=course.id,
+                name="editorial_test_assignment",
+                points=1,
+                released=False,
+                description="Assignment used by editorial route tests",
+                duedate=datetime.datetime(2099, 1, 1),
+                visible=True,
+                from_source=False,
+                is_peer=False,
+                current_index=0,
+                peer_async_visible=False,
+            )
+        )
+    await create_assignment_question(
+        AssignmentQuestionValidator(
+            assignment_id=assignment.id,
+            question_id=question.id,
+            points=1,
+            activities_required=0,
+            reading_assignment=False,
+            sorting_priority=0,
+            which_to_grade="best_answer",
+            autograde="pct_correct",
         )
     )
 
@@ -56,8 +119,22 @@ async def test_manage_exercises_lists_flagged_questions(auth_editor_client):
 
     assert resp.status_code == 200
     assert "editor_test_listed" in resp.text
+    question = await fetch_question("editor_test_listed", basecourse=EDITED_BASE_COURSE)
+    assert f"/editor/questions/{question.id}/edit" in resp.text
     # A question that nobody flagged stays off the page.
     assert "editor_test_unflagged" not in resp.text
+
+
+async def test_manage_exercises_disables_edit_for_legacy_question(auth_editor_client):
+    question = await _make_question("editor_test_legacy", with_question_json=False)
+
+    resp = await auth_editor_client.get("/editor/manage_exercises")
+
+    assert resp.status_code == 200
+    assert 'title="This legacy question cannot be edited"' in resp.text
+    assert 'class="disabled-action-tooltip"' in resp.text
+    assert 'tabindex="0"' in resp.text
+    assert f"/editor/questions/{question.id}/edit" not in resp.text
 
 
 async def test_manage_exercises_skips_other_peoples_books(auth_editor_client):
@@ -73,6 +150,80 @@ async def test_manage_exercises_skips_other_peoples_books(auth_editor_client):
 async def test_manage_exercises_requires_editor(auth_noneditor_client):
     """A logged-in non-editor is refused."""
     resp = await auth_noneditor_client.get("/editor/manage_exercises")
+
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# GET/POST /editor/questions/{question_id}/edit
+# ---------------------------------------------------------------------------
+
+
+async def test_edit_question_page(auth_editor_client):
+    question = await _make_question("editor_test_edit_page")
+
+    resp = await auth_editor_client.get(f"/editor/questions/{question.id}/edit")
+
+    assert resp.status_code == 200
+    assert "editor_test_edit_page" in resp.text
+    assert "Question JSON" in resp.text
+    assert "Flagged for review?" in resp.text
+
+
+async def test_edit_question(auth_editor_client):
+    question = await _make_question("editor_test_edit_me")
+
+    resp = await auth_editor_client.post(
+        f"/editor/questions/{question.id}/edit",
+        json={
+            "question_json": {
+                "type": "shortanswer",
+                "prompt": "Updated editorial prompt",
+            }
+        },
+    )
+
+    assert resp.status_code == 200
+    updated = await fetch_question("editor_test_edit_me", basecourse=EDITED_BASE_COURSE)
+    assert updated.question_json == {
+        "type": "shortanswer",
+        "prompt": "Updated editorial prompt",
+    }
+    assert updated.question == "Flagged for review?"
+    assert updated.htmlsrc == "<p>html for editor_test_edit_me</p>"
+    assert updated.review_flag is True
+
+
+async def test_edit_question_rejects_legacy_question(auth_editor_client):
+    question = await _make_question("editor_test_legacy_edit", with_question_json=False)
+
+    page = await auth_editor_client.get(f"/editor/questions/{question.id}/edit")
+    save = await auth_editor_client.post(
+        f"/editor/questions/{question.id}/edit",
+        json={"question_json": {"type": "shortanswer"}},
+    )
+
+    assert page.status_code == 409
+    assert save.status_code == 409
+
+
+async def test_edit_question_rejects_unedited_base_course(auth_editor_client):
+    question = await _make_question(
+        "editor_test_other_edit", base_course=OTHER_BASE_COURSE
+    )
+
+    resp = await auth_editor_client.post(
+        f"/editor/questions/{question.id}/edit",
+        json={"question_json": {"type": "shortanswer", "prompt": "No"}},
+    )
+
+    assert resp.status_code == 403
+
+
+async def test_edit_question_requires_editor(auth_noneditor_client):
+    question = await _make_question("editor_test_noneditor_edit")
+
+    resp = await auth_noneditor_client.get(f"/editor/questions/{question.id}/edit")
 
     assert resp.status_code == 403
 
@@ -151,6 +302,28 @@ async def test_delete_unknown_question(auth_editor_client):
     )
 
     assert resp.status_code == 404
+
+
+async def test_delete_assigned_question_is_rejected(auth_editor_client):
+    """An assignment reference protects the question from deletion."""
+    question = await _make_question("editor_test_assigned_delete")
+    await _assign_question(question)
+
+    page = await auth_editor_client.get("/editor/manage_exercises")
+    assert "Assigned questions cannot be deleted" in page.text
+
+    resp = await auth_editor_client.post(
+        "/editor/delete_question",
+        json={
+            "name": "editor_test_assigned_delete",
+            "base_course": EDITED_BASE_COURSE,
+        },
+    )
+
+    assert resp.status_code == 409
+    assert await fetch_question(
+        "editor_test_assigned_delete", basecourse=EDITED_BASE_COURSE
+    )
 
 
 async def test_delete_rejects_unedited_base_course(auth_editor_client):
