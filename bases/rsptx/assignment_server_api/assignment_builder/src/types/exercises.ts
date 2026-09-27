@@ -68,6 +68,10 @@ export type Exercise = {
   owner: string;
   tags: string;
   num: number;
+  chapter_num?: number;
+  sub_chapter_num?: number;
+  chapter_name?: string;
+  sub_chapter_name?: string;
   numQuestions: number;
   required: boolean;
   title: string;

@@ -43,19 +43,23 @@ export function ExceptionScheduler() {
   }, [dispatch]);
 
   const [checked, setChecked] = useState(false);
-  const [tlMult, setTlMult] = useState(null);
-  const [extraDays, setExtraDays] = useState(null);
+  // Mantine's NumberInput represents "empty" as "", not null -- a null value
+  // disables the stepper and can leave the displayed text out of sync with state.
+  const [tlMult, setTlMult] = useState("");
+  const [extraDays, setExtraDays] = useState("");
   const [helpVisible, setHelpVisible] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(null);
   const [linked, setLinked] = useState(false);
   const saveAllExceptions = () => {
     const savePromises = [];
+    const timeLimit = tlMult === "" ? null : tlMult;
+    const dueDate = extraDays === "" ? null : extraDays;
     for (let student of students) {
       if (assignments.length === 0) {
         console.log(`Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked}`);
         let exception = {
-          time_limit: tlMult,
-          due_date: extraDays,
+          time_limit: timeLimit,
+          due_date: dueDate,
           visible: checked,
           sid: student.username,
           assignment_id: null,
@@ -69,8 +73,8 @@ export function ExceptionScheduler() {
             `Saving exception: ${student.username} ${tlMult}, ${extraDays}, ${checked} ${linked}`
           );
           let exception = {
-            time_limit: tlMult,
-            due_date: extraDays,
+            time_limit: timeLimit,
+            due_date: dueDate,
             visible: checked,
             sid: student.username,
             assignment_id: assignment.id,
@@ -86,8 +90,8 @@ export function ExceptionScheduler() {
         console.log("All exceptions saved successfully.");
         dispatch(fetchAccommodations());
         // Clear the form
-        setTlMult(null);
-        setExtraDays(null);
+        setTlMult("");
+        setExtraDays("");
         setChecked(false);
         setLinked(false);
       })
