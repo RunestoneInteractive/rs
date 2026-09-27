@@ -176,6 +176,7 @@ async def index(request: Request, user=Depends(auth_manager)):
             "now": now,
             "visibility_map": visibility_map,
             "course_attrs": attrs,
+            "course_name": course.course_name,
             "base_url": construct_course_url(course),
             "settings": settings,
         },
