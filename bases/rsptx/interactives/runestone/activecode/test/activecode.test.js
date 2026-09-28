@@ -378,6 +378,95 @@ describe("output area", () => {
         );
     });
 
+    it("keeps page-load autorun silent but announces a later click", async () => {
+        const ac = makeActiveCode({ attrs: 'data-autorun="true"' });
+        let finishAutorun;
+        ac.runProg = vi
+            .fn()
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        finishAutorun = () => {
+                            ac.output.textContent = "initial output";
+                            resolve();
+                        };
+                    }),
+            )
+            .mockImplementationOnce(async () => {
+                ac.output.textContent = "clicked output";
+            });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        await vi.waitFor(() => expect(ac.runInProgress).toBe(true));
+        await new Promise((resolve) => setTimeout(resolve, 170));
+        expect(ac.actionStatus.textContent).toBe("");
+        expect(ac.actionStatus.getAttribute("aria-live")).toBe("off");
+        expect(ac.codecoach.getAttribute("aria-live")).toBe("off");
+        expect(ac.eContainer.getAttribute("aria-live")).toBe("off");
+
+        finishAutorun();
+        await vi.waitFor(() => expect(ac.runCount).toBe(1));
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.output.textContent).toBe("initial output");
+        expect(ac.actionStatus.textContent).toBe("");
+
+        // A coach can add its own region after the autorun handler finishes.
+        const lateCoach = document.createElement("div");
+        lateCoach.setAttribute("role", "log");
+        lateCoach.setAttribute("aria-live", "polite");
+        lateCoach.textContent = "late coach feedback";
+        ac.outerDiv.appendChild(lateCoach);
+        const implicitLog = document.createElement("div");
+        implicitLog.setAttribute("role", "log");
+        ac.outerDiv.appendChild(implicitLog);
+        await vi.waitFor(() =>
+            expect(lateCoach.getAttribute("aria-live")).toBe("off"),
+        );
+        expect(implicitLog.getAttribute("aria-live")).toBe("off");
+
+        ac.runButton.click();
+        expect(ac.actionStatus.getAttribute("aria-live")).toBe("polite");
+        expect(ac.codecoach.getAttribute("aria-live")).toBe("polite");
+        expect(ac.eContainer.getAttribute("aria-live")).toBe("polite");
+        expect(lateCoach.getAttribute("aria-live")).toBe("polite");
+        expect(implicitLog.hasAttribute("aria-live")).toBe(false);
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe(
+                "Program output: clicked output",
+            ),
+        );
+    });
+
+    it("suppresses an autorun result delivered after the handler returns", async () => {
+        const ac = makeActiveCode({ attrs: 'data-autorun="true"' });
+        ac.announcesOutputOnResult = true;
+        ac.runProg = vi.fn(async () => {
+            ac.output.textContent = "delayed output";
+        });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        await vi.waitFor(() => expect(ac.runCount).toBe(1));
+        expect(ac.suppressRunAnnouncements).toBe(true);
+        ac.announceProgramOutput();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.actionStatus.textContent).toBe("");
+        expect(ac.suppressRunAnnouncements).toBe(true);
+
+        ac.runButton.click();
+        expect(ac.suppressRunAnnouncements).toBe(false);
+        await vi.waitFor(() => expect(ac.runCount).toBe(2));
+        ac.announceProgramOutput();
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe(
+                "Program output: delayed output",
+            ),
+        );
+    });
+
     it("keeps Run focused and announces a slow run without allowing a second run", async () => {
         const ac = makeActiveCode();
         let finishRun;

@@ -548,11 +548,11 @@ export default class GodotActiveCode extends ActiveCode {
     // Override runProg() — called when the student clicks Run.
     // Reads the student's code from the editor and delegates to the singleton.
     // -------------------------------------------------------------------------
-    async runButtonHandler() {
+    async runButtonHandler(runOptions) {
         // The base handler finishes when the request is sent, while the shared
         // engine remains busy until it posts a result or error.
         if (GodotShellSingleton.busy) return;
-        return super.runButtonHandler();
+        return super.runButtonHandler(runOptions);
     }
 
     async runProg(noUI, logResults) {

@@ -167,6 +167,9 @@ export class ActiveCode extends RunestoneBase {
         this.runningStatusTimer = null;
         this.runInProgress = false;
         this.outputAnnouncementTimer = null;
+        this.suppressRunAnnouncements = false;
+        this.autorunLiveRegionObserver = null;
+        this.autorunLiveRegionValues = new Map();
         this.timestamps = ["Original"];
         this.autorun = this.parseBooleanAttribute(orig, "data-autorun");
         this.outputLineCount = 0;
@@ -288,8 +291,10 @@ export class ActiveCode extends RunestoneBase {
         );
         this.decorateStatus();
         if (this.autorun) {
-            // Simulate pressing the run button, since this will also prevent the user from clicking it until the initial run is complete, and also help the user understand why they're waiting.
-            const autorunHandler = this.runButtonHandler.bind(this);
+            // Run the same path as the button, but do not announce output while
+            // a screen reader is still reading the page on initial load.
+            const autorunHandler = () =>
+                this.runButtonHandler({ suppressAnnouncements: true });
             if (document.readyState === "loading") {
                 document.addEventListener("DOMContentLoaded", autorunHandler);
             } else {
@@ -672,8 +677,14 @@ export class ActiveCode extends RunestoneBase {
         return true;
     }
 
-    async runButtonHandler() {
+    async runButtonHandler(runOptions) {
         if (this.runButton.disabled || this.runInProgress) return;
+        // A click supplies a MouseEvent, while page-load autorun supplies
+        // options. Keep live regions muted through delayed coach/error updates
+        // and restore them only when the user starts a later run.
+        this.setRunAnnouncementsSuppressed(
+            runOptions?.suppressAnnouncements === true,
+        );
         // Keep the focused button available to assistive technology. Native
         // disabling announces "Unavailable"; this guard prevents another run.
         this.runInProgress = true;
@@ -683,6 +694,7 @@ export class ActiveCode extends RunestoneBase {
         // Announce only a run that stays silent long enough to need feedback.
         this.runningStatusTimer = setTimeout(() => {
             if (
+                !this.suppressRunAnnouncements &&
                 this.runInProgress &&
                 !this.inputRow &&
                 !this.output?.textContent.trim()
@@ -727,8 +739,64 @@ export class ActiveCode extends RunestoneBase {
         this.outDiv.classList.remove("ac_output--collapsed");
     }
 
+    setRunAnnouncementsSuppressed(suppress) {
+        this.suppressRunAnnouncements = suppress;
+        if (!suppress) {
+            this.autorunLiveRegionObserver?.disconnect();
+            this.autorunLiveRegionObserver = null;
+            for (const [region, originalLive] of this.autorunLiveRegionValues) {
+                if (originalLive === null) {
+                    region.removeAttribute("aria-live");
+                } else {
+                    region.setAttribute("aria-live", originalLive);
+                }
+            }
+            this.autorunLiveRegionValues.clear();
+            return;
+        }
+
+        // A coach or engine may append a new live region after the autorun
+        // handler returns. Mute those regions too, without requiring each
+        // coach to know about autorun. Restore them at the next user run.
+        this.muteAutorunLiveRegions();
+        this.autorunLiveRegionObserver?.disconnect();
+        this.autorunLiveRegionObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === "attributes") {
+                    this.muteAutorunLiveRegions(mutation.target);
+                } else {
+                    for (const node of mutation.addedNodes) {
+                        this.muteAutorunLiveRegions(node);
+                    }
+                }
+            }
+        });
+        this.autorunLiveRegionObserver.observe(this.outerDiv, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["aria-live", "role"],
+        });
+    }
+
+    muteAutorunLiveRegions(root = this.outerDiv) {
+        if (root.nodeType !== Node.ELEMENT_NODE) return;
+        const selector = '[aria-live], [role="status"], [role="log"]';
+        const regions = [
+            ...(root.matches(selector) ? [root] : []),
+            ...root.querySelectorAll(selector),
+        ];
+        for (const region of regions) {
+            const live = region.getAttribute("aria-live");
+            if (live === "off") continue;
+            this.autorunLiveRegionValues.set(region, live);
+            region.setAttribute("aria-live", "off");
+        }
+    }
+
     announceProgramOutput() {
         if (this.output?.tagName === "IFRAME") return;
+        if (this.suppressRunAnnouncements) return;
         // Read the complete rendered output after each run. The separate
         // status announces it, including identical output on later runs,
         // without making the visible output a competing live region.
