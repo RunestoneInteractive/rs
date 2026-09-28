@@ -1183,13 +1183,41 @@ function notifyRunestoneComponents() {
 }
 
 function placeAdCopy() {
-    if (typeof showAd !== "undefined" && showAd) {
+    let adTemplate = `         <div id="adcopy_1" class="adcopy" style="display: none;">
+           <h4>Before you keep reading...</h4>
+           <p>Runestone Academy can only continue if we get support from individuals like you. As a student you are well aware of the high cost of textbooks.  Our mission is to provide great books to you for free, but we ask that you consider a $10 donation, more if you can or less if $10 is a burden.
+           </p>
+           <div class="donatea">
+           <a href="/admin/auth/donate?ad=1" role="button" class="btn btn-info">Support Runestone Academy Today</a>
+           </div>
+         </div>         
+         <div id="adcopy_2" class="adcopy" style="display: none;">
+            <h4>Before you keep reading...</h4>
+            <p>Making great stuff takes time and $$.  If you appreciate the book you are reading now and want to keep quality materials free for other students please consider a donation to Runestone Academy. We ask that you consider a $10 donation, but if you can give more thats great, if $10 is too much for your budget we would be happy with whatever you can afford as a show of support.
+            </p>
+            <div class="donateb">
+            <a href="/admin/auth/donate?ad=2" role="button" class="btn btn-info">Support Runestone Academy Today</a>
+            </div>
+         </div>
+`;
+    if (! document.getElementById("adcopy_1")) {
+        document.body.insertAdjacentHTML("beforeend", adTemplate);
+    }
+    if ((typeof showAd !== "undefined" && showAd) || eBookConfig.course_attrs?.showAd) {
         let adNum = Math.floor(Math.random() * 2) + 1;
         let adBlock = document.getElementById(`adcopy_${adNum}`);
         let rsElements = document.querySelectorAll(".runestone");
         if (rsElements.length > 0) {
             let randomIndex = Math.floor(Math.random() * rsElements.length);
             rsElements[randomIndex].after(adBlock);
+            // find the a tag within the ad block and change the href from /runestone/default/donate to /admin/auth/donate
+            const aTag = adBlock.querySelector("a");
+            if (aTag && aTag.href.includes("/runestone/default/donate")) {
+                aTag.href = aTag.href.replace(
+                    "/runestone/default/donate",
+                    "/admin/auth/donate"
+                );
+            }
             adBlock.style.display = "block";
         }
     }
