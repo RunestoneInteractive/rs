@@ -401,7 +401,7 @@
 
         <div class="pi-panel-head">
           <span class="pi-panel-title">{% if llm_enabled %}Justify &amp; discuss your answer{% else %}Justify your answer{% endif %}</span>
-          <span class="pi-pick-chip">Your pick:&nbsp;<span id="current_answer">—</span></span>
+          <span class="pi-pick-chip" id="pi_pick_chip">Your pick:&nbsp;—</span>
         </div>
 
         <div class="pi-pane" id="piConversation">
@@ -1561,7 +1561,15 @@ function bindLikertSubmitHandler() {
             }
             const currAnswer = window.componentMap[currentQuestion].answer;
             const sAnswer = answerToString(currAnswer);
-            $("#current_answer").html(sAnswer);
+            // Keep the first vote on screen
+            if (window._vote2Enabled && window._pickVote1) {
+              $("#pi_pick_chip").html(
+                "Vote 1:&nbsp;" + window._pickVote1 + " &nbsp;&middot;&nbsp; Vote 2:&nbsp;" + sAnswer
+              );
+            } else {
+              window._pickVote1 = sAnswer;
+              $("#pi_pick_chip").html("Your pick:&nbsp;" + sAnswer);
+            }
             $("#current_answer_prompt").html(sAnswer);
 
             if (typeof logPeerEvent === "function") {
