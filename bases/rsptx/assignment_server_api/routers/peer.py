@@ -592,9 +592,24 @@ async def _has_reflection_async(div_id: str, sid: str) -> bool:
         return result.scalar() is not None
 
 
+LLM_BASE_URLS = {
+    "umgpt": "https://api.toolkit.umgpt.umich.edu/v1",
+    "openai": "https://api.openai.com/v1",
+}
+
+
+async def _llm_provider_async(course_id: int) -> tuple[Optional[str], str]:
+    """Return (api token, base url) for the course, or (None, "") if it has none."""
+    for provider, base_url in LLM_BASE_URLS.items():
+        token_row = await fetch_api_token(course_id, provider)
+        if token_row and token_row.token:
+            return token_row.token, base_url
+    return None, ""
+
+
 async def _llm_enabled_async(course_id: int) -> bool:
-    token = await fetch_api_token(course_id, "openai")
-    return token is not None and bool(token.token)
+    token, _base_url = await _llm_provider_async(course_id)
+    return token is not None
 
 
 # Async PI study conditions
@@ -1963,13 +1978,12 @@ async def _call_openai_async(messages: list, course_id: int) -> str:
 
     import aiohttp
 
-    token_row = await fetch_api_token(course_id, "openai")
-    if not token_row or not token_row.token:
+    api_key, base_url = await _llm_provider_async(course_id)
+    if not api_key:
         raise Exception("missing api key")
 
-    api_key = token_row.token
     model = os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-    url = "https://api.openai.com/v1/chat/completions"
+    url = f"{base_url}/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -1986,7 +2000,7 @@ async def _call_openai_async(messages: list, course_id: int) -> str:
         ) as resp:
             resp.raise_for_status()
             data = await resp.json()
-    rslogger.warning(f"PEER LLM CALL | provider=openai-course-token | model={model}")
+    rslogger.warning(f"PEER LLM CALL | base_url={base_url} | model={model}")
     return data["choices"][0]["message"]["content"].strip()
 
 
@@ -2055,14 +2069,13 @@ async def _generate_analogy_mapping_async(
 
         import aiohttp
 
-        token_row = await fetch_api_token(course_id, "openai")
-        if not token_row or not token_row.token:
+        api_key, base_url = await _llm_provider_async(course_id)
+        if not api_key:
             return "", ""
-        api_key = token_row.token
         model = (
             os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
         )
-        url = "https://api.openai.com/v1/chat/completions"
+        url = f"{base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
