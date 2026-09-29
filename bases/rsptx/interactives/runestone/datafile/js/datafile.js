@@ -23,6 +23,7 @@ class DataFile extends RunestoneBase {
         this.divid = orig.id;
         this.dataEdit = this.parseBooleanAttribute(orig, "data-edit");
         this.isImage = this.parseBooleanAttribute(orig, "data-isimage");
+        this.isBinary = this.parseBooleanAttribute(orig, "data-isbinary");
         this.fileName = orig.dataset.filename || null;
         this.displayClass = "block"; // Users can specify the non-edit component to be hidden--default is not hidden
         if (this.parseBooleanAttribute(orig, "data-hidden")) {
@@ -60,6 +61,7 @@ class DataFile extends RunestoneBase {
         this.containerDiv.id = this.divid;
         this.containerDiv.style.display = this.displayClass;
         this.containerDiv.innerHTML = this.origElem.innerHTML;
+        this.copyDataAttributes();
         this.origElem.replaceWith(this.containerDiv);
     }
     createTextArea() {
@@ -69,7 +71,15 @@ class DataFile extends RunestoneBase {
         if (this.numberOfCols) this.containerDiv.cols = this.numberOfCols;
         this.containerDiv.innerHTML = this.origElem.innerHTML;
         this.containerDiv.classList.add("datafiletextfield");
+        this.copyDataAttributes();
         this.origElem.replaceWith(this.containerDiv);
+    }
+    copyDataAttributes() {
+        for (const attr of this.origElem.attributes) {
+            if (attr.name.startsWith("data-")) {
+                this.containerDiv.setAttribute(attr.name, attr.value);
+            }
+        }
     }
 }
 
