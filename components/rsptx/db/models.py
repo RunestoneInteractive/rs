@@ -572,9 +572,15 @@ CourseInstructorValidator: TypeAlias = sqlalchemy_to_pydantic(CourseInstructor) 
 # all of their enrollments
 class UserCourse(Base, IdMixin):
     __tablename__ = "user_courses"
+    __table_args__ = (Index("user_courses_user_course_idx", "user_id", "course_id"),)
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
     course_id = Column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    # When this user last did anything in this course (UTC). Kept current by
+    # ``record_course_access`` as activity is logged, at a few minutes'
+    # resolution, so nothing has to scan ``useinfo`` to answer it. NULL means
+    # no activity since the column was added (backfilled for 30 days).
+    last_access = Column(DateTime, nullable=True)
 
 
 # Assignments and Questions

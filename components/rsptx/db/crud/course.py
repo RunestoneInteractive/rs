@@ -191,6 +191,75 @@ async def fetch_courses_for_user(
         return course_list
 
 
+# How stale ``user_courses.last_access`` may get. Every logged event would
+# otherwise also update an enrollment row; this keeps it to one write per
+# user and course every few minutes, per worker process.
+_ACCESS_RESOLUTION = datetime.timedelta(minutes=5)
+_ACCESS_CACHE_MAX = 50_000
+_last_recorded_access: Dict[tuple, datetime.datetime] = {}
+
+
+async def record_course_access(
+    sid: str, course_name: str, timestamp: datetime.datetime
+) -> None:
+    """Note that ``sid`` was active in ``course_name`` at ``timestamp``.
+
+    Updates ``user_courses.last_access`` so that questions like "which of my
+    courses have I used lately" never need to scan ``useinfo``. Called for
+    every logged event, so writes are throttled to one per
+    ``_ACCESS_RESOLUTION``; the recorded time can lag by up to that much.
+    Anonymous readers and users not enrolled in the course are ignored.
+
+    :param sid: The username (``useinfo.sid``).
+    :param course_name: The course name (``useinfo.course_id``).
+    :param timestamp: When the activity happened, naive UTC.
+    """
+    if not sid or sid == "Anonymous" or not course_name:
+        return
+    key = (sid, course_name)
+    last = _last_recorded_access.get(key)
+    if last is not None and timestamp - last < _ACCESS_RESOLUTION:
+        return
+    if len(_last_recorded_access) >= _ACCESS_CACHE_MAX:
+        _last_recorded_access.clear()
+    _last_recorded_access[key] = timestamp
+
+    user_id = select(AuthUser.id).where(AuthUser.username == sid).scalar_subquery()
+    course_id = (
+        select(Courses.id).where(Courses.course_name == course_name).scalar_subquery()
+    )
+    stmt = (
+        update(UserCourse)
+        .where(
+            UserCourse.user_id == user_id,
+            UserCourse.course_id == course_id,
+            # Never move it backwards, e.g. when another worker got there first.
+            (UserCourse.last_access.is_(None)) | (UserCourse.last_access < timestamp),
+        )
+        .values(last_access=timestamp)
+        .execution_options(synchronize_session=False)
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def fetch_course_access_for_user(user_id: int) -> Dict[str, datetime.datetime]:
+    """Return when ``user_id`` was last active in each of their courses.
+
+    :param user_id: The user's ``auth_user.id``.
+    :return: A mapping of course name to ``last_access`` (naive UTC). Courses
+             with no recorded activity are left out.
+    """
+    query = (
+        select(Courses.course_name, UserCourse.last_access)
+        .join(Courses, UserCourse.course_id == Courses.id)
+        .where(UserCourse.user_id == user_id, UserCourse.last_access.is_not(None))
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {row.course_name: row.last_access for row in res}
+
+
 #
 async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
     """
