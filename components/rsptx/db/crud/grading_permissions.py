@@ -1,9 +1,4 @@
-"""Persistence helpers for delegated grading and blind-grading policy.
-
-This module deliberately contains no routes. The role and assignment flag are
-dark infrastructure until the anonymous backend contract and React workflow
-are ready to ship together.
-"""
+"""Persistence helpers for delegated graders and blind-grading policy."""
 
 from typing import NamedTuple, Optional
 

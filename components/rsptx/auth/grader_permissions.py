@@ -1,9 +1,4 @@
-"""Fail-closed capability resolution for assignment grading.
-
-The current production routes continue to require full instructor access. This
-resolver is the common policy boundary that later anonymous API work can adopt
-without treating a delegated grader as an instructor everywhere else.
-"""
+"""Resolve grading capabilities without granting instructor access."""
 
 from dataclasses import dataclass
 from enum import StrEnum
