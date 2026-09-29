@@ -840,7 +840,7 @@ export default class FITB extends RunestoneBase {
             mark.setAttribute("aria-hidden", "true");
             mark.textContent = ok ? "✔️" : "✖️";
             const spoken = document.createElement("span");
-            spoken.className = "fitb-sr-only";
+            spoken.className = "visuallyhidden";
             spoken.textContent = `${
                 ok ? t("msg_fitb_correct") : t("msg_fitb_incorrect")
             } `;
@@ -859,7 +859,7 @@ export default class FITB extends RunestoneBase {
             // With several blanks the per-blank marks are easy to lose track
             // of; lead the announcement with the overall verdict.
             const summary = document.createElement("div");
-            summary.className = "fitb-sr-only";
+            summary.className = "visuallyhidden";
             summary.textContent = this.correct
                 ? t("msg_fitb_result_correct")
                 : t("msg_fitb_result_incorrect");

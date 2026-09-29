@@ -165,6 +165,7 @@ describe("controls", () => {
         expect(ac.runButton.classList.contains("run-button")).toBe(true);
         expect(ac.controlDiv.classList.contains("ac_actions")).toBe(true);
         expect(ac.actionStatus.getAttribute("role")).toBe("status");
+        expect(ac.actionStatus.classList.contains("visuallyhidden")).toBe(true);
         expect(ac.actionStatus.getAttribute("aria-live")).toBe("polite");
         expect(ac.actionStatus.getAttribute("aria-atomic")).toBe("true");
     });

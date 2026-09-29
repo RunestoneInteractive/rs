@@ -191,6 +191,8 @@ describe("ClickableArea accessibility", () => {
     it("announces the running selection count", async () => {
         const ca = await makeClickable();
         expect(ca.liveRegion.getAttribute("aria-live")).toBe("polite");
+        expect(ca.instructions.classList.contains("visuallyhidden")).toBe(true);
+        expect(ca.liveRegion.classList.contains("visuallyhidden")).toBe(true);
 
         press(ca.clickableArray[0], "Enter");
         expect(ca.liveRegion.textContent).toBe("1 of 4 choices selected.");

@@ -88,7 +88,7 @@ export class ParsonsInput implements IParsonsInput {
     this._liveRegion = document.createElement("div");
     this._liveRegion.setAttribute("aria-live", "polite");
     this._liveRegion.setAttribute("aria-atomic", "true");
-    this._liveRegion.classList.add("sr-only");
+    this._liveRegion.classList.add("visuallyhidden");
     this.el.appendChild(this._liveRegion);
 
 
@@ -97,7 +97,7 @@ export class ParsonsInput implements IParsonsInput {
     this._nextBlockId = 0;
     this._keyboardInstructions = document.createElement("span");
     this._keyboardInstructions.id = `${this.el.id}-keyboard-instructions`;
-    this._keyboardInstructions.classList.add("sr-only");
+    this._keyboardInstructions.classList.add("visuallyhidden");
     this._keyboardInstructions.textContent =
       t("msg_hparsons_keyboard_idle_instructions");
     this.el.appendChild(this._keyboardInstructions);

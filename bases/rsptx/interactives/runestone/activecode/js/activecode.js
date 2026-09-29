@@ -1580,7 +1580,7 @@ export class ActiveCode extends RunestoneBase {
 
         const actionStatus = document.createElement("div");
         actionStatus.id = `${this.divid}_action_status`;
-        actionStatus.classList.add("activecode-sr-only");
+        actionStatus.classList.add("visuallyhidden");
         actionStatus.setAttribute("role", "status");
         actionStatus.setAttribute("aria-live", "polite");
         actionStatus.setAttribute("aria-atomic", "true");
