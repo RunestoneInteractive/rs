@@ -132,6 +132,7 @@ class QuestionRequest(BaseModel):
 
 class QuestionEditRequest(BaseModel):
     question_json: dict[str, Any]
+    htmlsrc: str
 
 
 async def _editable_question(user, body: QuestionRequest):
@@ -227,7 +228,7 @@ async def edit_question(
     body: QuestionEditRequest,
     user=Depends(auth_manager),
 ):
-    """Save a question's Assignment Builder JSON without changing its identity."""
+    """Save a question's JSON and rendered HTML without changing its identity."""
     question, err = await _editable_question_by_id(user, question_id)
     if err:
         return err
@@ -241,6 +242,7 @@ async def edit_question(
         )
 
     question.question_json = body.question_json
+    question.htmlsrc = body.htmlsrc
     question.timestamp = canonical_utcnow()
     try:
         await update_question(question)

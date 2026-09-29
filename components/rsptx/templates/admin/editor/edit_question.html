@@ -9,7 +9,7 @@ Edit Question
 {% include 'common/static_assets.html' %}
 <style>
     .editorial-edit-form textarea {
-        min-height: 32rem;
+        min-height: 20rem;
         width: 100%;
         font-family: monospace;
     }
@@ -48,6 +48,16 @@ Edit Question
                 required>{{ formatted_question_json }}</textarea>
         </div>
 
+        <div class="form-group">
+            <label for="question-htmlsrc">Rendered HTML</label>
+            <p class="help-block">
+                Update this HTML to match the JSON so the edited question is visible
+                immediately. Both fields are saved together.
+            </p>
+            <textarea id="question-htmlsrc" name="htmlsrc" spellcheck="false"
+                required>{{ question.htmlsrc }}</textarea>
+        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save Changes</button>
             <a class="btn btn-default" href="/admin/editor/manage_exercises">Cancel</a>
@@ -57,5 +67,5 @@ Edit Question
 {% endblock %}
 
 {% block page_js %}
-<script src="/staticAssets/js/admin/manage_exercises.js?v=1257-json-edit-1"></script>
+<script src="/staticAssets/js/admin/manage_exercises.js?v=1257-json-html-edit-1"></script>
 {% endblock %}

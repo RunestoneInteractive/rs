@@ -80,7 +80,10 @@ async function saveQuestionEdit(event) {
     try {
         const data = await postJSON(
             `/admin/editor/questions/${form.dataset.questionId}/edit`,
-            { question_json: questionJson }
+            {
+                question_json: questionJson,
+                htmlsrc: form.elements.htmlsrc.value,
+            }
         );
         if (data.detail && data.detail.status === "Success") {
             window.location.assign("/admin/editor/manage_exercises");

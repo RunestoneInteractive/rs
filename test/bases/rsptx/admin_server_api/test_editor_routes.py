@@ -167,7 +167,9 @@ async def test_edit_question_page(auth_editor_client):
     assert resp.status_code == 200
     assert "editor_test_edit_page" in resp.text
     assert "Question JSON" in resp.text
+    assert "Rendered HTML" in resp.text
     assert "Flagged for review?" in resp.text
+    assert "html for editor_test_edit_page" in resp.text
 
 
 async def test_edit_question(auth_editor_client):
@@ -179,7 +181,8 @@ async def test_edit_question(auth_editor_client):
             "question_json": {
                 "type": "shortanswer",
                 "prompt": "Updated editorial prompt",
-            }
+            },
+            "htmlsrc": "<p>Updated editorial HTML</p>",
         },
     )
 
@@ -190,7 +193,7 @@ async def test_edit_question(auth_editor_client):
         "prompt": "Updated editorial prompt",
     }
     assert updated.question == "Flagged for review?"
-    assert updated.htmlsrc == "<p>html for editor_test_edit_me</p>"
+    assert updated.htmlsrc == "<p>Updated editorial HTML</p>"
     assert updated.review_flag is True
 
 
@@ -200,7 +203,10 @@ async def test_edit_question_rejects_legacy_question(auth_editor_client):
     page = await auth_editor_client.get(f"/editor/questions/{question.id}/edit")
     save = await auth_editor_client.post(
         f"/editor/questions/{question.id}/edit",
-        json={"question_json": {"type": "shortanswer"}},
+        json={
+            "question_json": {"type": "shortanswer"},
+            "htmlsrc": "<p>Updated editorial HTML</p>",
+        },
     )
 
     assert page.status_code == 409
@@ -214,7 +220,10 @@ async def test_edit_question_rejects_unedited_base_course(auth_editor_client):
 
     resp = await auth_editor_client.post(
         f"/editor/questions/{question.id}/edit",
-        json={"question_json": {"type": "shortanswer", "prompt": "No"}},
+        json={
+            "question_json": {"type": "shortanswer", "prompt": "No"},
+            "htmlsrc": "<p>No</p>",
+        },
     )
 
     assert resp.status_code == 403
