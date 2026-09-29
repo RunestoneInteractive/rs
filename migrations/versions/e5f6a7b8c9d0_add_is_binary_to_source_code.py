@@ -16,7 +16,7 @@ from rsptx.db.models import Web2PyBoolean
 
 # revision identifiers, used by Alembic.
 revision: str = "e5f6a7b8c9d0"
-down_revision: Union[str, None] = "a1c7e93d40b8"
+down_revision: Union[str, None] = "b7e2c4d91f3a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
