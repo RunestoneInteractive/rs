@@ -13,7 +13,7 @@ export default class BlockFeedback extends HParsonsFeedback {
         this.feedbackLiveRegion.setAttribute("role", "status");
         this.feedbackLiveRegion.setAttribute("aria-live", "polite");
         this.feedbackLiveRegion.setAttribute("aria-atomic", "true");
-        this.feedbackLiveRegion.classList.add("sr-only");
+        this.feedbackLiveRegion.classList.add("visuallyhidden");
         this.hparsons.outerDiv.appendChild(this.messageDiv);
         this.hparsons.outerDiv.appendChild(this.feedbackLiveRegion);
     }

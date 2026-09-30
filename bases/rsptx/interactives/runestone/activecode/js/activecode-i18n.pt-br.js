@@ -14,6 +14,11 @@ load({
         msg_activecode_show_in_codelens: "Mostrar em CodeLens",
         msg_activecode_hide_codelens: "Ocultar Codelens",
         msg_activecode_reformat: "Reformatar",
+        msg_activecode_reformatted: "Código reformatado.",
+        msg_activecode_downloaded: "Código baixado.",
+        msg_activecode_running: "Executando o programa.",
+        msg_activecode_program_output: "Saída do programa: $1",
+        msg_activecode_no_output: "Programa concluído. Nenhuma saída.",
 
         msg_activecode_parse_error:
             "Um erro de Parse significa que Python não entende a sintaxe da linha que a mensagem de erro aponta. Exemplos comuns são esquecer vírgulas entre argumentos ou esquecer ':' em um comando for.",
@@ -105,7 +110,8 @@ load({
         msg_activecode_input_prg: "Entrada para o programa",
         msg_activecode_were_compiling_err:
             "Houveram erros ao compilar seu código. Veja abaixo.",
-        msg_activecode_time_limit_exc: "Limite de tempo excedido no seu programa",
+        msg_activecode_time_limit_exc:
+            "Limite de tempo excedido no seu programa",
         msg_activecode_server_err: "Um erro de servidor ocorreu",
         msg_activecode_compiling_running:
             "Compilando e executando seu código...",
@@ -113,7 +119,7 @@ load({
         msg_activecode_save_run: "Salvar & Executar",
         msg_activecode_render: "Salvar & Renderizar",
         msg_activecode_assertion_error:
-            "Um erro de asserção ocorre quando python encontra um comando 'assert'. Python avalia a expressão do lado direito; se é verdadeira, o programa continua normalmente. Se é falsa, python gera um erro e para a execução." ,
+            "Um erro de asserção ocorre quando python encontra um comando 'assert'. Python avalia a expressão do lado direito; se é verdadeira, o programa continua normalmente. Se é falsa, python gera um erro e para a execução.",
         msg_activecode_assertion_error_fix:
             "Cheque a expressão do lado direito de 'assert'. Essa expressão é falsa e é preciso verificar o motivo. Você pode querer imprimir cada parte da expressão e entender porque é falsa.",
         msg_activecode_load_db: "Carregando banco de dados...",

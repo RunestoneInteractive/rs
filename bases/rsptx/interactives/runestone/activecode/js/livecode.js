@@ -75,11 +75,12 @@ export default class LiveCode extends ActiveCode {
     outputfun(a) {}
     createInputElement() {
         let inputContainer = document.createElement("div");
+        const inputId = this.divid + "_stdin";
         var label = document.createElement("label");
-        label.for = this.divid + "_stdin";
+        label.setAttribute("for", inputId);
         label.textContent = t("msg_activecode_input_prg");
         var input = document.createElement("textarea");
-        input.id = this.divid + "_stdin";
+        input.id = inputId;
         input.classList.add("activecode__stdin");
         input.value = this.stdin;
         input.setAttribute("rows", "3");
@@ -596,9 +597,9 @@ export default class LiveCode extends ActiveCode {
     async submitToJobe() {
         var data = this.json_runspec;
         let host = this.JOBE_SERVER + this.resource;
-        this.runButton.disabled = true;
+        if (!this.runInProgress) this.runButton.disabled = true;
         this.outDiv.style.display = "";
-        this.outDiv.style.visibility = "visible";
+        this.showOutput();
         if (this.errDiv) {
             this.errDiv.remove();
         }
@@ -713,13 +714,12 @@ export default class LiveCode extends ActiveCode {
 
         // Make a pretty results table
         const parent = document.createElement("div");
-        const heading = document.createElement("div");
-        heading.classList.add("unittest-results__heading");
-        heading.innerHTML = t("msg_activecode_unit_test_results");
-        parent.appendChild(heading);
         parent.classList.add("unittest-results");
         const tbl = document.createElement("table");
         tbl.classList.add("ac-feedback");
+        const caption = tbl.createCaption();
+        caption.classList.add("unittest-results__heading");
+        caption.textContent = t("msg_activecode_unit_test_results");
         parent.appendChild(tbl);
         parent.setAttribute("id", `${this.divid}_unit_results`);
         const trh = document.createElement("tr");
@@ -841,8 +841,7 @@ export default class LiveCode extends ActiveCode {
         if (this.errDiv) {
             this.errDiv.remove();
         }
-        var errHead = document.createElement("h3");
-        errHead.innerHTML = "Error";
+        const errHead = this.createSubheading("Error");
         var eContainer = this.outerDiv.appendChild(
             document.createElement("div"),
         );

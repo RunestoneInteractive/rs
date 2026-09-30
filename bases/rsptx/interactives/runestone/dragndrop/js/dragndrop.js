@@ -205,7 +205,7 @@ export default class DragNDrop extends RunestoneBase {
         this.setDragListeners(replaceSpan);
         // now create an error message for when the premise is dropped in the wrong place
         let errorMessage = document.createElement("div");
-        errorMessage.classList.add("vh-dnd-error");
+        errorMessage.classList.add("visuallyhidden");
         errorMessage.innerHTML =
             "Incorrect drop zone for " + replaceSpan.innerHTML;
         errorMessage.setAttribute("role", "alert");
@@ -1229,7 +1229,7 @@ export default class DragNDrop extends RunestoneBase {
                     );
                     document
                         .getElementById(premise.id + "_error")
-                        .classList.remove("vh-dnd-error");
+                        .classList.remove("visuallyhidden");
                 } else {
                     premise.classList.remove("drop-incorrect");
                     premise.setAttribute("aria-invalid", "false");

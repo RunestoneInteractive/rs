@@ -292,6 +292,8 @@ describe("feedback rendering", () => {
         place(dnd, "p1", "r2");
         place(dnd, "p2", "r1");
         const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        const p1Error = document.getElementById("p1_error");
+        expect(p1Error.classList.contains("visuallyhidden")).toBe(true);
         dnd.submitButton.click();
         await feedbackSettles();
         expect(p1.classList.contains("drop-incorrect")).toBe(false);
@@ -301,6 +303,7 @@ describe("feedback rendering", () => {
         dnd.submitButton.click();
         await feedbackSettles();
         expect(p1.classList.contains("drop-incorrect")).toBe(true);
+        expect(p1Error.classList.contains("visuallyhidden")).toBe(false);
         expect(p1.getAttribute("aria-invalid")).toBe("true");
         expect(p1.getAttribute("aria-errormessage")).toBe("p1_error");
     });

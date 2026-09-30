@@ -33,8 +33,6 @@ import "codemirror/addon/hint/sql-hint.js";
 import "codemirror/addon/hint/anyword-hint.js";
 import "codemirror/addon/edit/matchbrackets.js";
 
-
-
 // for CodeTailor
 import { renderRunestoneComponent } from "../../common/js/renderComponent.js";
 
@@ -72,12 +70,36 @@ const codeIndent = () =>
             .getPropertyValue("--code-editor-indentation") || 4,
     );
 
+// Headings created by ActiveCode belong below the nearest authored heading
+// that contains the component. Looking at ancestors instead of the previous
+// heading avoids unrelated headings (for example, hidden dialogs) and headings
+// injected by an earlier interactive on the page.
+export function getSubheadingTagName(element) {
+    for (
+        let ancestor = element.parentElement;
+        ancestor;
+        ancestor = ancestor.parentElement
+    ) {
+        const heading = ancestor.querySelector(
+            ":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6, " +
+                ":scope > header > h1, :scope > header > h2, :scope > header > h3, " +
+                ":scope > header > h4, :scope > header > h5, :scope > header > h6",
+        );
+        if (heading) {
+            const level = Number(heading.tagName.substring(1));
+            return `h${Math.min(level + 1, 6)}`;
+        }
+    }
+    return "h2";
+}
+
 // separate into constructor and init
 export class ActiveCode extends RunestoneBase {
     constructor(opts) {
         super(opts);
         var orig = opts.orig.querySelector("textarea");
         this.containerDiv = opts.orig;
+        this.subheadingTagName = getSubheadingTagName(opts.orig);
         this.useRunestoneServices = opts.useRunestoneServices;
         this.python3 = true;
         this.origElem = orig;
@@ -140,6 +162,14 @@ export class ActiveCode extends RunestoneBase {
         this.codelens = null;
         this.controlDiv = null;
         this.historyScrubber = null;
+        this.actionStatus = null;
+        this.actionStatusTimer = null;
+        this.runningStatusTimer = null;
+        this.runInProgress = false;
+        this.outputAnnouncementTimer = null;
+        this.suppressRunAnnouncements = false;
+        this.autorunLiveRegionObserver = null;
+        this.autorunLiveRegionValues = new Map();
         this.timestamps = ["Original"];
         this.autorun = this.parseBooleanAttribute(orig, "data-autorun");
         this.outputLineCount = 0;
@@ -236,6 +266,9 @@ export class ActiveCode extends RunestoneBase {
 
         this.createEditor();
         this.createOutput();
+        // Keep the output mounted so assistive technology registers its live
+        // region before the first run, but do not reserve empty visual space.
+        this.outDiv.classList.add("ac_output--collapsed");
         this.createControls();
         if (getDataValue(orig, "caption")) {
             this.caption = getDataValue(orig, "caption");
@@ -258,8 +291,10 @@ export class ActiveCode extends RunestoneBase {
         );
         this.decorateStatus();
         if (this.autorun) {
-            // Simulate pressing the run button, since this will also prevent the user from clicking it until the initial run is complete, and also help the user understand why they're waiting.
-            const autorunHandler = this.runButtonHandler.bind(this);
+            // Run the same path as the button, but do not announce output while
+            // a screen reader is still reading the page on initial load.
+            const autorunHandler = () =>
+                this.runButtonHandler({ suppressAnnouncements: true });
             if (document.readyState === "loading") {
                 document.addEventListener("DOMContentLoaded", autorunHandler);
             } else {
@@ -274,6 +309,13 @@ export class ActiveCode extends RunestoneBase {
         // variables for CodeTailor
         this.helpLoaded = false;
         this.prevHelpedCode = null;
+    }
+
+    createSubheading(text) {
+        const heading = document.createElement(this.subheadingTagName);
+        heading.classList.add("activecode-subheading");
+        heading.textContent = text;
+        return heading;
     }
 
     createEditor(index) {
@@ -352,6 +394,10 @@ export class ActiveCode extends RunestoneBase {
             }).observe(wrapper);
         }
         editor.on("keydown", (cm, event) => {
+            if (this.handleRunShortcut(event)) {
+                event.stopPropagation();
+                return;
+            }
             // give the user a visual cue that they have changed but not saved
             editor.getWrapperElement().style.borderTopColor = "#b43232";
             editor.getWrapperElement().style.borderBottomColor = "#b43232";
@@ -413,8 +459,6 @@ export class ActiveCode extends RunestoneBase {
                 e.preventDefault();
             });
         }
-        // capture current this for use in event handler
-        let acElement = this;
 
         // document level event handler for tab key to handle context switching
         // detect if tab key was used to get into the editor
@@ -444,12 +488,8 @@ export class ActiveCode extends RunestoneBase {
             }
         });
         // keyboard shortcuts for run (ctrl/cmd + s) and comment (ctrl/cmd + /)
-        this.containerDiv.addEventListener("keydown", function (e) {
-            if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
-                if (acElement.runButton.disabled) return;
-                acElement.runButton.click();
-                e.preventDefault();
-            }
+        this.containerDiv.addEventListener("keydown", (e) => {
+            if (this.handleRunShortcut(e)) return;
             if (e.code === "Slash" && (e.ctrlKey || e.metaKey)) {
                 if (typeof editor.toggleComment === "function") {
                     editor.toggleComment();
@@ -623,28 +663,219 @@ export class ActiveCode extends RunestoneBase {
         });
     }
 
-    async runButtonHandler() {
-        // Disable the run button until the run is finished.
-        this.runButton.disabled = true;
+    handleRunShortcut(event) {
+        if (
+            !(event.ctrlKey || event.metaKey) ||
+            (event.code !== "KeyS" && event.key?.toLowerCase() !== "s")
+        ) {
+            return false;
+        }
+        event.preventDefault();
+        // Use the button's click path so run announcements, feedback, and
+        // any other click listeners receive the same event as a pointer click.
+        this.runButton?.click();
+        return true;
+    }
 
-        //reset the css that indicates editor needs saving
-        this.editor.getWrapperElement().style.borderTopColor = null;
-        this.editor.getWrapperElement().style.borderBottomColor = null;
+    async runButtonHandler(runOptions) {
+        if (this.runButton.disabled || this.runInProgress) return;
+        // A click supplies a MouseEvent, while page-load autorun supplies
+        // options. Keep live regions muted through delayed coach/error updates
+        // and restore them only when the user starts a later run.
+        this.setRunAnnouncementsSuppressed(
+            runOptions?.suppressAnnouncements === true,
+        );
+        // Keep the focused button available to assistive technology. Native
+        // disabling announces "Unavailable"; this guard prevents another run.
+        this.runInProgress = true;
+        clearTimeout(this.actionStatusTimer);
+        clearTimeout(this.outputAnnouncementTimer);
+        this.actionStatus.textContent = "";
+        // Announce only a run that stays silent long enough to need feedback.
+        this.runningStatusTimer = setTimeout(() => {
+            if (
+                !this.suppressRunAnnouncements &&
+                this.runInProgress &&
+                !this.inputRow &&
+                !this.output?.textContent.trim()
+            ) {
+                this.actionStatus.textContent = t("msg_activecode_running");
+            }
+        }, 150);
+        this.showOutput();
 
         try {
-            await this.runProg();
-        } catch (e) {
-            console.log(`there was an error ${e} running the code`);
+            // Reset the CSS that indicates the editor needs saving.
+            this.editor.getWrapperElement().style.borderTopColor = null;
+            this.editor.getWrapperElement().style.borderBottomColor = null;
+
+            try {
+                await this.runProg();
+            } catch (e) {
+                console.log(`there was an error ${e} running the code`);
+            }
+            if (this.logResults) {
+                this.logCurrentAnswer();
+            }
+            this.runCoaches();
+            this.renderFeedback();
+            if (!this.announcesOutputOnResult) {
+                this.announceProgramOutput();
+            }
+            this.runCount += 1;
+            this.toggleAlert();
+        } finally {
+            clearTimeout(this.runningStatusTimer);
+            this.runInProgress = false;
+            if (this.actionStatus.textContent === t("msg_activecode_running")) {
+                this.actionStatus.textContent = "";
+            }
         }
-        if (this.logResults) {
-            this.logCurrentAnswer();
+    }
+
+    showOutput() {
+        // Keep the visible output available for navigation without reserving
+        // visual space before the first run. The separate status announces it.
+        this.outDiv.classList.remove("ac_output--collapsed");
+    }
+
+    setRunAnnouncementsSuppressed(suppress) {
+        this.suppressRunAnnouncements = suppress;
+        if (!suppress) {
+            this.autorunLiveRegionObserver?.disconnect();
+            this.autorunLiveRegionObserver = null;
+            for (const [region, originalLive] of this.autorunLiveRegionValues) {
+                if (originalLive === null) {
+                    region.removeAttribute("aria-live");
+                } else {
+                    region.setAttribute("aria-live", originalLive);
+                }
+            }
+            this.autorunLiveRegionValues.clear();
+            return;
         }
-        this.runCoaches();
-        this.renderFeedback();
-        // The run is finished; re-enable the button.
-        this.runButton.disabled = false;
-        this.runCount += 1;
-        this.toggleAlert();
+
+        // A coach or engine may append a new live region after the autorun
+        // handler returns. Mute those regions too, without requiring each
+        // coach to know about autorun. Restore them at the next user run.
+        this.muteAutorunLiveRegions();
+        this.autorunLiveRegionObserver?.disconnect();
+        this.autorunLiveRegionObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === "attributes") {
+                    this.muteAutorunLiveRegions(mutation.target);
+                } else {
+                    for (const node of mutation.addedNodes) {
+                        this.muteAutorunLiveRegions(node);
+                    }
+                }
+            }
+        });
+        this.autorunLiveRegionObserver.observe(this.outerDiv, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["aria-live", "role"],
+        });
+    }
+
+    muteAutorunLiveRegions(root = this.outerDiv) {
+        if (root.nodeType !== Node.ELEMENT_NODE) return;
+        const selector = '[aria-live], [role="status"], [role="log"]';
+        const regions = [
+            ...(root.matches(selector) ? [root] : []),
+            ...root.querySelectorAll(selector),
+        ];
+        for (const region of regions) {
+            const live = region.getAttribute("aria-live");
+            if (live === "off") continue;
+            this.autorunLiveRegionValues.set(region, live);
+            region.setAttribute("aria-live", "off");
+        }
+    }
+
+    announceProgramOutput() {
+        // Keep the visible results table navigable. As with stdout, a
+        // separate pre-mounted status announces it, even on identical runs.
+        // Captions are also needed for autoruns, whose status stays silent.
+        const unitResults = this.outerDiv.querySelectorAll(".unittest-results");
+        for (const results of unitResults) {
+            for (const table of results.querySelectorAll("table")) {
+                if (!table.caption) {
+                    table.createCaption().textContent = t(
+                        "msg_activecode_unit_test_results",
+                    );
+                }
+            }
+        }
+        if (this.suppressRunAnnouncements) return;
+        // Read the complete rendered output after each run. The separate
+        // status announces it, including identical output on later runs,
+        // without making the visible output a competing live region.
+        // SQL errors append their message on a short timer, so capture after
+        // those messages have joined the result.
+        this.outputAnnouncementTimer = setTimeout(() => {
+            const stdoutText =
+                this.output?.tagName === "IFRAME"
+                    ? ""
+                    : (this.outDiv.innerText ?? this.outDiv.textContent).trim();
+            const errorPre =
+                this.errinfo !== "success" &&
+                (this.errDiv?.querySelector("pre") ??
+                    this.eContainer?.querySelector("pre"));
+            const errorText = errorPre
+                ? (errorPre.innerText ?? errorPre.textContent).trim()
+                : "";
+            const outputText = [
+                stdoutText === t("msg_activecode_compiling_running")
+                    ? ""
+                    : stdoutText,
+                errorText,
+            ]
+                .filter(Boolean)
+                .join("\n");
+            const messages = [];
+            if (outputText) {
+                messages.push(t("msg_activecode_program_output", outputText));
+            }
+            for (const results of unitResults) {
+                if (results.style.display === "none") continue;
+                const rows = [...results.querySelectorAll("table tr")].map(
+                    (row) =>
+                        [...row.cells]
+                            .map((cell) =>
+                                (cell.innerText ?? cell.textContent).trim(),
+                            )
+                            .join(", "),
+                );
+                const summary = [...results.children]
+                    .filter(
+                        (child) =>
+                            child.tagName !== "TABLE" &&
+                            !child.classList.contains(
+                                "unittest-results__heading",
+                            ),
+                    )
+                    .map((child) =>
+                        (child.innerText ?? child.textContent).trim(),
+                    )
+                    .filter(Boolean);
+                const resultText = [...rows, ...summary].join("\n").trim();
+                if (resultText) {
+                    messages.push(
+                        `${t("msg_activecode_unit_test_results")}: ${resultText}`,
+                    );
+                }
+            }
+            if (messages.length) {
+                this.announceAction(messages.join("\n"));
+            } else if (
+                this.errinfo === "success" &&
+                this.output?.tagName === "PRE"
+            ) {
+                this.announceAction(t("msg_activecode_no_output"));
+            }
+        }, 20);
     }
 
     // CodeTailor function part starts here //
@@ -1391,6 +1622,15 @@ export class ActiveCode extends RunestoneBase {
             this.enableChatCodes(ctrlDiv);
         }
 
+        const actionStatus = document.createElement("div");
+        actionStatus.id = `${this.divid}_action_status`;
+        actionStatus.classList.add("visuallyhidden");
+        actionStatus.setAttribute("role", "status");
+        actionStatus.setAttribute("aria-live", "polite");
+        actionStatus.setAttribute("aria-atomic", "true");
+        ctrlDiv.appendChild(actionStatus);
+        this.actionStatus = actionStatus;
+
         this.outerDiv.prepend(ctrlDiv);
         if (this.question) {
             if (this.question.innerHTML.match(/^\s+$/)) {
@@ -1419,10 +1659,10 @@ export class ActiveCode extends RunestoneBase {
         butt.classList.add("btn", "save-button");
         ctrlDiv.appendChild(butt);
         this.downloadButton = butt;
-        butt.addEventListener(
-            "click",
-            this.downloadFile.bind(this, this.language),
-        );
+        butt.addEventListener("click", () => {
+            this.downloadFile(this.language);
+            this.announceAction(t("msg_activecode_downloaded"));
+        });
         butt.setAttribute("type", "button");
     }
 
@@ -1478,7 +1718,19 @@ export class ActiveCode extends RunestoneBase {
         butt.style.marginLeft = "10px";
         this.reformatButton = butt;
         ctrlDiv.appendChild(butt);
-        butt.addEventListener("click", this.reformat.bind(this));
+        butt.addEventListener("click", () => {
+            this.reformat();
+            this.announceAction(t("msg_activecode_reformatted"));
+        });
+    }
+
+    announceAction(message) {
+        clearTimeout(this.outputAnnouncementTimer);
+        clearTimeout(this.actionStatusTimer);
+        this.actionStatus.textContent = "";
+        this.actionStatusTimer = setTimeout(() => {
+            this.actionStatus.textContent = message;
+        }, 0);
     }
 
     enableAudioTours(ctrlDiv) {
@@ -1561,18 +1813,22 @@ export class ActiveCode extends RunestoneBase {
         checkPartner.id = `${this.divid}_part`;
         ctrlDiv.appendChild(checkPartner);
         var plabel = document.createElement("label");
-        plabel.for = `${this.divid}_part`;
+        plabel.setAttribute("for", checkPartner.id);
         plabel.textContent = "Pair?";
         ctrlDiv.appendChild(plabel);
+        var partnerLabel = document.createElement("label");
+        partnerLabel.textContent = "With:";
+        partnerLabel.style.display = "none";
+        ctrlDiv.appendChild(partnerLabel);
         checkPartner.addEventListener(
             "click",
             function () {
                 if (this.partner) {
                     this.partner = false;
                     partnerTextBox.style.display = "none";
+                    partnerLabel.style.display = "none";
                     this.partner = "";
                     partnerTextBox.value = "";
-                    plabel.textContent = "Pair?";
                 } else {
                     let didAgree = localStorage.getItem("partnerAgree");
                     if (!didAgree) {
@@ -1588,13 +1844,15 @@ export class ActiveCode extends RunestoneBase {
                         }
                     }
                     this.partner = true;
-                    plabel.textContent = "with: ";
+                    partnerLabel.style.display = "";
                     partnerTextBox.style.display = "";
                 }
             }.bind(this),
         );
         var partnerTextBox = document.createElement("input");
         partnerTextBox.type = "text";
+        partnerTextBox.id = `${this.divid}_partner`;
+        partnerLabel.setAttribute("for", partnerTextBox.id);
         ctrlDiv.appendChild(partnerTextBox);
         partnerTextBox.style.display = "none";
         partnerTextBox.addEventListener(
@@ -1732,22 +1990,30 @@ export class ActiveCode extends RunestoneBase {
         // A native range input replaces the old jQuery UI slider.
         var scrubber = document.createElement("input");
         scrubber.type = "range";
-        scrubber.min = 0;
-        scrubber.max = this.history.length - 1;
-        scrubber.value = this.history.length - 1;
+        scrubber.min = 1;
+        scrubber.max = this.history.length;
+        scrubber.value = this.history.length;
         scrubber.step = 1;
         scrubber.classList.add("ac_history_scrubber");
         scrubber.setAttribute("aria-label", "History slider");
         this.timestampP = document.createElement("span");
+        const updateStatus = (pos) => {
+            const status = `${this.timestamps[pos]} - ${pos + 1} of ${
+                this.history.length
+            }`;
+            this.timestampP.textContent = status;
+            // The native range value is a position; expose the matching
+            // visible revision and timestamp as its accessible value.
+            scrubber.setAttribute("aria-valuetext", status);
+        };
         this.slideit = function (ev) {
-            let pos = Number(scrubber.value);
+            let pos = Number(scrubber.value) - 1;
             let submittedCode = this.history[pos];
             let code = this.readdLockedCode(submittedCode);
             this.editor.setValue(code);
             this.setLockedRegions();
             var curVal = this.timestamps[pos];
-            let outOf = this.history.length;
-            this.timestampP.textContent = `${curVal} - ${pos + 1} of ${outOf}`;
+            updateStatus(pos);
             // "input" events fire continuously while dragging; only log once
             // the position settles (the "change" event, or a programmatic
             // call passing null).
@@ -1778,25 +2044,23 @@ export class ActiveCode extends RunestoneBase {
                 }
             }
             i = i - 1;
-            scrubber.value = Math.max(i, 0);
-            let submittedCode = this.history[Number(scrubber.value)];
+            scrubber.value = Math.max(i, 0) + 1;
+            let submittedCode = this.history[Number(scrubber.value) - 1];
             let code = this.readdLockedCode(submittedCode);
             this.editor.setValue(code);
             this.setLockedRegions();
         } else if (pos_last) {
-            scrubber.value = this.history.length - 1;
-            let submittedCode = this.history[Number(scrubber.value)];
+            scrubber.value = this.history.length;
+            let submittedCode = this.history[Number(scrubber.value) - 1];
             let code = this.readdLockedCode(submittedCode);
             this.editor.setValue(code);
             this.setLockedRegions();
         } else {
-            scrubber.value = 0;
+            scrubber.value = 1;
         }
         this.setHighlightLines();
-        let pos = Number(scrubber.value);
-        let outOf = this.history.length;
-        let ts = this.timestamps[pos];
-        this.timestampP.textContent = `${ts} - ${pos + 1} of ${outOf}`;
+        let pos = Number(scrubber.value) - 1;
+        updateStatus(pos);
         this.historyScrubber = scrubber;
         this.runButton.insertAdjacentElement("afterend", scrubberDiv);
     } // end definition of helper
@@ -1810,10 +2074,8 @@ export class ActiveCode extends RunestoneBase {
         this.outDiv = outDiv;
         this.output = document.createElement("pre");
         this.output.id = this.divid + "_stdout";
-        this.output.setAttribute("aria-label", "Output");
-        this.output.setAttribute("aria-live", "polite");
-        this.output.setAttribute("aria-atomic", "true");
-        this.output.setAttribute("role", "log");
+        // The status announces completed output; a live log here duplicates
+        // the first result and adds its "Output" label to later announcements.
         this.output.innerHTML = "";
         this.output.style.maxHeight = "400px";
         this.output.style.overflow = "auto";
@@ -1839,8 +2101,9 @@ export class ActiveCode extends RunestoneBase {
         coachDiv.setAttribute("aria-atomic", "true");
         coachDiv.setAttribute("role", "log");
         coachDiv.style.display = "none";
-        let coachHead = coachDiv.appendChild(document.createElement("h3"));
-        coachHead.textContent = t("msg_activecode_code_coach");
+        coachDiv.appendChild(
+            this.createSubheading(t("msg_activecode_code_coach")),
+        );
         this.outerDiv.appendChild(coachDiv);
         this.codecoach = coachDiv;
 
@@ -1904,7 +2167,7 @@ export class ActiveCode extends RunestoneBase {
         const currentCode = this.editor.getValue();
         let lastCode;
         if (this.historyScrubber) {
-            lastCode = this.history[this.historyScrubber.value];
+            lastCode = this.history[this.historyScrubber.value - 1];
         } else {
             return 0;
         }
@@ -1997,7 +2260,7 @@ export class ActiveCode extends RunestoneBase {
             if (report["version"] == 2) {
                 // new version; would be better to embed this in HTML for the activecode
                 body =
-                    "<h4>Grade Report</h4>" +
+                    "<h3>Grade Report</h3>" +
                     "<p>This question: " +
                     report["grade"];
                 if (report["released"]) {
@@ -2010,7 +2273,7 @@ export class ActiveCode extends RunestoneBase {
                 body += report["comment"] + "</p>";
             } else {
                 body =
-                    "<h4>Grade Report</h4>" +
+                    "<h3>Grade Report</h3>" +
                     "<p>This assignment: " +
                     report["grade"] +
                     "</p>" +
@@ -2025,14 +2288,14 @@ export class ActiveCode extends RunestoneBase {
                     "</p>";
             }
         } else {
-            body = "<h4>The server did not return any grade information</h4>";
+            body = "<h3>The server did not return any grade information</h3>";
         }
         var dialog = document.createElement("dialog");
         dialog.classList.add("ac_grade_summary_dialog");
         dialog.innerHTML = `<div class="modal-content">
                       <div class="modal-header">
                         <button type="button" class="close" aria-label="Close">&times;</button>
-                        <h4 class="modal-title">Assignment Feedback</h4>
+                        <h2 class="modal-title">Assignment Feedback</h2>
                       </div>
                       <div class="modal-body">
                         ${body}
@@ -2123,9 +2386,7 @@ export class ActiveCode extends RunestoneBase {
         // Add the error message
         this.errLastRun = true;
         console.log(err);
-        var errHead = document.createElement("h3");
-        errHead.innerHTML = "Error";
-        this.eContainer.appendChild(errHead);
+        this.eContainer.appendChild(this.createSubheading("Error"));
         var errText = this.eContainer.appendChild(
             document.createElement("pre"),
         );
@@ -2155,10 +2416,10 @@ Yet another is that there is an internal error.  The internal error message is: 
         var to = errString.indexOf(":");
         var errName = errString.substring(0, to);
         errText.innerHTML = errString;
-        this.eContainer.insertAdjacentHTML("beforeend", "<h3>Description</h3>");
+        this.eContainer.appendChild(this.createSubheading("Description"));
         var errDesc = this.eContainer.appendChild(document.createElement("p"));
         errDesc.innerHTML = errorText[errName];
-        this.eContainer.insertAdjacentHTML("beforeend", "<h3>To Fix</h3>");
+        this.eContainer.appendChild(this.createSubheading("To Fix"));
         var errFix = this.eContainer.appendChild(document.createElement("p"));
         errFix.innerHTML = errorText[errName + "Fix"];
         var moreInfo = "../ErrorHelp/" + errName.toLowerCase() + ".html";
@@ -2307,9 +2568,9 @@ Yet another is that there is an internal error.  The internal error message is: 
     // painted while we wait.  See #475.
     inputfun(promptText) {
         return new Promise((resolve) => {
-            // A program can call input() on a run that started with the output
-            // pane still hidden -- never leave the field where it can't be seen.
-            this.outDiv.style.visibility = "visible";
+            // A program can call input() outside the usual run-button path;
+            // never leave the field in the visually collapsed output pane.
+            this.showOutput();
             this.removeInputRow();
 
             let row = document.createElement("span");
@@ -2480,13 +2741,13 @@ Yet another is that there is an internal error.  The internal error message is: 
         let userCode = this.trimLockedCode(this.editor.getValue());
         if (
             this.historyScrubber &&
-            this.history[Number(this.historyScrubber.value)] != userCode
+            this.history[Number(this.historyScrubber.value) - 1] != userCode
         ) {
             saveCode = "True";
             this.history.push(userCode);
             this.timestamps.push(new Date().toLocaleString());
-            this.historyScrubber.max = this.history.length - 1;
-            this.historyScrubber.value = this.history.length - 1;
+            this.historyScrubber.max = this.history.length;
+            this.historyScrubber.value = this.history.length;
             // Unlike the old jQuery UI slider, setting .value does not fire
             // an event, so update the editor and label explicitly.
             this.slideit(null);
@@ -2726,11 +2987,11 @@ Yet another is that there is an internal error.  The internal error message is: 
         Sk.canvas = this.graphics.id; //todo: get rid of this here and in image
         if (!noUI) {
             this.saveCode = await this.manage_scrubber(this.saveCode);
-            this.runButton.disabled = true;
+            if (!this.runInProgress) this.runButton.disabled = true;
             if (this.historyScrubber) {
                 this.historyScrubber.disabled = true;
             }
-            this.outDiv.style.visibility = "visible";
+            this.showOutput();
         }
         try {
             await Sk.misceval.asyncToPromise(
@@ -2766,7 +3027,7 @@ Yet another is that there is an internal error.  The internal error message is: 
                 this.addErrorMessage(err);
             }, 10);
         } finally {
-            this.runButton.disabled = false;
+            if (!this.runInProgress) this.runButton.disabled = false;
             this.firstAfterRun = true;
             if (typeof window.allVisualizers != "undefined") {
                 for (const e of Object.values(window.allVisualizers)) {
