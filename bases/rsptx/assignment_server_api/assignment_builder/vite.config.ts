@@ -13,7 +13,19 @@ export default defineConfig(({ mode }: { mode: string }) => {
     build: {
       outDir: "../react",
       base: basedir,
-      manifest: true
+      manifest: true,
+      rollupOptions: {
+        input: {
+          index: path.resolve(__dirname, "index.html"),
+          editorialHtmlRenderer: path.resolve(__dirname, "src/editorialHtmlRenderer.ts")
+        },
+        output: {
+          entryFileNames: (chunkInfo) =>
+            chunkInfo.name === "editorialHtmlRenderer"
+              ? "assets/editorial-html-renderer.js"
+              : "assets/[name]-[hash].js"
+        }
+      }
     },
     server: {
       proxy: {

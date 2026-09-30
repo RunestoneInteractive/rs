@@ -121,6 +121,7 @@ async def test_manage_exercises_lists_flagged_questions(auth_editor_client):
     assert "editor_test_listed" in resp.text
     question = await fetch_question("editor_test_listed", basecourse=EDITED_BASE_COURSE)
     assert f"/editor/questions/{question.id}/edit" in resp.text
+    assert "/staticAssets/js/admin/manage_exercises.js" in resp.text
     # A question that nobody flagged stays off the page.
     assert "editor_test_unflagged" not in resp.text
 
@@ -167,7 +168,10 @@ async def test_edit_question_page(auth_editor_client):
     assert resp.status_code == 200
     assert "editor_test_edit_page" in resp.text
     assert "Question JSON" in resp.text
-    assert "Rendered HTML" in resp.text
+    assert "HTML is regenerated automatically" in resp.text
+    assert "/assignment/react/assets/editorial-html-renderer.js" in resp.text
+    assert "/staticAssets/js/admin/manage_exercises.js" in resp.text
+    assert 'data-question-type="shortanswer"' in resp.text
     assert "Flagged for review?" in resp.text
     assert "html for editor_test_edit_page" in resp.text
 

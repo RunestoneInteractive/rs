@@ -77,12 +77,31 @@ async function saveQuestionEdit(event) {
         return;
     }
 
+    if (typeof window.regenerateEditorialQuestionHtml !== "function") {
+        showAlert("The Assignment Builder HTML generator is unavailable. Reload and try again.", "error");
+        return;
+    }
+
+    let htmlsrc;
+
+    try {
+        htmlsrc = window.regenerateEditorialQuestionHtml({
+            name: form.dataset.questionName,
+            questionType: form.dataset.questionType,
+            questionJson,
+            currentHtml: document.getElementById("question-current-html").value,
+        });
+    } catch (error) {
+        showAlert(`Could not regenerate question HTML: ${error.message}`, "error");
+        return;
+    }
+
     try {
         const data = await postJSON(
             `/admin/editor/questions/${form.dataset.questionId}/edit`,
             {
                 question_json: questionJson,
-                htmlsrc: form.elements.htmlsrc.value,
+                htmlsrc,
             }
         );
         if (data.detail && data.detail.status === "Success") {

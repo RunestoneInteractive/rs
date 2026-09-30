@@ -1,6 +1,7 @@
 import { Exercise, QuestionJSON } from "@/types/exercises";
 import { safeJsonParse } from "@/utils/json";
 import { generateActiveCodePreview } from "@/utils/preview/activeCode";
+import { generateClickableAreaPreview } from "@/utils/preview/clickableArea";
 import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
 import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
 import { generateIframePreview } from "@/utils/preview/iframePreview";
@@ -8,15 +9,20 @@ import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
 import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
 import { generateParsonsPreview } from "@/utils/preview/parsonsPreview";
 import { generatePollPreview } from "@/utils/preview/poll";
+import { generateSelectQuestionPreview } from "@/utils/preview/selectQuestionPreview";
 import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
+
+type HtmlRegenerationExercise = Pick<
+  Exercise,
+  "htmlsrc" | "name" | "question_json" | "question_type"
+>;
 
 /**
  * Regenerates HTML source for a copied exercise with the new name
  * This ensures that IDs and labels in the HTML match the new exercise name
  */
-export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string => {
+export const regenerateHtmlSrc = (exercise: HtmlRegenerationExercise, newName: string): string => {
   try {
-    console.log(exercise);
     const questionJson: QuestionJSON = exercise.question_json
       ? (safeJsonParse(exercise.question_json) as QuestionJSON)
       : {};
@@ -50,7 +56,6 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
         });
 
       case "activecode":
-        console.log(questionJson);
         return generateActiveCodePreview(
           questionJson.instructions || "",
           questionJson.language || "python",
@@ -63,7 +68,7 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
 
       case "shortanswer":
         return generateShortAnswerPreview(
-          questionJson.questionText || "",
+          questionJson.statement || questionJson.questionText || "",
           questionJson.attachment || false,
           newName
         );
@@ -90,7 +95,7 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
 
       case "poll":
         return generatePollPreview(
-          questionJson.questionText || "",
+          questionJson.statement || questionJson.questionText || "",
           questionJson.optionList?.map((opt) => opt.choice) || [],
           newName,
           questionJson.poll_type
@@ -98,6 +103,26 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
 
       case "iframe":
         return generateIframePreview(questionJson.iframeSrc || "", newName);
+
+      case "clickablearea":
+        return generateClickableAreaPreview(
+          questionJson.questionText || "",
+          newName,
+          questionJson.feedback || "",
+          questionJson.statement || ""
+        );
+
+      case "selectquestion":
+        return generateSelectQuestionPreview({
+          name: newName,
+          questionList: (questionJson.questionList || []).map((questionId) => ({
+            questionId,
+            label: questionJson.questionLabels?.[questionId]
+          })),
+          abExperimentName: questionJson.abExperimentName,
+          toggleOptions: questionJson.toggleOptions,
+          dataLimitBasecourse: questionJson.dataLimitBasecourse
+        });
 
       default:
         // For unsupported types, try to update the name in the existing HTML

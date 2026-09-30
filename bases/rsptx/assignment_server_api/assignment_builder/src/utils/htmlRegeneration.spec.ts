@@ -1,5 +1,6 @@
 import { Exercise } from "@/types/exercises";
 import * as activeCode from "@/utils/preview/activeCode";
+import * as clickableArea from "@/utils/preview/clickableArea";
 import * as dndPreview from "@/utils/preview/dndPreview";
 import * as fillInTheBlank from "@/utils/preview/fillInTheBlank";
 import * as iframePreview from "@/utils/preview/iframePreview";
@@ -7,6 +8,7 @@ import * as matchingPreview from "@/utils/preview/matchingPreview";
 import * as multiChoice from "@/utils/preview/multichoice";
 import * as parsonsPreview from "@/utils/preview/parsonsPreview";
 import * as poll from "@/utils/preview/poll";
+import * as selectQuestion from "@/utils/preview/selectQuestionPreview";
 import * as shortAnswer from "@/utils/preview/shortAnswer";
 
 import { regenerateHtmlSrc } from "./htmlRegeneration";
@@ -214,7 +216,7 @@ describe("regenerateHtmlSrc", () => {
   describe("shortanswer question type", () => {
     it("calls generateShortAnswerPreview with data from question_json", () => {
       const spy = vi.spyOn(shortAnswer, "generateShortAnswerPreview").mockReturnValue("<sa />");
-      const qJson = { questionText: "Explain X", attachment: true };
+      const qJson = { statement: "Explain X", attachment: true };
       const exercise: Exercise = {
         ...baseExercise,
         question_type: "shortanswer",
@@ -223,7 +225,7 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "sa_name");
 
-      expect(spy).toHaveBeenCalledWith("Explain X", true, "sa_name");
+      expect(spy).toHaveBeenCalledWith(qJson.statement, true, "sa_name");
       expect(result).toBe("<sa />");
     });
 
@@ -238,6 +240,19 @@ describe("regenerateHtmlSrc", () => {
       regenerateHtmlSrc(exercise, "sa_name");
 
       expect(spy).toHaveBeenCalledWith("", false, "sa_name");
+    });
+
+    it("supports legacy questionText when statement is absent", () => {
+      const spy = vi.spyOn(shortAnswer, "generateShortAnswerPreview").mockReturnValue("<sa />");
+      const exercise: Exercise = {
+        ...baseExercise,
+        question_type: "shortanswer",
+        question_json: JSON.stringify({ questionText: "Legacy short answer" })
+      };
+
+      regenerateHtmlSrc(exercise, "sa_name");
+
+      expect(spy).toHaveBeenCalledWith("Legacy short answer", false, "sa_name");
     });
   });
 
@@ -321,7 +336,7 @@ describe("regenerateHtmlSrc", () => {
     it("calls generatePollPreview with option choices and new name", () => {
       const spy = vi.spyOn(poll, "generatePollPreview").mockReturnValue("<poll />");
       const qJson = {
-        questionText: "Vote?",
+        statement: "Vote?",
         optionList: [{ choice: "Yes" }, { choice: "No" }],
         poll_type: "options"
       };
@@ -333,7 +348,7 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "poll_name");
 
-      expect(spy).toHaveBeenCalledWith("Vote?", ["Yes", "No"], "poll_name", "options");
+      expect(spy).toHaveBeenCalledWith(qJson.statement, ["Yes", "No"], "poll_name", "options");
       expect(result).toBe("<poll />");
     });
 
@@ -348,6 +363,19 @@ describe("regenerateHtmlSrc", () => {
       regenerateHtmlSrc(exercise, "poll_name");
 
       expect(spy).toHaveBeenCalledWith("", [], "poll_name", undefined);
+    });
+
+    it("supports legacy questionText when statement is absent", () => {
+      const spy = vi.spyOn(poll, "generatePollPreview").mockReturnValue("<poll />");
+      const exercise: Exercise = {
+        ...baseExercise,
+        question_type: "poll",
+        question_json: JSON.stringify({ questionText: "Legacy poll" })
+      };
+
+      regenerateHtmlSrc(exercise, "poll_name");
+
+      expect(spy).toHaveBeenCalledWith("Legacy poll", [], "poll_name", undefined);
     });
   });
 
@@ -381,13 +409,75 @@ describe("regenerateHtmlSrc", () => {
     });
   });
 
+  describe("clickablearea question type", () => {
+    it("calls generateClickableAreaPreview with data from question_json", () => {
+      const spy = vi
+        .spyOn(clickableArea, "generateClickableAreaPreview")
+        .mockReturnValue("<clickable />");
+      const qJson = {
+        questionText: "<span data-correct>answer</span>",
+        statement: "Click the answer",
+        feedback: "Try again"
+      };
+      const exercise: Exercise = {
+        ...baseExercise,
+        question_type: "clickablearea",
+        question_json: JSON.stringify(qJson)
+      };
+
+      const result = regenerateHtmlSrc(exercise, "clickable_name");
+
+      expect(spy).toHaveBeenCalledWith(
+        qJson.questionText,
+        "clickable_name",
+        qJson.feedback,
+        qJson.statement
+      );
+      expect(result).toBe("<clickable />");
+    });
+  });
+
+  describe("selectquestion question type", () => {
+    it("calls generateSelectQuestionPreview with labels from question_json", () => {
+      const spy = vi
+        .spyOn(selectQuestion, "generateSelectQuestionPreview")
+        .mockReturnValue("<selectquestion />");
+      const qJson = {
+        questionList: ["q1", "q2"],
+        questionLabels: { q1: "First" },
+        abExperimentName: "experiment",
+        toggleOptions: ["A", "B"],
+        dataLimitBasecourse: true
+      };
+      const exercise: Exercise = {
+        ...baseExercise,
+        question_type: "selectquestion",
+        question_json: JSON.stringify(qJson)
+      };
+
+      const result = regenerateHtmlSrc(exercise, "select_name");
+
+      expect(spy).toHaveBeenCalledWith({
+        name: "select_name",
+        questionList: [
+          { questionId: "q1", label: "First" },
+          { questionId: "q2", label: undefined }
+        ],
+        abExperimentName: "experiment",
+        toggleOptions: ["A", "B"],
+        dataLimitBasecourse: true
+      });
+      expect(result).toBe("<selectquestion />");
+    });
+  });
+
   describe("unsupported question type (default case)", () => {
     it("replaces id, data-component, data-question, and name attributes in existing HTML", () => {
       const htmlSrc =
         '<div id="old_name" data-component="old_name" data-question="old_name" name="old_name" name=\'old_name\'></div>';
       const exercise: Exercise = {
         ...baseExercise,
-        question_type: "clickablearea",
+        question_type: "unknown",
         question_json: "{}",
         htmlsrc: htmlSrc,
         name: "old_name"
@@ -405,7 +495,7 @@ describe("regenerateHtmlSrc", () => {
       const htmlSrc = '<div id="old_name"></div><span id="old_name"></span>';
       const exercise: Exercise = {
         ...baseExercise,
-        question_type: "selectquestion",
+        question_type: "unknown",
         question_json: "{}",
         htmlsrc: htmlSrc,
         name: "old_name"
@@ -420,7 +510,7 @@ describe("regenerateHtmlSrc", () => {
       const htmlSrc = '<div id="old_name"></div>';
       const exercise: Exercise = {
         ...baseExercise,
-        question_type: "selectquestion",
+        question_type: "unknown",
         question_json: "{}",
         htmlsrc: htmlSrc,
         name: ""
@@ -435,7 +525,7 @@ describe("regenerateHtmlSrc", () => {
       const htmlSrc = '<div id="old_name"></div>';
       const exercise: Exercise = {
         ...baseExercise,
-        question_type: "selectquestion",
+        question_type: "unknown",
         question_json: "{}",
         htmlsrc: htmlSrc,
         name: "old_name"

@@ -9,7 +9,7 @@ Edit Question
 {% include 'common/static_assets.html' %}
 <style>
     .editorial-edit-form textarea {
-        min-height: 20rem;
+        min-height: 32rem;
         width: 100%;
         font-family: monospace;
     }
@@ -37,26 +37,20 @@ Edit Question
     <div id="alert-container"></div>
 
     <form id="editorial-edit-form" class="editorial-edit-form" method="post"
-        data-question-id="{{ question.id }}">
+        data-question-id="{{ question.id }}" data-question-name="{{ question.name }}"
+        data-question-type="{{ question.question_type }}">
         <div class="form-group">
             <label for="question-json">Question JSON</label>
             <p class="help-block">
                 Edit the Assignment Builder representation of this question. The JSON
-                must be an object. The question identifier cannot be changed.
+                must be an object. The question identifier cannot be changed. Rendered
+                HTML is regenerated automatically using the Assignment Builder.
             </p>
             <textarea id="question-json" name="question_json" spellcheck="false"
                 required>{{ formatted_question_json }}</textarea>
         </div>
 
-        <div class="form-group">
-            <label for="question-htmlsrc">Rendered HTML</label>
-            <p class="help-block">
-                Update this HTML to match the JSON so the edited question is visible
-                immediately. Both fields are saved together.
-            </p>
-            <textarea id="question-htmlsrc" name="htmlsrc" spellcheck="false"
-                required>{{ question.htmlsrc }}</textarea>
-        </div>
+        <textarea id="question-current-html" hidden>{{ question.htmlsrc }}</textarea>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -67,5 +61,6 @@ Edit Question
 {% endblock %}
 
 {% block page_js %}
-<script src="/staticAssets/js/admin/manage_exercises.js?v=1257-json-html-edit-1"></script>
+<script type="module" src="/assignment/react/assets/editorial-html-renderer.js"></script>
+<script src="/staticAssets/js/admin/manage_exercises.js"></script>
 {% endblock %}
