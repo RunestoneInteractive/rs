@@ -17,10 +17,11 @@ from pathlib import Path
 import dash
 from celery import Celery
 from celery.signals import worker_process_init
-from dash import CeleryManager, Dash, dcc, html
+from dash import CeleryManager, dcc, html
 
 from rsptx.dash_server_api.auth import require_instructor
 from rsptx.dash_server_api.db import engine
+from rsptx.dash_server_api.shell import RunestoneDash
 
 URL_BASE = "/dash/"
 
@@ -46,13 +47,20 @@ def _fresh_pool(**kwargs):
 # plenty for a slow poll and keeps Redis from filling with old figures.
 background_manager = CeleryManager(celery_app, expire=3600)
 
-app = Dash(
+# The same stylesheets and navbar script as the admin server's _base.html, so
+# the site navbar (see shell.py) looks and behaves the same here.
+app = RunestoneDash(
     __name__,
     url_base_pathname=URL_BASE,
     use_pages=True,
     pages_folder=str(Path(__file__).parent / "pages"),
     background_callback_manager=background_manager,
-    external_stylesheets=["/staticAssets/css/rs-core.css"],
+    external_stylesheets=[
+        "/staticAssets/css/rs-core.css",
+        "/staticAssets/main.css",
+        "https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css",
+    ],
+    external_scripts=["/staticAssets/js/nav.js"],
     title="Runestone Instructor Visualizations",
     update_title=None,
     suppress_callback_exceptions=True,
@@ -62,19 +70,18 @@ app = Dash(
 server = app.server
 server.before_request(lambda: require_instructor(URL_BASE))
 
-app.layout = html.Div(
+app.layout = html.Main(
     [
-        html.Header(
-            html.Nav(
-                [
-                    html.A("Instructor menu", href="/admin/instructor/menu"),
-                    html.Span(" / "),
-                    dcc.Link("Visualizations", href=URL_BASE),
-                ],
-                **{"aria-label": "Breadcrumb"},
-            ),
-            className="dash-header",
+        html.Nav(
+            [
+                html.A("Instructor menu", href="/admin/instructor/menu"),
+                html.Span(" / "),
+                dcc.Link("Visualizations", href=URL_BASE),
+            ],
+            className="dash-breadcrumb",
+            **{"aria-label": "Breadcrumb"},
         ),
-        html.Main(dash.page_container, className="dash-main"),
-    ]
+        dash.page_container,
+    ],
+    className="dash-main",
 )

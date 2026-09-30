@@ -9,6 +9,7 @@ dependencies = [
     "celery[redis]>=5.2.7,<6",
     "dash>=4.4.1,<5",
     "gunicorn>=23.0.0,<24",
+    "jinja2>=3.1.5,<4",
     "pandas>=2.3.0,<4",
     "plotly>=6.0.0,<7",
     "psycopg[binary]>=3.2.0,<4",
@@ -30,6 +31,9 @@ build-backend = "hatchling.build"
 # file selection -- hence bypass-selection.
 [tool.hatch.build.targets.wheel]
 bypass-selection = true
+# rsptx/templates is here only for the navbar partial; the proxy serves the
+# static assets, so they stay out of this wheel.
+exclude = ["**/staticAssets"]
 
 [tool.hatch.build.targets.wheel.hooks.polylith-bricks]
 
@@ -41,3 +45,4 @@ bypass-selection = true
 "../../components/rsptx/data_types" = "rsptx/data_types"
 "../../components/rsptx/logging" = "rsptx/logging"
 "../../components/rsptx/question_outcomes" = "rsptx/question_outcomes"
+"../../components/rsptx/templates" = "rsptx/templates"
