@@ -112,7 +112,9 @@ Page {% endblock %} {% block page_css %} {% include 'common/static_assets.html'
         {% if q.has_question_json %}
         <a
           class="btn btn-primary"
+          role="button"
           href="/admin/editor/questions/{{ q.id }}/edit"
+          style="color: white;"
           >Edit</a
         >
         {% else %}
