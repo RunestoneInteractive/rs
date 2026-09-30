@@ -1071,14 +1071,22 @@ def bake(ctx, config, version):
 
     ctx.invoke(test)
     ctx.invoke(wheel)
+    # Bake targets are named after images, not services: several services
+    # share one image (preflight runs rs-book, dash_worker runs rs-dash), so
+    # bake each image once.
+    baked = set()
     for service in config.ym["services"]:
-        if service == "nginx_dstart_dev" or service == "preflight":
+        if service == "nginx_dstart_dev":
             continue
         if "image" not in config.ym["services"][service]:
             continue
         image = config.ym["services"][service]["image"]
         if "ghcr.io" not in image:
             continue
+        repo = image.split(":")[0]
+        if repo in baked:
+            continue
+        baked.add(repo)
         console.print(f"Baking {image}...")
         command_list = [
             "docker",
@@ -1087,7 +1095,7 @@ def bake(ctx, config, version):
             "--push",
             "--file",
             "docker-bake.hcl",
-            f"rs-{service}",
+            repo.rsplit("/", 1)[-1],
         ]
         ret = subprocess.run(
             command_list,
