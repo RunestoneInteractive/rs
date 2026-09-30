@@ -714,13 +714,12 @@ export default class LiveCode extends ActiveCode {
 
         // Make a pretty results table
         const parent = document.createElement("div");
-        const heading = document.createElement("div");
-        heading.classList.add("unittest-results__heading");
-        heading.innerHTML = t("msg_activecode_unit_test_results");
-        parent.appendChild(heading);
         parent.classList.add("unittest-results");
         const tbl = document.createElement("table");
         tbl.classList.add("ac-feedback");
+        const caption = tbl.createCaption();
+        caption.classList.add("unittest-results__heading");
+        caption.textContent = t("msg_activecode_unit_test_results");
         parent.appendChild(tbl);
         parent.setAttribute("id", `${this.divid}_unit_results`);
         const trh = document.createElement("tr");

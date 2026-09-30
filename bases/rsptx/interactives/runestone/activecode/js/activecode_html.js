@@ -319,6 +319,8 @@ export default class HTMLActiveCode extends ActiveCode {
         div.appendChild(tbl);
         div.appendChild(summary);
         div.style.display = "block";
+        // The iframe reports test results after the run handler returns.
+        this.announceProgramOutput();
     }
 
     createOutput() {

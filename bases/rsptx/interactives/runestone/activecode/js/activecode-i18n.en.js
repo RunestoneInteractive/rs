@@ -131,6 +131,7 @@ load({
         msg_activecode_passed: "Passed",
         msg_activecode_failed: "Failed",
         msg_activecode_unit_test_results: "Unit Test Results",
+        msg_activecode_query_results: "Query results",
         msg_activecode_test_run_error: "Runtime error",
         msg_activecode_test_compile_error: "Compiler error",
         msg_activecode_iotest_results:

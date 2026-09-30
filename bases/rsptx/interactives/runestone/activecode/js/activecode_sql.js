@@ -408,5 +408,11 @@ function createTable(tableData, container, maxHeight) {
 
     hot.updateSettings({ height: actualHeight });
 
+    // Handsontable creates overlay copies for headers. Name only its main
+    // data table, without changing the grid's measured height or layout.
+    const caption = hot.table.createCaption();
+    caption.classList.add("visuallyhidden");
+    caption.textContent = t("msg_activecode_query_results");
+
     return hot;
 }

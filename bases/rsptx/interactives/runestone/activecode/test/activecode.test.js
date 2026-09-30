@@ -379,6 +379,59 @@ describe("output area", () => {
         );
     });
 
+    it("captions and announces complete unit results on every run", async () => {
+        const ac = makeActiveCode();
+        ac.runProg = vi.fn(async () => {
+            ac.output.textContent = "42";
+            ac.errinfo = "success";
+        });
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn(() => {
+            if (ac.outerDiv.querySelector(".unittest-results")) return;
+            const results = document.createElement("div");
+            results.className = "unittest-results";
+            results.innerHTML =
+                "<table><tr><th>Result</th><th>Notes</th></tr>" +
+                "<tr><td>Passed</td><td>answer is 42</td></tr></table>" +
+                "<p>1 of 1 passed</p>";
+            ac.outerDiv.appendChild(results);
+        });
+
+        for (let run = 0; run < 2; run++) {
+            await ac.runButtonHandler();
+            await vi.waitFor(() =>
+                expect(ac.actionStatus.textContent).toBe(
+                    "Program output: 42\n" +
+                        "Unit Test Results: Result, Notes\n" +
+                        "Passed, answer is 42\n1 of 1 passed",
+                ),
+            );
+            const results = ac.outerDiv.querySelector(".unittest-results");
+            expect(results.querySelectorAll("caption")).toHaveLength(1);
+            expect(results.querySelector("caption").textContent).toBe(
+                "Unit Test Results",
+            );
+            expect(results.hasAttribute("aria-live")).toBe(false);
+        }
+    });
+
+    it("keeps autorun unit results silent while still captioning the table", async () => {
+        const ac = makeActiveCode();
+        const results = document.createElement("div");
+        results.className = "unittest-results";
+        results.innerHTML = "<table><tr><td>Passed</td></tr></table>";
+        ac.outerDiv.appendChild(results);
+        ac.suppressRunAnnouncements = true;
+
+        ac.announceProgramOutput();
+        expect(results.querySelector("caption").textContent).toBe(
+            "Unit Test Results",
+        );
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.actionStatus.textContent).toBe("");
+    });
+
     it("keeps page-load autorun silent but announces a later click", async () => {
         const ac = makeActiveCode({ attrs: 'data-autorun="true"' });
         let finishAutorun;

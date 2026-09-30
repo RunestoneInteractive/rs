@@ -795,7 +795,19 @@ export class ActiveCode extends RunestoneBase {
     }
 
     announceProgramOutput() {
-        if (this.output?.tagName === "IFRAME") return;
+        // Keep the visible results table navigable. As with stdout, a
+        // separate pre-mounted status announces it, even on identical runs.
+        // Captions are also needed for autoruns, whose status stays silent.
+        const unitResults = this.outerDiv.querySelectorAll(".unittest-results");
+        for (const results of unitResults) {
+            for (const table of results.querySelectorAll("table")) {
+                if (!table.caption) {
+                    table.createCaption().textContent = t(
+                        "msg_activecode_unit_test_results",
+                    );
+                }
+            }
+        }
         if (this.suppressRunAnnouncements) return;
         // Read the complete rendered output after each run. The separate
         // status announces it, including identical output on later runs,
@@ -803,9 +815,10 @@ export class ActiveCode extends RunestoneBase {
         // SQL errors append their message on a short timer, so capture after
         // those messages have joined the result.
         this.outputAnnouncementTimer = setTimeout(() => {
-            const stdoutText = (
-                this.outDiv.innerText ?? this.outDiv.textContent
-            ).trim();
+            const stdoutText =
+                this.output?.tagName === "IFRAME"
+                    ? ""
+                    : (this.outDiv.innerText ?? this.outDiv.textContent).trim();
             const errorPre =
                 this.errinfo !== "success" &&
                 (this.errDiv?.querySelector("pre") ??
@@ -821,10 +834,41 @@ export class ActiveCode extends RunestoneBase {
             ]
                 .filter(Boolean)
                 .join("\n");
+            const messages = [];
             if (outputText) {
-                this.announceAction(
-                    t("msg_activecode_program_output", outputText),
+                messages.push(t("msg_activecode_program_output", outputText));
+            }
+            for (const results of unitResults) {
+                if (results.style.display === "none") continue;
+                const rows = [...results.querySelectorAll("table tr")].map(
+                    (row) =>
+                        [...row.cells]
+                            .map((cell) =>
+                                (cell.innerText ?? cell.textContent).trim(),
+                            )
+                            .join(", "),
                 );
+                const summary = [...results.children]
+                    .filter(
+                        (child) =>
+                            child.tagName !== "TABLE" &&
+                            !child.classList.contains(
+                                "unittest-results__heading",
+                            ),
+                    )
+                    .map((child) =>
+                        (child.innerText ?? child.textContent).trim(),
+                    )
+                    .filter(Boolean);
+                const resultText = [...rows, ...summary].join("\n").trim();
+                if (resultText) {
+                    messages.push(
+                        `${t("msg_activecode_unit_test_results")}: ${resultText}`,
+                    );
+                }
+            }
+            if (messages.length) {
+                this.announceAction(messages.join("\n"));
             } else if (
                 this.errinfo === "success" &&
                 this.output?.tagName === "PRE"
