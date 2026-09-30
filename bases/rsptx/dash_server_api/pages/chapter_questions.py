@@ -25,7 +25,11 @@ from dash.exceptions import PreventUpdate
 
 from rsptx.dash_server_api.auth import current_context, sign_course, verify_course
 from rsptx.dash_server_api.db import engine
-from rsptx.dash_server_api.figures import outcome_figure, outcome_table
+from rsptx.dash_server_api.figures import (
+    chart_block,
+    outcome_figure,
+    outcome_table,
+)
 from rsptx.question_outcomes import (
     fetch_chapters,
     fetch_subchapter_questions,
@@ -206,14 +210,5 @@ def build_chart(request, course_token):
             f"{students} student{'s' if students != 1 else ''} enrolled",
             className="dash-summary",
         ),
-        dcc.Graph(
-            figure=outcome_figure(outcomes),
-            # Zoom and pan are off, so the mode bar has nothing to offer
-            # and would sit on top of the legend.
-            config={"displayModeBar": False, "responsive": True},
-        ),
-        html.Details(
-            [html.Summary("Show as a table"), outcome_table(outcomes)],
-            className="dash-table-view",
-        ),
+        *chart_block(outcome_figure(outcomes), outcome_table(outcomes)),
     ]

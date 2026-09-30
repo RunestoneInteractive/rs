@@ -4,7 +4,7 @@ Tests for ``classify``, the pure half of question outcome scoring.
 
 import pandas as pd
 
-from rsptx.question_outcomes import QuestionRef, classify
+from rsptx.question_outcomes import QuestionRef, ReadingRef, classify, classify_readings
 
 ATTEMPT_COLS = ["sid", "div_id", "first_correct", "ever_correct"]
 
@@ -32,3 +32,10 @@ def test_classify_ignores_students_not_on_the_roster():
     df = classify(qs, ["s1"], attempts)
     assert df.iloc[0].first_try == 0
     assert df.iloc[0].not_tried == 1
+
+
+def test_classify_readings_needs_at_least_the_page_view():
+    reading = ReadingRef("p", "c", "s", "Page", "thinkcspy", activities_required=0)
+    df = classify_readings([reading], ["a", "b"], {("a", "p"): 1})
+    row = df.iloc[0]
+    assert (row.required, row.completed, row.not_started) == (1, 1, 1)

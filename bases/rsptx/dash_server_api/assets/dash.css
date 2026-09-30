@@ -68,7 +68,7 @@ body {
 }
 
 .dash-outcome-table th[scope="row"],
-.dash-outcome-table td:nth-child(2) {
+.dash-outcome-table .dash-text {
     text-align: left;
 }
 
@@ -91,4 +91,13 @@ body {
     color: var(--rs-color-text-muted, #666);
     font-size: 0.9rem;
     padding-bottom: 0.4rem;
+}
+
+.dash-section {
+    font-size: 1.4rem;
+    margin: 2rem 0 0.25rem;
+}
+
+.dash-policy {
+    color: var(--rs-color-text-muted, #666);
 }

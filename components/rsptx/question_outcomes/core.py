@@ -219,7 +219,7 @@ def fetch_roster(conn: Connection, course_name: str) -> List[str]:
 # a student whose cutoff is NULL keeps every answer.
 
 
-def _student_filter(sids: Sequence[str], cutoffs, params: dict, alias: str) -> str:
+def student_filter(sids: Sequence[str], cutoffs, params: dict, alias: str) -> str:
     """Join clause restricting ``alias`` to the roster and, optionally, cutoffs."""
     params["cut_sids"] = list(sids)
     if cutoffs is None:
@@ -245,7 +245,7 @@ def _fetch_from_answer_table(
     # ``table`` comes from QTYPE_TO_TABLE, never from the request, so it is
     # safe to interpolate.
     params = {"course_name": course_name, "div_ids": sorted(div_ids)}
-    join = _student_filter(sids, cutoffs, params, "a")
+    join = student_filter(sids, cutoffs, params, "a")
     if table in TABLES_WITHOUT_CORRECT:
         verdicts = "null::boolean as first_correct, null::boolean as ever_correct"
     else:
@@ -276,7 +276,7 @@ def _fetch_from_useinfo(
         "div_ids": sorted(div_ids),
         "events": sorted(events),
     }
-    join = _student_filter(sids, cutoffs, params, "u")
+    join = student_filter(sids, cutoffs, params, "u")
     # A video's page load logs a "ready" act, which is not an interaction; only
     # the acts listed in INTERACTION_ACTS count for the events that restrict them.
     act_clauses = []
@@ -506,9 +506,14 @@ def question_outcomes(
     base_course: str,
     questions: Sequence[QuestionRef],
     cutoffs: Optional[Mapping[str, Optional[datetime]]] = None,
+    roster: Optional[List[str]] = None,
 ) -> pd.DataFrame:
-    """Fetch and score a class's attempts at ``questions``; see :func:`classify`."""
-    roster = fetch_roster(conn, course_name)
+    """Fetch and score a class's attempts at ``questions``; see :func:`classify`.
+
+    :param roster: the students to count; fetched when not given.
+    """
+    if roster is None:
+        roster = fetch_roster(conn, course_name)
     attempts = fetch_attempts(
         conn, course_name, base_course, questions, roster, cutoffs
     )
