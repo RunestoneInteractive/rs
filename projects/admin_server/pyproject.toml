@@ -3,7 +3,7 @@ name = "admin_server"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.11,<4"
+requires-python = ">=3.13,<4"
 license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",

@@ -3,7 +3,7 @@ name = "rsmanage"
 version = "2.0.1"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.11,<4"
+requires-python = ">=3.13,<4"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
