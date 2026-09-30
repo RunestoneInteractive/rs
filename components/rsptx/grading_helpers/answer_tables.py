@@ -7,6 +7,9 @@ and the batch re-grader (which rescores them) have to agree: a type missing from
 the map has no answer table, so answers for it silently disappear from the
 grader and are skipped by a re-grade.
 
+The lookup tables themselves live in ``rsptx.data_types.answer_storage``, which
+has no database imports, and are re-exported here.
+
 Most types have an answer table.  Videos and polls do not -- the ``useinfo`` row
 written when the student interacts *is* the submission -- so they are described
 by :data:`QTYPE_TO_INTERACTION_EVENTS` instead, and every reader has to consult
@@ -16,52 +19,15 @@ logging-side half of the same idea.
 
 from typing import Optional, Set, Tuple
 
+from rsptx.data_types.answer_storage import (  # noqa: F401  (re-exported)
+    CODE_TABLE_TYPES,
+    IFRAME_QUESTION_TYPES,
+    QTYPE_TO_INTERACTION_EVENTS,
+    QTYPE_TO_TABLE,
+    UNITTEST_TABLE,
+)
 from rsptx.data_types.autograde import INTERACTION_ONLY_QUESTION_TYPES
 from rsptx.db.models import runestone_component_dict
-
-
-#: ``question_type`` -> answer table name. Several question types share a table:
-#: everything embedded in an iframe that speaks the SPLICE protocol (``splice``,
-#: ``doenet`` and the builder's ``iframe`` type, which emits a
-#: ``data-component="splice"`` wrapper) logs to ``splice_answers``.
-QTYPE_TO_TABLE = {
-    "mchoice": "mchoice_answers",
-    "fillintheblank": "fitb_answers",
-    "parsonsprob": "parsons_answers",
-    "activecode": "unittest_answers",
-    "actex": "unittest_answers",
-    "shortanswer": "shortanswer_answers",
-    "clickablearea": "clickablearea_answers",
-    "dragndrop": "dragndrop_answers",
-    "codelens": "codelens_answers",
-    "matching": "matching_answers",
-    "webwork": "webwork_answers",
-    "hparsons": "microparsons_answers",
-    "microparsons": "microparsons_answers",
-    "splice": "splice_answers",
-    "doenet": "splice_answers",
-    "iframe": "splice_answers",
-}
-
-#: Question types whose work is also (or only) kept in the ``code`` table.
-CODE_TABLE_TYPES = {"activecode", "actex", "codelens"}
-
-#: Question types rendered as a third-party activity inside an iframe. Their
-#: stored "answer" is an opaque provider state blob rather than something a
-#: human can read, so the grader shows the activity itself instead of the text.
-IFRAME_QUESTION_TYPES = {"splice", "doenet", "iframe"}
-
-UNITTEST_TABLE = "unittest_answers"
-
-#: ``question_type`` -> the ``useinfo.event`` values that record a student
-#: interacting with it. These types have no answer table at all: the useinfo row
-#: is the whole submission, so the grader and re-grader read it directly.
-QTYPE_TO_INTERACTION_EVENTS = {
-    "video": {"video"},
-    "youtube": {"video"},
-    "poll": {"poll"},
-    "quizly": {"quizly"},
-}
 
 
 def answer_table_for(question_type: str) -> Tuple[Optional[object], Optional[str]]:

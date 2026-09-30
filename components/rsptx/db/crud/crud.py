@@ -30,6 +30,7 @@ from starlette.requests import Request
 
 # Local application imports
 # -------------------------
+from rsptx.data_types.answer_storage import INTERACTION_ACTS  # noqa: F401
 from rsptx.logging import rslogger
 from ..async_session import async_session
 from rsptx.response_helpers.core import canonical_utcnow
@@ -73,16 +74,9 @@ EVENT2TABLE = {
 # the scorer knows about -- an event in neither is logged and nothing more.
 INTERACTION_ONLY_EVENTS = {"video", "poll", "quizly"}
 
-# The acts that count as a genuine student interaction, keyed by event. ``None``
-# means every act for that event counts. The YouTube player fires
-# ``onStateChange`` with unstarted/cued as soon as it is built, which the video
-# component logs as ``ready``; scoring that would award full credit for merely
-# loading the page, so ``ready`` is deliberately absent.
-INTERACTION_ACTS = {
-    "video": {"play", "pause", "complete"},
-    "poll": None,
-    "quizly": None,
-}
+# The acts that count as a genuine student interaction live in
+# ``rsptx.data_types.answer_storage`` so that readers outside the db layer (the
+# dash server) can share them; see ``INTERACTION_ACTS`` there.
 
 
 def is_interaction_event(event: str, act: str) -> bool:

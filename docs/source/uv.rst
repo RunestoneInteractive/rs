@@ -136,10 +136,13 @@ submissions. It is used by instructors to create and manage assignments
 for their courses. It also provides an API for the book server to
 retrieve assignments and submissions for students.
 
-**dash_server** This is a new, modern take on the original student
-dashboard, but it will scale up to support very large classes. You can
-work on this 100% in python without needing to know css or javascript as
-it uses the Dash / Plotly framework.
+**dash_server** Instructor visualizations built with Dash / Plotly,
+served under ``/dash/``. Each visualization is a page with its own route,
+and slow work runs as Dash background callbacks in a Celery worker (the
+``dash_worker`` service) so large classes do not time out. You can work on
+this 100% in python without needing to know css or javascript. Its data
+comes from the ``question_outcomes`` component, which needs only SQLAlchemy
+and pandas.
 
 **rsmanage** This is a command line program for managing courses, users,
 and many other aspects of the Runestone system. It is mostly useful for

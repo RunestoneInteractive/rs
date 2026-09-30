@@ -49,7 +49,7 @@ ENV RUNESTONE_VERSION=${runestone_version}
 # user's docker-compose.yml is older. BUMP THIS (and COMPOSE_SCHEMA_VERSION in
 # docker-compose.yml) whenever the compose file changes in a way newer images
 # rely on.
-ENV REQUIRED_COMPOSE_SCHEMA_VERSION=1
+ENV REQUIRED_COMPOSE_SCHEMA_VERSION=2
 
 COPY --from=builder /usr/local /usr/local
 COPY ./check_compose_version.sh /usr/local/bin/check_compose_version.sh

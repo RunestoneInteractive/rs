@@ -14,6 +14,7 @@
 # docker buildx bake --file docker-bake.hcl rs-author
 # docker buildx bake --file docker-bake.hcl rs-worker
 # docker buildx bake --file docker-bake.hcl rs-admin
+# docker buildx bake --file docker-bake.hcl rs-dash
 
 # Note that bake does not leave the images locally, it only pushes them to the registry.
 # You still need to pull or build them locally the old way during development.
@@ -33,6 +34,7 @@ group "default" {
     "rs-author",
     "rs-worker",
     "rs-admin",
+    "rs-dash",
   ]
 }
 
@@ -108,6 +110,13 @@ target "rs-admin" {
     dockerfile = "Dockerfile"
     platforms  = ["linux/amd64", "linux/arm64"]
     tags       = ["ghcr.io/runestoneinteractive/rs-admin:latest", "ghcr.io/runestoneinteractive/rs-admin:${VERSION}"]
+    push       = true
+}
+
+target "rs-dash" {
+    context    = "./projects/dash_server"
+    platforms  = ["linux/amd64", "linux/arm64"]
+    tags       = ["ghcr.io/runestoneinteractive/rs-dash:latest", "ghcr.io/runestoneinteractive/rs-dash:${VERSION}"]
     push       = true
 }
 

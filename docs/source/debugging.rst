@@ -31,6 +31,7 @@ When I run ``docker compose up -d`` and then try to access a page, I get a ``502
 * ``assignment`` is the assignment server
 * ``/ns`` - is the book server.  We kept the name `ns` for backward compatibility
 * ``/admin`` - is the admin server.  It handles logging in and registration, the instructor interface, and LTI launches.  It also answers any URL that no other service claims, so if you land somewhere unexpected this is the log to check.
+* ``/dash`` - is the instructor visualization server (``dash``). Its charts are built by the ``dash_worker`` service, so if a page loads but a chart never appears, check the ``dash_worker`` log too.
 * ``/staticAssets`` and the book pages themselves are served by the proxy (caddy or nginx) straight from disk, so a 404 there is usually a missing or unbuilt book rather than a crashed service.
 
 Use the command ``docker compose logs --tail 100 <service>`` to look at the last 200 lines of the log for the name of the service.  If you want to actively follow the log live, you can run ``docker compose logs --tail 100 --follow <service>`` if you want to see all of the log messages for all of the servers you can omit the service name.  The logs are your friend.  They will contain error messages and lots of debugging output that you can match against the code to help you figure out what is wrong.  "Use the source luke"

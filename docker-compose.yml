@@ -130,7 +130,7 @@ services:
       # BUMP THIS whenever docker-compose.yml changes in a way that newer
       # images rely on, and bump REQUIRED_COMPOSE_SCHEMA_VERSION in the images
       # (projects/book_server/Dockerfile) to match.
-      - COMPOSE_SCHEMA_VERSION=1
+      - COMPOSE_SCHEMA_VERSION=2
 
   # The db service provides an easy way for new developers to get up and running quickly.
   # it could also be used for a production system for a single department.  For production
@@ -515,6 +515,70 @@ services:
       redis:
         condition: service_started
         required: true
+
+  # Instructor visualizations (Dash), served under /dash/. Slow charts run as
+  # background callbacks in dash_worker, which listens on its own "dash" Celery
+  # queue so it never takes the author worker's tasks off the shared broker.
+  dash:
+    build:
+      context: ./projects/dash_server
+    image: ghcr.io/runestoneinteractive/rs-dash:${RS_VERSION:-latest}
+    hostname: dash_${HOSTNAME:-dev}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: always
+    ports:
+      - "8116:8116"
+    logging:
+      <<: *json-file-logging
+      options:
+        tag: runestone.dash
+    command: gunicorn rsptx.dash_server_api.core:server --bind 0.0.0.0:8116 --workers ${DASH_WORKERS:-2} --forwarded-allow-ips "*"
+    environment:
+      <<: [*container-env, *db-env, *celery-env]
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      <<: *needs-preflight
+      redis:
+        condition: service_started
+        required: true
+      dash_worker:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
+      db:
+        condition: service_started
+        required: false
+
+  dash_worker:
+    build:
+      context: ./projects/dash_server
+    image: ghcr.io/runestoneinteractive/rs-dash:${RS_VERSION:-latest}
+    hostname: dash_worker_${HOSTNAME:-dev}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: always
+    logging:
+      <<: *json-file-logging
+      options:
+        tag: runestone.dash_worker
+    command: celery -A rsptx.dash_server_api.core:celery_app worker -Q dash --concurrency ${DASH_WORKER_CONCURRENCY:-2}
+    environment:
+      <<: [*container-env, *db-env, *celery-env]
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      <<: *needs-preflight
+      redis:
+        condition: service_started
+        required: true
+      pgbouncer:
+        condition: service_started
+        required: false
+      db:
+        condition: service_started
+        required: false
 
 # Named volumes used by the optional caddy reverse-proxy service to persist
 # TLS certificates and Caddy's own state between restarts.
