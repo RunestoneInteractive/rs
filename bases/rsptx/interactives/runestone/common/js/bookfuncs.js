@@ -970,6 +970,11 @@ function createStudyCluesWidget() {
                 finalFormattedResponse,
                 true,
             );
+            rb.logBookEvent({
+                event: "studyclues_response",
+                act: `coach:${coachMode}:response:${markdownResponse.substring(0, 512)}`,
+                div_id: `${sectionInfo}`,
+            });
         } catch (err) {
             appendStudyCluesMessage(
                 messagesEl,
@@ -1200,7 +1205,7 @@ function placeAdCopy() {
             </div>
          </div>
 `;
-    if (! document.getElementById("adcopy_1")) {
+    if (!document.getElementById("adcopy_1")) {
         document.body.insertAdjacentHTML("beforeend", adTemplate);
     }
     if ((typeof showAd !== "undefined" && showAd) || eBookConfig.course_attrs?.showAd) {
