@@ -99,8 +99,22 @@ async def fetch_deadline_exception(
     """
     Fetch the deadline exception for a given username and assignment_id.
 
+    An exception either names one assignment or, with no ``assignment_id``,
+    applies to every assignment for the student.  The every-assignment kind
+    only ever carries an extension (``duedate``) and a time-limit multiplier
+    (``time_limit``); visibility (``visible``, ``allowLink``) is always granted
+    per assignment, so it is never inherited.
+
+    For an ``assignment_id`` the student's exception for that assignment wins,
+    and any of ``duedate``/``time_limit`` it leaves unset is filled in from
+    their every-assignment exception -- so a visibility-only exception for one
+    assignment does not cancel a standing extension.  The newest row wins
+    within each kind.
+
     :param username: str, the username of the student
-    :param assignment_id: int, the id of the assignment
+    :param assignment_id: int, the id of the assignment; None for just the
+        every-assignment values
+    :param fetch_all: return every row for the student, unmerged
     :return: DeadlineExceptionValidator, the DeadlineExceptionValidator object
     """
     query = (
@@ -122,16 +136,35 @@ async def fetch_deadline_exception(
                 DeadlineExceptionValidator.from_orm(row)
                 for row in res.scalars().fetchall()
             ]
+        specific = None
+        # Rows come newest first, so the first value seen of each kind wins.
         for row in res.scalars().fetchall():
             rslogger.debug(f"{row=}, {assignment_id=}")
-            if assignment_id is not None:
-                if row.assignment_id == assignment_id:
-                    return DeadlineExceptionValidator.from_orm(row)
-            else:
-                if row.time_limit is not None and row.assignment_id is None:
+            if row.assignment_id is None:
+                if time_limit is None:
                     time_limit = row.time_limit
-                if row.duedate is not None and row.assignment_id is None:
+                if deadline is None:
                     deadline = row.duedate
+            elif (
+                assignment_id is not None
+                and row.assignment_id == assignment_id
+                and specific is None
+            ):
+                specific = row
+        if specific is not None:
+            exception = DeadlineExceptionValidator.from_orm(specific)
+            return exception.model_copy(
+                update={
+                    "duedate": (
+                        exception.duedate if exception.duedate is not None else deadline
+                    ),
+                    "time_limit": (
+                        exception.time_limit
+                        if exception.time_limit is not None
+                        else time_limit
+                    ),
+                }
+            )
         return DeadlineExceptionValidator(
             course_id=course_id, sid=username, time_limit=time_limit, duedate=deadline
         )
