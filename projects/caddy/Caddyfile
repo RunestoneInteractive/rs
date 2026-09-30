@@ -161,6 +161,20 @@
 			}
 		}
 
+		# ----- instructor visualizations (Dash) -----
+		# location /dash/ { proxy_pass $dserver$request_uri; }
+		# Dash is mounted at /dash/, so keep the prefix (handle, not
+		# handle_path). A bare /dash would fall through to admin.
+		@dash_bare path /dash
+		redir @dash_bare /dash/ 308
+
+		handle /dash/* {
+			reverse_proxy dash:8116 {
+				header_up X-Forwarded-Proto https
+				header_up X-Original-URI {http.request.orig_uri}
+			}
+		}
+
 		# ----- LTI 1.1 launch -> admin server -----
 		# Historically /runestone/lti was served by web2py; it now lives on the
 		# admin server at /lti1p1. Keep the public URL stable so existing LMS

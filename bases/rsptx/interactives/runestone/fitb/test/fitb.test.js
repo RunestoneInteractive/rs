@@ -227,7 +227,7 @@ describe("feedback announcements", () => {
         fitb.blankArray[0].value = "berlin";
         fitb.checkCurrentAnswer();
 
-        const spoken = fitb.feedBackDiv.querySelector(".fitb-sr-only");
+        const spoken = fitb.feedBackDiv.querySelector(".visuallyhidden");
         expect(spoken.textContent.trim()).toBe("Incorrect:");
         // The check/cross glyph is decoration and must not be read as well.
         const mark = fitb.feedBackDiv.querySelector("[aria-hidden='true']");

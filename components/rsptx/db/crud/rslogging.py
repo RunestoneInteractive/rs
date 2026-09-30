@@ -15,6 +15,7 @@ from ..models import (
 from ..async_session import async_session
 from rsptx.validation import schemas
 from .crud import EVENT2TABLE
+from .course import record_course_access
 
 rslogger = logging.getLogger(__name__)
 
@@ -36,6 +37,13 @@ async def create_useinfo_entry(log_entry: UseinfoValidation) -> UseinfoValidatio
         rslogger.debug(f"session = {session}")
         session.add(new_entry)
     rslogger.debug(new_entry)
+    try:
+        await record_course_access(
+            log_entry.sid, log_entry.course_id, log_entry.timestamp
+        )
+    except Exception as e:
+        # Losing a last-access update is fine; losing the log entry is not.
+        rslogger.error(f"Failed to record course access for {log_entry.sid}: {e}")
     return UseinfoValidation.from_orm(new_entry)
 
 
@@ -131,34 +139,6 @@ async def fetch_code_for_sid(sid: str, course_id: int) -> List[CodeValidator]:
     async with async_session() as session:
         res = await session.execute(query)
         return [CodeValidator.from_orm(x) for x in res.scalars().fetchall()]
-
-
-async def fetch_last_course_access(sid: str, start_date: datetime.datetime) -> dict:
-    """Return the most recent access time for each course a user has visited.
-
-    Looks at the ``useinfo`` table for rows belonging to ``sid`` since
-    ``start_date`` and returns, for each course, the latest timestamp seen.
-    Used to sort a user's course list so recently-used courses appear first.
-
-    :param sid: The student id (username) whose activity to inspect.
-    :type sid: str
-    :param start_date: Only consider activity at or after this time.
-    :type start_date: datetime.datetime
-    :return: A mapping of ``course_id`` (the course name) to the most recent
-             access ``timestamp``.
-    :rtype: dict
-    """
-    query = (
-        select(
-            Useinfo.course_id,
-            func.max(Useinfo.timestamp).label("last_acc"),
-        )
-        .where((Useinfo.sid == sid) & (Useinfo.timestamp > start_date))
-        .group_by(Useinfo.course_id)
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        return {row.course_id: row.last_acc for row in res}
 
 
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:

@@ -150,6 +150,20 @@ include /etc/nginx/default.d/\*.conf;
        proxy_pass http://host.docker.internal:8104;
     }
 
+    # route instructor visualizations (Dash). Like the author server, the
+    # upstream is resolved per request so nginx still starts when the dash
+    # service is not running; the /dash/ prefix is passed through unchanged.
+    location /dash/ {
+       resolver 127.0.0.11 valid=30s; # use the docker dns resolver
+       set $dserver http://dash:8116;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+       proxy_set_header Host $http_host;
+       proxy_set_header X-Original-URI $request_uri;
+       proxy_redirect off;
+       proxy_pass $dserver$request_uri;
+    }
+
     # route author requests
     # This one looks a bit different due to the author server being optional in the compose setup
     # We have to define the proxy endpoint inside the location

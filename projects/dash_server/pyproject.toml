@@ -1,25 +1,48 @@
-[tool.poetry]
+[project]
 name = "dash_server"
-version = "0.1.0"
-description = ""
-authors = ['Brad Miller <bonelake@mac.com>']
-license = ""
+version = "0.2.0"
+description = "Instructor visualizations built with Dash"
+authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
+requires-python = ">=3.11,<4"
+license = "MIT"
+dependencies = [
+    "celery[redis]>=5.2.7,<6",
+    "dash>=4.4.1,<5",
+    "gunicorn>=23.0.0,<24",
+    "jinja2>=3.1.5,<4",
+    "pandas>=2.3.0,<4",
+    "plotly>=6.0.0,<7",
+    "psycopg[binary]>=3.2.0,<4",
+    "psycopg2-binary>=2.9.7,<3",
+    "pydantic-settings>=2.0.3,<3",
+    "pyjwt>=2.10.1,<3",
+    "sqlalchemy>=2.0.0,<3",
+]
 
-packages = [
- {include = "rsptx/dash_server_api", from = "../../bases"}
- ]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-pandas = "^1.5.1"
-dash = {extras = ["celery", "diskcache"], version = "^2.7.0"}
-sqlalchemy = "^1.4.44"
-psycopg2-binary = "^2.9.5"
-dash-bootstrap-components = "^1.2.1"
-gunicorn = "^20.1.0"
-
-[tool.poetry.group.dev.dependencies]
+[dependency-groups]
+dev = []
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-polylith-bricks"]
+build-backend = "hatchling.build"
+
+# Bricks are force-included at build time by the polylith-bricks hook, so
+# there is no package dir named after the project for hatchling's default
+# file selection -- hence bypass-selection.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+# rsptx/templates is here only for the navbar partial; the proxy serves the
+# static assets, so they stay out of this wheel.
+exclude = ["**/staticAssets"]
+
+[tool.hatch.build.targets.wheel.hooks.polylith-bricks]
+
+# Polylith bricks to bundle into the wheel. Keep this list short: the dash
+# server deliberately avoids rsptx.db (and the async stack it imports).
+[tool.polylith.bricks]
+"../../bases/rsptx/dash_server_api" = "rsptx/dash_server_api"
+"../../components/rsptx/configuration" = "rsptx/configuration"
+"../../components/rsptx/data_types" = "rsptx/data_types"
+"../../components/rsptx/logging" = "rsptx/logging"
+"../../components/rsptx/question_outcomes" = "rsptx/question_outcomes"
+"../../components/rsptx/templates" = "rsptx/templates"

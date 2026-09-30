@@ -212,10 +212,9 @@ describe("HParsons block grading", () => {
         });
 
         const liveRegion = hp.feedbackController.feedbackLiveRegion;
-        expect(liveRegion.getAttribute("role")).toBe(
-            "status",
-        );
+        expect(liveRegion.getAttribute("role")).toBe("status");
         expect(liveRegion.getAttribute("aria-live")).toBe("polite");
+        expect(liveRegion.classList.contains("visuallyhidden")).toBe(true);
         expect(liveRegion.getAttribute("aria-atomic")).toBe("true");
 
         await hp.feedbackController.runButtonHandler();
@@ -370,9 +369,7 @@ describe("HParsons keyboard movement surface", () => {
             attrs: 'data-reuse="true"',
         });
         const input = hp.hparsonsInput.querySelector(".hparsons-input");
-        const sourceBlock = input.querySelector(
-            ".drag-area .parsons-block",
-        );
+        const sourceBlock = input.querySelector(".drag-area .parsons-block");
 
         sourceBlock.click();
         sourceBlock.click();
@@ -445,9 +442,9 @@ describe("HParsons wrong-order feedback", () => {
         ).map((block) => block.dataset.index);
         expect(flagged).toEqual(["0"]);
         expect(
-            hp.hparsonsInput.querySelector(
-                ".drop-area .parsons-block.incorrectPosition",
-            ).getAttribute("aria-label"),
+            hp.hparsonsInput
+                .querySelector(".drop-area .parsons-block.incorrectPosition")
+                .getAttribute("aria-label"),
         ).toContain("incorrect");
     });
 });

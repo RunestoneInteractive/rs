@@ -7,6 +7,39 @@ import DoctestTestParser from "./extractUnitResults-Doctest.js";
 import "../../codelens/js/pytutor-embed.bundle.js";
 import { base64encode } from "byte-base64";
 
+const CLASSPATH_FLAGS = ["-cp", "-classpath", "--class-path"];
+
+// The classpath flag named by `arg`, if any: the token alone ("-cp", value in
+// the next token) or with its value packed in ("-cp=path", "-cp path").  A
+// token that merely begins with a flag ("-cpr") is not a classpath option.
+function classpathOption(arg) {
+    return CLASSPATH_FLAGS.find(
+        (f) => arg === f || arg.startsWith(`${f}=`) || arg.startsWith(`${f} `),
+    );
+}
+
+// Append `extra` to the classpath option in `args`, if there is one, rather
+// than adding a second -cp (a later -cp would silently replace the author's).
+// The entries of a classpath live in a single token, so this only ever
+// appends to one string, leaving split and packed spellings as they are.
+function withClasspath(args, extra) {
+    const merged = args.slice();
+    for (let i = merged.length - 1; i >= 0; i--) {
+        const arg = merged[i];
+        const flag = classpathOption(arg);
+        if (!flag) continue;
+        if (arg === flag) {
+            // value is the next token (or missing: then ours is the value)
+            merged[i + 1] = merged[i + 1] ? `${merged[i + 1]}:${extra}` : extra;
+        } else {
+            // value is packed into this token ("-cp=value", "-cp value")
+            merged[i] = `${arg}:${extra}`;
+        }
+        return merged;
+    }
+    return merged.concat(["-cp", extra]);
+}
+
 export default class LiveCode extends ActiveCode {
     constructor(opts) {
         var orig = opts.orig.querySelector("textarea");
@@ -42,11 +75,12 @@ export default class LiveCode extends ActiveCode {
     outputfun(a) {}
     createInputElement() {
         let inputContainer = document.createElement("div");
+        const inputId = this.divid + "_stdin";
         var label = document.createElement("label");
-        label.for = this.divid + "_stdin";
+        label.setAttribute("for", inputId);
         label.textContent = t("msg_activecode_input_prg");
         var input = document.createElement("textarea");
-        input.id = this.divid + "_stdin";
+        input.id = inputId;
         input.classList.add("activecode__stdin");
         input.value = this.stdin;
         input.setAttribute("rows", "3");
@@ -277,7 +311,7 @@ export default class LiveCode extends ActiveCode {
         var files = [];
         for (let f of allFilesRaw) {
             // Need to determine content and filename for each datafile
-            let fileName, content;
+            let fileName, content, isBinary = false;
             // Check on page to see if we have the datafile.
             // Datafiles are looked up via data-filename attribute while additional_files are looked up via id
             let fileElement;
@@ -310,6 +344,9 @@ export default class LiveCode extends ActiveCode {
                 // If the file came from an item with a data-filename attribute, use that as the filename
                 // otherwise this must be an RST item with filename as the id
                 fileName = fileElement.dataset.filename || f.filename;
+                isBinary =
+                    fileElement.dataset.isbinary === "true" ||
+                    fileElement.dataset.isBinary === "true";
             } else {
                 // check to see if file is in db
                 let result = null;
@@ -356,10 +393,19 @@ export default class LiveCode extends ActiveCode {
                     // favor student code if it exists
                     content = studentCode || result.file_contents;
                     fileName = result.filename;
+                    // binary files (e.g. .jar) are stored base64; the is_binary
+                    // flag tells us to hand the content to the server verbatim
+                    isBinary = result.is_binary === true;
                 }
             }
 
-            if (fileName) {
+            if (fileName && isBinary) {
+                files.push({
+                    name: fileName,
+                    content: content,
+                    isBinary: true,
+                });
+            } else if (fileName) {
                 let fileExtension = fileName.substring(
                     fileName.lastIndexOf(".") + 1,
                 );
@@ -425,15 +471,83 @@ export default class LiveCode extends ActiveCode {
                 paramobj.compileargs = [sourcefilename];
             }
         }
+        // "compile-also" marks additional files as part of the build.  What
+        // that means is language-specific and depends on whether the file is
+        // text or binary.  The list carries filenames (PreTeXt emits
+        // @filename), so match them against the collected files to learn each
+        // one's type.  These files are also always part of the file_list, so
+        // they are delivered to the working directory regardless.
+        let buildFileNames = [];
         if (this.compileAlso) {
-            // a comma separated list of files that also need to be compiled
-            // they also all should be part of additional_files
-            // we will stick them onto the end of the compilerargs
-            // so that jobe builds them into the string sent to the compiler
-            // e.g. g++ [other_compile_args] [compileAlso] sourcefile -o executable
-            paramobj.compileargs = paramobj.compileargs || [];
-            let compileList = this.compileAlso.split(",");
-            paramobj.compileargs = paramobj.compileargs.concat(compileList);
+            buildFileNames = this.compileAlso
+                .split(",")
+                .map((n) => n.trim())
+                .filter((n) => n !== "");
+        }
+        let classpathNames = [];
+        let linkFileNames = [];
+        for (let name of buildFileNames) {
+            let f = files.find((file) => file.name === name);
+            let extension = name
+                .substring(name.lastIndexOf(".") + 1)
+                .toLowerCase();
+            if (f && f.isBinary) {
+                if (
+                    (this.language === "java" ||
+                        this.language === "kotlin") &&
+                    ["jar", "zip"].indexOf(extension) > -1
+                ) {
+                    // A compiled archive (.jar/.zip) must be on the classpath
+                    // for the compiler and runtime to see the classes it holds.
+                    classpathNames.push(name);
+                } else if (
+                    (this.language === "c" || this.language === "cpp") &&
+                    ["o", "a"].indexOf(extension) > -1
+                ) {
+                    // Binary link inputs (.o/.a) must come AFTER the source
+                    // file on the command line, so they belong in linkargs,
+                    // not compileargs.  (.so is unsupported: the server cannot
+                    // arrange for the runtime linker to find it.)
+                    linkFileNames.push(name);
+                }
+                // Other languages or file types: nothing to wire; the file is
+                // in the working directory for the program to read.
+            } else {
+                // Text source: compile it together with the main program.
+                paramobj.compileargs = paramobj.compileargs || [];
+                if (paramobj.compileargs.indexOf(name) === -1) {
+                    paramobj.compileargs.push(name);
+                }
+            }
+        }
+        if (classpathNames.length > 0) {
+            let classpath =
+                "." + classpathNames.map((n) => ":" + n).join("");
+            // Jobe replaces interpreterargs wholesale rather than merging,
+            // and the client cannot discover Jobe's defaults, so reproduce
+            // the -X flags Jobe would otherwise supply (mirrors java_task.php).
+            // The -cp must precede the main class, so it rides in
+            // interpreterargs rather than runargs.
+            let interpreterArgs = ["-Xrs", "-Xss8m", "-Xmx200m"];
+            if (paramobj.interpreterargs) {
+                interpreterArgs = paramobj.interpreterargs;
+            }
+            paramobj.interpreterargs = withClasspath(interpreterArgs, classpath);
+            // The default compileargs for Java/Kotlin is empty, so there is
+            // normally nothing to collide with; an author-supplied -cp is
+            // merged into rather than replaced.
+            paramobj.compileargs = withClasspath(
+                paramobj.compileargs || [],
+                classpath,
+            );
+        }
+        if (linkFileNames.length > 0) {
+            paramobj.linkargs = paramobj.linkargs || [];
+            for (let name of linkFileNames) {
+                if (paramobj.linkargs.indexOf(name) === -1) {
+                    paramobj.linkargs.push(name);
+                }
+            }
         }
         let runspec = {
             language_id: this.language,
@@ -483,9 +597,9 @@ export default class LiveCode extends ActiveCode {
     async submitToJobe() {
         var data = this.json_runspec;
         let host = this.JOBE_SERVER + this.resource;
-        this.runButton.disabled = true;
+        if (!this.runInProgress) this.runButton.disabled = true;
         this.outDiv.style.display = "";
-        this.outDiv.style.visibility = "visible";
+        this.showOutput();
         if (this.errDiv) {
             this.errDiv.remove();
         }
@@ -600,13 +714,12 @@ export default class LiveCode extends ActiveCode {
 
         // Make a pretty results table
         const parent = document.createElement("div");
-        const heading = document.createElement("div");
-        heading.classList.add("unittest-results__heading");
-        heading.innerHTML = t("msg_activecode_unit_test_results");
-        parent.appendChild(heading);
         parent.classList.add("unittest-results");
         const tbl = document.createElement("table");
         tbl.classList.add("ac-feedback");
+        const caption = tbl.createCaption();
+        caption.classList.add("unittest-results__heading");
+        caption.textContent = t("msg_activecode_unit_test_results");
         parent.appendChild(tbl);
         parent.setAttribute("id", `${this.divid}_unit_results`);
         const trh = document.createElement("tr");
@@ -728,8 +841,7 @@ export default class LiveCode extends ActiveCode {
         if (this.errDiv) {
             this.errDiv.remove();
         }
-        var errHead = document.createElement("h3");
-        errHead.innerHTML = "Error";
+        const errHead = this.createSubheading("Error");
         var eContainer = this.outerDiv.appendChild(
             document.createElement("div"),
         );
@@ -798,7 +910,9 @@ export default class LiveCode extends ActiveCode {
         // File types being uploaded that come in already in base64 format
         var extensions = ["jar", "zip", "png", "jpg", "jpeg"];
         var contentsb64;
-        if (extensions.indexOf(extension) === -1) {
+        if (file.isBinary) {
+            contentsb64 = contents;
+        } else if (extensions.indexOf(extension) === -1) {
             contentsb64 = base64encode(contents);
         } else {
             contentsb64 = contents;

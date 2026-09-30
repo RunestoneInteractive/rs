@@ -116,7 +116,7 @@ export default class ClickableArea extends RunestoneBase {
         }
         this.instructions = document.createElement("div");
         this.instructions.id = `${this.divid}_instructions`;
-        this.instructions.className = "clickable-sr-only";
+        this.instructions.className = "visuallyhidden";
         this.instructions.textContent =
             "Select all that apply. Press Tab to enter or leave the choices. Use the arrow keys to move between choices, Home or End to move to the first or last choice, and press Enter or the space bar to select or unselect a choice.";
         this.containerDiv.appendChild(this.instructions);
@@ -149,7 +149,7 @@ export default class ClickableArea extends RunestoneBase {
     createLiveRegion() {
         // Off screen region used to announce the running selection count.
         this.liveRegion = document.createElement("div");
-        this.liveRegion.className = "clickable-sr-only";
+        this.liveRegion.className = "visuallyhidden";
         this.liveRegion.setAttribute("aria-live", "polite");
         this.liveRegion.setAttribute("aria-atomic", "true");
         this.containerDiv.appendChild(this.liveRegion);

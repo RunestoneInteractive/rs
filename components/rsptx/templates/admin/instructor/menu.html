@@ -87,25 +87,25 @@ Instructor Dashboard
         </button>
         <div class="accordion-content">
             <div class="accordion-body">
-                <a href="/runestone/dashboard/subchapoverview" class="menu-item" >
-                    <h4>Chapter Activity (Old)</h4>
-                    <p>View student engagement by chapter and subchapter</p>
-                </a>
                 <a href="{{ settings.author_server_url }}/logfiles" class="menu-item">
                     <h4>Download Course Data</h4>
                     <p>Export student activity and assignment data</p>
                 </a>
-                <a href="#" class="menu-item" onclick="showExerciseMetrics()">
-                    <h4>Exercise Metrics</h4>
-                    <p>Analyze student performance on specific exercises</p>
-                </a>
                 <a href="/admin/analytics/subchapoverview" class="menu-item" >
-                    <h4>Chapter Activity (New)</h4>
+                    <h4>Chapter Activity</h4>
                     <p>View student engagement by chapter and subchapter</p>
                 </a>
                 <a href="/admin/analytics/assignmentoverview" class="menu-item">
                     <h4>Assignment Summary Report</h4>
                     <p>View per-question stats and student scores for any assignment</p>
+                </a>
+                <a href="/dash/chapter-questions" class="menu-item">
+                    <h4>📊 Question Outcomes by Page</h4>
+                    <p>See how many students got each question on a page right the first time, eventually, or never</p>
+                </a>
+                <a href="/dash/assignment-questions" class="menu-item">
+                    <h4>📊 Assignment Progress</h4>
+                    <p>See how the class is doing on each exercise and reading in an assignment</p>
                 </a>
             </div>
         </div>

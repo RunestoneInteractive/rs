@@ -190,7 +190,7 @@ export default class SQLActiveCode extends ActiveCode {
         respDiv = document.createElement("div");
         respDiv.id = divid;
         this.outDiv.appendChild(respDiv);
-        this.outDiv.style.visibility = "visible";
+        this.showOutput();
         // Sometimes we don't want to show a bunch of intermediate results
         // like when we are including a bunch of previous statements from
         // other activecodes In that case the showlastsql flag can be set
@@ -203,7 +203,7 @@ export default class SQLActiveCode extends ActiveCode {
             let section = document.createElement("div");
             section.setAttribute("class", "ac_sql_result");
             section.setAttribute("aria-live", "polite");
-            section.setAttribute("aria-atomic", "true");
+            section.setAttribute("aria-atomic", "false");
             section.setAttribute("role", "log");
             respDiv.appendChild(section);
             if (r.status === "success") {
@@ -407,6 +407,12 @@ function createTable(tableData, container, maxHeight) {
     }
 
     hot.updateSettings({ height: actualHeight });
+
+    // Handsontable creates overlay copies for headers. Name only its main
+    // data table, without changing the grid's measured height or layout.
+    const caption = hot.table.createCaption();
+    caption.classList.add("visuallyhidden");
+    caption.textContent = t("msg_activecode_query_results");
 
     return hot;
 }

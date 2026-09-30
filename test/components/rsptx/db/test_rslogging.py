@@ -69,3 +69,69 @@ async def test_create_useinfo_poll_event(init_test_db):
     summary = await fetch_poll_summary(div_id, COURSE)
     acts = [row[0] for row in summary]
     assert "2" in acts or "1" in acts
+
+
+# Course last-access tracking
+# ---------------------------
+
+
+@pytest.fixture
+async def enrolled(test_user, test_course, monkeypatch):
+    """testuser1 enrolled in test_course_1, with an empty throttle cache."""
+    from rsptx.db.crud import course as course_crud
+    from rsptx.db.crud import create_user_course_entry, user_in_course
+
+    monkeypatch.setattr(course_crud, "_last_recorded_access", {})
+    if not await user_in_course(test_user.id, test_course.id):
+        await create_user_course_entry(test_user.id, test_course.id)
+    return test_user
+
+
+async def _last_access(user_id: int):
+    from rsptx.db.crud import fetch_course_access_for_user
+
+    return (await fetch_course_access_for_user(user_id)).get(COURSE)
+
+
+async def test_useinfo_entry_records_course_access(enrolled):
+    """Logging an event stamps the enrollment's last_access."""
+    when = canonical_utcnow() + datetime.timedelta(days=1)
+    entry = _useinfo("test_access_q")
+    entry.timestamp = when
+    await create_useinfo_entry(entry)
+    assert await _last_access(enrolled.id) == when
+
+
+async def test_course_access_is_throttled(enrolled):
+    """Events within the resolution window don't rewrite last_access."""
+    from rsptx.db.crud import record_course_access
+
+    first = canonical_utcnow() + datetime.timedelta(days=2)
+    await record_course_access(USER, COURSE, first)
+    await record_course_access(USER, COURSE, first + datetime.timedelta(minutes=1))
+    assert await _last_access(enrolled.id) == first
+
+    later = first + datetime.timedelta(minutes=6)
+    await record_course_access(USER, COURSE, later)
+    assert await _last_access(enrolled.id) == later
+
+
+async def test_course_access_never_moves_backwards(enrolled, monkeypatch):
+    """An older event (e.g. from another worker) doesn't overwrite a newer one."""
+    from rsptx.db.crud import course as course_crud
+    from rsptx.db.crud import record_course_access
+
+    newest = canonical_utcnow() + datetime.timedelta(days=3)
+    await record_course_access(USER, COURSE, newest)
+    monkeypatch.setattr(course_crud, "_last_recorded_access", {})
+    await record_course_access(USER, COURSE, newest - datetime.timedelta(hours=1))
+    assert await _last_access(enrolled.id) == newest
+
+
+async def test_anonymous_access_is_ignored(enrolled):
+    """Anonymous readers have no enrollment; recording is a quiet no-op."""
+    from rsptx.db.crud import record_course_access
+
+    before = await _last_access(enrolled.id)
+    await record_course_access("Anonymous", COURSE, canonical_utcnow())
+    assert await _last_access(enrolled.id) == before

@@ -1,25 +1,37 @@
-# The Student Dashboard Interface
+# The Instructor Visualization Server
 
-This server is based on plotly and dash.  Which build on top of flask for providing
-some pretty amazing dashboard functionality without having to write html, javascript, or CSS.  It works with Celery in the background so that if you parts of the dashboard that may take some time to compute, it all still works and you don't have to mess around with tasks or task scheduling or what have you.
+Instructor-facing visualizations built with [Dash](https://dash.plotly.com/),
+served under `/dash/`. Each visualization is a page in
+`bases/rsptx/dash_server_api/pages/` with its own route. Anything slow runs as a
+Dash *background callback*, which a Celery worker executes, so a large class
+never ties up a web worker or hits an HTTP timeout.
 
-# To build a wheel
+The data layer is the `rsptx.question_outcomes` component; it depends only on
+SQLAlchemy and pandas, so this server does not carry the async database stack.
+
+Two compose services run from this one image:
+
+* `dash` -- the web process: `gunicorn rsptx.dash_server_api.core:server`
+* `dash_worker` -- the background callbacks:
+  `celery -A rsptx.dash_server_api.core:celery_app worker -Q dash`
+
+The worker listens on its own `dash` queue so it never takes the author
+server's tasks off the shared Redis broker.
+
+Every request must carry the `access_token` cookie from the admin server's
+login, for a user who is an instructor in their current course.
+
+## Build
+
 ```bash
-poetry build-project
+uv run build -s dash -s dash_worker full
 ```
 
-# To build a docker image
+## Run locally without Docker
+
+With Redis on localhost and `DEV_DBURL` set:
 
 ```bash
-docker build -t dashserver .
+uv run gunicorn rsptx.dash_server_api.core:server --bind 0.0.0.0:8116 --reload
+uv run celery -A rsptx.dash_server_api.core:celery_app worker -Q dash
 ```
-
-# To run with gunicorn
-
-#This is useful for rapid development when you don't need other servers as dependencies
-
-```bash
-poetry shell
-gunicorn rsptx.dash_server_api.core:server --reload
-```
-

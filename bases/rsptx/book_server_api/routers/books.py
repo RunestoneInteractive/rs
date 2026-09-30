@@ -586,6 +586,7 @@ async def serve_page(
     if (
         now >= (course_row.term_start_date + week2)
         and course_row.base_course != "csawesome"
+        and course_row.base_course != "csawesome2"
         and course_row.base_course != "mobilecsp"
         and course_row.courselevel != "high"
         and course_row.course_name != course_row.base_course
@@ -620,6 +621,7 @@ async def serve_page(
         pagepath = lib_entry.main_page if lib_entry else "index.html"
 
     headers = {"Cache-Control": "no-cache, no-store, must-revalidate"}
+    course_attrs["showAd"] = show_rs_banner
     context = dict(
         request=request,
         course_name=course_name,

@@ -427,6 +427,10 @@ class SourceCode(Base, IdMixin):
     # Filename to use when saving contents to Jobe or trying to include
     # this file in a program. It is OK to reuse the same filename for different
     filename = Column(String(512))
+    # True when the file contents are a base64 binary payload (e.g. a
+    # compiled .jar or .zip), which must be handed to a server (Jobe) verbatim
+    # rather than treated as source.  Text files leave it False.
+    is_binary = Column(Web2PyBoolean, nullable=False)
     # Owner of the datafile (username of the instructor who created it)
     # Used to enforce uniqueness: filename + owner + course_id should be unique
     owner = Column(String(512), index=True)
@@ -572,9 +576,15 @@ CourseInstructorValidator: TypeAlias = sqlalchemy_to_pydantic(CourseInstructor) 
 # all of their enrollments
 class UserCourse(Base, IdMixin):
     __tablename__ = "user_courses"
+    __table_args__ = (Index("user_courses_user_course_idx", "user_id", "course_id"),)
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
     course_id = Column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    # When this user last did anything in this course (UTC). Kept current by
+    # ``record_course_access`` as activity is logged, at a few minutes'
+    # resolution, so nothing has to scan ``useinfo`` to answer it. NULL means
+    # no activity since the column was added (backfilled for 30 days).
+    last_access = Column(DateTime, nullable=True)
 
 
 # Assignments and Questions

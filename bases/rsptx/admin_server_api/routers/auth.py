@@ -15,10 +15,10 @@ from rsptx.db.crud import (
     create_user_course_entry,
     delete_user_course_entry,
     fetch_course,
+    fetch_course_access_for_user,
     fetch_courses_by_institution,
     fetch_courses_for_user,
     fetch_instructor_courses,
-    fetch_last_course_access,
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
@@ -574,9 +574,12 @@ async def _build_my_courses_context(user: AuthUserValidator):
 
     # Most-recent access time per course in the last 30 days. Used both to flag
     # recently-used courses (with a ⏱️ in the template) and to sort the lists.
-    access_dict = await fetch_last_course_access(
-        user.username, datetime.datetime.now() - timedelta(days=30)
-    )
+    cutoff = canonical_utcnow() - timedelta(days=30)
+    access_dict = {
+        name: when
+        for name, when in (await fetch_course_access_for_user(user.id)).items()
+        if when > cutoff
+    }
 
     open_books = []
     class_courses = []

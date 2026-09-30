@@ -2,7 +2,7 @@
 # Uses UV not Poetry -- conversion to uv in June 2026
 [project]
 name = "rs"
-version = "9.2.2"
+version = "9.3.0"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
 requires-python = ">=3.13,<4"
@@ -29,7 +29,7 @@ dependencies = [
     "celery>=5.2.7,<6",
     "cryptography>=46.0.0,<47",
     "cssselect>= 1.0",
-    "dash[celery, diskcache]>=2.7.0,<3",
+    "dash>=4.4.1,<5",
     "diff-match-patch>= 20110725.1",
     "fastapi>=0.115.0,<0.116",
     "fastapi-login>=1.10.0,<2",
@@ -160,7 +160,7 @@ default-groups = ["dev", "docs"]
 profile = "black"
 
 [tool.ruff]
-exclude = ["bases/rsptx/interactives", "bases/rsptx/dash_server_api", "__pycache__", ".claude", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
+exclude = ["bases/rsptx/interactives", "__pycache__", ".claude", ".git", ".tox", ".venv", "build", "dist", "docs", "htmlcov", "node_modules", "venv"]
 
 [tool.ruff.lint]
 ignore = ["E501"]
@@ -171,7 +171,7 @@ exclude = [
     "dist",
     "docs/_build",
     "bases/rsptx/interactives/runestone",
-    "bases/rsptx/dash_server_api",
+   
     "bases/rsptx/library_server_api",
 ]
 
@@ -190,7 +190,7 @@ testpaths = ["test"]
 norecursedirs = [
     ".claude",
     "bases/rsptx/interactives",
-    "bases/rsptx/dash_server_api",
+   
     ".venv",
     "projects",
     "migrations",
@@ -207,7 +207,6 @@ exclude = '''
 (
         (^|/)(\.claude|\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist|\.venv|projects|migrations)/
     | (^|/)(bases/)?rsptx/interactives/
-    | (^|/)(bases/)?rsptx/dash_server_api/
     | (^|/)node_modules/
 )
 '''
@@ -217,7 +216,6 @@ force-exclude = '''
 (
         (^|/)(\.claude|\.git|\.mypy_cache|\.pytest_cache|\.tox|venv|build|dist|\.venv|projects|migrations)/
     | (^|/)(bases/)?rsptx/interactives/
-    | (^|/)(bases/)?rsptx/dash_server_api/
     | (^|/)node_modules/
 )
 '''
