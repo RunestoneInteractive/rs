@@ -105,6 +105,17 @@ from .course_attrs import (
     get_course_origin,
 )
 
+from .grading_permissions import (
+    AssignmentGradingPolicy,
+    fetch_assignment_grading_policy,
+    fetch_course_grader,
+    fetch_course_graders,
+    grant_course_grader,
+    is_course_grader,
+    revoke_course_grader,
+    set_assignment_blind_grading,
+)
+
 from .book import (
     count_reading_activities,
     create_user_chapter_progress_entry,
@@ -467,6 +478,18 @@ __all__ += [
     "fetch_all_course_attributes",
     "fetch_one_course_attribute",
     "get_course_origin",
+]
+
+# from .grading_permissions
+__all__ += [
+    "AssignmentGradingPolicy",
+    "fetch_assignment_grading_policy",
+    "fetch_course_grader",
+    "fetch_course_graders",
+    "grant_course_grader",
+    "is_course_grader",
+    "revoke_course_grader",
+    "set_assignment_blind_grading",
 ]
 
 # from .group
