@@ -3,6 +3,7 @@
 from typing import NamedTuple, Optional
 
 from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from ..async_session import async_session
 from ..models import Assignment, CourseGrader, CourseGraderValidator
@@ -19,17 +20,20 @@ async def grant_course_grader(course_id: int, user_id: int) -> CourseGraderValid
     """Grant restricted grader membership, returning the existing row if any."""
 
     async with async_session.begin() as session:
+        await session.execute(
+            pg_insert(CourseGrader)
+            .values(course_id=course_id, user_id=user_id)
+            .on_conflict_do_nothing(
+                constraint="uq_course_grader_course_user",
+            )
+        )
         result = await session.execute(
             select(CourseGrader).where(
                 (CourseGrader.course_id == course_id)
                 & (CourseGrader.user_id == user_id)
             )
         )
-        membership = result.scalar_one_or_none()
-        if membership is None:
-            membership = CourseGrader(course_id=course_id, user_id=user_id)
-            session.add(membership)
-            await session.flush()
+        membership = result.scalar_one()
         return CourseGraderValidator.from_orm(membership)
 
 

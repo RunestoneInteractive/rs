@@ -1,5 +1,6 @@
 """Tests for the dormant delegated-grader permission foundation."""
 
+import asyncio
 import datetime
 
 import pytest
@@ -72,6 +73,7 @@ async def grader_permission_world(init_test_db):
     other_course = await fetch_course("overview")
     delegated = await _make_user("blind_grader_delegated")
     scoped = await _make_user("blind_grader_scoped")
+    concurrent = await _make_user("blind_grader_concurrent")
     revocable = await _make_user("blind_grader_revocable")
     instructor = await _make_user("blind_grader_instructor")
     unrelated = await _make_user("blind_grader_unrelated")
@@ -91,6 +93,7 @@ async def grader_permission_world(init_test_db):
         "other_course": other_course,
         "delegated": delegated,
         "scoped": scoped,
+        "concurrent": concurrent,
         "revocable": revocable,
         "instructor": instructor,
         "unrelated": unrelated,
@@ -111,6 +114,20 @@ async def test_course_grader_grant_is_idempotent_and_course_scoped(
     assert not await is_course_grader(world["other_course"].id, world["scoped"].id)
     memberships = await fetch_course_graders(world["course"].id)
     assert sum(row.user_id == world["scoped"].id for row in memberships) == 1
+
+
+async def test_concurrent_course_grader_grants_return_the_same_membership(
+    grader_permission_world,
+):
+    world = grader_permission_world
+    first, second = await asyncio.gather(
+        grant_course_grader(world["course"].id, world["concurrent"].id),
+        grant_course_grader(world["course"].id, world["concurrent"].id),
+    )
+
+    assert first.id == second.id
+    memberships = await fetch_course_graders(world["course"].id)
+    assert sum(row.user_id == world["concurrent"].id for row in memberships) == 1
 
 
 async def test_course_grader_can_be_revoked(grader_permission_world):

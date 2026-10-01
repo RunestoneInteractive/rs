@@ -3,7 +3,7 @@ name = "book_server"
 version = "2.0.1"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.13,<4"
 dependencies = [
     "aioredis>=2.0.0,<3",
     "aiohttp>=3.11.11,<4",
