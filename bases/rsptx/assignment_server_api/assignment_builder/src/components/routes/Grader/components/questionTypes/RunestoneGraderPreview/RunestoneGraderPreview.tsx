@@ -1,27 +1,18 @@
 import { MathJaxWrapper } from "@components/routes/AssignmentBuilder/MathJaxWrapper";
-import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
 import { MathJax } from "better-react-mathjax";
 import React, { useEffect, useReducer, useRef } from "react";
 
 import { renderRunestoneComponent } from "@/componentFuncs";
 
-import styles from "./AnswerViews.module.css";
+import styles from "../AnswerViews.module.css";
 
-interface Props {
-  htmlsrc?: string;
-  divId: string;
-  sid: string;
+import { RunestoneGraderPreviewProps } from "./types";
+import { restoreDataForAttempt } from "./utils";
 
-  attempt?: GraderAnswerHistoryItem | null;
-
-  attemptId?: number | string;
-
-  deadline?: string;
-}
-
-export const RunestoneGraderPreview: React.FC<Props> = ({
+export const RunestoneGraderPreview: React.FC<RunestoneGraderPreviewProps> = ({
   htmlsrc,
   divId,
+  questionType,
   sid,
   attempt,
   deadline
@@ -140,13 +131,18 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
             }
             inst.attempted = true;
           } else if (typeof inst.restoreAnswers === "function") {
-            inst.restoreAnswers({
-              answer: rawAnswer ?? "",
-              correct: attempt!.correct ?? null,
-              percent: attempt!.percent ?? null,
-              timestamp: attempt!.timestamp,
-              sid
-            });
+            const restoreData = restoreDataForAttempt(questionType, attempt!, sid);
+
+            // Older drag-and-drop rows only persisted min_height. Keep the
+            // dimensions derived from the rendered question instead of
+            // replacing them with missing history fields.
+            if (questionType === "dragndrop") {
+              restoreData.min_height ??= inst.minheight;
+              restoreData.drag_width ??= inst.dragwidth;
+              restoreData.drop_width ??= inst.dropwidth;
+            }
+
+            inst.restoreAnswers(restoreData);
             inst.attempted = true;
             if (typeof inst.decorateStatus === "function") {
               inst.decorateStatus();
@@ -164,7 +160,7 @@ export const RunestoneGraderPreview: React.FC<Props> = ({
     };
     // TODO(eslint): Audit the complete dependency list without changing preview restoration behavior.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [htmlsrc, sid, divId, attempt?.id]);
+  }, [htmlsrc, sid, divId, questionType, attempt?.id]);
 
   if (!htmlsrc) {
     return <div className={styles.emptyPreview}>No rendered question preview available.</div>;

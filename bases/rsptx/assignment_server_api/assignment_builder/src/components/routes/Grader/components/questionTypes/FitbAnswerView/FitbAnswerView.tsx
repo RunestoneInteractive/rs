@@ -1,20 +1,14 @@
 import React from "react";
 
-import styles from "./AnswerViews.module.css";
-import { QuestionPreviewHeader } from "./RunestonePreview";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { QuestionPreviewHeader } from "../RunestonePreview";
+import { AnswerRendererProps } from "../types";
+
+import { parseBlankValues } from "./utils";
 
 export const FitbAnswerView: React.FC<AnswerRendererProps> = (props) => {
   const { answer } = props;
-  let values: string[] = [];
-
-  try {
-    const parsed = JSON.parse(answer);
-
-    values = Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
-  } catch {
-    values = answer ? answer.split(",") : [];
-  }
+  const values = parseBlankValues(answer);
 
   return (
     <div>

@@ -1,15 +1,14 @@
 import React from "react";
 
-import styles from "./AnswerViews.module.css";
-import { QuestionPreviewHeader } from "./RunestonePreview";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { QuestionPreviewHeader } from "../RunestonePreview";
+import { AnswerRendererProps } from "../types";
+
+import { parseParsonsBlocks } from "./utils";
 
 export const ParsonsAnswerView: React.FC<AnswerRendererProps> = (props) => {
   const { answer } = props;
-  const blocks = (answer || "")
-    .split("-")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const blocks = parseParsonsBlocks(answer);
 
   return (
     <div>

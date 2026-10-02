@@ -1,12 +1,14 @@
 import React from "react";
 
-import styles from "./AnswerViews.module.css";
-import { QuestionPreviewHeader } from "./RunestonePreview";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { QuestionPreviewHeader } from "../RunestonePreview";
+import { AnswerRendererProps } from "../types";
+
+import { optionIndexToLabel, parseSelectedOptions } from "./utils";
 
 export const McqAnswerView: React.FC<AnswerRendererProps> = (props) => {
   const { answer, correct } = props;
-  const selected = (answer || "").split(",").filter(Boolean);
+  const selected = parseSelectedOptions(answer);
 
   return (
     <div>
@@ -23,7 +25,7 @@ export const McqAnswerView: React.FC<AnswerRendererProps> = (props) => {
                 correct ? styles.optionChipCorrect : styles.optionChipWrong
               }`}
             >
-              Option {s}
+              Option {optionIndexToLabel(s)}
             </span>
           ))
         )}

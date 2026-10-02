@@ -67,6 +67,9 @@ export interface GraderAnswerHistoryItem {
   percent?: number | null;
   timestamp?: string;
   source?: string | null;
+  min_height?: number | null;
+  drag_width?: number | null;
+  drop_width?: number | null;
 }
 
 export interface GraderUseinfoItem {

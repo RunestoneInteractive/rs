@@ -1,7 +1,7 @@
 import React from "react";
 
-import styles from "./AnswerViews.module.css";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { AnswerRendererProps } from "../types";
 
 export const DefaultAnswerView: React.FC<AnswerRendererProps> = ({ answer }) => {
   return (

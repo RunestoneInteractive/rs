@@ -4,8 +4,8 @@ import React, { useEffect, useReducer, useRef } from "react";
 
 import { renderRunestoneComponent } from "@/componentFuncs";
 
-import styles from "./AnswerViews.module.css";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { AnswerRendererProps } from "../types";
 
 export const RunestonePreview: React.FC<{ htmlsrc?: string; divId: string }> = ({
   htmlsrc,

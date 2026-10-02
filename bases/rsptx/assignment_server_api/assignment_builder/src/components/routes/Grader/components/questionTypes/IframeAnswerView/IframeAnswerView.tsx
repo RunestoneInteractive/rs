@@ -1,83 +1,11 @@
 import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
 import React, { useEffect, useMemo, useRef } from "react";
 
-import styles from "./AnswerViews.module.css";
-import { QuestionPreviewHeader } from "./RunestonePreview";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { QuestionPreviewHeader } from "../RunestonePreview";
+import { AnswerRendererProps } from "../types";
 
-/**
- * The part of the Runestone SPLICE wrapper the grader talks to. The wrapper is
- * a singleton created by the Runestone bundle, which the page loads
- * asynchronously, so it may not exist yet when this view mounts.
- */
-interface SpliceGraderApi {
-  registerGraderFrame: (frame: HTMLIFrameElement, state: unknown) => void;
-  unregisterGraderFrame: (frame: HTMLIFrameElement) => void;
-}
-
-const getSpliceWrapper = (): SpliceGraderApi | undefined =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).spliceWrapper;
-
-const WRAPPER_POLL_MS = 100;
-const WRAPPER_TIMEOUT_MS = 5000;
-
-/**
- * Resolve once the Runestone bundle has created the SPLICE wrapper, or with
- * undefined if it never turns up. We wait because the activity asks for its
- * saved state as soon as it loads: registering after that request would leave
- * the instructor looking at an empty activity.
- */
-const waitForSpliceWrapper = (): Promise<SpliceGraderApi | undefined> => {
-  const existing = getSpliceWrapper();
-
-  if (existing) return Promise.resolve(existing);
-
-  return new Promise((resolve) => {
-    let waited = 0;
-    const timer = setInterval(() => {
-      const wrapper = getSpliceWrapper();
-
-      waited += WRAPPER_POLL_MS;
-      if (wrapper || waited >= WRAPPER_TIMEOUT_MS) {
-        clearInterval(timer);
-        resolve(wrapper);
-      }
-    }, WRAPPER_POLL_MS);
-  });
-};
-
-interface FrameSpec {
-  src: string;
-  style: string;
-}
-
-/**
- * Pull the embedded activity out of a question's stored htmlsrc. These question
- * types are a wrapper div around a single iframe, so we rebuild the iframe
- * ourselves rather than injecting the html: that lets us register the frame
- * with the SPLICE wrapper *before* it starts loading.
- */
-export const extractFrameSpec = (htmlsrc?: string): FrameSpec | null => {
-  if (!htmlsrc) return null;
-  const doc = new DOMParser().parseFromString(htmlsrc, "text/html");
-  const frame = doc.querySelector("iframe");
-  const src = frame?.getAttribute("src");
-
-  if (!frame || !src) return null;
-  return { src, style: frame.getAttribute("style") ?? "" };
-};
-
-/** Pretty-print a stored state blob for the raw-data disclosure. */
-const formatState = (state: unknown): string => {
-  if (state == null || state === "") return "(no state recorded)";
-  if (typeof state === "string") return state;
-  try {
-    return JSON.stringify(state, null, 2);
-  } catch {
-    return String(state);
-  }
-};
+import { extractFrameSpec, formatState, getSpliceWrapper, waitForSpliceWrapper } from "./utils";
 
 /**
  * Read-only view for question types that are a third-party activity in an

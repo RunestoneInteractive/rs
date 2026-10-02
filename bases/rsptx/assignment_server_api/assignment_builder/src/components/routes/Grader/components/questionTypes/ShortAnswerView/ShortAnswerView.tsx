@@ -1,8 +1,8 @@
 import React from "react";
 
-import styles from "./AnswerViews.module.css";
-import { QuestionPreviewHeader } from "./RunestonePreview";
-import { AnswerRendererProps } from "./types";
+import styles from "../AnswerViews.module.css";
+import { QuestionPreviewHeader } from "../RunestonePreview";
+import { AnswerRendererProps } from "../types";
 
 export const ShortAnswerView: React.FC<AnswerRendererProps> = (props) => {
   const { answer } = props;
