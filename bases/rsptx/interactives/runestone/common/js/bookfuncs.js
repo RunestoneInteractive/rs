@@ -1183,22 +1183,22 @@ function notifyRunestoneComponents() {
 }
 
 function placeAdCopy() {
-    let adTemplate = `         <div id="adcopy_1" class="adcopy" style="display: none;">
-           <h4>Before you keep reading...</h4>
+    let adTemplate = `         <aside id="adcopy_1" class="adcopy" style="display: none;">
+           <strong>Before you keep reading...</strong>
            <p>Runestone Academy can only continue if we get support from individuals like you. As a student you are well aware of the high cost of textbooks.  Our mission is to provide great books to you for free, but we ask that you consider a $10 donation, more if you can or less if $10 is a burden.
            </p>
            <div class="donatea">
-           <a href="/admin/auth/donate?ad=1" role="button" class="btn btn-info">Support Runestone Academy Today</a>
+           <a href="/admin/auth/donate?ad=1">Support Runestone Academy Today</a>
            </div>
-         </div>         
-         <div id="adcopy_2" class="adcopy" style="display: none;">
-            <h4>Before you keep reading...</h4>
+         </aside>         
+         <aside id="adcopy_2" class="adcopy" style="display: none;">
+            <strong>Before you keep reading...</strong>
             <p>Making great stuff takes time and $$.  If you appreciate the book you are reading now and want to keep quality materials free for other students please consider a donation to Runestone Academy. We ask that you consider a $10 donation, but if you can give more thats great, if $10 is too much for your budget we would be happy with whatever you can afford as a show of support.
             </p>
             <div class="donateb">
-            <a href="/admin/auth/donate?ad=2" role="button" class="btn btn-info">Support Runestone Academy Today</a>
+            <a href="/admin/auth/donate?ad=2">Support Runestone Academy Today</a>
             </div>
-         </div>
+         </aside>
 `;
     if (! document.getElementById("adcopy_1")) {
         document.body.insertAdjacentHTML("beforeend", adTemplate);
