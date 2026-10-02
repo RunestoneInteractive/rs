@@ -130,6 +130,9 @@ class GraderAnswerHistoryItem(BaseModel):
     percent: Optional[float] = None
     timestamp: Optional[str] = None
     source: Optional[str] = None
+    min_height: Optional[int] = None
+    drag_width: Optional[int] = None
+    drop_width: Optional[int] = None
 
 
 class GradeUpdatePayload(BaseModel):
@@ -715,6 +718,9 @@ async def get_student_answer_history(
                             if hasattr(a, "source")
                             else None
                         ),
+                        min_height=getattr(a, "min_height", None),
+                        drag_width=getattr(a, "drag_width", None),
+                        drop_width=getattr(a, "drop_width", None),
                     )
                 )
 

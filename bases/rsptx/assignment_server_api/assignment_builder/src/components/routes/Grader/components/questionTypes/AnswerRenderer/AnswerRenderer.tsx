@@ -1,39 +1,18 @@
 import React from "react";
 
-import { ActiveCodeAnswerView } from "./ActiveCodeAnswerView";
-import styles from "./AnswerViews.module.css";
-import { DefaultAnswerView } from "./DefaultAnswerView";
-import { FitbAnswerView } from "./FitbAnswerView";
-import { IframeAnswerView } from "./IframeAnswerView";
-import { McqAnswerView } from "./McqAnswerView";
-import { ParsonsAnswerView } from "./ParsonsAnswerView";
-import { RunestoneGraderPreview } from "./RunestoneGraderPreview";
-import { ShortAnswerView } from "./ShortAnswerView";
-import { AnswerRendererProps } from "./types";
+import { ActiveCodeAnswerView } from "../ActiveCodeAnswerView";
+import styles from "../AnswerViews.module.css";
+import { AssociationAnswerView } from "../AssociationAnswerView";
+import { DefaultAnswerView } from "../DefaultAnswerView";
+import { FitbAnswerView } from "../FitbAnswerView";
+import { IframeAnswerView } from "../IframeAnswerView";
+import { McqAnswerView } from "../McqAnswerView";
+import { ParsonsAnswerView } from "../ParsonsAnswerView";
+import { RunestoneGraderPreview } from "../RunestoneGraderPreview";
+import { ShortAnswerView } from "../ShortAnswerView";
+import { AnswerRendererProps } from "../types";
 
-const RUNESTONE_GRADER_TYPES = new Set([
-  "mchoice",
-  "clickablearea",
-  "dragndrop",
-  "fillintheblank",
-  "shortanswer",
-  "parsonsprob",
-  "matching",
-  "activecode",
-  "actex",
-  "codelens",
-  "hparsons",
-  "lp",
-  "webwork",
-  "selectquestion"
-]);
-
-/**
- * Question types that are a third-party activity embedded in an iframe. They
- * have no Runestone component to re-render, so they get their own view rather
- * than the component preview or a dump of their opaque state blob.
- */
-const IFRAME_TYPES = new Set(["splice", "doenet", "iframe"]);
+import { IFRAME_TYPES, RUNESTONE_GRADER_TYPES } from "./constants";
 
 export const AnswerRenderer: React.FC<AnswerRendererProps & { questionType: string }> = (props) => {
   const { questionType, htmlsrc, questionName, sid, history, activeAttemptIndex } = props;
@@ -57,6 +36,7 @@ export const AnswerRenderer: React.FC<AnswerRendererProps & { questionType: stri
           key={`${sid}-${attempt?.id ?? "latest"}`}
           htmlsrc={htmlsrc}
           divId={questionName}
+          questionType={questionType}
           sid={sid}
           attempt={attempt}
           attemptId={attempt?.id ?? "latest"}
@@ -64,13 +44,27 @@ export const AnswerRenderer: React.FC<AnswerRendererProps & { questionType: stri
       </section>
     ) : null;
 
-  if (interactive) return <>{interactive}</>;
+  if (interactive) {
+    if (questionType === "matching" || questionType === "dragndrop") {
+      return (
+        <>
+          {interactive}
+          <AssociationAnswerView {...props} kind={questionType} showQuestionHeader={false} />
+        </>
+      );
+    }
+
+    return <>{interactive}</>;
+  }
 
   switch (questionType) {
     case "mchoice":
     case "clickablearea":
-    case "dragndrop":
       return <McqAnswerView {...props} />;
+    case "dragndrop":
+      return <AssociationAnswerView {...props} kind="dragndrop" />;
+    case "matching":
+      return <AssociationAnswerView {...props} kind="matching" />;
     case "fillintheblank":
       return <FitbAnswerView {...props} />;
     case "shortanswer":

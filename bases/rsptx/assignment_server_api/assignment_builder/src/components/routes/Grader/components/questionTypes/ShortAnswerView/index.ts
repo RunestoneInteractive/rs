@@ -1,0 +1,1 @@
+export { ShortAnswerView } from "./ShortAnswerView";
