@@ -1,7 +1,5 @@
 import "@testing-library/jest-dom";
 
-import { JSDOM } from "jsdom";
-
 /**
  * Provide Web Storage when the runtime does not.
  *
@@ -19,7 +17,8 @@ import { JSDOM } from "jsdom";
  * check, because the brand is carried by the jsdom module rather than by the
  * individual window.
  *
- * A fresh JSDOM per setup run means each test file starts with empty storage.
+ * Reading the storage from jsdom's `window` preserves the genuine `Storage`
+ * implementation while replacing only Node's conflicting global accessor.
  * Remove this once vitest populates the jsdom value over Node's.
  */
 const installStorage = () => {
@@ -30,14 +29,11 @@ const installStorage = () => {
     return;
   }
 
-  // Storage needs a non-opaque origin, hence the explicit url.
-  const donor = new JSDOM("", { url: "http://localhost/" }).window;
-
   for (const name of missing) {
     Object.defineProperty(globalThis, name, {
       configurable: true,
       writable: true,
-      value: donor[name]
+      value: window[name]
     });
   }
 };

@@ -31,5 +31,5 @@
     "vite.config.ts",
     "playwright.config.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "coverage", "e2e/playwright-report", "e2e/test-results"]
 }

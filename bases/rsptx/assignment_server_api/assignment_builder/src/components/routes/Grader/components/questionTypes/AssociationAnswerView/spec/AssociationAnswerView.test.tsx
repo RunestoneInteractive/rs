@@ -1,11 +1,8 @@
-import { describe, expect, it } from "vitest";
-
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
 
-import { AnswerRendererProps } from "../types";
-
-import { AssociationAnswerView } from "./AssociationAnswerView";
-import { formatAssociationAnswer, parseAssociations } from "./utils";
+import { AnswerRendererProps } from "../../types";
+import { AssociationAnswerView } from "../AssociationAnswerView";
+import { formatAssociationAnswer, parseAssociations } from "../utils";
 
 const baseProps = (overrides: Partial<AnswerRendererProps> = {}): AnswerRendererProps => ({
   answer: "",

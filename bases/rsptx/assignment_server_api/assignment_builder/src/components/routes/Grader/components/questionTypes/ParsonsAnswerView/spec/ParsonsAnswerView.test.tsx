@@ -1,10 +1,7 @@
-import { describe, expect, it } from "vitest";
-
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
 
-import { AnswerRendererProps } from "../types";
-
-import { ParsonsAnswerView } from "./ParsonsAnswerView";
+import { AnswerRendererProps } from "../../types";
+import { ParsonsAnswerView } from "../ParsonsAnswerView";
 const baseProps = (answer: string): AnswerRendererProps => ({
   answer,
   history: [],
