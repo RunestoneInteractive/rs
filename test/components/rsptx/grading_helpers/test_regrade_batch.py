@@ -80,6 +80,23 @@ async def test_unchanged_student_still_recomputes_total():
     assert recompute.await_args.args[0].username == "student1"
 
 
+async def test_regrade_batch_forces_lti_push():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    ro, fu, rc = _patch_batch(unchanged)
+    with ro, fu, rc, patch.object(regrade, "_push_total_changes", AsyncMock()) as push:
+        await regrade_batch(
+            _course(),
+            ["student1"],
+            [_question()],
+            _assignment(),
+            RegradeOptions(),
+        )
+
+    assert push.await_args.kwargs["force"] is True
+
+
 async def test_dry_run_does_not_recompute_totals():
     unchanged = RegradeDiffItem(
         sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
@@ -334,7 +351,10 @@ async def test_recompute_totals_for_forwards_instructor_triggered_flag():
             _course(), _assignment(), ["student1"], instructor_triggered=True
         )
 
-    assert lti_mock.await_args.kwargs == {"instructor_triggered": True}
+    assert lti_mock.await_args.kwargs == {
+        "force": False,
+        "instructor_triggered": True,
+    }
 
 
 async def test_only_existing_skips_students_with_no_grade_row():
@@ -399,6 +419,11 @@ async def _push(changes, usernames, **kwargs):
             _course(), _assignment(), changes, user_map, **kwargs
         )
     return push
+
+
+async def test_force_is_forwarded_to_lti_sender():
+    push = await _push([_change("student1", 0, 5)], ["student1"], force=True)
+    assert push.await_args.kwargs["force"] is True
 
 
 async def test_unchanged_totals_are_not_pushed_to_the_lms():

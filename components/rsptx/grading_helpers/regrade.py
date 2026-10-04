@@ -548,6 +548,7 @@ async def _push_total_changes(
     user_map: Dict[str, AuthUserValidator],
     push_unchanged: bool = False,
     instructor_triggered: bool = False,
+    force: bool = False,
 ) -> None:
     """Send the totals that moved to the course's LMS, in one batch.
 
@@ -583,6 +584,7 @@ async def _push_total_changes(
             assignment,
             course.id,
             updates,
+            force=force,
             instructor_triggered=instructor_triggered,
         )
 
@@ -734,6 +736,7 @@ async def regrade_batch(
             assignment,
             changes,
             user_map,
+            force=True,
             instructor_triggered=instructor_triggered,
         )
 
