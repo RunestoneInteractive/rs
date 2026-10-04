@@ -97,6 +97,62 @@ async def test_regrade_batch_forces_lti_push():
     assert push.await_args.kwargs["force"] is True
 
 
+async def test_regrade_resend_option_pushes_unchanged_total():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    ro, fu, rc = _patch_batch(unchanged)
+    with (
+        ro,
+        fu,
+        rc as recompute,
+        patch.object(regrade, "attempt_lti_score_updates", AsyncMock()) as push,
+    ):
+        recompute.return_value = regrade.TotalChange(
+            sid="student1", old_score=3.0, new_score=3.0
+        )
+        report = await regrade_batch(
+            _course(),
+            ["student1"],
+            [_question()],
+            _assignment(),
+            RegradeOptions(
+                recompute_totals=False,
+                resend_all_scores_via_lti=True,
+            ),
+        )
+
+    assert report.changed == 0
+    push.assert_awaited_once()
+    assert push.await_args.args[2] == [(1, 3.0)]
+    assert push.await_args.kwargs["force"] is True
+
+
+async def test_regrade_default_does_not_resend_unchanged_total():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    ro, fu, rc = _patch_batch(unchanged)
+    with (
+        ro,
+        fu,
+        rc as recompute,
+        patch.object(regrade, "attempt_lti_score_updates", AsyncMock()) as push,
+    ):
+        recompute.return_value = regrade.TotalChange(
+            sid="student1", old_score=3.0, new_score=3.0
+        )
+        await regrade_batch(
+            _course(),
+            ["student1"],
+            [_question()],
+            _assignment(),
+            RegradeOptions(),
+        )
+
+    push.assert_not_awaited()
+
+
 async def test_dry_run_does_not_recompute_totals():
     unchanged = RegradeDiffItem(
         sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
@@ -108,7 +164,7 @@ async def test_dry_run_does_not_recompute_totals():
             ["student1"],
             [_question()],
             _assignment(),
-            RegradeOptions(),
+            RegradeOptions(resend_all_scores_via_lti=True),
             dry_run=True,
         )
     recompute.assert_not_called()

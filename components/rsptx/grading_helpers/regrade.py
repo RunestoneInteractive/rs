@@ -49,6 +49,7 @@ class RegradeOptions(BaseModel):
     overwrite_manual: bool = False
     enforce_deadline: bool = True
     recompute_totals: bool = True
+    resend_all_scores_via_lti: bool = False
     which_to_grade_override: Optional[str] = None
 
 
@@ -685,6 +686,7 @@ async def regrade_batch(
     ``questions`` is a list of ``(QuestionValidator, AssignmentQuestion)`` tuples.
     When ``dry_run`` is true nothing is written to the database; the returned
     report contains the before/after diff so the UI can preview the operation.
+    Resending via LTI recomputes totals, then pushes unchanged totals too.
     """
     report = RegradeReport()
     # Recompute the total for every student we regraded, not just the ones whose
@@ -716,7 +718,11 @@ async def regrade_batch(
             elif item.new_score != item.old_score:
                 report.changed += 1
 
-    if not dry_run and options.recompute_totals and processed_sids:
+    if (
+        not dry_run
+        and (options.recompute_totals or options.resend_all_scores_via_lti)
+        and processed_sids
+    ):
         users = await fetch_users_for_course(course.course_name)
         user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
         changes: List[TotalChange] = []
@@ -736,6 +742,7 @@ async def regrade_batch(
             assignment,
             changes,
             user_map,
+            push_unchanged=options.resend_all_scores_via_lti,
             force=True,
             instructor_triggered=instructor_triggered,
         )

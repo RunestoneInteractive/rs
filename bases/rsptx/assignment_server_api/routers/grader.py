@@ -930,6 +930,7 @@ class RegradeRequest(BaseModel):
     overwrite_manual: bool = False
     enforce_deadline: bool = True
     recompute_totals: bool = True
+    resend_all_scores_via_lti: bool = False
     which_to_grade_override: Optional[str] = None
 
 
@@ -977,6 +978,7 @@ async def regrade_preview(
         overwrite_manual=payload.overwrite_manual,
         enforce_deadline=payload.enforce_deadline,
         recompute_totals=payload.recompute_totals,
+        resend_all_scores_via_lti=payload.resend_all_scores_via_lti,
         which_to_grade_override=payload.which_to_grade_override,
     )
     report = await regrade_batch(
@@ -1008,6 +1010,7 @@ async def regrade_run(
         overwrite_manual=payload.overwrite_manual,
         enforce_deadline=payload.enforce_deadline,
         recompute_totals=payload.recompute_totals,
+        resend_all_scores_via_lti=payload.resend_all_scores_via_lti,
         which_to_grade_override=payload.which_to_grade_override,
     )
     report = await regrade_batch(
