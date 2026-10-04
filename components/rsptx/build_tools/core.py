@@ -21,11 +21,13 @@ from pathlib import Path
 import logging
 from io import StringIO
 from shutil import copytree
+from turtle import title
 
 # Third Party
 # -----------
 import click
 import lxml.etree as ET
+from numpy.strings import title
 import pretext
 from pretext.utils import is_earlier_version
 import pretext.project
@@ -736,11 +738,14 @@ def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name
         f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
     )
 
+    title_elem = chapter.find("./title")
+    titletext = "".join(title_elem.itertext()).strip() if title_elem is not None else ""
+
     ins = (
         db_context["chapters"]
         .insert()
         .values(
-            chapter_name=f"{chapter.find('./title').text}",
+            chapter_name=f"{titletext}",
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
             chapter_num=cnum,
@@ -814,7 +819,10 @@ def _process_single_subchapter(
         rslogger.error(f"Missing id tag in subchapter {subchapter}")
 
     # Build subchapter title
-    titletext = subchapter.find("./title").text
+    title_elem = subchapter.find("./title")
+    titletext = "".join(title_elem.itertext()).strip() if title_elem is not None else ""
+
+    print(f"subchapter title: {titletext}")
     if not titletext:
         rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
         titletext = " ".join(
