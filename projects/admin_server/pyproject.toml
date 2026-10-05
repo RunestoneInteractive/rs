@@ -3,7 +3,7 @@ name = "admin_server"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.11,<4"
+requires-python = ">=3.13,<4"
 license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -15,7 +15,7 @@ classifiers = [
 dependencies = [
     "aiohttp>=3.11.11,<4",
     "aioredis>=2.0.0,<3",
-    "asyncpg>=0.30.0,<0.31",
+    "asyncpg>=0.31",
     "fastapi>=0.115.7,<0.116",
     "fastapi-login>=1.9.0,<2",
     "greenlet>=3.2.2,<4",
