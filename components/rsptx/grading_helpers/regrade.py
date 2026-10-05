@@ -743,7 +743,7 @@ async def regrade_batch(
             changes,
             user_map,
             push_unchanged=options.resend_all_scores_via_lti,
-            force=True,
+            force=instructor_triggered or options.resend_all_scores_via_lti,
             instructor_triggered=instructor_triggered,
         )
 
