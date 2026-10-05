@@ -1497,16 +1497,21 @@ async def publish_message(
         r.publish("peermessages", json.dumps(data))
 
         # Store phase-change control messages so reconnecting students can catch up
+        # countDownAndStop is stored so a student who reconnects after a vote
+        # ends sees voting closed instead of the stale enableVote reopening it.
         if data.get("type") == "control" and data.get("message") in (
             "enableVote",
             "enableNext",
             "enableChat",
             "enableFaceChat",
+            "countDownAndStop",
         ):
             r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
-            if data.get("message") in ("enableVote", "enableNext") and data.get(
-                "assignment_id"
-            ):
+            if data.get("message") in (
+                "enableVote",
+                "enableNext",
+                "countDownAndStop",
+            ) and data.get("assignment_id"):
                 r.delete(f"assignment_{data['assignment_id']}_state")
 
         # Track message count for text messages

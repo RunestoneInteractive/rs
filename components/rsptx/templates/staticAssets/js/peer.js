@@ -149,6 +149,9 @@ function renderMessage({ from, text, direction }) {
 
 var ws = null;
 var alertSet = false;
+// The interval id of a running countDownAndStop countdown, or null.  Used to
+// ignore a second stop message instead of starting a second countdown.
+var countdownTimer = null;
 
 // Websocket reconnect state.  The server closes the handshake before accepting
 // it when the access_token cookie is missing or its JWT has expired, so such a
@@ -319,6 +322,23 @@ function connect(event) {
                 case "countDownAndStop":
                     console.log("Got countDownAndStop message");
                     messarea = document.getElementById("imessage");
+                    if (mess._catchup) {
+                        // Voting already ended while we were disconnected: just make
+                        // sure it stays closed.  Don't re-run the countdown, since
+                        // that would log the student's answer again.
+                        voteStopped = true;
+                        if (!eBookConfig.isInstructor) {
+                            let qq = window.componentMap[currentQuestion];
+                            qq.submitButton.disabled = true;
+                            qq.disableInteraction();
+                            messarea.innerHTML = `<h3>Voting is closed.</h3>`;
+                        }
+                        break;
+                    }
+                    if (countdownTimer !== null) {
+                        console.log("Ignoring duplicate countDownAndStop; countdown already running");
+                        break;
+                    }
                     let count = 5;
                     let itimerid = setInterval(async function () {
                         console.log(`count is ${count}`);
@@ -329,14 +349,19 @@ function connect(event) {
                         } else {
                             console.log("Timer expired. Clean up and get ready to chat!");
                             voteStopped = true;
+                            countdownTimer = null;
+                            clearInterval(itimerid);
                             messarea.style.color = "black";
-                            // if the student did not press the button in vote 1
                             if (!eBookConfig.isInstructor) {
-                                // If the student has not voted yet, disable the submit button
+                                // Record the answer of a student who selected one but
+                                // never pressed Submit during this vote.  Students who
+                                // did submit were already logged by the button.
                                 let qq = window.componentMap[currentQuestion];
-                                if (qq.didSubmit == false && qq.isAnswered == true) {
+                                if (!qq.didSubmit && qq.isAnswered) {
                                     qq.checkCurrentAnswer();
-                                    qq.logCurrentAnswer();
+                                    if (qq.givenArray.length > 0) {
+                                        qq.logCurrentAnswer();
+                                    }
                                 }
                             } else {
                                 // instructors only
@@ -372,14 +397,9 @@ function connect(event) {
 
                             if (!eBookConfig.isInstructor) {
                                 let qq = window.componentMap[currentQuestion];
-                                if (getVoteNum() > 1) {
-                                    qq.checkCurrentAnswer();
-                                    qq.logCurrentAnswer();
-                                }
                                 qq.submitButton.disabled = true;
                                 qq.disableInteraction();
                             }
-                            clearInterval(itimerid);
                             // Get the current answer and insert it into the
                             let ansSlot = document.getElementById("first_answer");
                             const ordA = 65;
@@ -399,10 +419,15 @@ function connect(event) {
                             }
                         }
                     }, 1000);
+                    countdownTimer = itimerid;
                     break;
                 case "enableVote":
                     console.log("Got enableVote message");
                     voteStopped = false;
+                    // Start the new vote with a clean slate so the end-of-vote
+                    // logging only reflects what happened in this vote.
+                    window.componentMap[currentQuestion].didSubmit = false;
+                    window.componentMap[currentQuestion].isAnswered = false;
                     window.componentMap[currentQuestion].submitButton.disabled = false;
                     window.componentMap[currentQuestion].submitButton.innerHTML =
                         "Submit";
@@ -639,6 +664,8 @@ function warnAndStopVote(event) {
         message: "countDownAndStop",
         broadcast: true,
         course_name: eBookConfig.course,
+        assignment_id: typeof assignment_id !== "undefined" ? assignment_id : null,
+        div_id: currentQuestion,
     };
 
     publishMessage(mess);

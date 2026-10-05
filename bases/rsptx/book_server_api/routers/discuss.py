@@ -262,7 +262,17 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                     )
                     continue
                 if data["broadcast"]:
-                    await manager.broadcast(data)
+                    # Every connection runs this loop with its own subscriber, so
+                    # each loop forwards a broadcast to its own socket only.
+                    # Calling manager.broadcast here delivered every broadcast to
+                    # each client once per connection in this process, which made
+                    # students run countDownAndStop (and log their vote) many times.
+                    try:
+                        await websocket.send_json(data)
+                    except Exception as e:
+                        rslogger.info(
+                            f"PEERCOM {os.getpid()}: Failed to send broadcast to {username}: {e}"
+                        )
                 else:
                     # because **every** connection runs this same loop
                     # we only want to send a non-broadcast message if

@@ -3,7 +3,7 @@ name = "assignment_server"
 version = "0.1.1"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.13,<4"
 license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -29,7 +29,7 @@ dependencies = [
     "fastapi-login>=1.10.0,<2",
     "pydal>=20210215.1",
     "python-multipart>=0.0.5,<0.0.6",
-    "asyncpg>=0.30.0,<0.31",
+    "asyncpg>=0.31",
     "SQLAlchemy>=2.0.0,<3",
     "aiosqlite>=0.17.0,<0.18",
     "redis>=4.0.0,<5",

@@ -1,5 +1,5 @@
 # pull official base image
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # This is the name of the wheel that we build using `poetry build-project`
 ARG wheel=admin_server-0.1.0-py3-none-any.whl

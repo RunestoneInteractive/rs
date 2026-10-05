@@ -727,10 +727,15 @@ async def get_assignment_questions(
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
         aq["subchapter"] = q["subchapter"]
-        aq["chapter_num"] = row.Chapter.chapter_num
-        aq["sub_chapter_num"] = row.SubChapter.sub_chapter_num
-        aq["chapter_name"] = row.Chapter.chapter_name
-        aq["sub_chapter_name"] = row.SubChapter.sub_chapter_name
+        # fetch_assignment_questions outer joins the toc tables, so Chapter and
+        # SubChapter are None when the question's labels no longer resolve (a
+        # restructured book, an exercise copied from another book). Send None
+        # and let the builder fall back to the raw chapter/subchapter labels.
+        chapter, subchapter = row.Chapter, row.SubChapter
+        aq["chapter_num"] = chapter.chapter_num if chapter else None
+        aq["sub_chapter_num"] = subchapter.sub_chapter_num if subchapter else None
+        aq["chapter_name"] = chapter.chapter_name if chapter else None
+        aq["sub_chapter_name"] = subchapter.sub_chapter_name if subchapter else None
         aq["chapter"] = q["chapter"]
         aq["base_course"] = q["base_course"]
         aq["htmlsrc"] = q["htmlsrc"]
