@@ -33,9 +33,9 @@
 
         <div class="section-label">Contact</div>
         <div class="form-group">
-            <label for="email">Email Address</label>
+            <label for="email">Email Address{% if has_lti1p3_association %} (optional){% endif %}</label>
             <input type="email" class="form-control" id="email" name="email"
-                   value="{{ user.email }}" required>
+                   value="{{ user.email }}" {% if not has_lti1p3_association %}required{% endif %}>
         </div>
 
         <div class="section-label" id="username-label">Username</div>
