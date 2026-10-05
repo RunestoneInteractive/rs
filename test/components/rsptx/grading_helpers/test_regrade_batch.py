@@ -14,8 +14,10 @@ def _course():
     return SimpleNamespace(id=1, course_name="testcourse")
 
 
-def _assignment():
-    return SimpleNamespace(id=42, points=10, threshold_pct=None, duedate=None)
+def _assignment(released=True):
+    return SimpleNamespace(
+        id=42, points=10, threshold_pct=None, duedate=None, released=released
+    )
 
 
 def _question():
@@ -92,9 +94,39 @@ async def test_regrade_batch_forces_lti_push():
             [_question()],
             _assignment(),
             RegradeOptions(),
+            instructor_triggered=True,
         )
 
     assert push.await_args.kwargs["force"] is True
+
+
+async def test_unreleased_regrade_does_not_push_even_when_forced():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    for options in (
+        RegradeOptions(),
+        RegradeOptions(resend_all_scores_via_lti=True),
+    ):
+        ro, fu, rc = _patch_batch(unchanged)
+        with (
+            ro,
+            fu,
+            rc as recompute,
+            patch.object(regrade, "attempt_lti_score_updates", AsyncMock()) as push,
+        ):
+            recompute.return_value = regrade.TotalChange(
+                sid="student1", old_score=3.0, new_score=3.0
+            )
+            await regrade_batch(
+                _course(),
+                ["student1"],
+                [_question()],
+                _assignment(released=False),
+                options,
+                instructor_triggered=True,
+            )
+        push.assert_not_awaited()
 
 
 async def test_regrade_resend_option_pushes_unchanged_total():

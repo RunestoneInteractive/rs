@@ -568,6 +568,10 @@ async def _push_total_changes(
     Students with no ``grades`` row are always skipped; there is no score to
     send.
     """
+    # Never publish hidden grades, even when an instructor forces passback.
+    if not assignment.released:
+        return
+
     updates = []
     for c in changes:
         if c.skipped_no_grade_row:
@@ -642,6 +646,7 @@ async def recompute_totals_detail(
             user_map,
             push_unchanged=push_unchanged,
             instructor_triggered=instructor_triggered,
+            force=instructor_triggered,
         )
     return changes
 
