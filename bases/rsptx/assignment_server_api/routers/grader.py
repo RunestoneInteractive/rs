@@ -1234,12 +1234,14 @@ async def set_manual_assignment_total(
         grade = await set_manual_total(
             student.id, assignment.id, course.course_name, payload.score, True
         )
-        await attempt_lti_score_updates(
-            assignment,
-            course.id,
-            [(student.id, payload.score)],
-            instructor_triggered=True,
-        )
+        if assignment.released:
+            await attempt_lti_score_updates(
+                assignment,
+                course.id,
+                [(student.id, payload.score)],
+                force=True,
+                instructor_triggered=True,
+            )
         rslogger.info(
             f"Manual total set by {user.username} assignment={assignment.id} "
             f"sid={payload.sid} score={payload.score}"
