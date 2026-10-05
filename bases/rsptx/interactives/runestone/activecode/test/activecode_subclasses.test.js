@@ -77,6 +77,73 @@ describe("HTMLActiveCode", () => {
         expect(ac.output.srcdoc).toContain("<p>content</p>");
     });
 
+    it("announces each loaded preview, not the initial blank iframe", async () => {
+        const orig = makeFixture({
+            id: "test_html_preview",
+            code: "&lt;p&gt;content&lt;/p&gt;",
+            lang: "html",
+        });
+        const ac = new HTMLActiveCode({ orig, useRunestoneServices: false });
+        ac.manage_scrubber = vi.fn(async () => "True");
+        ac.buildProg = vi.fn(async () => "<p>content</p>");
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+        const announce = vi.spyOn(ac, "announceAction");
+        let previewDocument = {
+            URL: "about:blank",
+            readyState: "complete",
+        };
+        Object.defineProperty(ac.output, "contentDocument", {
+            configurable: true,
+            get: () => previewDocument,
+        });
+
+        ac.output.dispatchEvent(new Event("load"));
+        expect(announce).not.toHaveBeenCalled();
+
+        await ac.runButtonHandler();
+        ac.output.dispatchEvent(new Event("load"));
+        expect(announce).not.toHaveBeenCalled();
+        previewDocument = { URL: "about:srcdoc", readyState: "complete" };
+        ac.output.dispatchEvent(new Event("load"));
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Preview loaded."),
+        );
+
+        await ac.runButtonHandler();
+        expect(ac.actionStatus.textContent).toBe("");
+        // A queued load from the previous document must not complete this run.
+        ac.output.dispatchEvent(new Event("load"));
+        expect(announce).toHaveBeenCalledTimes(1);
+        previewDocument = { URL: "about:srcdoc", readyState: "complete" };
+        ac.output.dispatchEvent(new Event("load"));
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Preview loaded."),
+        );
+        expect(announce).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not announce an autorun preview load", async () => {
+        const orig = makeFixture({
+            id: "test_html_autorun",
+            code: "&lt;p&gt;content&lt;/p&gt;",
+            lang: "html",
+        });
+        const ac = new HTMLActiveCode({ orig, useRunestoneServices: false });
+        ac.suppressRunAnnouncements = true;
+        await ac.runProg();
+        Object.defineProperty(ac.output, "contentDocument", {
+            configurable: true,
+            value: { URL: "about:srcdoc", readyState: "complete" },
+        });
+
+        ac.output.dispatchEvent(new Event("load"));
+        expect(ac._previewLoadPending).toBe(false);
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        expect(ac.actionStatus.textContent).toBe("");
+    });
+
     it("announces iframe unit-test results when they arrive", async () => {
         const orig = makeFixture({
             id: "test_html_results",
@@ -84,6 +151,17 @@ describe("HTMLActiveCode", () => {
             lang: "html",
         });
         const ac = new HTMLActiveCode({ orig, useRunestoneServices: false });
+        ac.suffix = "window.assertExists('p');";
+        ac.manage_scrubber = vi.fn(async () => "True");
+        ac.buildProg = vi.fn(async () => "<p>content</p>");
+        await ac.runProg();
+        Object.defineProperty(ac.output, "contentDocument", {
+            configurable: true,
+            value: { URL: "about:srcdoc", readyState: "complete" },
+        });
+        ac.output.dispatchEvent(new Event("load"));
+        expect(ac.actionStatus.textContent).toBe("");
+
         ac.displayTestResults([{ pass: true, message: "Paragraph exists" }]);
 
         expect(ac.testResultsDiv.querySelector("caption").textContent).toBe(

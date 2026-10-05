@@ -11,9 +11,32 @@ export default class HTMLActiveCode extends ActiveCode {
         this.runButton.textContent = "Render";
         this.editor.setValue(this.code);
         this._messageHandler = null;
+        this._previewLoadPending = false;
+        this._previewDocumentBeforeRun = null;
+        this.output.addEventListener("load", () => {
+            if (!this._previewLoadPending) return;
+            // The iframe also loads its initial about:blank document. Only a
+            // completed srcdoc navigation is the preview requested by Run.
+            const previewDocument = this.output.contentDocument;
+            if (
+                previewDocument?.URL !== "about:srcdoc" ||
+                previewDocument.readyState !== "complete" ||
+                previewDocument === this._previewDocumentBeforeRun
+            ) {
+                return;
+            }
+            this._previewLoadPending = false;
+            this._previewDocumentBeforeRun = null;
+            if (!this.suppressRunAnnouncements) {
+                this.announceAction(t("msg_activecode_preview_loaded"));
+            }
+        });
     }
 
     async runProg() {
+        // A new render supersedes a still-loading preview from the prior run.
+        this._previewLoadPending = false;
+        this._previewDocumentBeforeRun = null;
         let saveCode = "True";
         this.saveCode = await this.manage_scrubber(saveCode);
         this.showOutput();
@@ -54,6 +77,12 @@ export default class HTMLActiveCode extends ActiveCode {
         }
 
         this.output.textContent = "";
+        // Test-backed renders announce their results separately after the
+        // iframe's load handler has run the tests.
+        this._previewLoadPending = !this.suffix;
+        this._previewDocumentBeforeRun = this._previewLoadPending
+            ? this.output.contentDocument
+            : null;
         this.output.srcdoc = prog;
 
         if (this.unit_results) {

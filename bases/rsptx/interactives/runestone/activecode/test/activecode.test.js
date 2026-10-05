@@ -553,6 +553,32 @@ describe("output area", () => {
         expect(ac.runInProgress).toBe(false);
     });
 
+    it("announces a slow run even when output already shows progress text", async () => {
+        const ac = makeActiveCode();
+        let finishRun;
+        ac.runProg = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    ac.output.textContent = "Compiling and running...";
+                    finishRun = resolve;
+                }),
+        );
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        const run = ac.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 170));
+        expect(ac.actionStatus.textContent).toBe("Running program.");
+
+        ac.output.textContent = "Done";
+        finishRun();
+        await run;
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Program output: Done"),
+        );
+    });
+
     it("distinguishes repeated output from no output on consecutive runs", async () => {
         const ac = makeActiveCode({ code: "print(42)" });
         ac.logCurrentAnswer = vi.fn();
