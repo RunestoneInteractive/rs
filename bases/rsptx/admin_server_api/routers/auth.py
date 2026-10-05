@@ -787,7 +787,7 @@ async def profile_post(
     request: Request,
     first_name: str = Form(...),
     last_name: str = Form(...),
-    email: str = Form(...),
+    email: str = Form(default=""),
 ):
     user = await _current_user(request)
     if not _user_exists(user):
