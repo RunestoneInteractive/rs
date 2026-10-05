@@ -408,7 +408,7 @@ async def test_recompute_totals_for_forwards_instructor_triggered_flag():
         )
 
     assert lti_mock.await_args.kwargs == {
-        "force": False,
+        "force": True,
         "instructor_triggered": True,
     }
 
