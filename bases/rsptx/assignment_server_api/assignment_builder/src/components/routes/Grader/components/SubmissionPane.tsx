@@ -12,7 +12,7 @@ import styles from "../Grader.module.css";
 import { useGraderTourContext } from "../tour/GraderTourContext";
 import { getDemoHistoryFor } from "../tour/graderDemoData";
 
-import { AnswerRenderer, formatAssociationAnswer } from "./questionTypes";
+import { AnswerRenderer, formatCompactAnswer } from "./questionTypes";
 import { CorrectChipKind, correctChipKind, formatAnswer } from "./submissionPaneHelpers";
 
 interface Props {
@@ -169,11 +169,7 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
               const c = correctChip(h);
               const active = idx === activeAttempt;
               const raw = formatAnswer(h.answer);
-              const readableAssociation =
-                questionType === "matching" || questionType === "dragndrop"
-                  ? formatAssociationAnswer(questionType, raw, htmlsrc)
-                  : "";
-              const summary = readableAssociation || raw;
+              const summary = formatCompactAnswer(questionType, raw, htmlsrc);
 
               return (
                 <button
