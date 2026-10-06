@@ -222,11 +222,16 @@ async def get_latest_code(request: Request, acid: str, user=Depends(auth_manager
 
 # Used by :ref:`compareAnswers`
 @router.get("/getaggregateresults")
-async def getaggregateresults(request: Request, div_id: str, course_name: str):
+async def getaggregateresults(
+    request: Request, div_id: str, course_name: Optional[str] = None
+):
     """
     Provide the data for a summary of the answers for a multiple choice question.
     What percent of students chose each answer.  This is used when the compare me
     button is pressed by the student.
+
+    ``course_name`` is accepted for older clients but ignored: results always
+    come from the logged-in user's own course.
     """
     question = div_id
 
@@ -236,6 +241,7 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
             detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
         )
 
+    course_name = request.state.user.course_name
     # Since open base courses may have many years of data we limit the
     # results there to the last 90 days.
     course = await fetch_course(course_name)
@@ -281,7 +287,6 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
                 rslogger.error(f"Bad data for {question} data is {key} -- {e}")
 
     miscdata["correct"] = correct
-    miscdata["course"] = course
 
     returnDict = dict(answerDict=rdata, misc=miscdata)
 
@@ -637,8 +642,11 @@ async def has_attachment(
     if sid is not None:
         sid = sid.strip()
     if request.state.user:
-        if sid is None:
+        if not sid:
             sid = request.state.user.username
+        elif sid != request.state.user.username and not await is_instructor(request):
+            # Only an instructor (the grader) may look up another student's file.
+            raise HTTPException(401)
         course_name = request.state.user.course_name
     else:
         return make_json_response(detail={"hasAttachment": False})
@@ -661,7 +669,8 @@ async def check_attachment(sid: str, div_id: str, course: str) -> Optional[str]:
         aws_secret_access_key=settings.spaces_secret,
     )
 
-    prepath = f"{course}/{div_id}/{sid}"
+    # Trailing slash so sid "bob" doesn't also match "bobby"'s uploads
+    prepath = f"{course}/{div_id}/{sid}/"
     rslogger.debug(f"checking path {prepath}")
     response = client.list_objects(Bucket=settings.bucket, Prefix=prepath)
     rslogger.debug(f"response = {response}")
