@@ -478,7 +478,9 @@ async def test_manual_total_requires_score_when_manual(auth_instructor_client):
 # ---------------------------------------------------------------------------
 
 
-async def _assignment_with_question(client, name, div_id, points=10):
+async def _assignment_with_question(
+    client, name, div_id, points=10, question_type="mchoice"
+):
     """Create an assignment in the instructor's course with one linked question."""
     from rsptx.db.crud import create_assignment_question, create_question, fetch_course
     from rsptx.db.models import AssignmentQuestionValidator, QuestionValidator
@@ -495,7 +497,7 @@ async def _assignment_with_question(client, name, div_id, points=10):
             author="test_instructor",
             question="grade rollup test question?",
             timestamp=canonical_utcnow(),
-            question_type="mchoice",
+            question_type=question_type,
             is_private=False,
             from_source=False,
             review_flag=False,
@@ -1084,6 +1086,66 @@ async def test_answers_list_includes_students_who_did_not_submit(
     assert mine[0]["answer"] is None
     assert mine[0]["timestamp"] is None
     assert mine[0]["score"] is None
+
+
+async def test_answer_text_serializes_json_backed_answers():
+    import json
+
+    from rsptx.assignment_server_api.routers.grader import _answer_text
+
+    stored_answer = {"connections": [{"from": "prompt-1", "to": "response-1"}]}
+
+    assert json.loads(_answer_text(stored_answer)) == stored_answer
+
+
+async def test_answers_list_serializes_matching_answer_as_json(
+    auth_instructor_client,
+):
+    """JSON-backed answers stay valid JSON for compact frontend renderers."""
+    import datetime
+    import json
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import MatchingAnswers
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client,
+        "answers_matching_json",
+        "answers_matching_json_q",
+        question_type="matching",
+    )
+    stored_answer = {
+        "connections": [
+            {"from": "prompt-1", "to": "response-1"},
+            {"from": "prompt-2", "to": "response-2"},
+        ]
+    }
+    async with async_session.begin() as session:
+        session.add(
+            MatchingAnswers(
+                timestamp=datetime.datetime(2024, 6, 1, 12, 0, 0),
+                sid="testuser1",
+                div_id=question.name,
+                course_name=COURSE_NAME,
+                answer=stored_answer,
+                correct=True,
+                percent=1.0,
+            )
+        )
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+
+    assert resp.status_code == 200
+    mine = next(
+        answer
+        for answer in resp.json()["detail"]["answers"]
+        if answer["sid"] == "testuser1"
+    )
+    assert json.loads(mine["answer"]) == stored_answer
 
 
 async def test_answers_list_keeps_grade_without_submission(auth_instructor_client):

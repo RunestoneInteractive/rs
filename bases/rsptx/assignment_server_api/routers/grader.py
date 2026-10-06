@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 from typing import Any, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, status
@@ -77,6 +78,18 @@ def _answer_table_for(question_type: str):
     return model
 
 
+def _answer_text(raw_answer: Any) -> str:
+    """Return the string form expected by the grader frontend.
+
+    JSON-backed answer columns are loaded as dictionaries or lists.  ``str``
+    would produce Python syntax with single quotes, which is not valid JSON and
+    cannot be decoded by the compact Matching renderer.
+    """
+    if isinstance(raw_answer, (dict, list)):
+        return json.dumps(raw_answer, separators=(",", ":"), ensure_ascii=False)
+    return str(raw_answer or "")
+
+
 class GraderQuestionStats(BaseModel):
     id: int
     name: str
@@ -130,6 +143,9 @@ class GraderAnswerHistoryItem(BaseModel):
     percent: Optional[float] = None
     timestamp: Optional[str] = None
     source: Optional[str] = None
+    min_height: Optional[int] = None
+    drag_width: Optional[int] = None
+    drop_width: Optional[int] = None
 
 
 class GradeUpdatePayload(BaseModel):
@@ -593,7 +609,7 @@ async def list_question_answers(
             correct_val = None
             percent_val = None
         else:
-            answer_text = str(getattr(row, "answer", "") or "")
+            answer_text = _answer_text(getattr(row, "answer", ""))
             correct_val = bool(row.correct) if hasattr(row, "correct") else None
             percent_val = (
                 float(row.percent)
@@ -715,6 +731,9 @@ async def get_student_answer_history(
                             if hasattr(a, "source")
                             else None
                         ),
+                        min_height=getattr(a, "min_height", None),
+                        drag_width=getattr(a, "drag_width", None),
+                        drop_width=getattr(a, "drop_width", None),
                     )
                 )
 

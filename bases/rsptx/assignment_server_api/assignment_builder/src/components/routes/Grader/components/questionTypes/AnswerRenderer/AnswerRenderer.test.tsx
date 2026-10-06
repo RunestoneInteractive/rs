@@ -1,0 +1,149 @@
+import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
+import { describe, expect, it, vi } from "vitest";
+
+import { renderWithMantine, screen } from "@/test/renderWithMantine";
+
+import { AnswerRendererProps } from "../types";
+
+import { AnswerRenderer } from "./AnswerRenderer";
+
+vi.mock("../McqAnswerView", () => ({ McqAnswerView: () => <div>VIEW:MCQ</div> }));
+vi.mock("../AssociationAnswerView", () => ({
+  AssociationAnswerView: ({ kind }: { kind: string }) => <div>VIEW:{kind.toUpperCase()}</div>
+}));
+vi.mock("../FitbAnswerView", () => ({ FitbAnswerView: () => <div>VIEW:FITB</div> }));
+vi.mock("../ShortAnswerView", () => ({ ShortAnswerView: () => <div>VIEW:SHORT</div> }));
+vi.mock("../ParsonsAnswerView", () => ({ ParsonsAnswerView: () => <div>VIEW:PARSONS</div> }));
+vi.mock("../ActiveCodeAnswerView", () => ({
+  ActiveCodeAnswerView: () => <div>VIEW:ACTIVECODE</div>
+}));
+vi.mock("../DefaultAnswerView", () => ({ DefaultAnswerView: () => <div>VIEW:DEFAULT</div> }));
+vi.mock("../IframeAnswerView", () => ({ IframeAnswerView: () => <div>VIEW:IFRAME</div> }));
+vi.mock("../RunestoneGraderPreview", () => ({
+  RunestoneGraderPreview: ({ attemptId }: { attemptId?: string | number }) => (
+    <div>PREVIEW:{String(attemptId)}</div>
+  )
+}));
+
+const baseProps = (overrides: Partial<AnswerRendererProps> = {}): AnswerRendererProps => ({
+  answer: "a",
+  history: [],
+  questionName: "q-div-1",
+  questionId: 7,
+  sid: "student1",
+  ...overrides
+});
+
+const renderFor = (questionType: string, overrides: Partial<AnswerRendererProps> = {}) =>
+  renderWithMantine(<AnswerRenderer questionType={questionType} {...baseProps(overrides)} />);
+
+describe("AnswerRenderer dispatch (no interactive htmlsrc)", () => {
+  it.each(["mchoice", "clickablearea"])("routes %s to the MCQ view", (questionType) => {
+    renderFor(questionType);
+    expect(screen.getByText("VIEW:MCQ")).toBeInTheDocument();
+  });
+
+  it("routes drag-and-drop to the structured placement view", () => {
+    renderFor("dragndrop");
+    expect(screen.getByText("VIEW:DRAGNDROP")).toBeInTheDocument();
+  });
+
+  it("routes matching to the structured matching view", () => {
+    renderFor("matching");
+    expect(screen.getByText("VIEW:MATCHING")).toBeInTheDocument();
+  });
+
+  it("routes fillintheblank to the FITB view", () => {
+    renderFor("fillintheblank");
+    expect(screen.getByText("VIEW:FITB")).toBeInTheDocument();
+  });
+
+  it("routes shortanswer to the short-answer view", () => {
+    renderFor("shortanswer");
+    expect(screen.getByText("VIEW:SHORT")).toBeInTheDocument();
+  });
+
+  it("routes parsonsprob to the Parsons view", () => {
+    renderFor("parsonsprob");
+    expect(screen.getByText("VIEW:PARSONS")).toBeInTheDocument();
+  });
+
+  it.each(["activecode", "codelens", "actex"])(
+    "routes %s to the ActiveCode view",
+    (questionType) => {
+      renderFor(questionType);
+      expect(screen.getByText("VIEW:ACTIVECODE")).toBeInTheDocument();
+    }
+  );
+
+  it("routes an unknown question type to the default view", () => {
+    renderFor("totally-unknown");
+    expect(screen.getByText("VIEW:DEFAULT")).toBeInTheDocument();
+  });
+});
+
+describe("AnswerRenderer iframe-embedded question types", () => {
+  it.each(["splice", "doenet", "iframe"])(
+    "routes %s to the iframe view rather than dumping its state blob",
+    (questionType) => {
+      renderFor(questionType, { htmlsrc: "<div><iframe src='/a.html'></iframe></div>" });
+      expect(screen.getByText("VIEW:IFRAME")).toBeInTheDocument();
+      expect(screen.queryByText("VIEW:DEFAULT")).not.toBeInTheDocument();
+    }
+  );
+
+  it("uses the iframe view even without htmlsrc, so the raw state is still reachable", () => {
+    renderFor("doenet");
+    expect(screen.getByText("VIEW:IFRAME")).toBeInTheDocument();
+  });
+});
+
+describe("AnswerRenderer interactive Runestone preview", () => {
+  it("renders the Runestone preview instead of a plain view when htmlsrc is present for a supported type", () => {
+    renderFor("mchoice", { htmlsrc: "<div>q</div>" });
+
+    expect(screen.getByText("PREVIEW:latest")).toBeInTheDocument();
+    expect(screen.queryByText("VIEW:MCQ")).not.toBeInTheDocument();
+  });
+
+  it("ignores htmlsrc for an unsupported type and falls back to the default view", () => {
+    renderFor("totally-unknown", { htmlsrc: "<div>q</div>" });
+
+    expect(screen.getByText("VIEW:DEFAULT")).toBeInTheDocument();
+    expect(screen.queryByText(/^PREVIEW:/)).not.toBeInTheDocument();
+  });
+
+  it("passes the selected non-latest attempt id to the preview", () => {
+    const history: GraderAnswerHistoryItem[] = [
+      { id: 101, answer: "a" },
+      { id: 102, answer: "b" },
+      { id: 103, answer: "c" }
+    ];
+
+    renderFor("mchoice", { htmlsrc: "<div>q</div>", history, activeAttemptIndex: 0 });
+
+    expect(screen.getByText("PREVIEW:101")).toBeInTheDocument();
+  });
+
+  it("treats the latest attempt index as the live attempt", () => {
+    const history: GraderAnswerHistoryItem[] = [
+      { id: 101, answer: "a" },
+      { id: 102, answer: "b" },
+      { id: 103, answer: "c" }
+    ];
+
+    renderFor("mchoice", { htmlsrc: "<div>q</div>", history, activeAttemptIndex: 2 });
+
+    expect(screen.getByText("PREVIEW:latest")).toBeInTheDocument();
+  });
+
+  it.each(["matching", "dragndrop"])(
+    "keeps a readable %s summary alongside the interactive preview",
+    (questionType) => {
+      renderFor(questionType, { htmlsrc: "<div>q</div>" });
+
+      expect(screen.getByText("PREVIEW:latest")).toBeInTheDocument();
+      expect(screen.getByText(`VIEW:${questionType.toUpperCase()}`)).toBeInTheDocument();
+    }
+  );
+});
