@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, text
 from cryptography.fernet import Fernet
 from typing import TypeAlias
 
@@ -80,7 +80,17 @@ async def init_models():
             in [BookServerConfig.development, BookServerConfig.test]
             and settings.drop_tables == "Yes"
         ):
-            await conn.run_sync(Base.metadata.drop_all)
+            if (
+                settings.book_server_config == BookServerConfig.test
+                and settings.database_type == DatabaseType.PostgreSQL
+            ):
+                # Reset the whole schema so tables created by models on other
+                # branches (which ``drop_all`` doesn't know about) can't block
+                # the drop via their foreign keys.
+                await conn.execute(text("DROP SCHEMA public CASCADE"))
+                await conn.execute(text("CREATE SCHEMA public"))
+            else:
+                await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 

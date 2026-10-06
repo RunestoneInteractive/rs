@@ -2,7 +2,7 @@ import uuid
 from typing import List, Optional
 from rsptx.configuration import settings
 from pydal.validators import CRYPT
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, exists
 from sqlalchemy.orm import joinedload
 from ..crud import fetch_user
 from ..models import (
@@ -27,6 +27,13 @@ from ..async_session import async_session
 
 # -----------------------------------------------------------------------
 # LTI 1.3
+async def has_lti1p3_user_association(rs_user_id: int) -> bool:
+    """Return whether this Runestone user is linked to any LTI 1.3 course."""
+    query = select(exists().where(Lti1p3User.rs_user_id == rs_user_id))
+    async with async_session() as session:
+        return bool(await session.scalar(query))
+
+
 async def upsert_lti1p3_config(config: Lti1p3Conf) -> Lti1p3Conf:
     """
     Insert or update an LTI1.3 platform config.

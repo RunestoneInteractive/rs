@@ -6,6 +6,7 @@ export {
   parseAssociationLabels,
   parseAssociations
 } from "./AssociationAnswerView";
+export { CompactAnswerView, formatCompactAnswer } from "./CompactAnswerView";
 export { DefaultAnswerView } from "./DefaultAnswerView";
 export { FitbAnswerView } from "./FitbAnswerView";
 export { IframeAnswerView } from "./IframeAnswerView";

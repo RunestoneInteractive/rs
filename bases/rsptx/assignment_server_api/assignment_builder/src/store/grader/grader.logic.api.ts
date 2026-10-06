@@ -39,7 +39,7 @@ export interface GraderStudentAnswer {
   first_name?: string;
   last_name?: string;
   email?: string;
-  answer: string;
+  answer: string | null;
   correct?: boolean | null;
   percent?: number | null;
   timestamp?: string;

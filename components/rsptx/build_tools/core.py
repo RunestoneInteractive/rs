@@ -715,6 +715,19 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
             _handle_datafile(el, course_name)
 
 
+def _title_text(el):
+    """Return the plain text of a manifest ``<title>`` element.
+
+    Titles can contain markup (``<code>``, ``<dfn>``, ...), so ``el.text`` only
+    gives the text before the first child -- "The <code>Node</code> Class"
+    would come back as "The ".  Use the full string value of the element with
+    whitespace collapsed instead.
+    """
+    if el is None:
+        return ""
+    return " ".join(el.xpath("string()").split())
+
+
 def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name):
     """Process a single chapter and return its database ID."""
     rslogger.info(
@@ -733,14 +746,14 @@ def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name
             cnum = chap_counter
 
     rslogger.debug(
-        f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
+        f"{chapter.tag} {chapter.find('./id').text} {_title_text(chapter.find('./title'))}"
     )
 
     ins = (
         db_context["chapters"]
         .insert()
         .values(
-            chapter_name=f"{chapter.find('./title').text}",
+            chapter_name=_title_text(chapter.find("./title")),
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
             chapter_num=cnum,
@@ -813,14 +826,7 @@ def _process_single_subchapter(
     if not chap_xmlid:
         rslogger.error(f"Missing id tag in subchapter {subchapter}")
 
-    # Build subchapter title
-    titletext = subchapter.find("./title").text
-    if not titletext:
-        rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
-        titletext = " ".join(
-            [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
-        )
-    titletext = f"{titletext.strip()}"
+    titletext = _title_text(subchapter.find("./title"))
 
     # Insert subchapter
     ins = (
@@ -945,9 +951,7 @@ def _process_single_timed_assignment(
     rslogger.info(
         f"Processing timed assignment subchapter {subchapter.find('./id').text if subchapter.find('./id') is not None else 'Unknown'}"
     )
-    titletext = subchapter.find("./title")
-    if titletext is not None:
-        titletext = titletext.text.strip()
+    titletext = _title_text(subchapter.find("./title"))
     if not titletext:
         titletext = "Timed Assignment"
     timed_id = subchapter.attrib.get("id", None)
@@ -1025,14 +1029,34 @@ def _process_single_timed_assignment(
 
 def _add_page_question(sess, db_context, chapter, subchapter, course_name):
     """Add a page entry to the questions table for this chapter/subchapter."""
-    name = f"{chapter.find('./title').text}/{subchapter.find('./title').text}"
+    name = (
+        f"{_title_text(chapter.find('./title'))}/"
+        f"{_title_text(subchapter.find('./title'))}"
+    )
+    chap_label = chapter.find("./id").text
+    subchap_label = subchapter.find("./id").text
 
+    # Match on the chapter/subchapter labels first, so a changed title renames
+    # the existing row instead of orphaning it (and any reading assignments
+    # that point at it).  This also repairs rows named by older builds that
+    # truncated titles containing markup, e.g. "Linear Linked Structures/The".
+    # Fall back to the name for a page whose labels changed.
     res = sess.execute(
         text(
-            "select * from questions where name = :name and base_course = :course_name"
+            "select id from questions where base_course = :course_name "
+            "and question_type = 'page' and chapter = :chapter "
+            "and subchapter = :subchapter order by id limit 1"
         ),
-        dict(name=name, course_name=course_name),
+        dict(course_name=course_name, chapter=chap_label, subchapter=subchap_label),
     ).first()
+    if not res:
+        res = sess.execute(
+            text(
+                "select id from questions where name = :name "
+                "and base_course = :course_name order by id limit 1"
+            ),
+            dict(name=name, course_name=course_name),
+        ).first()
 
     valudict = dict(
         base_course=course_name,
@@ -1040,8 +1064,8 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         timestamp=datetime.datetime.now(),
         is_private="F",
         question_type="page",
-        subchapter=subchapter.find("./id").text,
-        chapter=chapter.find("./id").text,
+        subchapter=subchap_label,
+        chapter=chap_label,
         from_source="T",
         author=db_context["author"],
         owner=db_context["owner"],
@@ -1051,12 +1075,7 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         ins = (
             db_context["questions"]
             .update()
-            .where(
-                and_(
-                    db_context["questions"].c.name == name,
-                    db_context["questions"].c.base_course == course_name,
-                )
-            )
+            .where(db_context["questions"].c.id == res.id)
             .values(**valudict)
         )
     else:
