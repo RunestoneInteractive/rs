@@ -17,6 +17,7 @@
 # ----------------
 import datetime
 import random
+import re
 from typing import Optional, Dict, Any
 
 # Third-party imports
@@ -271,7 +272,10 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
                     count += rdata[answer] / 100.0 * tot
                 pct = round(count / tot * 100.0)
 
-                if answer != "undefined" and answer != "":
+                # mchoice answers are choice indices ("1" or "1,3,5"); anything
+                # else in useinfo was not written by the component, and these
+                # keys are shown to every student who clicks "Compare me"
+                if re.fullmatch(r"[0-9,]+", answer):
                     rdata[answer] = pct
             except Exception as e:
                 rslogger.error(f"Bad data for {question} data is {key} -- {e}")

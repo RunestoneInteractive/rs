@@ -1,4 +1,5 @@
 import { t } from "../../common/js/rsi18n.js";
+import { programOutputToHtml } from "./programOutput.js";
 
 // var testString = `[doctest] doctest version is "2.4.11"
 // [doctest] run with "--help" for options
@@ -61,7 +62,7 @@ export default class DoctestTestParser {
         }
 
         cleanedOutput = cleanedOutput.trim();
-        this.stdout = cleanedOutput;
+        this.stdout = programOutputToHtml(cleanedOutput);
 
         // Parse the test results for use by autograder
         let patt = new RegExp(
