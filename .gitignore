@@ -40,3 +40,4 @@ init_runestone.log
 justfile
 docker-compose.override.yml
 notes
+/.python-version

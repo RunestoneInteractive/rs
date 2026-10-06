@@ -201,12 +201,15 @@ describe("controls", () => {
 
         expect(event.defaultPrevented).toBe(true);
         expect(onClick).toHaveBeenCalledTimes(1);
-        await new Promise((resolve) => setTimeout(resolve, 40));
-        expect(ac.runCount).toBe(1);
+        // The keypress doesn't wait for the run, and the announcement lands
+        // on timers after it, so poll rather than sleep a fixed time.
+        await vi.waitFor(() => expect(ac.runCount).toBe(1));
         expect(ac.logCurrentAnswer).toHaveBeenCalledTimes(1);
         expect(ac.runCoaches).toHaveBeenCalledTimes(1);
         expect(ac.renderFeedback).toHaveBeenCalledTimes(1);
-        expect(ac.actionStatus.textContent).toBe("Program output: 42");
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Program output: 42"),
+        );
     });
 
     it("adds a Download button when data-enabledownload is set", () => {
@@ -550,6 +553,32 @@ describe("output area", () => {
         expect(ac.runInProgress).toBe(false);
     });
 
+    it("announces a slow run even when output already shows progress text", async () => {
+        const ac = makeActiveCode();
+        let finishRun;
+        ac.runProg = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    ac.output.textContent = "Compiling and running...";
+                    finishRun = resolve;
+                }),
+        );
+        ac.logCurrentAnswer = vi.fn();
+        ac.runCoaches = vi.fn();
+        ac.renderFeedback = vi.fn();
+
+        const run = ac.runButtonHandler();
+        await new Promise((resolve) => setTimeout(resolve, 170));
+        expect(ac.actionStatus.textContent).toBe("Running program.");
+
+        ac.output.textContent = "Done";
+        finishRun();
+        await run;
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Program output: Done"),
+        );
+    });
+
     it("distinguishes repeated output from no output on consecutive runs", async () => {
         const ac = makeActiveCode({ code: "print(42)" });
         ac.logCurrentAnswer = vi.fn();
@@ -557,20 +586,23 @@ describe("output area", () => {
         ac.renderFeedback = vi.fn();
 
         await ac.runButtonHandler();
-        await new Promise((resolve) => setTimeout(resolve, 40));
-        expect(ac.actionStatus.textContent).toBe("Program output: 42");
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Program output: 42"),
+        );
 
         const secondRun = ac.runButtonHandler();
         expect(ac.actionStatus.textContent).toBe("");
         await secondRun;
-        await new Promise((resolve) => setTimeout(resolve, 40));
-        expect(ac.actionStatus.textContent).toBe("Program output: 42");
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe("Program output: 42"),
+        );
 
         ac.editor.setValue("pass");
         await ac.runButtonHandler();
-        await new Promise((resolve) => setTimeout(resolve, 40));
-        expect(ac.actionStatus.textContent).toBe(
-            "Program finished. No output.",
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe(
+                "Program finished. No output.",
+            ),
         );
         expect(ac.runCount).toBe(3);
     });
@@ -582,12 +614,13 @@ describe("output area", () => {
         ac.renderFeedback = vi.fn();
 
         await ac.runButtonHandler();
-        await new Promise((resolve) => setTimeout(resolve, 40));
 
         expect(ac.errinfo).toBe("success");
         expect(ac.output.textContent).toBe("");
-        expect(ac.actionStatus.textContent).toBe(
-            "Program finished. No output.",
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toBe(
+                "Program finished. No output.",
+            ),
         );
     });
 
@@ -598,10 +631,11 @@ describe("output area", () => {
         ac.renderFeedback = vi.fn();
 
         await ac.runButtonHandler();
-        await new Promise((resolve) => setTimeout(resolve, 40));
 
+        await vi.waitFor(() =>
+            expect(ac.actionStatus.textContent).toContain("NameError"),
+        );
         expect(ac.actionStatus.textContent).toContain("Program output:");
-        expect(ac.actionStatus.textContent).toContain("NameError");
     });
 });
 

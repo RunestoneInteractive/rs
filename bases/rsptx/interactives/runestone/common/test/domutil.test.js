@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getDataValue, toggleDisplay } from "../js/domutil.js";
+import { escapeHtml, getDataValue, toggleDisplay } from "../js/domutil.js";
 
 function makeEl(attrs) {
     const el = document.createElement("div");
@@ -70,5 +70,20 @@ describe("toggleDisplay", () => {
 
     it("ignores null elements", () => {
         expect(() => toggleDisplay(null)).not.toThrow();
+    });
+});
+
+describe("escapeHtml", () => {
+    it("escapes markup characters", () => {
+        expect(escapeHtml(`<img src=x onerror="a('b')">&`)).toBe(
+            "&lt;img src=x onerror=&quot;a(&#x27;b&#x27;)&quot;&gt;&amp;",
+        );
+    });
+
+    it("stringifies numbers and blanks null/undefined", () => {
+        expect(escapeHtml(0)).toBe("0");
+        expect(escapeHtml(42)).toBe("42");
+        expect(escapeHtml(null)).toBe("");
+        expect(escapeHtml(undefined)).toBe("");
     });
 });

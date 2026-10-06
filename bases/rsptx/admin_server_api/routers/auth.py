@@ -13,6 +13,7 @@ from rsptx.db.crud import (
     consume_reset_token,
     create_user,
     create_user_course_entry,
+    delete_user,
     delete_user_course_entry,
     fetch_course,
     fetch_course_access_for_user,
@@ -22,9 +23,9 @@ from rsptx.db.crud import (
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
+    has_lti1p3_user_association,
     set_reset_token,
     update_user,
-    delete_user,
     user_in_course,
 )
 from rsptx.db.models import AuthUserValidator
@@ -766,11 +767,13 @@ async def profile_page(request: Request):
         return RedirectResponse(
             f"{_LOGIN}?next={_PROFILE}", status_code=status.HTTP_302_FOUND
         )
+    has_lti1p3_association = await has_lti1p3_user_association(user.id)
     return templates.TemplateResponse(
         "admin/auth/profile.html",
         {
             "request": request,
             "user": user,
+            "has_lti1p3_association": has_lti1p3_association,
             "errors": [],
             "success": None,
             "student_page": True,
@@ -784,16 +787,21 @@ async def profile_post(
     request: Request,
     first_name: str = Form(...),
     last_name: str = Form(...),
-    email: str = Form(...),
+    email: str = Form(default=""),
 ):
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
 
+    email = email.strip()
+    has_lti1p3_association = await has_lti1p3_user_association(user.id)
     errors = []
-    existing = await fetch_user_by_email(email)
-    if _user_exists(existing) and existing.id != user.id:
-        errors.append("That email address is already in use by another account.")
+    if not email and not has_lti1p3_association:
+        errors.append("Email address is required.")
+    elif email:
+        existing = await fetch_user_by_email(email)
+        if _user_exists(existing) and existing.id != user.id:
+            errors.append("That email address is already in use by another account.")
 
     if errors:
         return templates.TemplateResponse(
@@ -801,6 +809,7 @@ async def profile_post(
             {
                 "request": request,
                 "user": user,
+                "has_lti1p3_association": has_lti1p3_association,
                 "errors": errors,
                 "success": None,
                 "student_page": True,
@@ -818,6 +827,7 @@ async def profile_post(
         {
             "request": request,
             "user": updated,
+            "has_lti1p3_association": has_lti1p3_association,
             "errors": [],
             "success": "Profile updated successfully.",
             "student_page": True,
@@ -838,6 +848,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
             {
                 "request": request,
                 "user": user,
+                "has_lti1p3_association": await has_lti1p3_user_association(user.id),
                 "errors": ["Username confirmation did not match. Account not deleted."],
                 "success": None,
                 "student_page": True,

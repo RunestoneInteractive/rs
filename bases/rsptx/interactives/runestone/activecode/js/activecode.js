@@ -691,13 +691,13 @@ export class ActiveCode extends RunestoneBase {
         clearTimeout(this.actionStatusTimer);
         clearTimeout(this.outputAnnouncementTimer);
         this.actionStatus.textContent = "";
-        // Announce only a run that stays silent long enough to need feedback.
+        // Announce a run still in progress after a short delay. Early text in
+        // the output is not live, so it does not provide screen-reader feedback.
         this.runningStatusTimer = setTimeout(() => {
             if (
                 !this.suppressRunAnnouncements &&
                 this.runInProgress &&
-                !this.inputRow &&
-                !this.output?.textContent.trim()
+                !this.inputRow
             ) {
                 this.actionStatus.textContent = t("msg_activecode_running");
             }

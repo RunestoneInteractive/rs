@@ -715,6 +715,19 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
             _handle_datafile(el, course_name)
 
 
+def _title_text(el):
+    """Return the plain text of a manifest ``<title>`` element.
+
+    Titles can contain markup (``<code>``, ``<dfn>``, ...), so ``el.text`` only
+    gives the text before the first child -- "The <code>Node</code> Class"
+    would come back as "The ".  Use the full string value of the element with
+    whitespace collapsed instead.
+    """
+    if el is None:
+        return ""
+    return " ".join(el.xpath("string()").split())
+
+
 def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name):
     """Process a single chapter and return its database ID."""
     rslogger.info(
@@ -733,14 +746,14 @@ def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name
             cnum = chap_counter
 
     rslogger.debug(
-        f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
+        f"{chapter.tag} {chapter.find('./id').text} {_title_text(chapter.find('./title'))}"
     )
 
     ins = (
         db_context["chapters"]
         .insert()
         .values(
-            chapter_name=f"{chapter.find('./title').text}",
+            chapter_name=_title_text(chapter.find("./title")),
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
             chapter_num=cnum,
@@ -813,14 +826,7 @@ def _process_single_subchapter(
     if not chap_xmlid:
         rslogger.error(f"Missing id tag in subchapter {subchapter}")
 
-    # Build subchapter title
-    titletext = subchapter.find("./title").text
-    if not titletext:
-        rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
-        titletext = " ".join(
-            [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
-        )
-    titletext = f"{titletext.strip()}"
+    titletext = _title_text(subchapter.find("./title"))
 
     # Insert subchapter
     ins = (
@@ -945,9 +951,7 @@ def _process_single_timed_assignment(
     rslogger.info(
         f"Processing timed assignment subchapter {subchapter.find('./id').text if subchapter.find('./id') is not None else 'Unknown'}"
     )
-    titletext = subchapter.find("./title")
-    if titletext is not None:
-        titletext = titletext.text.strip()
+    titletext = _title_text(subchapter.find("./title"))
     if not titletext:
         titletext = "Timed Assignment"
     timed_id = subchapter.attrib.get("id", None)
@@ -1025,14 +1029,37 @@ def _process_single_timed_assignment(
 
 def _add_page_question(sess, db_context, chapter, subchapter, course_name):
     """Add a page entry to the questions table for this chapter/subchapter."""
-    name = f"{chapter.find('./title').text}/{subchapter.find('./title').text}"
+    name = (
+        f"{_title_text(chapter.find('./title'))}/"
+        f"{_title_text(subchapter.find('./title'))}"
+    )
+    chap_label = chapter.find("./id").text
+    subchap_label = subchapter.find("./id").text
 
+    # Match on the name first: (name, base_course) is unique, so any other
+    # row we picked would collide with this one when renamed.  Otherwise fall
+    # back to the chapter/subchapter labels, so a changed title renames the
+    # existing row instead of orphaning it (and any reading assignments that
+    # point at it).  This also repairs rows named by older builds that
+    # truncated titles containing markup, e.g. "Linear Linked Structures/The".
+    # Older builds could leave several page rows for one label (a title change
+    # inserted a new row), which is why the label lookup can't go first.
     res = sess.execute(
         text(
-            "select * from questions where name = :name and base_course = :course_name"
+            "select id from questions where name = :name "
+            "and base_course = :course_name order by id limit 1"
         ),
         dict(name=name, course_name=course_name),
     ).first()
+    if not res:
+        res = sess.execute(
+            text(
+                "select id from questions where base_course = :course_name "
+                "and question_type = 'page' and chapter = :chapter "
+                "and subchapter = :subchapter order by id limit 1"
+            ),
+            dict(course_name=course_name, chapter=chap_label, subchapter=subchap_label),
+        ).first()
 
     valudict = dict(
         base_course=course_name,
@@ -1040,8 +1067,8 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         timestamp=datetime.datetime.now(),
         is_private="F",
         question_type="page",
-        subchapter=subchapter.find("./id").text,
-        chapter=chapter.find("./id").text,
+        subchapter=subchap_label,
+        chapter=chap_label,
         from_source="T",
         author=db_context["author"],
         owner=db_context["owner"],
@@ -1051,18 +1078,164 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         ins = (
             db_context["questions"]
             .update()
-            .where(
-                and_(
-                    db_context["questions"].c.name == name,
-                    db_context["questions"].c.base_course == course_name,
-                )
-            )
+            .where(db_context["questions"].c.id == res.id)
             .values(**valudict)
         )
     else:
         ins = db_context["questions"].insert().values(**valudict)
 
     sess.execute(ins)
+
+
+def merge_duplicate_page_questions(conn, base_course=None):
+    """Collapse duplicate ``page`` questions down to one row per subchapter.
+
+    Builds before the page lookup matched on chapter/subchapter labels inserted
+    a new page row whenever a subchapter's title changed, leaving the old row
+    behind.  For each ``(base_course, chapter, subchapter)`` with more than one
+    page row this keeps the most recently written row (the one the build
+    currently names), moves everything that points at the others onto it, and
+    deletes them.  Deleting alone is not safe: assignment_questions,
+    question_tags and competency all cascade on delete, so a plain delete would
+    silently drop readings from instructors' assignments.
+
+    Reading grades are keyed by the page's *name* in question_grades, so those
+    are renamed too, except where the student already has a grade under the
+    kept name; those are left in place and counted as conflicts.
+
+    Runs inside the caller's transaction and does not commit, so a dry run is
+    just a rollback.  Returns one dict per duplicate group describing what was
+    (or would be) changed.
+    """
+    params = {}
+    course_filter = ""
+    if base_course:
+        course_filter = "and base_course = :base_course"
+        params["base_course"] = base_course
+    groups = conn.execute(
+        text(
+            "select base_course, chapter, subchapter from questions "
+            f"where question_type = 'page' {course_filter} "
+            "group by base_course, chapter, subchapter having count(*) > 1 "
+            "order by base_course, chapter, subchapter"
+        ),
+        params,
+    ).fetchall()
+
+    report = []
+    for group in groups:
+        rows = conn.execute(
+            text(
+                "select id, name, timestamp from questions "
+                "where question_type = 'page' and base_course = :base_course "
+                "and chapter = :chapter and subchapter = :subchapter"
+            ),
+            dict(
+                base_course=group.base_course,
+                chapter=group.chapter,
+                subchapter=group.subchapter,
+            ),
+        ).fetchall()
+        rows = sorted(
+            rows,
+            key=lambda r: (r.timestamp or datetime.datetime.min, r.id),
+            reverse=True,
+        )
+        keep, drops = rows[0], rows[1:]
+        entry = dict(
+            base_course=group.base_course,
+            chapter=group.chapter,
+            subchapter=group.subchapter,
+            keep_id=keep.id,
+            keep_name=keep.name,
+            dropped=[],
+        )
+        for drop in drops:
+            ids = dict(keep=keep.id, drop=drop.id)
+            # An assignment holding both rows keeps only the kept one.
+            aq_dup = conn.execute(
+                text(
+                    "delete from assignment_questions where question_id = :drop "
+                    "and assignment_id in (select assignment_id from "
+                    "assignment_questions where question_id = :keep)"
+                ),
+                ids,
+            ).rowcount
+            aq_moved = conn.execute(
+                text(
+                    "update assignment_questions set question_id = :keep "
+                    "where question_id = :drop"
+                ),
+                ids,
+            ).rowcount
+            conn.execute(
+                text(
+                    "delete from question_tags where question_id = :drop "
+                    "and tag_id in (select tag_id from question_tags "
+                    "where question_id = :keep)"
+                ),
+                ids,
+            )
+            tags_moved = conn.execute(
+                text(
+                    "update question_tags set question_id = :keep "
+                    "where question_id = :drop"
+                ),
+                ids,
+            ).rowcount
+            conn.execute(
+                text(
+                    "delete from competency where question = :drop "
+                    "and competency in (select competency from competency "
+                    "where question = :keep)"
+                ),
+                ids,
+            )
+            comp_moved = conn.execute(
+                text(
+                    "update competency set question = :keep, "
+                    "question_name = :keep_name where question = :drop"
+                ),
+                dict(ids, keep_name=keep.name),
+            ).rowcount
+            gparams = dict(old=drop.name, new=keep.name, base_course=group.base_course)
+            in_book = (
+                "course_name in (select course_name from courses "
+                "where base_course = :base_course)"
+            )
+            grades_moved = conn.execute(
+                text(
+                    "update question_grades set div_id = :new "
+                    f"where div_id = :old and {in_book} "
+                    "and not exists (select 1 from question_grades g2 "
+                    "where g2.div_id = :new "
+                    "and g2.course_name = question_grades.course_name "
+                    "and g2.sid = question_grades.sid)"
+                ),
+                gparams,
+            ).rowcount
+            grades_conflict = conn.execute(
+                text(
+                    "select count(*) from question_grades "
+                    f"where div_id = :old and {in_book}"
+                ),
+                gparams,
+            ).scalar()
+            conn.execute(text("delete from questions where id = :drop"), ids)
+            entry["dropped"].append(
+                dict(
+                    id=drop.id,
+                    name=drop.name,
+                    assignment_questions_moved=aq_moved,
+                    assignment_questions_deduped=aq_dup,
+                    tags_moved=tags_moved,
+                    competencies_moved=comp_moved,
+                    grades_moved=grades_moved,
+                    grades_conflict=grades_conflict,
+                )
+            )
+        report.append(entry)
+    return report
 
 
 def _process_questions(sess, db_context, chapter, subchapter, course_name):

@@ -3,7 +3,7 @@ name = "book_server"
 version = "2.0.1"
 description = ""
 authors = [{ name = "Brad Miller", email = "bonelake@mac.com" }]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.13,<4"
 dependencies = [
     "aioredis>=2.0.0,<3",
     "aiohttp>=3.11.11,<4",
@@ -32,7 +32,7 @@ dependencies = [
     "multi-await>=1.0.0,<2",
     "botocore>=1.29.87,<2",
     "pyflakes>=3.0.1,<4",
-    "pillow>=10.0.0,<11",
+    "pillow>=11.0.0",
     "pydantic-settings>=2.0.3,<3",
     "pytz>=2024.2,<2025",
     "httpx>=0.27,<0.29",

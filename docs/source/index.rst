@@ -26,6 +26,7 @@ Runestone Developer Documentation
    javascript_feature
    assignment_builder
    question_json_schema
+   parsons_answer_format
    new_language
    tutorial
    debugging

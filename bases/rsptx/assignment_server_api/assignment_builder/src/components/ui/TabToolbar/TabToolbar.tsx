@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 
+import { Toolbar } from "../Toolbar/Toolbar";
+
 import styles from "./TabToolbar.module.css";
 
 interface TabToolbarProps {
@@ -20,14 +22,18 @@ export const TabToolbar = ({
   children
 }: TabToolbarProps) => {
   return (
-    <div className={styles.toolbar} data-scrolled={scrolled || undefined}>
-      <div className={styles.titleGroup}>
-        {leading}
-        <h3 className={styles.title}>{title}</h3>
-        <span className={styles.countBadge}>{count}</span>
-        {titleExtra}
-      </div>
-      <div className={styles.actions}>{children}</div>
-    </div>
+    <Toolbar
+      className={styles.toolbar}
+      data-scrolled={scrolled || undefined}
+      start={
+        <div className={styles.titleGroup}>
+          {leading}
+          <h3 className={styles.title}>{title}</h3>
+          <span className={styles.countBadge}>{count}</span>
+          {titleExtra}
+        </div>
+      }
+      end={children}
+    />
   );
 };

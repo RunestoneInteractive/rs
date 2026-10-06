@@ -147,7 +147,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-student-sidebar"]',
     title: "Student sidebar",
     description:
-      "All students who attempted the question. Status icons show progress: ✓ graded, ⚡ auto-graded, ◐ in progress, ○ pending, – no submission. Filter, search, or press H to hide already-graded students.",
+      "Students enrolled in the course. Status icons show progress: ✓ graded, ⚡ auto-graded, ◐ in progress, ○ pending, – no submission. Search the list, hide students with full credit or no submission, or press H to toggle the full-credit filter.",
     side: "right",
     align: "start"
   },
