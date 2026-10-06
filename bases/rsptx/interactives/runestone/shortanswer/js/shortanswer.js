@@ -199,8 +199,7 @@ export default class ShortAnswer extends RunestoneBase {
             }
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
-            value = value.replace(/\n/g, "<br/>");
-            this.renderedAnswer.innerHTML = value;
+            this.renderedAnswer.innerText = value;
 
             this.rederedAnswerDiv.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
