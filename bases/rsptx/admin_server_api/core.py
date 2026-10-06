@@ -11,8 +11,8 @@
 # Standard library
 # ----------------
 import os
-from contextlib import asynccontextmanager
 import pathlib
+from contextlib import asynccontextmanager
 
 # Third-party imports
 # -------------------
@@ -22,22 +22,24 @@ from fastapi.staticfiles import StaticFiles
 # Local application imports
 # -------------------------
 from rsptx.auth.csrf import add_csrf_protection
-from rsptx.exceptions.core import add_exception_handlers
-from rsptx.templates import template_folder
 from rsptx.auth.session import auth_manager
 from rsptx.db.pool_monitor import start_pool_monitor
+from rsptx.exceptions.core import add_exception_handlers
+from rsptx.templates import template_folder
 
-from .routers import lti1p3
-from .routers import lti1p1
-from .routers import instructor
-from .routers import analytics
-from .routers import editor
-from .routers import auth
-from .routers import telemetry
-from .routers import legal
-from .routers import start
-from .routers import problem_report
-from .routers import root
+from .routers import (
+    analytics,
+    auth,
+    editor,
+    instructor,
+    legal,
+    lti1p1,
+    lti1p3,
+    problem_report,
+    root,
+    start,
+    telemetry,
+)
 
 # FastAPI setup
 # =============
