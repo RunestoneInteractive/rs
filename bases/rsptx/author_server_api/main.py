@@ -44,6 +44,7 @@ from rsptx.author_server_api.worker import (
 )
 from rsptx.auth.session import is_instructor
 from rsptx.db.models import CoursesValidator
+from rsptx.auth.csrf import add_csrf_protection
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.endpoint_validators import author_role_required
 
@@ -90,6 +91,7 @@ app.mount("/static", StaticFiles(directory=base_dir / "staticAssets"), name="sta
 templates = get_shared_templates()
 
 add_exception_handlers(app)
+add_csrf_protection(app)
 
 
 async def create_book_entry(

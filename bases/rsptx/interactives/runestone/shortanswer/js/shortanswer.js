@@ -199,8 +199,7 @@ export default class ShortAnswer extends RunestoneBase {
             }
             value = value.replace(/\$\$(.*?)\$\$/g, "\\[ $1 \\]");
             value = value.replace(/\$(.*?)\$/g, "\\( $1 \\)");
-            value = value.replace(/\n/g, "<br/>");
-            this.renderedAnswer.innerHTML = value;
+            this.renderedAnswer.textContent = value;
 
             this.rederedAnswerDiv.style.display = "block";
             this.queueMathJax(this.renderedAnswer);
@@ -387,7 +386,7 @@ export default class ShortAnswer extends RunestoneBase {
             // filename is everthing after the last slash
             filename = filename.substring(filename.lastIndexOf("/") + 1);
             let fmess = document.createElement("span");
-            fmess.innerHTML = `Attachment: ${filename}`;
+            fmess.textContent = `Attachment: ${filename}`;
             this.attachDiv.appendChild(fmess);
         }
     }

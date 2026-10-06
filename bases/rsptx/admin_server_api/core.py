@@ -11,8 +11,8 @@
 # Standard library
 # ----------------
 import os
-from contextlib import asynccontextmanager
 import pathlib
+from contextlib import asynccontextmanager
 
 # Third-party imports
 # -------------------
@@ -21,22 +21,25 @@ from fastapi.staticfiles import StaticFiles
 
 # Local application imports
 # -------------------------
-from rsptx.exceptions.core import add_exception_handlers
-from rsptx.templates import template_folder
+from rsptx.auth.csrf import add_csrf_protection
 from rsptx.auth.session import auth_manager
 from rsptx.db.pool_monitor import start_pool_monitor
+from rsptx.exceptions.core import add_exception_handlers
+from rsptx.templates import template_folder
 
-from .routers import lti1p3
-from .routers import lti1p1
-from .routers import instructor
-from .routers import analytics
-from .routers import editor
-from .routers import auth
-from .routers import telemetry
-from .routers import legal
-from .routers import start
-from .routers import problem_report
-from .routers import root
+from .routers import (
+    analytics,
+    auth,
+    editor,
+    instructor,
+    legal,
+    lti1p1,
+    lti1p3,
+    problem_report,
+    root,
+    start,
+    telemetry,
+)
 
 # FastAPI setup
 # =============
@@ -80,3 +83,19 @@ app.include_router(root.router)
 
 # load a common set of middleware/exception handlers
 add_exception_handlers(app)
+# An LMS posts these to us from its own origin by design; each carries a signed
+# launch (or is unauthenticated key material), not just the ambient cookie. The
+# 307 from /lti1p3/dynamic-linking to /lti1p3/rs-login re-posts cross-site too.
+add_csrf_protection(
+    app,
+    exempt_paths=(
+        "/lti1p1",
+        "/lti1p1/",
+        "/lti1p3/login",
+        "/lti1p3/launch",
+        "/lti1p3/register",
+        "/lti1p3/jwks",
+        "/lti1p3/dynamic-linking",
+        "/lti1p3/rs-login",
+    ),
+)

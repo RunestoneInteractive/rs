@@ -25,6 +25,7 @@ from .routers import instructor
 from .routers import peer
 from .routers import grader
 from .routers import echoform
+from rsptx.auth.csrf import add_csrf_protection
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
@@ -81,3 +82,6 @@ app.include_router(echoform.router)
 # DRY: this is the same as in book_server_api and other servers
 # load a common set of middleware/exception handlers.
 add_exception_handlers(app)
+# echoform writes nothing and is meant to receive forms students build anywhere,
+# including pages on their own sites.
+add_csrf_protection(app, exempt_paths=("/echoform",))

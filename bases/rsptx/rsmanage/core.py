@@ -1381,6 +1381,69 @@ async def fixtotals(
 
 
 @cli.command()
+@click.option("--basecourse", default=None, help="Limit to one book")
+@click.option(
+    "--dry-run", is_flag=True, help="Report what would change without writing"
+)
+@click.option("--yes", is_flag=True, help="Do not ask for confirmation")
+@pass_config
+def dedup_page_questions(config, basecourse, dry_run, yes):
+    """Merge duplicate page questions left behind by subchapter title changes.
+
+    Older builds inserted a new ``page`` question whenever a subchapter was
+    retitled, leaving two rows with the same chapter/subchapter.  This keeps the
+    newest row for each subchapter and moves assignment readings, tags,
+    competencies and reading grades from the stale rows onto it before deleting
+    them.  Everything runs in one transaction; --dry-run rolls it back.
+
+    \b
+        rsmanage dedup-page-questions --dry-run
+        rsmanage dedup-page-questions --basecourse csawesome2
+    """
+    from rsptx.build_tools.core import merge_duplicate_page_questions
+
+    if not dry_run and not yes:
+        scope = basecourse or "ALL books"
+        if not click.confirm(f"Merge duplicate page questions for {scope}?"):
+            return
+    engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    with engine.connect() as conn:
+        trans = conn.begin()
+        try:
+            report = merge_duplicate_page_questions(conn, basecourse)
+        except Exception:
+            trans.rollback()
+            raise
+        for g in report:
+            click.echo(
+                f"{g['base_course']} {g['chapter']}/{g['subchapter']}: "
+                f"keep {g['keep_id']} {g['keep_name']!r}"
+            )
+            for d in g["dropped"]:
+                click.echo(
+                    f"    drop {d['id']} {d['name']!r}: "
+                    f"{d['assignment_questions_moved']} assignment(s) moved, "
+                    f"{d['assignment_questions_deduped']} duplicate(s) removed, "
+                    f"{d['tags_moved']} tag(s), {d['competencies_moved']} "
+                    f"competenc(ies), {d['grades_moved']} grade(s) moved"
+                    + (
+                        f", {d['grades_conflict']} grade(s) LEFT (student "
+                        "already graded under the kept name)"
+                        if d["grades_conflict"]
+                        else ""
+                    )
+                )
+        dropped = sum(len(g["dropped"]) for g in report)
+        click.echo(f"{len(report)} subchapter(s), {dropped} duplicate row(s).")
+        if dry_run:
+            trans.rollback()
+            click.echo("Dry run -- nothing was written. Re-run without --dry-run.")
+        else:
+            trans.commit()
+    engine.dispose()
+
+
+@cli.command()
 @pass_config
 def db(config):
     """
