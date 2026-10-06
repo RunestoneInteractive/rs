@@ -3892,7 +3892,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "9.3.2"
+version = "9.3.3"
 source = { editable = "." }
 default-groups = ["dev", "docs"]
 dependencies = [
