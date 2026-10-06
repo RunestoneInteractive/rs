@@ -75,6 +75,7 @@ from .routers import rsproxy
 from .routers import discuss
 from .telemetry import telemetry_loop
 from rsptx.auth.session import auth_manager
+from rsptx.auth.csrf import add_csrf_protection
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.templates import template_folder
 
@@ -151,3 +152,4 @@ app.mount(
 
 
 add_exception_handlers(app)
+add_csrf_protection(app)
