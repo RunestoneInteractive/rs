@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
+import { Toolbar } from "@/components/ui/Toolbar/Toolbar";
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 import { parseUTCDate } from "@/utils/date";
 
@@ -226,15 +227,18 @@ export const GraderAssignmentsPage: React.FC = () => {
     : allRows;
 
   const viewToggle = (
-    <div className={styles.toolbar}>
-      <ViewModeToggle
-        value={activeViewMode}
-        onChange={setViewMode}
-        ariaLabel="Toggle assignments view"
-        tourId="grader-assignments-view-toggle"
-        disabled={isDemo}
-      />
-    </div>
+    <Toolbar
+      className={styles.toolbar}
+      end={
+        <ViewModeToggle
+          value={activeViewMode}
+          onChange={setViewMode}
+          ariaLabel="Toggle assignments view"
+          tourId="grader-assignments-view-toggle"
+          disabled={isDemo}
+        />
+      }
+    />
   );
 
   if (activeViewMode === "table") {
