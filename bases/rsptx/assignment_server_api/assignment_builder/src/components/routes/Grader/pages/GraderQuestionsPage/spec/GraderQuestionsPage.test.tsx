@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fireEvent, renderWithMantine, screen } from "@/test/renderWithMantine";
 
-import { GraderQuestionsPage } from "./GraderQuestionsPage";
+import { GraderQuestionsPage } from "../GraderQuestionsPage";
 
 const { mockUseGetGraderQuestionsQuery, mockParams } = vi.hoisted(() => ({
   mockUseGetGraderQuestionsQuery: vi.fn(),
@@ -26,11 +26,13 @@ vi.mock("react-router-dom", () => ({
 
 // These own their own queries and dialogs; the page only decides whether to
 // show them, which their own specs cover.
-vi.mock("../components/ThresholdControl", () => ({ ThresholdControl: () => null }));
-vi.mock("../components/ReleaseGradesControl", () => ({ ReleaseGradesControl: () => null }));
-vi.mock("../components/RegradeWizard", () => ({ RegradeWizard: () => null }));
-vi.mock("../components/MultiGradeDialog", () => ({ MultiGradeDialog: () => null }));
-vi.mock("../components/DeadlineExceptionDialog", () => ({ DeadlineExceptionDialog: () => null }));
+vi.mock("../../../components/ThresholdControl", () => ({ ThresholdControl: () => null }));
+vi.mock("../../../components/ReleaseGradesControl", () => ({ ReleaseGradesControl: () => null }));
+vi.mock("../../../components/RegradeWizard", () => ({ RegradeWizard: () => null }));
+vi.mock("../../../components/MultiGradeDialog", () => ({ MultiGradeDialog: () => null }));
+vi.mock("../../../components/DeadlineExceptionDialog", () => ({
+  DeadlineExceptionDialog: () => null
+}));
 
 const makeQuestions = (count: number): GraderQuestionsResponse => ({
   assignment: { id: 1, name: "Quiz 1", points: 10 },

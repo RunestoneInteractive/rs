@@ -1,4 +1,4 @@
-import { Button, Progress, TextInput } from "@mantine/core";
+import { Button, Checkbox, Popover, Progress, TextInput } from "@mantine/core";
 import { GraderStudentAnswer, LateStudent } from "@store/grader/grader.logic.api";
 import React, { useMemo, useRef } from "react";
 
@@ -28,8 +28,10 @@ interface Props {
   courseTimezone?: string;
   deadlineEnforced?: boolean;
   onSelect: (sid: string) => void;
-  hideGraded: boolean;
-  onToggleHideGraded: (v: boolean) => void;
+  hideFullCredit: boolean;
+  onToggleHideFullCredit: (v: boolean) => void;
+  hideUnanswered: boolean;
+  onToggleHideUnanswered: (v: boolean) => void;
 }
 
 export const StudentListSidebar: React.FC<Props> = ({
@@ -42,26 +44,28 @@ export const StudentListSidebar: React.FC<Props> = ({
   courseTimezone = "UTC",
   deadlineEnforced,
   onSelect,
-  hideGraded,
-  onToggleHideGraded
+  hideFullCredit,
+  onToggleHideFullCredit,
+  hideUnanswered,
+  onToggleHideUnanswered
 }) => {
   const [filter, setFilter] = React.useState("");
   const progress = useMemo(
     () => getQuestionProgress(answers, question, { dirtySids }),
     [answers, question, dirtySids]
   );
+  const activeFilterCount = Number(hideFullCredit) + Number(hideUnanswered);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
 
     return answers.filter((a) => {
-      const status = getStudentStatus(a, question, { dirtySids });
-
-      if (hideGraded && (status === "graded" || status === "autograded")) return false;
+      if (hideFullCredit && a.score != null && a.score >= a.max_points) return false;
+      if (hideUnanswered && a.attempts === 0) return false;
       if (!q) return true;
       return studentDisplayName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
     });
-  }, [answers, filter, hideGraded, question, dirtySids]);
+  }, [answers, filter, hideFullCredit, hideUnanswered]);
 
   const listRef = useRef<HTMLUListElement | null>(null);
 
@@ -102,20 +106,41 @@ export const StudentListSidebar: React.FC<Props> = ({
           <TextInput
             value={filter}
             onChange={(e) => setFilter(e.currentTarget.value)}
-            placeholder="Filter…"
+            placeholder="Search students…"
             leftSection={<Icon name="search" size={14} />}
             size="xs"
           />
-          <Button
-            variant={hideGraded ? "filled" : "default"}
-            size="xs"
-            fullWidth
-            leftSection={<Icon name={hideGraded ? "filter-fill" : "filter"} size={13} />}
-            onClick={() => onToggleHideGraded(!hideGraded)}
-            aria-label="Hide already-graded students"
-          >
-            {hideGraded ? "Hide graded" : "All students"}
-          </Button>
+          <Popover width="target" position="bottom-start" shadow="md">
+            <Popover.Target>
+              <Button
+                variant={activeFilterCount > 0 ? "light" : "default"}
+                size="xs"
+                fullWidth
+                leftSection={
+                  <Icon name={activeFilterCount > 0 ? "filter-fill" : "filter"} size={13} />
+                }
+                aria-label={`Student filters, ${activeFilterCount} active`}
+              >
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Button>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <div className={styles.filterOptions}>
+                <Checkbox
+                  checked={hideFullCredit}
+                  onChange={(e) => onToggleHideFullCredit(e.currentTarget.checked)}
+                  label="Hide students with full credit"
+                  size="xs"
+                />
+                <Checkbox
+                  checked={hideUnanswered}
+                  onChange={(e) => onToggleHideUnanswered(e.currentTarget.checked)}
+                  label="Hide students with no submission"
+                  size="xs"
+                />
+              </div>
+            </Popover.Dropdown>
+          </Popover>
         </div>
       </header>
 

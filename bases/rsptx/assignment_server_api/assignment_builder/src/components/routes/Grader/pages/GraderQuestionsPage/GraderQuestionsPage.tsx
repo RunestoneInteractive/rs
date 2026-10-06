@@ -8,17 +8,17 @@ import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 
-import styles from "../Grader.module.css";
-import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
-import { MultiGradeDialog } from "../components/MultiGradeDialog";
-import { RegradeWizard } from "../components/RegradeWizard";
-import { ReleaseGradesControl } from "../components/ReleaseGradesControl";
-import { ThresholdControl } from "../components/ThresholdControl";
-import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import { useViewModeStorage } from "../hooks/useViewModeStorage";
-import { effectiveViewMode, isAutogradeable } from "../state/graderSelectors";
-import { useGraderTourContext } from "../tour/GraderTourContext";
-import { getDemoQuestionsFor } from "../tour/graderDemoData";
+import styles from "../../Grader.module.css";
+import { DeadlineExceptionDialog } from "../../components/DeadlineExceptionDialog";
+import { MultiGradeDialog } from "../../components/MultiGradeDialog";
+import { RegradeWizard } from "../../components/RegradeWizard";
+import { ReleaseGradesControl } from "../../components/ReleaseGradesControl";
+import { ThresholdControl } from "../../components/ThresholdControl";
+import { GraderViewMode, ViewModeToggle } from "../../components/ViewModeToggle";
+import { useViewModeStorage } from "../../hooks/useViewModeStorage";
+import { effectiveViewMode, isAutogradeable } from "../../state/graderSelectors";
+import { useGraderTourContext } from "../../tour/GraderTourContext";
+import { getDemoQuestionsFor } from "../../tour/graderDemoData";
 
 const friendlyType = (t: string) => {
   const map: Record<string, string> = {

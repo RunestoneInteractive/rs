@@ -15,11 +15,11 @@ import React, { useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 
-import { ErrorState } from "../../AssignmentBuilder/components/ErrorState/ErrorState";
-import styles from "../Grader.module.css";
-import { GradebookCellDialog } from "../components/GradebookCellDialog";
-import { GradebookLateWorkDialog } from "../components/GradebookLateWorkDialog";
-import { GradebookUnitsToggle } from "../components/GradebookUnitsToggle";
+import { ErrorState } from "../../../AssignmentBuilder/components/ErrorState/ErrorState";
+import styles from "../../Grader.module.css";
+import { GradebookCellDialog } from "../../components/GradebookCellDialog";
+import { GradebookLateWorkDialog } from "../../components/GradebookLateWorkDialog";
+import { GradebookUnitsToggle } from "../../components/GradebookUnitsToggle";
 import {
   assignmentAverage,
   buildCellLookup,
@@ -32,7 +32,7 @@ import {
   getCell,
   gradebookToCsv,
   studentTotalDisplay
-} from "../state/gradebookSelectors";
+} from "../../state/gradebookSelectors";
 
 interface OpenCell {
   assignment: GradebookAssignment;

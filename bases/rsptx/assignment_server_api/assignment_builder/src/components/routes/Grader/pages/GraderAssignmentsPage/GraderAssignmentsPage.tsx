@@ -11,13 +11,13 @@ import { Icon } from "@/components/ui/Icon";
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 import { parseUTCDate } from "@/utils/date";
 
-import styles from "../Grader.module.css";
-import { ReleaseStatusBadge } from "../components/ReleaseStatusBadge";
-import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import { useViewModeStorage } from "../hooks/useViewModeStorage";
-import { effectiveViewMode } from "../state/graderSelectors";
-import { useGraderTourContext } from "../tour/GraderTourContext";
-import { DEMO_ASSIGNMENTS } from "../tour/graderDemoData";
+import styles from "../../Grader.module.css";
+import { ReleaseStatusBadge } from "../../components/ReleaseStatusBadge";
+import { GraderViewMode, ViewModeToggle } from "../../components/ViewModeToggle";
+import { useViewModeStorage } from "../../hooks/useViewModeStorage";
+import { effectiveViewMode } from "../../state/graderSelectors";
+import { useGraderTourContext } from "../../tour/GraderTourContext";
+import { DEMO_ASSIGNMENTS } from "../../tour/graderDemoData";
 
 const VIEW_MODES = ["cards", "table"] as const satisfies readonly GraderViewMode[];
 const VIEW_MODE_STORAGE_KEY = "grader.assignmentsViewMode";
