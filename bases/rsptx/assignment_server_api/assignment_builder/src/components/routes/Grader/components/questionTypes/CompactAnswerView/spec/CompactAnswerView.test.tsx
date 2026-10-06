@@ -9,6 +9,12 @@ describe("CompactAnswerView", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
   });
 
+  it("renders a dash instead of crashing for a null answer", () => {
+    render(<CompactAnswerView questionType="parsonsprob" answer={null} />);
+
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
   it("renders the compact formatted answer", () => {
     render(<CompactAnswerView questionType="mchoice" answer="3" />);
 

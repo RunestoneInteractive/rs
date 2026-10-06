@@ -4,7 +4,7 @@ import { formatCompactAnswer } from "./utils";
 
 interface CompactAnswerViewProps {
   questionType: string;
-  answer: string;
+  answer?: string | null;
   htmlsrc?: string;
 }
 

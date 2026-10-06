@@ -1,2 +1,2 @@
 export { ParsonsAnswerView } from "./ParsonsAnswerView";
-export { parseParsonsBlocks } from "./utils";
+export { reconstructParsonsAnswer } from "./utils";

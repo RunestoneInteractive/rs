@@ -8,7 +8,7 @@ import pytest
 
 from rsptx.admin_server_api.core import app
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 @pytest.fixture

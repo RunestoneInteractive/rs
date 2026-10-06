@@ -24,10 +24,28 @@ describe("formatCompactAnswer", () => {
     expect(formatCompactAnswer("matching", "not-json")).toBe("Stored answer could not be decoded.");
   });
 
-  it("reconstructs Parsons blocks on separate lines", () => {
-    expect(formatCompactAnswer("parsonsprob", "def greet(name):---    if name:")).toBe(
-      "def greet(name):\nif name:"
+  it("reconstructs a Parsons hash as the student's plain source code", () => {
+    const htmlsrc = `<pre class="parsonsblocks">
+def greet(name):
+---
+    if name:
+---
+        print(f"Hello, {name}")
+    </pre>`;
+
+    expect(formatCompactAnswer("parsonsprob", "0_0-1_1-2_2", htmlsrc)).toBe(
+      'def greet(name):\n    if name:\n        print(f"Hello, {name}")'
     );
+  });
+
+  it("does not expose an undecodable Parsons hash", () => {
+    expect(formatCompactAnswer("parsonsprob", "0_0")).toBe(
+      "Stored answer could not be reconstructed."
+    );
+  });
+
+  it.each([null, undefined])("formats a %s answer as empty", (answer) => {
+    expect(formatCompactAnswer("parsonsprob", answer)).toBe("");
   });
 
   it("numbers fill-in-the-blank values", () => {
@@ -37,4 +55,13 @@ describe("formatCompactAnswer", () => {
   it("preserves answers for other question types", () => {
     expect(formatCompactAnswer("shortanswer", "Student response")).toBe("Student response");
   });
+
+  it.each(["activecode", "actex", "codelens"])(
+    "shows %s submissions as plain source code",
+    (questionType) => {
+      expect(formatCompactAnswer(questionType, "def greet():\n    print('Hello')")).toBe(
+        "def greet():\n    print('Hello')"
+      );
+    }
+  );
 });
