@@ -8,16 +8,17 @@ import { useNavigate } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
+import { Toolbar } from "@/components/ui/Toolbar/Toolbar";
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 import { parseUTCDate } from "@/utils/date";
 
-import styles from "../Grader.module.css";
-import { ReleaseStatusBadge } from "../components/ReleaseStatusBadge";
-import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import { useViewModeStorage } from "../hooks/useViewModeStorage";
-import { effectiveViewMode } from "../state/graderSelectors";
-import { useGraderTourContext } from "../tour/GraderTourContext";
-import { DEMO_ASSIGNMENTS } from "../tour/graderDemoData";
+import styles from "../../Grader.module.css";
+import { ReleaseStatusBadge } from "../../components/ReleaseStatusBadge";
+import { GraderViewMode, ViewModeToggle } from "../../components/ViewModeToggle";
+import { useViewModeStorage } from "../../hooks/useViewModeStorage";
+import { effectiveViewMode } from "../../state/graderSelectors";
+import { useGraderTourContext } from "../../tour/GraderTourContext";
+import { DEMO_ASSIGNMENTS } from "../../tour/graderDemoData";
 
 const VIEW_MODES = ["cards", "table"] as const satisfies readonly GraderViewMode[];
 const VIEW_MODE_STORAGE_KEY = "grader.assignmentsViewMode";
@@ -226,15 +227,18 @@ export const GraderAssignmentsPage: React.FC = () => {
     : allRows;
 
   const viewToggle = (
-    <div className={styles.toolbar}>
-      <ViewModeToggle
-        value={activeViewMode}
-        onChange={setViewMode}
-        ariaLabel="Toggle assignments view"
-        tourId="grader-assignments-view-toggle"
-        disabled={isDemo}
-      />
-    </div>
+    <Toolbar
+      className={styles.toolbar}
+      end={
+        <ViewModeToggle
+          value={activeViewMode}
+          onChange={setViewMode}
+          ariaLabel="Toggle assignments view"
+          tourId="grader-assignments-view-toggle"
+          disabled={isDemo}
+        />
+      }
+    />
   );
 
   if (activeViewMode === "table") {

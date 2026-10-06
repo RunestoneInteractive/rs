@@ -293,18 +293,7 @@
 }
 
 .toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--rs-space-3);
   margin-bottom: var(--rs-space-3);
-  flex-wrap: wrap;
-}
-.toolbarGroup {
-  display: flex;
-  gap: var(--rs-space-2);
-  align-items: center;
-  flex-wrap: wrap;
 }
 .releaseControl {
   display: inline-flex;

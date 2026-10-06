@@ -6,19 +6,20 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
+import { Toolbar } from "@/components/ui/Toolbar/Toolbar";
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
 
-import styles from "../Grader.module.css";
-import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
-import { MultiGradeDialog } from "../components/MultiGradeDialog";
-import { RegradeWizard } from "../components/RegradeWizard";
-import { ReleaseGradesControl } from "../components/ReleaseGradesControl";
-import { ThresholdControl } from "../components/ThresholdControl";
-import { GraderViewMode, ViewModeToggle } from "../components/ViewModeToggle";
-import { useViewModeStorage } from "../hooks/useViewModeStorage";
-import { effectiveViewMode, isAutogradeable } from "../state/graderSelectors";
-import { useGraderTourContext } from "../tour/GraderTourContext";
-import { getDemoQuestionsFor } from "../tour/graderDemoData";
+import styles from "../../Grader.module.css";
+import { DeadlineExceptionDialog } from "../../components/DeadlineExceptionDialog";
+import { MultiGradeDialog } from "../../components/MultiGradeDialog";
+import { RegradeWizard } from "../../components/RegradeWizard";
+import { ReleaseGradesControl } from "../../components/ReleaseGradesControl";
+import { ThresholdControl } from "../../components/ThresholdControl";
+import { GraderViewMode, ViewModeToggle } from "../../components/ViewModeToggle";
+import { useViewModeStorage } from "../../hooks/useViewModeStorage";
+import { effectiveViewMode, isAutogradeable } from "../../state/graderSelectors";
+import { useGraderTourContext } from "../../tour/GraderTourContext";
+import { getDemoQuestionsFor } from "../../tour/graderDemoData";
 
 const friendlyType = (t: string) => {
   const map: Record<string, string> = {
@@ -364,68 +365,73 @@ export const GraderQuestionsPage: React.FC = () => {
   );
 
   const toolbar = (
-    <div className={styles.toolbar}>
-      <div className={styles.toolbarGroup}>
-        {activeViewMode === "cards" && (
+    <Toolbar
+      className={styles.toolbar}
+      start={
+        <>
+          {activeViewMode === "cards" && (
+            <Button
+              variant="default"
+              size="xs"
+              disabled={selectedQuestionIds.length === data.questions.length}
+              onClick={() => setSelectedQuestionIds(data.questions.map((q) => q.id))}
+            >
+              Select all
+            </Button>
+          )}
+          <Tooltip label="Select at least one question" position="bottom" disabled={hasSelection}>
+            <Button
+              leftSection={<Icon name="refresh" size={14} />}
+              variant="default"
+              size="xs"
+              disabled={!hasSelection}
+              onClick={() => setShowRegrade(true)}
+              data-tour="grader-regrade-button"
+            >
+              Regrade…
+            </Button>
+          </Tooltip>
+          <Tooltip label="Select at least one question" position="bottom" disabled={hasSelection}>
+            <Button
+              leftSection={<Icon name="pencil" size={14} />}
+              variant="default"
+              size="xs"
+              disabled={!hasSelection}
+              onClick={() => setShowMultiGrade(true)}
+              data-tour="grader-multigrade-button"
+            >
+              Grade manually…
+            </Button>
+          </Tooltip>
           <Button
+            leftSection={<Icon name="clock" size={14} />}
             variant="default"
             size="xs"
-            disabled={selectedQuestionIds.length === data.questions.length}
-            onClick={() => setSelectedQuestionIds(data.questions.map((q) => q.id))}
+            onClick={() => setShowExtraTime(true)}
           >
-            Select all
+            Deadline accommodations…
           </Button>
-        )}
-        <Tooltip label="Select at least one question" position="bottom" disabled={hasSelection}>
-          <Button
-            leftSection={<Icon name="refresh" size={14} />}
-            variant="default"
-            size="xs"
-            disabled={!hasSelection}
-            onClick={() => setShowRegrade(true)}
-            data-tour="grader-regrade-button"
-          >
-            Regrade…
-          </Button>
-        </Tooltip>
-        <Tooltip label="Select at least one question" position="bottom" disabled={hasSelection}>
-          <Button
-            leftSection={<Icon name="pencil" size={14} />}
-            variant="default"
-            size="xs"
-            disabled={!hasSelection}
-            onClick={() => setShowMultiGrade(true)}
-            data-tour="grader-multigrade-button"
-          >
-            Grade manually…
-          </Button>
-        </Tooltip>
-        <Button
-          leftSection={<Icon name="clock" size={14} />}
-          variant="default"
-          size="xs"
-          onClick={() => setShowExtraTime(true)}
-        >
-          Deadline accommodations…
-        </Button>
-        {hasSelection && (
-          <span className={styles.selectionChip}>
-            {selectedQuestionIds.length} selected
-            {selectedQuestionIds.length > autogradeableCount && (
-              <span className={styles.selectionWarning}>
-                {selectedQuestionIds.length - autogradeableCount} not auto-gradeable
-              </span>
-            )}
-            <button onClick={() => setSelectedQuestionIds([])}>Clear</button>
-          </span>
-        )}
-      </div>
-      <div className={styles.toolbarGroup}>
-        {!isDemo && <ThresholdControl assignmentId={id} />}
-        {!isDemo && <ReleaseGradesControl assignmentId={id} />}
-        {viewToggle}
-      </div>
-    </div>
+          {hasSelection && (
+            <span className={styles.selectionChip}>
+              {selectedQuestionIds.length} selected
+              {selectedQuestionIds.length > autogradeableCount && (
+                <span className={styles.selectionWarning}>
+                  {selectedQuestionIds.length - autogradeableCount} not auto-gradeable
+                </span>
+              )}
+              <button onClick={() => setSelectedQuestionIds([])}>Clear</button>
+            </span>
+          )}
+        </>
+      }
+      end={
+        <>
+          {!isDemo && <ThresholdControl assignmentId={id} />}
+          {!isDemo && <ReleaseGradesControl assignmentId={id} />}
+          {viewToggle}
+        </>
+      }
+    />
   );
 
   const dialogs = (
