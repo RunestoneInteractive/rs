@@ -24,6 +24,39 @@ The [fixed-code] should follow the {programming_language} style guide.
 [end-control-structures]
 """
 
+# How many lines of each data file to show the LLM -- enough to see the format
+DATA_FILE_EXCERPT_LINES = 10
+
+
+def build_data_files_prompt(data_files):
+    """
+    Describe the question's data files for the LLM so generated code reads them
+    correctly. Only the first few lines of each text file are included; binary
+    files are listed by name only.
+    Inputs:
+        data_files (list): dicts with "filename", "content" and "is_binary"
+    Output:
+        str: a [data-files] prompt section, or "" when there are no data files
+    """
+    if not data_files:
+        return ""
+    sections = []
+    for data_file in data_files:
+        if data_file.get("is_binary"):
+            sections.append(f"--- {data_file['filename']} (binary file) ---")
+            continue
+        lines = data_file["content"].splitlines()
+        excerpt = "\n".join(lines[:DATA_FILE_EXCERPT_LINES])
+        if len(lines) > DATA_FILE_EXCERPT_LINES:
+            excerpt += f"\n... ({len(lines) - DATA_FILE_EXCERPT_LINES} more lines)"
+        sections.append(f"--- {data_file['filename']} ---\n{excerpt}")
+    return (
+        "\n[data-files]: The code reads these files from its working directory. "
+        "The first lines of each file are shown.\n"
+        + "\n".join(sections)
+        + "\n[end-data-files]\n"
+    )
+
 
 def find_control_structures_java(buggy_code):
     """
@@ -91,6 +124,7 @@ def build_code_prompt(
     example_solution,
     system_message,
     attempt_type,
+    data_files=None,
 ):
     """
     Build the prompt messages for the LLM to generate the personalized fixed code. Here we use zero-shot prompting.
@@ -103,6 +137,7 @@ def build_code_prompt(
         example_solution (str): The example solution code.
         system_message (str): The system message template for the prompt.
         attempt_type (str): The type of attempt ("new" or "repeat").
+        data_files (list): The question's data files the code may open.
     Output:
         list: The list of prompt messages for the LLM.
     """
@@ -119,6 +154,8 @@ def build_code_prompt(
             unittest_code=unittest_code,
             control_structures=control_structures,
         )
+        # appended after format() so braces in file contents aren't treated as fields
+        system_message += build_data_files_prompt(data_files)
 
     prompt_code = "[user-code]:\n" + buggy_code + "\n[end-user-code]"
     prompt_messages = [
@@ -182,6 +219,7 @@ def get_fixed_code(
     attempt_type,
     situation,
     old_fixed_code,
+    data_files=None,
 ):
     """
     Get the personalized fixed code for the student's buggy code. It calls generate_personalized_fix to get the fixed code from the LLM.
@@ -195,6 +233,7 @@ def get_fixed_code(
         attempt_type (str): The type of attempt ("new" or "repeat").
         situation (str): The situation of the attempt ("a correct answer"). This can be extended to other nuanced situations in the future.
         old_fixed_code (str): The old fixed code from the previous attempt (if any).
+        data_files (list): The question's data files the code may open.
     Output:
         str: The generated personalized fixed code.
     """
@@ -215,6 +254,7 @@ def get_fixed_code(
             example_solution,
             system_message,
             attempt_type,
+            data_files,
         )
 
     fixed_code_response = generate_personalized_fix(
@@ -224,7 +264,9 @@ def get_fixed_code(
     return fixed_code_response
 
 
-def get_example_solution(api_token, language, problem_description, unittest_code):
+def get_example_solution(
+    api_token, language, problem_description, unittest_code, data_files=None
+):
     """
     Get an example solution for the coding problem using the LLM, called when we do not have an instructor-provided example solution.
     Inputs:
@@ -232,6 +274,7 @@ def get_example_solution(api_token, language, problem_description, unittest_code
         language (str): The programming language of the code ("python" or "java").
         problem_description (str): The description of the coding problem.
         unittest_code (str): The unittest code to validate the fixed code.
+        data_files (list): The question's data files the code may open.
     Output:
         str: The generated example solution code. Or an empty string if the LLM-generated code does not pass the unittest.
     """
@@ -250,7 +293,7 @@ Here is the unittest code:
 {unittest_code}
 
 The solution must be correct and pass all unittest cases.
-
+{build_data_files_prompt(data_files)}
 This solution will be used as the reference solution for generating Parsons puzzles for beginner programming students. Prioritize educational clarity and structural readability over minimizing lines of code.
 
 Requirements:
@@ -278,7 +321,12 @@ Requirements:
     # test if the LLM_example_code is correct remove all potential #
     LLM_example_code = LLM_example_code.lstrip("#").rstrip("#").strip()
     unittest_result, cleaned_LLM_example_code = unittest_evaluation(
-        language, LLM_example_code, "", "", unittest_case=unittest_code
+        language,
+        LLM_example_code,
+        "",
+        "",
+        unittest_case=unittest_code,
+        data_files=data_files,
     )
     if unittest_result:
         # LLM_example_code is correct

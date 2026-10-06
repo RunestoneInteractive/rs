@@ -67,8 +67,38 @@ PUSH_PROXY = "/ns/rsproxy/jobePushFile/"
 CHECK_PROXY = "/ns/rsproxy/jobeCheckFile/"
 
 
+def _push_data_files(sess, data_files):
+    """
+    Upload the question's data files to JOBE so the program under test can
+    open() them, mirroring how livecode.js ships datafiles with a run.
+    Inputs:
+        sess: requests session with the JOBE headers set
+        data_files (list): dicts with "filename", "content" and "is_binary";
+                           binary contents are already base64 (as stored in source_code)
+    Output: list: [file_id, filename] pairs for the run_spec file_list
+    """
+    file_list = []
+    for data_file in data_files or []:
+        filename = data_file["filename"]
+        content = data_file["content"]
+        if data_file.get("is_binary"):
+            b64 = content
+        else:
+            b64 = _b64_text_utf8(content)
+        file_id = _runestone_file_id(filename, content)
+        file_url = settings.jobe_server + "/jobe/index.php/restapi/files/" + file_id
+        if sess.head(file_url, timeout=10).status_code != 204:
+            put = sess.put(file_url, json={"file_contents": b64}, timeout=10)
+            if put.status_code != 204:
+                raise RuntimeError(
+                    f"Failed to push data file {filename} to JOBE: {put.status_code}"
+                )
+        file_list.append([file_id, filename])
+    return file_list
+
+
 # modified from rsproxy.py and livecode.js logic
-def load_and_run_java_tests(java_code, test_code):
+def load_and_run_java_tests(java_code, test_code, data_files=None):
     """
     Compile and run Java code with test cases.
     Inputs:
@@ -76,6 +106,7 @@ def load_and_run_java_tests(java_code, test_code):
         test_code (str): The Java test cases -- a JUnit test class (extends CodeTestHelper,
                          methods annotated with @Test, no main()), matching the standard
                          Runestone suffix_code convention used for regular activecode runs.
+        data_files (list): the question's data files to place beside the program (see _push_data_files)
     Output: bool: True if all tests pass, False otherwise.
     """
 
@@ -142,6 +173,8 @@ def load_and_run_java_tests(java_code, test_code):
                     "body": put.text[:500],
                 }
 
+        data_file_list = _push_data_files(sess, data_files)
+
         # Mirrors livecode.js: run the JUnit test class via JUnitCore rather than
         # calling a main() the test class doesn't have.
         runner_code = f"""import org.junit.runner.JUnitCore;
@@ -167,7 +200,8 @@ def load_and_run_java_tests(java_code, test_code):
             "file_list": [
                 [student_id, student_filename],
                 [test_id, test_filename],
-            ],
+            ]
+            + data_file_list,
         }
 
         resp = sess.post(runs_url, json={"run_spec": runspec}, timeout=10)
@@ -199,7 +233,7 @@ class _JobeTestResult:
         return self._passed
 
 
-def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
+def load_and_run_tests(unittest_case, code_to_test, time_limit=6, data_files=None):
     """
     Run Python test cases against the provided code via JOBE.
 
@@ -207,6 +241,7 @@ def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
         unittest_case (str): unittest source (class myTests(unittest.TestCase): ...)
         code_to_test (str): the Python solution code to validate
         time_limit (int): JOBE wall-clock time limit in seconds
+        data_files (list): the question's data files to place beside the program (see _push_data_files)
     Output: _JobeTestResult with wasSuccessful() method
     """
     # Suppress __main__ guards in student code — JOBE runs as top-level script
@@ -230,6 +265,8 @@ def load_and_run_tests(unittest_case, code_to_test, time_limit=6):
             "sourcefilename": "solution.py",
             "parameters": {"timelimitsecs": time_limit},
         }
+        if data_files:
+            runspec["file_list"] = _push_data_files(sess, data_files)
         resp = sess.post(runs_url, json={"run_spec": runspec}, timeout=time_limit + 10)
         try:
             result = resp.json()
@@ -372,20 +409,25 @@ def remove_java_comments(code):
 
 
 def unittest_evaluation(
-    language, fixed_code, starting_code, default_test_code, unittest_case
+    language,
+    fixed_code,
+    starting_code,
+    default_test_code,
+    unittest_case,
+    data_files=None,
 ):
     if language == "java":
         return java_unittest_evaluation(
-            fixed_code, starting_code, default_test_code, unittest_case
+            fixed_code, starting_code, default_test_code, unittest_case, data_files
         )
     else:
         return python_unittest_evaluation(
-            fixed_code, starting_code, default_test_code, unittest_case
+            fixed_code, starting_code, default_test_code, unittest_case, data_files
         )
 
 
 def java_unittest_evaluation(
-    fixed_code, starting_code, default_test_code, unittest_case
+    fixed_code, starting_code, default_test_code, unittest_case, data_files=None
 ):
     try:
         fixed_code.split("\n")
@@ -397,7 +439,9 @@ def java_unittest_evaluation(
 
     try:
         print("fixed_code_test", fixed_code)
-        java_test_result = load_and_run_java_tests(fixed_code, unittest_case)
+        java_test_result = load_and_run_java_tests(
+            fixed_code, unittest_case, data_files
+        )
         print("java_results\n", java_test_result)
         return java_test_result, fixed_code
     except Exception:
@@ -405,7 +449,7 @@ def java_unittest_evaluation(
 
 
 def python_unittest_evaluation(
-    fixed_code, starting_code, default_test_code, unittest_case
+    fixed_code, starting_code, default_test_code, unittest_case, data_files=None
 ):
     """
     Load and run Python test cases against the provided code.
@@ -414,6 +458,7 @@ def python_unittest_evaluation(
         starting_code (str): The default starting code provided to the student. Now it's ""
         default_test_code (str): The default test code provided to the student. Now it's "".
         unittest_case (str): The Python test cases. The test code is automatically reformatted based on the unittest_code provided by instructors in the RST file.
+        data_files (list): The question's data files the code may open (see _push_data_files).
     Output:
         bool: True if all tests pass, False otherwise.
         str: The cleaned fixed code after removing comments and empty lines.
@@ -429,13 +474,15 @@ def python_unittest_evaluation(
         return False, fixed_code
     try:
         ##print("fixed_code_first attempt", fixed_code)
-        results = load_and_run_tests(unittest_case, fixed_code)
+        results = load_and_run_tests(unittest_case, fixed_code, data_files=data_files)
         print("results.wasSuccessful()\n", results.wasSuccessful())
         return results.wasSuccessful(), fixed_code
     except Exception:
         try:
             fixed_code = fix_indentation(fixed_code)
-            results = load_and_run_tests(unittest_case, fixed_code)
+            results = load_and_run_tests(
+                unittest_case, fixed_code, data_files=data_files
+            )
             # print("fix_indentation", fixed_code)
             if contain_default_starting_code(starting_code, fixed_code):
                 # print("results.wasSuccessful()\n", results.wasSuccessful())
@@ -447,7 +494,12 @@ def python_unittest_evaluation(
 
 
 def code_distractor_unittest_evaluation(
-    language, code_with_distrator, starting_code, default_test_code, unittest_case
+    language,
+    code_with_distrator,
+    starting_code,
+    default_test_code,
+    unittest_case,
+    data_files=None,
 ):
     """
     Evaluate the code with distractors using unit tests.
@@ -457,6 +509,7 @@ def code_distractor_unittest_evaluation(
         starting_code (str): The default starting code provided to the student. Now it's ""
         default_test_code (str): The default test code provided to the student. Now it's "".
         unittest_case (str): The Python/Java test cases. The test code is automatically reformatted based on the unittest_code provided by instructors in the RST file.
+        data_files (list): The question's data files the code may open (see _push_data_files).
     Output:
         bool: True if all tests pass, False otherwise.
         str: The cleaned code with distractors after removing comments and empty lines.
@@ -464,14 +517,16 @@ def code_distractor_unittest_evaluation(
     if language == "java":
         try:
             java_test_result = load_and_run_java_tests(
-                code_with_distrator, unittest_case
+                code_with_distrator, unittest_case, data_files
             )
             return java_test_result, code_with_distrator
         except Exception:
             return False, code_with_distrator
     else:
         try:
-            results = load_and_run_tests(unittest_case, code_with_distrator)
+            results = load_and_run_tests(
+                unittest_case, code_with_distrator, data_files=data_files
+            )
             if contain_default_starting_code(starting_code, code_with_distrator):
                 return results.wasSuccessful(), code_with_distrator
             else:
@@ -479,7 +534,9 @@ def code_distractor_unittest_evaluation(
         except Exception:
             try:
                 code_with_distrator = fix_indentation(code_with_distrator)
-                results = load_and_run_tests(unittest_case, code_with_distrator)
+                results = load_and_run_tests(
+                    unittest_case, code_with_distrator, data_files=data_files
+                )
                 if contain_default_starting_code(starting_code, code_with_distrator):
                     return results.wasSuccessful(), code_with_distrator
                 else:
