@@ -1,5 +1,7 @@
 import "@testing-library/jest-dom";
 
+import { JSDOM } from "jsdom";
+
 /**
  * Provide Web Storage when the runtime does not.
  *
@@ -17,23 +19,26 @@ import "@testing-library/jest-dom";
  * check, because the brand is carried by the jsdom module rather than by the
  * individual window.
  *
- * Reading the storage from jsdom's `window` preserves the genuine `Storage`
- * implementation while replacing only Node's conflicting global accessor.
+ * A fresh JSDOM per setup run means each test file starts with empty storage.
  * Remove this once vitest populates the jsdom value over Node's.
  */
 const installStorage = () => {
   const missing = (["localStorage", "sessionStorage"] as const).filter(
     (name) => typeof (globalThis as Record<string, unknown>)[name] === "undefined"
   );
+
   if (missing.length === 0) {
     return;
   }
+
+  // Storage needs a non-opaque origin, hence the explicit url.
+  const donor = new JSDOM("", { url: "http://localhost/" }).window;
 
   for (const name of missing) {
     Object.defineProperty(globalThis, name, {
       configurable: true,
       writable: true,
-      value: window[name]
+      value: donor[name]
     });
   }
 };
@@ -58,7 +63,9 @@ if (typeof window !== "undefined") {
   if (!("ResizeObserver" in window)) {
     class ResizeObserverMock {
       observe() {}
+
       unobserve() {}
+
       disconnect() {}
     }
     (window as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverMock;

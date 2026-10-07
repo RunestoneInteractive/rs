@@ -1,20 +1,20 @@
 import react from "@vitejs/plugin-react";
-import { fileURLToPath } from "node:url";
 import { defineConfig as viteDefineConfig } from "vite";
+import checker from "vite-plugin-checker";
 import commonjs from "vite-plugin-commonjs";
 import viteTsconfig from "vite-tsconfig-paths";
 import { defineConfig, mergeConfig } from "vitest/config";
 
 import svgTransformFile from "./scripts/svgTransformFile";
 
-const projectRoot = fileURLToPath(new URL(".", import.meta.url));
-
 export default mergeConfig(
   viteDefineConfig({
     base: "/",
-    root: projectRoot,
     plugins: [
       viteTsconfig(),
+      checker({
+        typescript: true
+      }),
       {
         name: "transform-svg",
         transform(_, fileName) {
@@ -29,7 +29,7 @@ export default mergeConfig(
     test: {
       globals: true,
       environment: "jsdom",
-      setupFiles: fileURLToPath(new URL("./vitest.setup.ts", import.meta.url)),
+      setupFiles: "vitest.setup.ts",
       testTimeout: 10000,
       hookTimeout: 10000,
       include: ["src/**/*.spec.*", "src/**/*.test.*"],
