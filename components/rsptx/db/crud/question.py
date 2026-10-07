@@ -329,6 +329,8 @@ async def search_exercises(
             if not filter_data:
                 continue
 
+            if not hasattr(filter_data, "get"):
+                continue
             # Get filter value and mode
             filter_value = filter_data.get("value")
             filter_mode = filter_data.get("matchMode", "contains")
