@@ -252,6 +252,7 @@ async def fetch_last_answer_table_entry(
             )
         )
         .order_by(tbl.timestamp.desc())
+        .limit(1)
     )
     async with async_session() as session:
         res = await session.execute(query)

@@ -55,7 +55,6 @@ from rsptx.db.crud import (
     fetch_user,
     INTERACTION_ONLY_EVENTS,
     is_interaction_event,
-    is_server_feedback,
     update_sub_chapter_progress,
     update_user_state,
 )
@@ -192,12 +191,6 @@ async def log_book_event(
         if create_answer_table:
             rcd = runestone_component_dict[EVENT2TABLE[entry.event]]
             valid_table = rcd.validator.from_orm(entry)  # type: ignore
-            # Do server-side grading if needed.
-            if feedback := await is_server_feedback(entry.div_id, user.course_name):
-                # The grader should also be defined if there's feedback.
-                assert rcd.grader
-                response_dict.update(await rcd.grader(valid_table, feedback))
-
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
         if entry.event in INTERACTION_ONLY_EVENTS:

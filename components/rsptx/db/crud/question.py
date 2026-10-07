@@ -519,6 +519,33 @@ async def fetch_question_count_per_subchapter(
     return resd
 
 
+async def fetch_question_grades_for(
+    sid: str, course_name: str, qids: Iterable[str]
+) -> Dict[str, QuestionGradeValidator]:
+    """
+    Retrieve a student's QuestionGrade entries for several questions at once.
+
+    :param sid: str, the student id
+    :param course_name: str, the course name
+    :param qids: the question ids (div_ids)
+    :return: a dict mapping div_id to its QuestionGradeValidator; questions
+        with no grade are absent
+    """
+    qids = list(qids)
+    if not qids:
+        return {}
+    query = select(QuestionGrade).where(
+        (QuestionGrade.sid == sid)
+        & (QuestionGrade.course_name == course_name)
+        & (QuestionGrade.div_id.in_(qids))
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {
+            row.div_id: QuestionGradeValidator.from_orm(row) for row in res.scalars()
+        }
+
+
 async def fetch_question_grade(sid: str, course_name: str, qid: str):
     """
     Retrieve the QuestionGrade entry for the given sid, course_name, and qid.

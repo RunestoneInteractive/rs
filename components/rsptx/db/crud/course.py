@@ -2,6 +2,8 @@
 import datetime
 from difflib import SequenceMatcher
 from typing import Optional, List, Dict, Any
+import redis.asyncio as aioredis
+from redis.exceptions import RedisError
 from sqlalchemy import select, func, and_, delete, update
 from ..models import (
     Base,
@@ -29,6 +31,7 @@ from ..models import (
     Useinfo,
 )
 from ..async_session import async_session
+from rsptx.configuration import settings
 from rsptx.logging import rslogger
 
 
@@ -528,6 +531,7 @@ async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
     async with async_session() as session:
         await session.execute(stmt)
         await session.commit()
+    await _forget_instructor(instructor_id, course_id)
 
 
 async def create_course_instructor(course_id: int, instructor_id: int) -> None:
@@ -541,6 +545,7 @@ async def create_course_instructor(course_id: int, instructor_id: int) -> None:
     new_entry = CourseInstructor(course=course_id, instructor=instructor_id)
     async with async_session.begin() as session:
         session.add(new_entry)
+    await _forget_instructor(instructor_id, course_id)
 
 
 async def update_course_settings(course_id: int, setting: str, value: str) -> None:
@@ -707,6 +712,74 @@ async def fetch_instructor_courses(
         return course_list
 
 
+# Instructor status cache
+# -----------------------
+# Nearly every instructor-gated endpoint asks "is this user an instructor for
+# this course?", and the answer almost never changes, so keep it in redis. The
+# writers below clear the entry for the pair they change; the TTL bounds how
+# long a change made outside this module (raw SQL, a legacy server) goes unseen.
+INSTRUCTOR_CACHE_TTL = 300
+
+_redis: Optional[aioredis.Redis] = None
+
+
+def _instructor_cache() -> Optional[aioredis.Redis]:
+    # The test suite rebuilds its database, reusing user and course ids, so a
+    # shared redis would hand one test another test's answer.
+    if settings.server_config == "test":
+        return None
+    global _redis
+    if _redis is None:
+        _redis = aioredis.from_url(settings.redis_uri)
+    return _redis
+
+
+def _instructor_key(user_id: int, course_id: int) -> str:
+    return f"is_instructor:{user_id}:{course_id}"
+
+
+async def _forget_instructor(user_id: int, course_id: int) -> None:
+    r = _instructor_cache()
+    if r is None:
+        return
+    try:
+        await r.delete(_instructor_key(user_id, course_id))
+    except RedisError as e:
+        rslogger.warning(f"instructor cache delete failed: {e}")
+
+
+async def is_course_instructor(user_id: int, course_id: int) -> bool:
+    """
+    Return True if ``user_id`` is an instructor for ``course_id``.
+
+    Answers come from redis when possible; a redis failure falls back to the
+    database rather than failing the request.
+
+    :param user_id: int, the auth_user id
+    :param course_id: int, the course id
+    :return: bool
+    """
+    r = _instructor_cache()
+    key = _instructor_key(user_id, course_id)
+    if r is not None:
+        try:
+            cached = await r.get(key)
+            if cached is not None:
+                return cached == b"1"
+        except RedisError as e:
+            rslogger.warning(f"instructor cache read failed: {e}")
+            r = None
+
+    result = len(await fetch_instructor_courses(user_id, course_id)) > 0
+
+    if r is not None:
+        try:
+            await r.set(key, "1" if result else "0", ex=INSTRUCTOR_CACHE_TTL)
+        except RedisError as e:
+            rslogger.warning(f"instructor cache write failed: {e}")
+    return result
+
+
 async def fetch_course_instructors(
     course_name: Optional[str] = None,
 ) -> List[AuthUserValidator]:
@@ -748,6 +821,7 @@ async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor
         if ci is None:
             ci = CourseInstructor(course=cid, instructor=iid)
             session.add(ci)
+    await _forget_instructor(iid, cid)
     return ci
 
 

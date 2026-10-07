@@ -187,3 +187,20 @@ async def test_copy_question_keeps_labels_when_target_book_has_no_toc(init_test_
     )
 
     assert (copy.chapter, copy.subchapter) == ("unit-frq-practice", "HiddenWord")
+
+
+async def test_fetch_question_grades_for(test_question):
+    """The bulk fetch returns graded questions keyed by div_id and skips the rest."""
+    from rsptx.db.crud import fetch_question_grades_for
+
+    await create_question_grade_entry(USER, BASE_COURSE, "bulk_grade_q1", 3)
+    await create_question_grade_entry(USER, BASE_COURSE, "bulk_grade_q2", 0)
+    await create_question_grade_entry("someone_else", BASE_COURSE, "bulk_grade_q1", 9)
+
+    grades = await fetch_question_grades_for(
+        USER, BASE_COURSE, ["bulk_grade_q1", "bulk_grade_q2", "bulk_grade_none"]
+    )
+    assert set(grades) == {"bulk_grade_q1", "bulk_grade_q2"}
+    assert grades["bulk_grade_q1"].score == 3
+    assert grades["bulk_grade_q2"].score == 0
+    assert await fetch_question_grades_for(USER, BASE_COURSE, []) == {}

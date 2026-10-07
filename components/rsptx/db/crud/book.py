@@ -490,6 +490,37 @@ async def fetch_user_chapter_progress(
         return UserChapterProgressValidator.from_orm(res.scalars().first())
 
 
+async def fetch_user_chapter_progress_for(
+    user, chapter_labels: List[str]
+) -> Dict[str, UserChapterProgressValidator]:
+    """
+    Retrieve the user's UserChapterProgress entries for several chapters at once.
+
+    :param user: AuthUserValidator, the user
+    :param chapter_labels: the chapter labels to look up
+    :return: a dict mapping chapter label to its UserChapterProgressValidator;
+        chapters with no entry are absent
+    """
+    if not chapter_labels:
+        return {}
+    query = (
+        select(UserChapterProgress)
+        .where(
+            (UserChapterProgress.user_id == str(user.id))  # stored as a string
+            & (UserChapterProgress.chapter_id.in_(chapter_labels))
+        )
+        .order_by(UserChapterProgress.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        progress: Dict[str, UserChapterProgressValidator] = {}
+        for row in res.scalars():
+            progress.setdefault(
+                row.chapter_id, UserChapterProgressValidator.from_orm(row)
+            )
+        return progress
+
+
 async def create_user_chapter_progress_entry(
     user, last_page_chapter, status
 ) -> UserChapterProgressValidator:

@@ -860,6 +860,15 @@ SubChapterValidator: TypeAlias = sqlalchemy_to_pydantic(SubChapter)  # type: ign
 # ----------------------
 class UserSubChapterProgress(Base, IdMixin):
     __tablename__ = "user_sub_chapter_progress"
+    __table_args__ = (
+        Index(
+            "user_sub_chapter_progress_user_course_idx",
+            "user_id",
+            "course_name",
+            "chapter_id",
+            "sub_chapter_id",
+        ),
+    )
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), index=True)
     chapter_id = Column(String(512), index=True, nullable=False)
@@ -877,6 +886,9 @@ UserSubChapterProgressValidator: TypeAlias = sqlalchemy_to_pydantic(UserSubChapt
 
 class UserChapterProgress(Base, IdMixin):
     __tablename__ = "user_chapter_progress"
+    __table_args__ = (
+        Index("user_chapter_progress_user_id_chapter_id_idx", "user_id", "chapter_id"),
+    )
 
     user_id = Column(String(512), nullable=False)
     chapter_id = Column(String(512), nullable=False)

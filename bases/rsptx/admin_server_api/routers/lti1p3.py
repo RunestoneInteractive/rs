@@ -79,7 +79,7 @@ from rsptx.db.crud import (
     fetch_lti1p3_config_by_lti_data,
     fetch_lti1p3_courses_by_lti_course_id,
     fetch_course,
-    fetch_instructor_courses,
+    is_course_instructor,
     validate_user_credentials,
 )
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
@@ -906,9 +906,7 @@ async def dynamic_link_entry(request: Request):
         resp = RedirectResponse("/admin/lti1p3/rs-login", status_code=307)
         return resp
 
-    user_is_instructor = (
-        len(await fetch_instructor_courses(user.id, user.course_id)) > 0
-    )
+    user_is_instructor = await is_course_instructor(user.id, user.course_id)
     if not user_is_instructor:
         raise HTTPException(
             status_code=403,

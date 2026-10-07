@@ -20,6 +20,7 @@ from rsptx.db.crud import (
     fetch_courses_by_institution,
     fetch_courses_for_user,
     fetch_instructor_courses,
+    is_course_instructor,
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
@@ -142,7 +143,7 @@ async def _navbar_context(user: AuthUserValidator) -> dict:
     course = await fetch_course(user.course_name)
     is_instructor = False
     if course and course.id:
-        is_instructor = bool(await fetch_instructor_courses(user.id, course.id))
+        is_instructor = await is_course_instructor(user.id, course.id)
     return {"course": course, "is_instructor": is_instructor}
 
 

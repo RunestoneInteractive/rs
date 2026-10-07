@@ -35,7 +35,6 @@ from rsptx.grading_helpers.comments import display_comment
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.crud import (
-    EVENT2TABLE,
     count_matching_questions,
     count_useinfo_for,
     did_start_timed,
@@ -57,11 +56,9 @@ from rsptx.db.crud import (
     fetch_user,
     fetch_user_experiment,
     fetch_viewed_questions,
-    is_server_feedback,
     update_selected_question,
 )
 from rsptx.response_helpers.core import make_json_response, canonical_utcnow
-from rsptx.db.models import runestone_component_dict
 from rsptx.validation.schemas import AssessmentRequest, SelectQRequest
 from rsptx.auth.session import is_instructor, auth_manager
 
@@ -110,14 +107,6 @@ async def get_assessment_results(
             ret["timestamp"].replace(tzinfo=datetime.timezone.utc).isoformat()
         )
         rslogger.debug(f"timestamp is {ret['timestamp']}")
-
-    # Do server-side grading if needed, which restores the answer and feedback.
-    if feedback := await is_server_feedback(request_data.div_id, request_data.course):
-        rcd = runestone_component_dict[EVENT2TABLE[request_data.event]]
-        # The grader should also be defined if there's feedback.
-        assert rcd.grader
-        # Use the grader to add server-side feedback to the returned dict.
-        ret.update(await rcd.grader(row, feedback))
 
     # get grade and instructor feedback if Any
     grades = await fetch_question_grade(sid, request_data.course, request_data.div_id)

@@ -29,7 +29,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
-from rsptx.db.crud import fetch_course, fetch_instructor_courses
+from rsptx.db.crud import fetch_course, is_course_instructor
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
@@ -106,7 +106,7 @@ async def _base_context(request: Request, user) -> dict:
     if user and getattr(user, "course_name", None):
         course = await fetch_course(user.course_name)
         if course and course.id and getattr(user, "id", None):
-            is_instructor = bool(await fetch_instructor_courses(user.id, course.id))
+            is_instructor = await is_course_instructor(user.id, course.id)
     return {
         "request": request,
         "user": user,

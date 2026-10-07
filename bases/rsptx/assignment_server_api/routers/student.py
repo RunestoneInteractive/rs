@@ -52,10 +52,11 @@ from rsptx.db.crud import (
     fetch_assignment_by_name,
     fetch_assignment_questions,
     fetch_question_grade,
+    fetch_question_grades_for,
     fetch_assignment_release_for_div_id,
     fetch_recent_useinfo,
     fetch_user,
-    fetch_user_chapter_progress,
+    fetch_user_chapter_progress_for,
     fetch_user_sub_chapter_progress,
     fetch_useinfo_for_sid,
     get_book_chapters,
@@ -623,8 +624,11 @@ async def update_submit(
     return make_json_response(detail=dict(success=True))
 
 
-async def _sync_assignment_total(user, assignment_id: int, computed_score) -> None:
-    """Keep the student's ``grades`` row in step with their per-question scores.
+async def _sync_assignment_total(
+    user, assignment_id: int, computed_score
+) -> GradeValidator:
+    """Keep the student's ``grades`` row in step with their per-question scores,
+    returning the row as it now stands.
 
     A total the instructor pinned with ``/manual_total`` is deliberately not
     derived from the question grades, so leave it alone -- otherwise a student
@@ -638,7 +642,7 @@ async def _sync_assignment_total(user, assignment_id: int, computed_score) -> No
             f"Leaving manual total for {user.id} assignment {assignment_id} at "
             f"{current_grade.score}"
         )
-        return
+        return current_grade
 
     if current_grade:
         if current_grade.score != computed_score:
@@ -647,8 +651,8 @@ async def _sync_assignment_total(user, assignment_id: int, computed_score) -> No
                 f"to {computed_score}"
             )
             current_grade.score = computed_score
-            await upsert_grade(current_grade)
-        return
+            current_grade = await upsert_grade(current_grade)
+        return current_grade
 
     new_grade = GradeValidator(
         auth_user=user.id,
@@ -657,10 +661,11 @@ async def _sync_assignment_total(user, assignment_id: int, computed_score) -> No
         manual_total=False,
         score=computed_score,
     )
-    await upsert_grade(new_grade)
+    new_grade = await upsert_grade(new_grade)
     rslogger.debug(
         f"Creating total score for {user.id} assignment {assignment_id} to {computed_score}"
     )
+    return new_grade
 
 
 @router.get("/doAssignment")
@@ -727,7 +732,7 @@ async def doAssignment(
     if not is_assignment_visible_to_students(assignment):
         # Allow access for instructors and students with exceptions
         if not (
-            await is_instructor(request)
+            user_is_instructor
             or deadline_exception.visible
             or deadline_exception.allowLink
         ):
@@ -760,7 +765,23 @@ async def doAssignment(
     if assignment.kind == "Timed":
         assignment.is_timed = True
 
-    questions = await fetch_assignment_questions(assignment_id)
+    questions = list(await fetch_assignment_questions(assignment_id))
+
+    # Look up the student's grades and reading progress for the whole
+    # assignment up front rather than a query or two per question.
+    question_grades = await fetch_question_grades_for(
+        user.username, user.course_name, {q.Question.name for q in questions}
+    )
+    reading_chapters = {
+        q.Question.chapter for q in questions if q.AssignmentQuestion.reading_assignment
+    }
+    chapter_progress = await fetch_user_chapter_progress_for(
+        user, list(reading_chapters)
+    )
+    subchapter_progress = {}
+    if reading_chapters:
+        for row in await fetch_user_sub_chapter_progress(user):
+            subchapter_progress.setdefault((row.chapter_id, row.sub_chapter_id), row)
 
     await create_useinfo_entry(
         UseinfoValidation(
@@ -826,9 +847,7 @@ async def doAssignment(
             htmlsrc = None
 
         # get score and comment
-        grade = await fetch_question_grade(
-            user.username, user.course_name, q.Question.name
-        )
+        grade = question_grades.get(q.Question.name)
         if grade:
             score, comment = grade.score, grade.comment
         else:
@@ -908,7 +927,7 @@ async def doAssignment(
             # add to readings
             if chap_label not in readings:
                 # add chapter info
-                completion = await fetch_user_chapter_progress(user, chap_label)
+                completion = chapter_progress.get(chap_label)
                 if not completion:
                     status = "notstarted"
                 elif completion.status == 1:
@@ -927,15 +946,13 @@ async def doAssignment(
 
             # add subchapter info
             # add completion status to info
-            subch_completion = await fetch_user_sub_chapter_progress(
-                user, chap_label, subchap_label
-            )
+            subch_completion = subchapter_progress.get((chap_label, subchap_label))
 
             if not subch_completion:
                 status = "notstarted"
-            elif subch_completion[0].status == 1:
+            elif subch_completion.status == 1:
                 status = "completed"
-            elif subch_completion[0].status == 0:
+            elif subch_completion.status == 0:
                 status = "started"
             else:
                 status = "notstarted"
@@ -954,8 +971,11 @@ async def doAssignment(
                 questionslist.append(info)
                 questions_score += info["score"]
                 qset.add(q.Question.name)
-    # Just to be sure we are current, we will update the total score for the assignment
-    await _sync_assignment_total(user, assignment_id, readings_score + questions_score)
+    # Just to be sure we are current, we will update the total score for the
+    # assignment. This also guarantees the student has a grades row.
+    grade = await _sync_assignment_total(
+        user, assignment_id, readings_score + questions_score
+    )
 
     # put readings into a session variable, to enable next/prev button
     readings_names = []
@@ -977,19 +997,6 @@ async def doAssignment(
     parsed_js["readings"] = readings_names
 
     course_markup_system = course_attrs.get("markup_system", "Runestone")
-
-    # grabs the row for the current user and and assignment in the grades table
-    grade = await fetch_grade(user.id, assignment_id)
-    # If cannot find the row in the grades folder, make one and set to not submitted
-    if not grade:
-        grade = await upsert_grade(
-            GradeValidator(
-                auth_user=user.id,
-                assignment=assignment_id,
-                is_submit="",  # set is_submit variable to incomplete
-                manual_total=False,
-            )
-        )
 
     # Makes variable that will not allow student to change status if assignment is graded.
     if grade.score:
