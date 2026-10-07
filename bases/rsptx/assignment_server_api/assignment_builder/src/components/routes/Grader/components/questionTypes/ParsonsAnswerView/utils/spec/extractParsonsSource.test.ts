@@ -27,7 +27,41 @@ if left &lt; right:
     ).toMatchObject({ indentUnit: "  ", noIndent: true });
   });
 
-  it("returns null when the Parsons source is absent", () => {
-    expect(extractParsonsSource("<div>Question only</div>")).toBeNull();
+  it.each([
+    ["line #paired:alternative", "line"],
+    ["line #tag:condition;depends:setup;", "line"]
+  ])("removes supported block metadata from %j", (block, expected) => {
+    expect(extractParsonsSource(`<pre class="parsonsblocks">${block}</pre>`)).toMatchObject({
+      lines: [{ indentLevel: 0, text: expected }]
+    });
   });
+
+  it("parses line-based sources without block separators", () => {
+    expect(extractParsonsSource('<pre class="parsonsblocks">first\n  second</pre>')).toMatchObject({
+      indentUnit: "  ",
+      lines: [
+        { indentLevel: 0, text: "first" },
+        { indentLevel: 1, text: "second" }
+      ]
+    });
+  });
+
+  it("uses the default indentation when the source has no indented lines", () => {
+    expect(extractParsonsSource('<pre class="parsonsblocks">first\nsecond</pre>')).toMatchObject({
+      indentUnit: "    "
+    });
+  });
+
+  it("recognizes tabs as the indentation unit", () => {
+    expect(extractParsonsSource('<pre class="parsonsblocks">first\n---\n\tsecond</pre>')).toMatchObject({
+      indentUnit: "\t"
+    });
+  });
+
+  it.each([undefined, "", "<div>Question only</div>"])(
+    "returns null when the Parsons source is absent from %j",
+    (source) => {
+      expect(extractParsonsSource(source)).toBeNull();
+    }
+  );
 });
