@@ -447,7 +447,7 @@ services:
     build:
       context: ./projects/author_server
     #image: registry.digitalocean.com/runestone-registry/rs-worker
-    image: ghcr.io/runestoneinteractive/rs-worker:${RS_VERSION:-latest}
+    image: ghcr.io/runestoneinteractive/rs-author:${RS_VERSION:-latest}
     hostname: worker_${HOSTNAME:-dev}
     extra_hosts:
       - host.docker.internal:host-gateway
