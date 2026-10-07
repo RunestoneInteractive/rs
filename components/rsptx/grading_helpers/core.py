@@ -9,7 +9,7 @@ from rsptx.db.crud import (
     fetch_question_grade,
     update_question_grade_entry,
     upsert_grade,
-    fetch_assignment_scores,
+    fetch_assignment_scores_with_points,
     fetch_deadline_exception,
     fetch_one_assignment,
     fetch_peer_useinfo,
@@ -31,6 +31,7 @@ from rsptx.grading_helpers.comments import is_hand_graded
 from rsptx.grading_helpers.lti_push import schedule_lti1p1_score_push
 from rsptx.grading_helpers.scoring import (
     score_answer_values,
+    capped_question_total,
     score_peer_values,
     PEER_SCORE_SENTINEL,
 )
@@ -166,9 +167,18 @@ async def grade_submission(
                 if current_score.score is None:
                     current_score.score = 0
                     # maybe if there is no score we should update it regardless of the comment?
-                if (current_score.score < scoreSpec.score) and not is_hand_graded(
-                    current_score.comment
-                ):
+                # A score above this assignment's maximum is stale: it was
+                # earned where the question is worth more (question_grades is
+                # shared by every assignment using the question) or before the
+                # instructor lowered its points. Replace it rather than keep it
+                # as the "best" answer.
+                over_max = (
+                    scoreSpec.max_score is not None
+                    and current_score.score > scoreSpec.max_score
+                )
+                if (
+                    current_score.score < scoreSpec.score or over_max
+                ) and not is_hand_graded(current_score.comment):
                     await update_question_grade_entry(
                         user.username,
                         user.course_name,
@@ -275,14 +285,10 @@ async def compute_total_score(
     :rtype: int
     """
 
-    res = await fetch_assignment_scores(
+    res = await fetch_assignment_scores_with_points(
         scoreSpec.assignment_id, user.course_name, user.username
     )
-    total = 0
-    for row in res:
-        if row.score is None:
-            row.score = 0
-        total += row.score
+    total = capped_question_total(res)
 
     rslogger.debug(f"total = {total} for assignment {scoreSpec.assignment_id}")
     # Now update the grade table with the new total

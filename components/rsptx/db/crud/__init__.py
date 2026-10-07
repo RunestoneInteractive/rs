@@ -270,7 +270,7 @@ from .rslogging import (
 
 from .scoring import (
     fetch_answers,
-    fetch_assignment_scores,
+    fetch_assignment_scores_with_points,
     fetch_reading_assignment_spec,
     is_assigned,
 )
@@ -572,7 +572,7 @@ __all__ += [
 # from .scoring
 __all__ += [
     "fetch_answers",
-    "fetch_assignment_scores",
+    "fetch_assignment_scores_with_points",
     "fetch_reading_assignment_spec",
     "is_assigned",
 ]

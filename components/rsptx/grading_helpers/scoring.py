@@ -1,5 +1,6 @@
-from typing import Optional, Union
+from typing import Any, Iterable, Optional, Tuple, Union
 
+from rsptx.grading_helpers.comments import is_hand_graded
 from rsptx.logging import rslogger
 
 
@@ -77,3 +78,25 @@ def score_peer_values(
     if how_to_score == "peer_chat":
         return (tot / 3) * max_score
     return min(1.0, tot / 2) * max_score
+
+
+def capped_question_total(
+    rows: Iterable[Tuple[Any, Optional[Union[int, float]]]],
+) -> Union[int, float]:
+    """Sum a student's question scores for one assignment.
+
+    ``rows`` are ``(question_grade, points)`` pairs, as returned by
+    ``fetch_assignment_scores_with_points``. A ``question_grades`` row is shared
+    by every assignment that uses the question, so a score earned where the
+    question is worth more -- or before an instructor lowered its points -- can
+    exceed what it is worth here. Autograded scores are capped at ``points``.
+    A hand-entered score is counted as the instructor gave it, since a score
+    above the maximum there is deliberate extra credit.
+    """
+    total = 0
+    for grade, points in rows:
+        score = grade.score or 0
+        if points is not None and score > points and not is_hand_graded(grade.comment):
+            score = points
+        total += score
+    return total

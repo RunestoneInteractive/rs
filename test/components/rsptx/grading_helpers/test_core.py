@@ -177,6 +177,34 @@ async def test_autograded_rows_are_still_rescored():
     tot.assert_awaited()
 
 
+async def test_best_answer_replaces_a_score_above_the_assignment_maximum():
+    # The question is worth 1 here, but its shared question_grades row holds a 2
+    # earned in another assignment where it is worth 2. A correct answer here
+    # must bring the row back down to 1 instead of keeping the 2 as "best".
+    grade = SimpleNamespace(id=1, score=2, comment="autograded")
+    spec = _score_spec(which_to_grade="best_answer", max_score=1)
+    dl, assigned, fetch, update, create, total, _ = _patch_scoring(grade, spec)
+    score_one = patch.object(core, "score_one_answer", AsyncMock(return_value=1))
+    with dl, assigned, fetch, update as upd, create, total as tot, score_one:
+        result = await core.grade_submission(_student(), _answer_submission())
+
+    assert result.score == 1
+    assert upd.await_args.args[3] == 1
+    tot.assert_awaited()
+
+
+async def test_best_answer_keeps_a_higher_score_within_the_maximum():
+    grade = SimpleNamespace(id=1, score=8, comment="autograded")
+    spec = _score_spec(which_to_grade="best_answer", max_score=10)
+    dl, assigned, fetch, update, create, total, _ = _patch_scoring(grade, spec)
+    score_one = patch.object(core, "score_one_answer", AsyncMock(return_value=5))
+    with dl, assigned, fetch, update as upd, create, total, score_one:
+        result = await core.grade_submission(_student(), _answer_submission())
+
+    assert result.score == 8
+    upd.assert_not_called()
+
+
 async def test_reading_page_score_leaves_a_hand_entered_grade_alone():
     from rsptx.validation.schemas import ReadingAssignmentSpec
 

@@ -6,7 +6,7 @@ from sqlalchemy import and_, select
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import (
     count_reading_activities,
-    fetch_assignment_scores,
+    fetch_assignment_scores_with_points,
     fetch_deadline_exception,
     fetch_grade,
     fetch_question_grade,
@@ -37,6 +37,7 @@ from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
     interaction_events_for,
 )
 from rsptx.grading_helpers.scoring import (
+    capped_question_total,
     score_answer_values,
     score_peer_values,
     PEER_SCORE_SENTINEL,
@@ -488,7 +489,7 @@ async def _recompute_total_for_user(
     whichever course the student currently has *active*, which is not
     necessarily the one being graded: the roster comes from ``user_courses``, so
     it includes students who have since moved on to another course. Scoring off
-    the active course made ``fetch_assignment_scores`` match no ``question_grades``
+    the active course made ``fetch_assignment_scores_with_points`` match no ``question_grades``
     rows at all and silently rolled the total up to 0.
 
     With ``dry_run`` the would-be total is computed and reported but nothing is
@@ -514,10 +515,10 @@ async def _recompute_total_for_user(
     if grade is None and only_existing:
         return TotalChange(sid=user.username, skipped_no_grade_row=True)
 
-    res = await fetch_assignment_scores(assignment.id, course_name, user.username)
-    total = 0
-    for row in res:
-        total += row.score or 0
+    res = await fetch_assignment_scores_with_points(
+        assignment.id, course_name, user.username
+    )
+    total = capped_question_total(res)
 
     total = apply_threshold_score(total, assignment.points, assignment.threshold_pct)
     change = TotalChange(

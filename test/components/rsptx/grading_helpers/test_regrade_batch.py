@@ -251,12 +251,17 @@ async def test_rollup_uses_the_graded_course():
     """
     user = _users("student1")[0]
     assignment = _assignment()
-    scores = [SimpleNamespace(score=3.0), SimpleNamespace(score=4.0)]
+    scores = [
+        (SimpleNamespace(score=3.0, comment="autograded"), 5),
+        (SimpleNamespace(score=4.0, comment="autograded"), 5),
+    ]
 
     with (
         patch.object(regrade, "fetch_grade", AsyncMock(return_value=None)),
         patch.object(
-            regrade, "fetch_assignment_scores", AsyncMock(return_value=scores)
+            regrade,
+            "fetch_assignment_scores_with_points",
+            AsyncMock(return_value=scores),
         ) as fetch_scores,
         patch.object(regrade, "upsert_grade", AsyncMock()) as upsert,
     ):
@@ -340,8 +345,13 @@ def _patch_rollup(grade, question_scores):
         patch.object(regrade, "fetch_grade", AsyncMock(return_value=grade)),
         patch.object(
             regrade,
-            "fetch_assignment_scores",
-            AsyncMock(return_value=[SimpleNamespace(score=s) for s in question_scores]),
+            "fetch_assignment_scores_with_points",
+            AsyncMock(
+                return_value=[
+                    (SimpleNamespace(score=s, comment="autograded"), None)
+                    for s in question_scores
+                ]
+            ),
         ),
         patch.object(regrade, "upsert_grade", AsyncMock()),
         patch.object(regrade, "attempt_lti_score_updates", AsyncMock()),

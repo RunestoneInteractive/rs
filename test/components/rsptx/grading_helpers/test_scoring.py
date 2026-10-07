@@ -1,4 +1,7 @@
+from types import SimpleNamespace
+
 from rsptx.grading_helpers.scoring import (
+    capped_question_total,
     PEER_SCORE_SENTINEL,
     score_answer_values,
     score_peer_values,
@@ -10,9 +13,12 @@ def test_pct_correct_full_when_correct():
 
 
 def test_pct_correct_unittest_rescales_percent():
-    assert score_answer_values(
-        "pct_correct", 10, correct=False, percent=50, event="unittest"
-    ) == 5.0
+    assert (
+        score_answer_values(
+            "pct_correct", 10, correct=False, percent=50, event="unittest"
+        )
+        == 5.0
+    )
 
 
 def test_pct_correct_partial_uses_percent_fraction():
@@ -34,7 +40,10 @@ def test_interact_and_interaction_award_full():
 
 
 def test_peer_questions_return_sentinel():
-    assert score_answer_values("peer", 5, correct=True, percent=None) == PEER_SCORE_SENTINEL
+    assert (
+        score_answer_values("peer", 5, correct=True, percent=None)
+        == PEER_SCORE_SENTINEL
+    )
     assert (
         score_answer_values("peer_chat", 5, correct=True, percent=None)
         == PEER_SCORE_SENTINEL
@@ -67,3 +76,27 @@ def test_peer_caps_at_full_credit():
 
 def test_peer_zero_without_activity():
     assert score_peer_values("peer", 10, False, False, False) == 0.0
+
+
+# capped_question_total
+# ---------------------
+# question_grades is shared by every assignment that uses a question, so a score
+# earned where the question is worth 2 must count as 1 in an assignment where it
+# is worth 1.
+
+
+def _qg(score, comment="autograded"):
+    return SimpleNamespace(score=score, comment=comment)
+
+
+def test_total_caps_an_autograded_score_at_the_assignment_points():
+    assert capped_question_total([(_qg(2), 1), (_qg(3), 5)]) == 4
+
+
+def test_total_keeps_a_hand_entered_score_above_points():
+    # Extra credit an instructor gave on purpose is not trimmed.
+    assert capped_question_total([(_qg(3, "nice work"), 2)]) == 3
+
+
+def test_total_treats_missing_scores_and_points_leniently():
+    assert capped_question_total([(_qg(None), 1), (_qg(4), None)]) == 4
