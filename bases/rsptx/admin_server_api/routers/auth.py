@@ -13,6 +13,7 @@ from rsptx.db.crud import (
     consume_reset_token,
     create_user,
     create_user_course_entry,
+    delete_user,
     delete_user_course_entry,
     fetch_course,
     fetch_course_access_for_user,
@@ -25,7 +26,6 @@ from rsptx.db.crud import (
     has_lti1p3_user_association,
     set_reset_token,
     update_user,
-    delete_user,
     user_in_course,
 )
 from rsptx.db.models import AuthUserValidator

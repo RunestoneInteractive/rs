@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithMantine, screen, within } from "@/test/renderWithMantine";
 
-import { GraderGradebookPage } from "./GraderGradebookPage";
+import { GraderGradebookPage } from "../GraderGradebookPage";
 
 const { mockUseGetGradebookQuery, mockCellDialog, mockLateDialog, mockUnitsToggle, mockRefetch } =
   vi.hoisted(() => ({
@@ -25,14 +25,14 @@ vi.mock("@store/grader/grader.logic.api", async (importOriginal) => {
 });
 
 // The dialog has its own spec; here we only care about what the page hands it.
-vi.mock("../components/GradebookCellDialog", () => ({
+vi.mock("../../../components/GradebookCellDialog", () => ({
   GradebookCellDialog: (props: Record<string, unknown>) => {
     mockCellDialog(props);
     return null;
   }
 }));
 
-vi.mock("../components/GradebookLateWorkDialog", () => ({
+vi.mock("../../../components/GradebookLateWorkDialog", () => ({
   GradebookLateWorkDialog: (props: Record<string, unknown>) => {
     mockLateDialog(props);
     return null;
@@ -41,7 +41,7 @@ vi.mock("../components/GradebookLateWorkDialog", () => ({
 
 // Likewise the units toggle: it owns the mutation, so the page only has to tell
 // it which units the course is on.
-vi.mock("../components/GradebookUnitsToggle", () => ({
+vi.mock("../../../components/GradebookUnitsToggle", () => ({
   GradebookUnitsToggle: (props: Record<string, unknown>) => {
     mockUnitsToggle(props);
     return null;

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fireEvent, renderWithMantine, screen } from "@/test/renderWithMantine";
 
-import { GraderAssignmentsPage } from "./GraderAssignmentsPage";
+import { GraderAssignmentsPage } from "../GraderAssignmentsPage";
 
 const { mockUseGetAssignmentsQuery } = vi.hoisted(() => ({
   mockUseGetAssignmentsQuery: vi.fn()

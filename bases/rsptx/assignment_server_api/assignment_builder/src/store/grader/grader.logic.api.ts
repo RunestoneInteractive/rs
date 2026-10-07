@@ -118,6 +118,7 @@ export interface RegradeRequest {
   overwrite_manual?: boolean;
   enforce_deadline?: boolean;
   recompute_totals?: boolean;
+  resend_all_scores_via_lti?: boolean;
   which_to_grade_override?: string | null;
 }
 

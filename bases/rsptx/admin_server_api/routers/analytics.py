@@ -906,6 +906,76 @@ def _build_assignment_report(
         _set_ao_task(r, task_id, {"status": "error", "message": str(exc)})
 
 
+def _reading_interactions(
+    engine, course_name: str, reading_ids: list, sid: Optional[str] = None
+) -> pd.DataFrame:
+    """Interaction counts for the readings (``page`` questions) in an assignment.
+
+    A reading's own name never shows up in ``useinfo``, so matching on
+    ``div_id`` finds nothing for it.  What a student does with a reading is
+    open the page -- logged as a ``page`` event whose ``div_id`` ends with the
+    page's file name, ``<subchapter>.html`` for PreTeXt and
+    ``<chapter>/<subchapter>.html`` for Sphinx -- and work the activities on
+    it.  Both count here, with the same activities the reading progress bar
+    counts: from the book source, not optional.
+
+    Returns one row per (sid, reading) with the columns of the main
+    interactions query.  Blocking (pandas); call from a worker thread.
+    """
+    columns = ["sid", "div_id", "interactions", "first_interaction", "last_interaction"]
+    if not reading_ids:
+        return pd.DataFrame(columns=columns)
+    sid_clause = "AND u.sid = %(sid)s" if sid else ""
+    return pd.read_sql_query(
+        f"""
+        WITH pages AS (
+            SELECT q.name, q.base_course, q.chapter, q.subchapter,
+                   CASE WHEN (
+                       SELECT ca.value FROM course_attributes ca
+                       JOIN courses b ON b.id = ca.course_id
+                       WHERE b.course_name = q.base_course
+                         AND ca.attr = 'markup_system'
+                       LIMIT 1
+                   ) = 'PreTeXt'
+                   THEN q.subchapter || '.html'
+                   ELSE q.chapter || '/' || q.subchapter || '.html'
+                   END AS suffix
+            FROM questions q
+            WHERE q.id = ANY(%(reading_ids)s)
+        ),
+        hits AS (
+            SELECT u.sid, p.name, u.timestamp
+            FROM useinfo u
+            JOIN pages p
+              ON u.event = 'page'
+             AND right(u.div_id, length(p.suffix)) = p.suffix
+            WHERE u.course_id = %(course_name)s {sid_clause}
+            UNION ALL
+            SELECT u.sid, p.name, u.timestamp
+            FROM useinfo u
+            JOIN questions a ON a.name = u.div_id
+            JOIN pages p
+              ON a.base_course = p.base_course
+             AND a.chapter = p.chapter
+             AND a.subchapter = p.subchapter
+            WHERE u.course_id = %(course_name)s {sid_clause}
+              AND a.from_source = 'T'
+              AND (a.optional = 'F' OR a.optional IS NULL)
+              AND a.question_type <> 'page'
+        )
+        SELECT sid, name AS div_id,
+               COUNT(*) AS interactions,
+               MIN(timestamp) AS first_interaction,
+               MAX(timestamp) AS last_interaction
+        FROM hits
+        GROUP BY sid, name
+        """,
+        engine,
+        params={"course_name": course_name, "reading_ids": reading_ids, "sid": sid},
+        parse_dates=["first_interaction", "last_interaction"],
+    )
+
+
 def _make_assignment_table(
     engine,
     assignment_id: int,
@@ -925,7 +995,7 @@ def _make_assignment_table(
     # 1. Questions in this assignment
     questions = pd.read_sql_query(
         """
-        SELECT q.name AS div_id, q.question_type,
+        SELECT q.id AS question_id, q.name AS div_id, q.question_type,
                aq.points, aq.sorting_priority
         FROM assignment_questions aq
         JOIN questions q ON q.id = aq.question_id
@@ -938,7 +1008,7 @@ def _make_assignment_table(
     if questions.empty:
         return []
 
-    div_ids = tuple(questions["div_id"].tolist())
+    div_ids = questions["div_id"].tolist()
 
     # 2. Enrolled students (non-LTI, non-instructor)
     enrolled = pd.read_sql_query(
@@ -974,13 +1044,19 @@ def _make_assignment_table(
                MAX(timestamp) AS last_interaction
         FROM useinfo
         WHERE course_id = %(course_name)s
-          AND div_id IN %(div_ids)s
+          AND div_id = ANY(%(div_ids)s)
         GROUP BY sid, div_id
         """,
         engine,
         params={"course_name": course_name, "div_ids": div_ids},
         parse_dates=["first_interaction", "last_interaction"],
     )
+    reading_ids = questions.loc[
+        questions["question_type"] == "page", "question_id"
+    ].tolist()
+    readings = _reading_interactions(engine, course_name, reading_ids)
+    if not readings.empty:
+        interactions = pd.concat([interactions, readings], ignore_index=True)
     if not interactions.empty:
         interactions["first_interaction"] = interactions["first_interaction"] - tdoff
         interactions["last_interaction"] = interactions["last_interaction"] - tdoff
@@ -991,7 +1067,7 @@ def _make_assignment_table(
         SELECT sid, div_id, score
         FROM question_grades
         WHERE course_name = %(course_name)s
-          AND div_id IN %(div_ids)s
+          AND div_id = ANY(%(div_ids)s)
         """,
         engine,
         params={"course_name": course_name, "div_ids": div_ids},
@@ -1165,7 +1241,7 @@ def _build_assignment_student_detail(
 
     questions = pd.read_sql_query(
         """
-        SELECT q.name AS div_id, q.question_type,
+        SELECT q.id AS question_id, q.name AS div_id, q.question_type,
                aq.points AS max_points, aq.sorting_priority
         FROM assignment_questions aq
         JOIN questions q ON q.id = aq.question_id
@@ -1178,7 +1254,7 @@ def _build_assignment_student_detail(
     if questions.empty:
         return []
 
-    div_ids = tuple(questions["div_id"].tolist())
+    div_ids = questions["div_id"].tolist()
 
     interactions = pd.read_sql_query(
         """
@@ -1189,13 +1265,21 @@ def _build_assignment_student_detail(
         FROM useinfo
         WHERE course_id = %(course_name)s
           AND sid = %(sid)s
-          AND div_id IN %(div_ids)s
+          AND div_id = ANY(%(div_ids)s)
         GROUP BY div_id
         """,
         engine,
         params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
         parse_dates=["first_interaction", "last_interaction"],
     )
+    reading_ids = questions.loc[
+        questions["question_type"] == "page", "question_id"
+    ].tolist()
+    readings = _reading_interactions(engine, course_name, reading_ids, sid=sid)
+    if not readings.empty:
+        interactions = pd.concat(
+            [interactions, readings.drop(columns="sid")], ignore_index=True
+        )
     if not interactions.empty:
         interactions["first_interaction"] = interactions["first_interaction"] - tdoff
         interactions["last_interaction"] = interactions["last_interaction"] - tdoff
@@ -1206,7 +1290,7 @@ def _build_assignment_student_detail(
         FROM question_grades
         WHERE course_name = %(course_name)s
           AND sid = %(sid)s
-          AND div_id IN %(div_ids)s
+          AND div_id = ANY(%(div_ids)s)
         """,
         engine,
         params={"course_name": course_name, "sid": sid, "div_ids": div_ids},

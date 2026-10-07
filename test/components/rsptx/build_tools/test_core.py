@@ -1,6 +1,16 @@
 import lxml.etree as ET
 import pytest
-from sqlalchemy import Column, DateTime, Integer, MetaData, String, Table, create_engine
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    UniqueConstraint,
+    create_engine,
+    text,
+)
 from sqlalchemy.orm.session import sessionmaker
 
 from rsptx.build_tools import core
@@ -55,6 +65,7 @@ def page_db():
         Column("from_source", String),
         Column("author", String),
         Column("owner", String),
+        UniqueConstraint("name", "base_course"),
     )
     meta.create_all(engine)
     sess = sessionmaker(bind=engine)()
@@ -132,3 +143,131 @@ def test_add_page_question_relabelled_page_matches_by_name(page_db):
     assert [(r.name, r.subchapter) for r in rows] == [
         ("Linked Lists/Intro", "new_label")
     ]
+
+
+def test_add_page_question_duplicate_label_rows(page_db):
+    """Older builds left two page rows for one label after a title change.
+
+    The row already carrying the current name must be the one updated;
+    renaming the stale row to that name would violate the unique
+    (name, base_course) constraint.
+    """
+    sess, db_context = page_db
+    q = db_context["questions"]
+    for name in ["Linked Lists/Unit 2b Projects", "Linked Lists/Unit 2B Projects"]:
+        sess.execute(
+            q.insert().values(
+                base_course="book",
+                name=name,
+                question_type="page",
+                chapter="ch1",
+                subchapter="ch1_sub1",
+            )
+        )
+    before = [(r.id, r.name) for r in _pages(sess, db_context)]
+    chapter, sub = _chapter_xml("Unit 2B Projects")
+    core._add_page_question(sess, db_context, chapter, sub, "book")
+    rows = _pages(sess, db_context)
+    assert [(r.id, r.name) for r in rows] == before
+    assert rows[1].owner == "o"
+    assert rows[0].owner is None
+
+
+@pytest.fixture
+def merge_db():
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        for ddl in [
+            "create table questions (id integer primary key, base_course text, "
+            "name text, timestamp timestamp, question_type text, chapter text, "
+            "subchapter text, unique (name, base_course))",
+            "create table assignment_questions (id integer primary key, "
+            "assignment_id integer, question_id integer, points integer)",
+            "create table question_tags (id integer primary key, "
+            "question_id integer, tag_id integer)",
+            "create table competency (id integer primary key, question integer, "
+            "competency text, question_name text)",
+            "create table question_grades (id integer primary key, sid text, "
+            "course_name text, div_id text, score float, "
+            "unique (div_id, course_name, sid))",
+            "create table courses (id integer primary key, course_name text, "
+            "base_course text)",
+            "insert into courses (course_name, base_course) values "
+            "('book_s26', 'book'), ('other_s26', 'other')",
+            # Two rows for ch1/sub1: 1 is stale (old title), 2 is current.
+            "insert into questions values "
+            "(1, 'book', 'Ch/Old Title', '2026-08-01', 'page', 'ch1', 'sub1'), "
+            "(2, 'book', 'Ch/New Title', '2026-09-30', 'page', 'ch1', 'sub1'), "
+            "(3, 'book', 'Ch/Other', '2026-08-01', 'page', 'ch1', 'sub2'), "
+            "(4, 'other', 'Ch/Old Title', '2026-08-01', 'page', 'ch1', 'sub1')",
+            # assignment 10 points at the stale row only; 11 at both
+            "insert into assignment_questions (assignment_id, question_id, points) "
+            "values (10, 1, 5), (11, 1, 5), (11, 2, 5), (12, 3, 1)",
+            "insert into question_tags (question_id, tag_id) values "
+            "(1, 7), (1, 8), (2, 7)",
+            "insert into competency (question, competency, question_name) values "
+            "(1, 'loops', 'Ch/Old Title')",
+            # alice was graded under the old name only; bob under both
+            "insert into question_grades (sid, course_name, div_id, score) values "
+            "('alice', 'book_s26', 'Ch/Old Title', 1), "
+            "('bob', 'book_s26', 'Ch/Old Title', 1), "
+            "('bob', 'book_s26', 'Ch/New Title', 2), "
+            "('carol', 'other_s26', 'Ch/Old Title', 3)",
+        ]:
+            conn.execute(text(ddl))
+    yield engine
+    engine.dispose()
+
+
+def test_merge_duplicate_page_questions(merge_db):
+    with merge_db.begin() as conn:
+        report = core.merge_duplicate_page_questions(conn)
+    assert len(report) == 1
+    g = report[0]
+    assert (g["keep_id"], g["keep_name"]) == (2, "Ch/New Title")
+    assert g["dropped"] == [
+        dict(
+            id=1,
+            name="Ch/Old Title",
+            assignment_questions_moved=1,
+            assignment_questions_deduped=1,
+            tags_moved=1,
+            competencies_moved=1,
+            grades_moved=1,
+            grades_conflict=1,
+        )
+    ]
+    with merge_db.connect() as conn:
+        q = lambda sql: conn.execute(text(sql)).fetchall()  # noqa: E731
+        assert [r.id for r in q("select id from questions order by id")] == [2, 3, 4]
+        assert q(
+            "select assignment_id, question_id from assignment_questions "
+            "order by assignment_id, question_id"
+        ) == [(10, 2), (11, 2), (12, 3)]
+        assert q("select question_id, tag_id from question_tags order by tag_id") == [
+            (2, 7),
+            (2, 8),
+        ]
+        assert q("select question, question_name from competency") == [
+            (2, "Ch/New Title")
+        ]
+        # alice's grade follows the page; bob's stale one is left, not clobbered;
+        # the other book's grade under the same name is untouched.
+        assert q(
+            "select sid, course_name, div_id, score from question_grades "
+            "order by sid, div_id"
+        ) == [
+            ("alice", "book_s26", "Ch/New Title", 1),
+            ("bob", "book_s26", "Ch/New Title", 2),
+            ("bob", "book_s26", "Ch/Old Title", 1),
+            ("carol", "other_s26", "Ch/Old Title", 3),
+        ]
+
+
+def test_merge_duplicate_page_questions_scoped_and_rollback(merge_db):
+    with merge_db.connect() as conn:
+        trans = conn.begin()
+        assert core.merge_duplicate_page_questions(conn, "other") == []
+        assert len(core.merge_duplicate_page_questions(conn, "book")) == 1
+        trans.rollback()
+        assert conn.execute(text("select count(*) from questions")).scalar() == 4

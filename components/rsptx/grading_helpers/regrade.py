@@ -49,6 +49,7 @@ class RegradeOptions(BaseModel):
     overwrite_manual: bool = False
     enforce_deadline: bool = True
     recompute_totals: bool = True
+    resend_all_scores_via_lti: bool = False
     which_to_grade_override: Optional[str] = None
 
 
@@ -548,6 +549,7 @@ async def _push_total_changes(
     user_map: Dict[str, AuthUserValidator],
     push_unchanged: bool = False,
     instructor_triggered: bool = False,
+    force: bool = False,
 ) -> None:
     """Send the totals that moved to the course's LMS, in one batch.
 
@@ -566,6 +568,10 @@ async def _push_total_changes(
     Students with no ``grades`` row are always skipped; there is no score to
     send.
     """
+    # Never publish hidden grades, even when an instructor forces passback.
+    if not assignment.released:
+        return
+
     updates = []
     for c in changes:
         if c.skipped_no_grade_row:
@@ -583,6 +589,7 @@ async def _push_total_changes(
             assignment,
             course.id,
             updates,
+            force=force,
             instructor_triggered=instructor_triggered,
         )
 
@@ -639,6 +646,7 @@ async def recompute_totals_detail(
             user_map,
             push_unchanged=push_unchanged,
             instructor_triggered=instructor_triggered,
+            force=instructor_triggered,
         )
     return changes
 
@@ -683,6 +691,7 @@ async def regrade_batch(
     ``questions`` is a list of ``(QuestionValidator, AssignmentQuestion)`` tuples.
     When ``dry_run`` is true nothing is written to the database; the returned
     report contains the before/after diff so the UI can preview the operation.
+    Resending via LTI recomputes totals, then pushes unchanged totals too.
     """
     report = RegradeReport()
     # Recompute the total for every student we regraded, not just the ones whose
@@ -714,7 +723,11 @@ async def regrade_batch(
             elif item.new_score != item.old_score:
                 report.changed += 1
 
-    if not dry_run and options.recompute_totals and processed_sids:
+    if (
+        not dry_run
+        and (options.recompute_totals or options.resend_all_scores_via_lti)
+        and processed_sids
+    ):
         users = await fetch_users_for_course(course.course_name)
         user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
         changes: List[TotalChange] = []
@@ -734,6 +747,8 @@ async def regrade_batch(
             assignment,
             changes,
             user_map,
+            push_unchanged=options.resend_all_scores_via_lti,
+            force=instructor_triggered or options.resend_all_scores_via_lti,
             instructor_triggered=instructor_triggered,
         )
 

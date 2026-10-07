@@ -39,14 +39,40 @@ var rb = new RunestoneBase();
 //
 // The browser gives page scripts no way to read what is already in the devtools
 // console, so we buffer console output ourselves from the moment this module is
-// evaluated.  When the user opens the "Report a Problem" form we stash the
-// buffer in sessionStorage (see the Problem Report menu link below); the form
-// reads it back into a hidden field so recent log output and uncaught errors
-// ride along with the report.
+// evaluated.  The buffer is written through to sessionStorage (debounced, and
+// again on pagehide) so the "Report a Problem" form can always read it back
+// into a hidden field, letting recent log output and uncaught errors ride along
+// with the report.  We can't rely on stashing it only when the Problem Report
+// link is clicked: a beforeunload "Leave site?" prompt (e.g. from timed exams)
+// can get in the way of that.
 // ---------------------------------------------------------------------------
 export const RS_CONSOLE_LOG_KEY = "rs_console_log";
 const RS_LOG_BUFFER_MAX = 200;
+const RS_LOG_PERSIST_DELAY_MS = 500;
 const rsConsoleBuffer = [];
+let rsPersistTimer = null;
+
+function rsPersistConsoleLog() {
+    if (rsPersistTimer) {
+        clearTimeout(rsPersistTimer);
+        rsPersistTimer = null;
+    }
+    try {
+        sessionStorage.setItem(RS_CONSOLE_LOG_KEY, rsGetConsoleLog());
+    } catch (e) {
+        // sessionStorage may be unavailable (e.g. private mode) or full; the
+        // report form simply won't be prefilled with the log.
+    }
+}
+
+function rsSchedulePersist() {
+    if (!rsPersistTimer) {
+        rsPersistTimer = setTimeout(
+            rsPersistConsoleLog,
+            RS_LOG_PERSIST_DELAY_MS,
+        );
+    }
+}
 
 function rsFormatLogArg(arg) {
     if (typeof arg === "string") return arg;
@@ -63,6 +89,7 @@ function rsRecordLog(level, args) {
         const line = `[${level}] ${Array.from(args).map(rsFormatLogArg).join(" ")}`;
         rsConsoleBuffer.push(line);
         if (rsConsoleBuffer.length > RS_LOG_BUFFER_MAX) rsConsoleBuffer.shift();
+        rsSchedulePersist();
     } catch (e) {
         // Never let log capture throw and break the page.
     }
@@ -90,6 +117,8 @@ function rsRecordLog(level, args) {
     window.addEventListener("unhandledrejection", (e) => {
         rsRecordLog("promise", [rsFormatLogArg(e.reason)]);
     });
+    // Catch anything logged inside the debounce window before we navigate away.
+    window.addEventListener("pagehide", rsPersistConsoleLog);
 })();
 
 /** Recent buffered console output, newest last, as a single string. */
@@ -188,8 +217,9 @@ function addReadingList() {
             var fst_lnk = document.createElement("a");
             //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
-            fst_lnk.textContent = `Back to page ${position
-                } of ${num_readings}: ${reading_names[position - 1]}.`;
+            fst_lnk.textContent = `Back to page ${
+                position
+            } of ${num_readings}: ${reading_names[position - 1]}.`;
             txt.append(fst_lnk);
             fst.append(txt);
         } else if (position == 0) {
@@ -252,8 +282,9 @@ function addReadingList() {
             var snd_lnk = document.createElement("a");
             //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
             snd_lnk.href = new_pos_link;
-            snd_lnk.textContent = `Continue to page ${position + 2
-                } of ${num_readings}: ${reading_names[position + 1]}`;
+            snd_lnk.textContent = `Continue to page ${
+                position + 2
+            } of ${num_readings}: ${reading_names[position + 1]}`;
             let txt = document.createElement("p");
             txt.append(snd_lnk);
             snd.append(txt);
@@ -315,7 +346,6 @@ function addReadingList() {
     }
 }
 
-
 /**
  * Build the activity dictionary for the progress bar by scanning the page.
  *
@@ -359,12 +389,17 @@ export function isCourseStarted() {
 }
 
 function courseNotStartedMessage() {
-    const formattedDate = new Date(eBookConfig.termStartDate).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+    const formattedDate = new Date(
+        eBookConfig.termStartDate,
+    ).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
     });
-    return ("Course has not started yet. Progress will be tracked starting on " + formattedDate);
+    return (
+        "Course has not started yet. Progress will be tracked starting on " +
+        formattedDate
+    );
 }
 
 /** True when pathname names one of the NON_CONTENT_PAGES. */
@@ -396,7 +431,7 @@ export class PageProgressBar {
         this.possible = 0;
         // The page itself counts as one item and is attempted as soon as it is
         // opened. That is what lets a page with no activities on it still be
-        // completed. 
+        // completed.
         this.total = 1;
         if (actDict && "assignment_spec" in actDict) {
             this.assignment_spec = actDict.assignment_spec;
@@ -462,7 +497,9 @@ export class PageProgressBar {
         let progressText = document.getElementById("scprogress-activity-count");
         // Warn if course not started
         if (progressText && !isCourseStarted()) {
-            progressText.appendChild(document.createTextNode(courseNotStartedMessage()));
+            progressText.appendChild(
+                document.createTextNode(courseNotStartedMessage()),
+            );
         }
         // Replace #subchapterprogress div with a native <progress> element if not already done
         let subchapterprogress = document.getElementById("subchapterprogress");
@@ -549,7 +586,7 @@ export class PageProgressBar {
                 this.assignment_spec &&
                 this.assignment_spec.activities_required !== null &&
                 this.activitiesAttempted >=
-                this.assignment_spec.activities_required
+                    this.assignment_spec.activities_required
             ) {
                 console.log("Required activities completed");
                 this.sendCompletedReadingScore().then(() => {
@@ -883,7 +920,10 @@ function createStudyCluesWidget() {
         }
         var sectionInfo = "";
         // find the section title on the page to include in the initial query
-        if (document.querySelector("body.pretext") && document.querySelector("section.section")) {
+        if (
+            document.querySelector("body.pretext") &&
+            document.querySelector("section.section")
+        ) {
             let section = document.querySelector("section.section");
             let sectionTitle = section.querySelector("span.title").innerText;
             let sectionNumber =
@@ -1001,12 +1041,10 @@ function createStudyCluesWidget() {
 }
 
 function shouldShowStudyCluesWidget() {
-    if (
-        !(
-            location.pathname.includes("/ns/books/") ||
-            location.pathname.includes("doAssignment")
-        )
-    ) {
+    if (!(
+        location.pathname.includes("/ns/books/") ||
+        location.pathname.includes("doAssignment")
+    )) {
         return false;
     }
 
@@ -1073,9 +1111,7 @@ async function handlePageSetup() {
     // PTX generated pages may have stale HTML. Forcibly re-render the content
     // of the progress container. Any logic that modifies the progress container
     // should be done after this point, or it will be overwritten.
-    const scprogresscontainer = document.getElementById(
-        "scprogresscontainer",
-    );
+    const scprogresscontainer = document.getElementById("scprogresscontainer");
     if (scprogresscontainer)
         scprogresscontainer.innerHTML = `
             <div id="scprogress-activity-count">
@@ -1109,10 +1145,14 @@ async function handlePageSetup() {
                 const warningContainer = document.createElement("div");
                 warningContainer.className = "ptx-runestone-container";
                 const warningDiv = document.createElement("div");
-                warningDiv.className = "course-not-started-warning alert alert-danger";
+                warningDiv.className =
+                    "course-not-started-warning alert alert-danger";
                 warningDiv.textContent = courseNotStartedMessage();
                 warningContainer.appendChild(warningDiv);
-                ptxContent.insertBefore(warningContainer, ptxContent.firstChild);
+                ptxContent.insertBefore(
+                    warningContainer,
+                    ptxContent.firstChild,
+                );
             }
         }
 
@@ -1208,7 +1248,10 @@ function placeAdCopy() {
     if (!document.getElementById("adcopy_1")) {
         document.body.insertAdjacentHTML("beforeend", adTemplate);
     }
-    if ((typeof showAd !== "undefined" && showAd) || eBookConfig.course_attrs?.showAd) {
+    if (
+        (typeof showAd !== "undefined" && showAd) ||
+        eBookConfig.course_attrs?.showAd
+    ) {
         let adNum = Math.floor(Math.random() * 2) + 1;
         let adBlock = document.getElementById(`adcopy_${adNum}`);
         let rsElements = document.querySelectorAll(".runestone");
@@ -1220,7 +1263,7 @@ function placeAdCopy() {
             if (aTag && aTag.href.includes("/runestone/default/donate")) {
                 aTag.href = aTag.href.replace(
                     "/runestone/default/donate",
-                    "/admin/auth/donate"
+                    "/admin/auth/donate",
                 );
             }
             adBlock.style.display = "block";
@@ -1321,9 +1364,7 @@ window.addEventListener("DOMContentLoaded", function (event) {
     );
 
     if (!itemTemplate || !sepTemplate || !menuContentArea) {
-        console.warn(
-            "Missing template or content area for user dropdown",
-        );
+        console.warn("Missing template or content area for user dropdown");
         return;
     }
 
@@ -1384,12 +1425,18 @@ window.addEventListener("DOMContentLoaded", function (event) {
     menuContentArea.appendChild(makeLink(null, eBookConfig.course));
     menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
 
-    menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home", "home"));
+    menuContentArea.appendChild(
+        makeLink("/ns/course/index", "Course Home", "home"),
+    );
     menuContentArea.appendChild(
         makeLink("/assignment/student/chooseAssignment", "Assignments", "edit"),
     );
     menuContentArea.appendChild(
-        makeLink("/assignment/peer/student", "Peer Instruction (Student)", "groups_3"),
+        makeLink(
+            "/assignment/peer/student",
+            "Peer Instruction (Student)",
+            "groups_3",
+        ),
     );
     menuContentArea.appendChild(
         makeLink("/assignment/student/studentreport", "Progress"),
@@ -1397,13 +1444,17 @@ window.addEventListener("DOMContentLoaded", function (event) {
     if (eBookConfig.isInstructor) {
         menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
         menuContentArea.appendChild(
-            makeLink("/admin/instructor/menu", "Instructor Dashboard", "settings"),
+            makeLink(
+                "/admin/instructor/menu",
+                "Instructor Dashboard",
+                "settings",
+            ),
         );
         menuContentArea.appendChild(
             makeLink(
                 "/assignment/peer/instructor",
                 "Peer Instruction (Instructor)",
-                "groups_3"
+                "groups_3",
             ),
         );
         // On runestone.academy the author server is its own host, so this has to
@@ -1440,18 +1491,11 @@ window.addEventListener("DOMContentLoaded", function (event) {
         "Problem Report",
         "bug_report",
     );
-    // Stash recent console output so the report form can pick it up and send it
-    // along with the report.
+    // The log is already persisted continuously; flush now so nothing in the
+    // debounce window is lost.
     const problemReportAnchor = problemReportLink.querySelector("a");
     if (problemReportAnchor) {
-        problemReportAnchor.addEventListener("click", () => {
-            try {
-                sessionStorage.setItem(RS_CONSOLE_LOG_KEY, rsGetConsoleLog());
-            } catch (e) {
-                // sessionStorage may be unavailable (e.g. private mode); the
-                // form simply won't be prefilled with the log.
-            }
-        });
+        problemReportAnchor.addEventListener("click", rsPersistConsoleLog);
     }
     menuContentArea.appendChild(problemReportLink);
 });

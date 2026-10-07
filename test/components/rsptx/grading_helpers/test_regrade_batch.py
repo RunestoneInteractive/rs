@@ -14,8 +14,10 @@ def _course():
     return SimpleNamespace(id=1, course_name="testcourse")
 
 
-def _assignment():
-    return SimpleNamespace(id=42, points=10, threshold_pct=None, duedate=None)
+def _assignment(released=True):
+    return SimpleNamespace(
+        id=42, points=10, threshold_pct=None, duedate=None, released=released
+    )
 
 
 def _question():
@@ -80,6 +82,109 @@ async def test_unchanged_student_still_recomputes_total():
     assert recompute.await_args.args[0].username == "student1"
 
 
+async def test_regrade_batch_forces_lti_push():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    ro, fu, rc = _patch_batch(unchanged)
+    with ro, fu, rc, patch.object(regrade, "_push_total_changes", AsyncMock()) as push:
+        await regrade_batch(
+            _course(),
+            ["student1"],
+            [_question()],
+            _assignment(),
+            RegradeOptions(),
+            instructor_triggered=True,
+        )
+
+    assert push.await_args.kwargs["force"] is True
+
+
+async def test_unreleased_regrade_does_not_push_even_when_forced():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    for options in (
+        RegradeOptions(),
+        RegradeOptions(resend_all_scores_via_lti=True),
+    ):
+        ro, fu, rc = _patch_batch(unchanged)
+        with (
+            ro,
+            fu,
+            rc as recompute,
+            patch.object(regrade, "attempt_lti_score_updates", AsyncMock()) as push,
+        ):
+            recompute.return_value = regrade.TotalChange(
+                sid="student1", old_score=3.0, new_score=3.0
+            )
+            await regrade_batch(
+                _course(),
+                ["student1"],
+                [_question()],
+                _assignment(released=False),
+                options,
+                instructor_triggered=True,
+            )
+        push.assert_not_awaited()
+
+
+async def test_regrade_resend_option_pushes_unchanged_total():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    ro, fu, rc = _patch_batch(unchanged)
+    with (
+        ro,
+        fu,
+        rc as recompute,
+        patch.object(regrade, "attempt_lti_score_updates", AsyncMock()) as push,
+    ):
+        recompute.return_value = regrade.TotalChange(
+            sid="student1", old_score=3.0, new_score=3.0
+        )
+        report = await regrade_batch(
+            _course(),
+            ["student1"],
+            [_question()],
+            _assignment(),
+            RegradeOptions(
+                recompute_totals=False,
+                resend_all_scores_via_lti=True,
+            ),
+        )
+
+    assert report.changed == 0
+    push.assert_awaited_once()
+    assert push.await_args.args[2] == [(1, 3.0)]
+    assert push.await_args.kwargs["force"] is True
+
+
+async def test_regrade_default_does_not_resend_unchanged_total():
+    unchanged = RegradeDiffItem(
+        sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
+    )
+    ro, fu, rc = _patch_batch(unchanged)
+    with (
+        ro,
+        fu,
+        rc as recompute,
+        patch.object(regrade, "attempt_lti_score_updates", AsyncMock()) as push,
+    ):
+        recompute.return_value = regrade.TotalChange(
+            sid="student1", old_score=3.0, new_score=3.0
+        )
+        await regrade_batch(
+            _course(),
+            ["student1"],
+            [_question()],
+            _assignment(),
+            RegradeOptions(),
+        )
+
+    push.assert_not_awaited()
+
+
 async def test_dry_run_does_not_recompute_totals():
     unchanged = RegradeDiffItem(
         sid="student1", question_id=7, div_id="q1", old_score=3.0, new_score=3.0
@@ -91,7 +196,7 @@ async def test_dry_run_does_not_recompute_totals():
             ["student1"],
             [_question()],
             _assignment(),
-            RegradeOptions(),
+            RegradeOptions(resend_all_scores_via_lti=True),
             dry_run=True,
         )
     recompute.assert_not_called()
@@ -334,7 +439,10 @@ async def test_recompute_totals_for_forwards_instructor_triggered_flag():
             _course(), _assignment(), ["student1"], instructor_triggered=True
         )
 
-    assert lti_mock.await_args.kwargs == {"instructor_triggered": True}
+    assert lti_mock.await_args.kwargs == {
+        "force": True,
+        "instructor_triggered": True,
+    }
 
 
 async def test_only_existing_skips_students_with_no_grade_row():
@@ -399,6 +507,11 @@ async def _push(changes, usernames, **kwargs):
             _course(), _assignment(), changes, user_map, **kwargs
         )
     return push
+
+
+async def test_force_is_forwarded_to_lti_sender():
+    push = await _push([_change("student1", 0, 5)], ["student1"], force=True)
+    assert push.await_args.kwargs["force"] is True
 
 
 async def test_unchanged_totals_are_not_pushed_to_the_lms():

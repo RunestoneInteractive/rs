@@ -949,6 +949,7 @@ class RegradeRequest(BaseModel):
     overwrite_manual: bool = False
     enforce_deadline: bool = True
     recompute_totals: bool = True
+    resend_all_scores_via_lti: bool = False
     which_to_grade_override: Optional[str] = None
 
 
@@ -996,6 +997,7 @@ async def regrade_preview(
         overwrite_manual=payload.overwrite_manual,
         enforce_deadline=payload.enforce_deadline,
         recompute_totals=payload.recompute_totals,
+        resend_all_scores_via_lti=payload.resend_all_scores_via_lti,
         which_to_grade_override=payload.which_to_grade_override,
     )
     report = await regrade_batch(
@@ -1027,6 +1029,7 @@ async def regrade_run(
         overwrite_manual=payload.overwrite_manual,
         enforce_deadline=payload.enforce_deadline,
         recompute_totals=payload.recompute_totals,
+        resend_all_scores_via_lti=payload.resend_all_scores_via_lti,
         which_to_grade_override=payload.which_to_grade_override,
     )
     report = await regrade_batch(
@@ -1250,12 +1253,14 @@ async def set_manual_assignment_total(
         grade = await set_manual_total(
             student.id, assignment.id, course.course_name, payload.score, True
         )
-        await attempt_lti_score_updates(
-            assignment,
-            course.id,
-            [(student.id, payload.score)],
-            instructor_triggered=True,
-        )
+        if assignment.released:
+            await attempt_lti_score_updates(
+                assignment,
+                course.id,
+                [(student.id, payload.score)],
+                force=True,
+                instructor_triggered=True,
+            )
         rslogger.info(
             f"Manual total set by {user.username} assignment={assignment.id} "
             f"sid={payload.sid} score={payload.score}"

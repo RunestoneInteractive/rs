@@ -34,7 +34,7 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
     rows: [
       { keys: ["G"], label: "Focus grade input" },
       { keys: ["C"], label: "Focus comment box" },
-      { keys: ["H"], label: "Toggle 'hide graded' filter" }
+      { keys: ["H"], label: "Toggle 'hide full credit' filter" }
     ]
   },
   {

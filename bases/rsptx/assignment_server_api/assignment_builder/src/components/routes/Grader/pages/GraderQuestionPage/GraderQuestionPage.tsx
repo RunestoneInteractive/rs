@@ -13,21 +13,21 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { notify } from "@/components/ui/notify";
 
-import styles from "../Grader.module.css";
-import { DeadlineExceptionDialog } from "../components/DeadlineExceptionDialog";
-import { GradePanel, GradePanelHandle } from "../components/GradePanel";
-import { RegradeWizard } from "../components/RegradeWizard";
-import { ShortcutsHelpDialog } from "../components/ShortcutsHelpDialog";
-import { StudentListSidebar } from "../components/StudentListSidebar";
-import { SubmissionPane, SubmissionPaneHandle } from "../components/SubmissionPane";
-import { AutoSavedInfo, useAutoSaveGrade } from "../hooks/useAutoSaveGrade";
-import { useGraderHotkeys } from "../hooks/useGraderHotkeys";
-import { useGraderPrefs } from "../hooks/useGraderPrefs";
-import { usePlatform } from "../hooks/usePlatform";
-import { useStudentNavigation } from "../hooks/useStudentNavigation";
-import { studentDisplayName } from "../state/graderSelectors";
-import { useGraderTourContext } from "../tour/GraderTourContext";
-import { getDemoAnswersFor, getDemoQuestionsFor } from "../tour/graderDemoData";
+import styles from "../../Grader.module.css";
+import { DeadlineExceptionDialog } from "../../components/DeadlineExceptionDialog";
+import { GradePanel, GradePanelHandle } from "../../components/GradePanel";
+import { RegradeWizard } from "../../components/RegradeWizard";
+import { ShortcutsHelpDialog } from "../../components/ShortcutsHelpDialog";
+import { StudentListSidebar } from "../../components/StudentListSidebar";
+import { SubmissionPane, SubmissionPaneHandle } from "../../components/SubmissionPane";
+import { AutoSavedInfo, useAutoSaveGrade } from "../../hooks/useAutoSaveGrade";
+import { useGraderHotkeys } from "../../hooks/useGraderHotkeys";
+import { useGraderPrefs } from "../../hooks/useGraderPrefs";
+import { usePlatform } from "../../hooks/usePlatform";
+import { useStudentNavigation } from "../../hooks/useStudentNavigation";
+import { studentDisplayName } from "../../state/graderSelectors";
+import { useGraderTourContext } from "../../tour/GraderTourContext";
+import { getDemoAnswersFor, getDemoQuestionsFor } from "../../tour/graderDemoData";
 
 export const GraderQuestionPage: React.FC = () => {
   const { assignmentId, questionId, sid } = useParams();
@@ -256,7 +256,8 @@ export const GraderQuestionPage: React.FC = () => {
   }, [autoSave.status, student?.sid]);
 
   const [help, setHelp] = useState(false);
-  const [hideGraded, setHideGraded] = useState(false);
+  const [hideFullCredit, setHideFullCredit] = useState(false);
+  const [hideUnanswered, setHideUnanswered] = useState(false);
   const [showRegrade, setShowRegrade] = useState(false);
   const [showExtraTime, setShowExtraTime] = useState(false);
   const gradePanelRef = useRef<GradePanelHandle>(null);
@@ -277,7 +278,7 @@ export const GraderQuestionPage: React.FC = () => {
     prevAttempt: () => submissionRef.current?.prevAttempt(),
     focusGrade: () => gradePanelRef.current?.focusGrade(),
     focusComment: () => gradePanelRef.current?.focusComment(),
-    toggleHideGraded: () => setHideGraded((v) => !v),
+    toggleHideFullCredit: () => setHideFullCredit((v) => !v),
     openHelp: () => setHelp(true)
   });
 
@@ -363,8 +364,10 @@ export const GraderQuestionPage: React.FC = () => {
           }
           deadlineEnforced={lateStudentsData?.enforce_due}
           onSelect={selectSid}
-          hideGraded={hideGraded}
-          onToggleHideGraded={setHideGraded}
+          hideFullCredit={hideFullCredit}
+          onToggleHideFullCredit={setHideFullCredit}
+          hideUnanswered={hideUnanswered}
+          onToggleHideUnanswered={setHideUnanswered}
         />
 
         <div className={styles.splitMain}>

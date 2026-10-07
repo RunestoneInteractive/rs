@@ -53,6 +53,7 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
   const [overwriteManual, setOverwriteManual] = useState(false);
   const [enforceDeadline, setEnforceDeadline] = useState(true);
   const [recomputeTotals, setRecomputeTotals] = useState(true);
+  const [resendAllScoresViaLti, setResendAllScoresViaLti] = useState(false);
 
   const [preview, { isLoading: previewing }] = useRegradePreviewMutation();
   const [run, { isLoading: running }] = useRegradeMutation();
@@ -78,6 +79,7 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
     if (visible) {
       setStep(1);
       setReport(null);
+      setResendAllScoresViaLti(false);
     }
   }, [visible]);
 
@@ -93,7 +95,8 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
     sids: selectedSids,
     overwrite_manual: overwriteManual,
     enforce_deadline: enforceDeadline,
-    recompute_totals: recomputeTotals
+    recompute_totals: recomputeTotals,
+    resend_all_scores_via_lti: resendAllScoresViaLti
   });
 
   const toPreview = async () => {
@@ -174,6 +177,17 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
               checked={recomputeTotals}
               onChange={(e) => setRecomputeTotals(e.currentTarget.checked)}
               label="Recompute assignment totals and push to the LMS"
+              disabled={resendAllScoresViaLti}
+            />
+            <Checkbox
+              checked={resendAllScoresViaLti}
+              onChange={(e) => {
+                const checked = e.currentTarget.checked;
+
+                setResendAllScoresViaLti(checked);
+                if (checked) setRecomputeTotals(true);
+              }}
+              label="Resend all scores via LTI (force update even unchanged)"
             />
           </div>
         </div>
@@ -193,6 +207,9 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
                 {report.skipped_manual} manual skipped &middot; {report.no_submission} no submission
                 &middot; {report.errors} errors
               </div>
+              {resendAllScoresViaLti && (
+                <p>Existing assignment totals will be resent via LTI, even if unchanged.</p>
+              )}
               <DataGrid<RegradeItem>
                 data={previewRows}
                 columns={PREVIEW_COLUMNS}

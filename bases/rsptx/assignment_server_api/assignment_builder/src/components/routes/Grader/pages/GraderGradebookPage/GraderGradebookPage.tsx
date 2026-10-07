@@ -14,12 +14,13 @@ import { gradebookCsvFilename, useGetGradebookQuery } from "@store/grader/grader
 import React, { useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
+import { Toolbar } from "@/components/ui/Toolbar/Toolbar";
 
-import { ErrorState } from "../../AssignmentBuilder/components/ErrorState/ErrorState";
-import styles from "../Grader.module.css";
-import { GradebookCellDialog } from "../components/GradebookCellDialog";
-import { GradebookLateWorkDialog } from "../components/GradebookLateWorkDialog";
-import { GradebookUnitsToggle } from "../components/GradebookUnitsToggle";
+import { ErrorState } from "../../../AssignmentBuilder/components/ErrorState/ErrorState";
+import styles from "../../Grader.module.css";
+import { GradebookCellDialog } from "../../components/GradebookCellDialog";
+import { GradebookLateWorkDialog } from "../../components/GradebookLateWorkDialog";
+import { GradebookUnitsToggle } from "../../components/GradebookUnitsToggle";
 import {
   assignmentAverage,
   buildCellLookup,
@@ -32,7 +33,7 @@ import {
   getCell,
   gradebookToCsv,
   studentTotalDisplay
-} from "../state/gradebookSelectors";
+} from "../../state/gradebookSelectors";
 
 interface OpenCell {
   assignment: GradebookAssignment;
@@ -173,10 +174,11 @@ export const GraderGradebookPage: React.FC = () => {
   if (allAssignments.length === 0 || allStudents.length === 0) {
     return (
       <>
-        <div className={styles.toolbar}>
-          <span className={styles.cellStrong}>Gradebook</span>
-          <div className={styles.toolbarGroup}>{exportButton}</div>
-        </div>
+        <Toolbar
+          className={styles.toolbar}
+          start={<span className={styles.cellStrong}>Gradebook</span>}
+          end={exportButton}
+        />
         <div className={styles.emptyState}>
           <Icon name="inbox" size={30} className={styles.emptyStateIcon} />
           <h3>Nothing to grade yet</h3>
@@ -196,32 +198,39 @@ export const GraderGradebookPage: React.FC = () => {
 
   return (
     <>
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarGroup}>
-          <TextInput
-            size="xs"
-            placeholder="Filter students"
-            aria-label="Filter students by name, username, or email"
-            value={studentQuery}
-            onChange={(e) => setStudentQuery(e.currentTarget.value)}
-            leftSection={<Icon name="search" size={14} />}
-            className={styles.gradebookFilterInput}
-          />
-          <MultiSelect
-            size="xs"
-            placeholder={selectedAssignmentIds.length ? undefined : "All assignments"}
-            aria-label="Filter assignment columns by name"
-            data={assignmentOptions}
-            value={selectedAssignmentIds}
-            onChange={setSelectedAssignmentIds}
-            searchable
-            clearable
-            className={styles.gradebookFilterSelect}
-          />
-          <GradebookUnitsToggle showPoints={showPoints} />
-          {exportButton}
-        </div>
-      </div>
+      <Toolbar
+        className={styles.toolbar}
+        start={
+          <>
+            <TextInput
+              size="xs"
+              placeholder="Filter students"
+              aria-label="Filter students by name, username, or email"
+              value={studentQuery}
+              onChange={(e) => setStudentQuery(e.currentTarget.value)}
+              leftSection={<Icon name="search" size={14} />}
+              className={styles.gradebookFilterInput}
+            />
+            <MultiSelect
+              size="xs"
+              placeholder={selectedAssignmentIds.length ? undefined : "All assignments"}
+              aria-label="Filter assignment columns by name"
+              data={assignmentOptions}
+              value={selectedAssignmentIds}
+              onChange={setSelectedAssignmentIds}
+              searchable
+              clearable
+              className={styles.gradebookFilterSelect}
+            />
+          </>
+        }
+        end={
+          <>
+            <GradebookUnitsToggle showPoints={showPoints} />
+            {exportButton}
+          </>
+        }
+      />
 
       <Text size="xs" c="dimmed" className={styles.gradebookFilterSummary}>
         Showing {students.length} of {allStudents.length}{" "}
