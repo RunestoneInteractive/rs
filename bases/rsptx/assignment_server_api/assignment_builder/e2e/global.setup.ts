@@ -7,7 +7,7 @@ const STACK_DOWN_MESSAGE = (url: string) =>
   `(docker compose up -d at the repo root for the backend on :80, npm start in ` +
   `assignment_builder for the Vite dev server on :5173).`;
 
-const LOGIN_URL = `${BACKEND_URL}/runestone/default/user/login`;
+const LOGIN_URL = `${BACKEND_URL}/admin/auth/login`;
 const E2E_USER = "testuser1";
 const E2E_PASSWORD = "xxx";
 
@@ -23,9 +23,9 @@ setup("authenticate", async ({ page, request }) => {
   await page.goto(LOGIN_URL);
   await page.getByLabel("Username").fill(E2E_USER);
   await page.getByLabel("Password").fill(E2E_PASSWORD);
-  await page.getByRole("button", { name: "Login" }).first().click();
-  await expect(page.locator("body")).not.toContainText("Invalid login");
-  await page.waitForURL((url) => !url.pathname.includes("/user/login"));
+  await page.getByRole("button", { name: "Log In" }).click();
+  await expect(page.locator("body")).not.toContainText("Invalid username or password");
+  await page.waitForURL((url) => !url.pathname.includes("/auth/login"));
 
   await page.context().storageState({ path: AUTH_FILE });
 });
