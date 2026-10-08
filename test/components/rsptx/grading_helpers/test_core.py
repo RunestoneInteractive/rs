@@ -177,6 +177,21 @@ async def test_autograded_rows_are_still_rescored():
     tot.assert_awaited()
 
 
+async def test_last_answer_selectquestion_grade_is_stored_under_the_selector():
+    # The grade is looked up by the selector_id, so it must be created under the
+    # selector_id too. Creating it under the chosen question's div_id meant the
+    # lookup never found it, and every later save tried to insert it again and
+    # hit the question_grades unique index.
+    submission = _answer_submission(div_id="real_q")
+    submission.selector_id = "selector_q"
+    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None)
+    with dl, assigned, fetch as fch, update, create as crt, total, score_one:
+        await core.grade_submission(_student(), submission)
+
+    assert fch.await_args.args[2] == "selector_q"
+    assert crt.await_args.args[2] == "selector_q"
+
+
 async def test_best_answer_replaces_a_score_above_the_assignment_maximum():
     # The question is worth 1 here, but its shared question_grades row holds a 2
     # earned in another assignment where it is worth 2. A correct answer here

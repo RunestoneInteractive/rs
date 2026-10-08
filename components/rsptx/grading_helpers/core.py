@@ -145,7 +145,7 @@ async def grade_submission(
                 )
             else:
                 await create_question_grade_entry(
-                    user.username, user.course_name, submission.div_id, scoreSpec.score
+                    user.username, user.course_name, div_id, scoreSpec.score
                 )
             update_total = True
         elif scoreSpec.which_to_grade == "best_answer":
