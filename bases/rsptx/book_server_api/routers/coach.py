@@ -190,23 +190,27 @@ def _escape_parsons_block_markup(block_markup):
     return html.escape(block_markup, quote=False)
 
 
+# Activecode source markers, each on a line of its own. The invisible (test)
+# suffix is four or more "=" -- activecode.js accepts "=====" and longer from
+# older books, so CodeTailor has to as well -- and "===!" a visible suffix.
+_INVISIBLE_SUFFIX_RE = re.compile(r"^[ \t]*={4,}[ \t]*$", flags=re.MULTILINE)
+_VISIBLE_SUFFIX_RE = re.compile(r"^[ \t]*===![ \t]*$", flags=re.MULTILINE)
+
+
 def _extract_suffix_code_from_htmlsrc(htmlsrc):
     """
     Book-authored activecode questions never get question_json.suffix_code
     populated by the build pipeline (only instructor-authored custom
     exercises do) -- their test code instead lives in the raw <textarea>
-    source, after a "====" or "===!" delimiter, same convention used by
-    build_tools/core.py::_determine_autograde.
+    source, after a "====" (or longer) or "===!" delimiter line, same
+    convention used by build_tools/core.py::_determine_autograde.
     """
     if not htmlsrc:
         return ""
     match = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
     text = html.unescape(match.group(1) if match else htmlsrc)
-    if "====" in text:
-        return text.partition("====")[2].strip()
-    if "===!" in text:
-        return text.partition("===!")[2].strip()
-    return ""
+    marker = _INVISIBLE_SUFFIX_RE.search(text) or _VISIBLE_SUFFIX_RE.search(text)
+    return text[marker.end() :].strip() if marker else ""
 
 
 def _build_static_parsons_response(
