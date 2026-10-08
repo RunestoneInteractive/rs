@@ -199,11 +199,26 @@ def _escape_parsons_block_markup(block_markup):
     return html.escape(block_markup, quote=False)
 
 
-# Activecode source markers, each on a line of its own. The invisible (test)
-# suffix is four or more "=" -- activecode.js accepts "=====" and longer from
-# older books, so CodeTailor has to as well -- and "===!" a visible suffix.
-_INVISIBLE_SUFFIX_RE = re.compile(r"^[ \t]*={4,}[ \t]*$", flags=re.MULTILINE)
-_VISIBLE_SUFFIX_RE = re.compile(r"^[ \t]*===![ \t]*$", flags=re.MULTILINE)
+# Activecode source markers, matched the way activecode.js matches them: the
+# first occurrence anywhere, newline or not. The invisible (test) suffix is
+# four or more "=" -- activecode.js accepts "=====" and longer from older
+# books -- and the invisible prefix four or more "^". "===!" and "^^^!" mark
+# visible suffixes and prefixes, which stay in the editor.
+_INVISIBLE_SUFFIX_RE = re.compile(r"={4,}")
+_INVISIBLE_PREFIX_RE = re.compile(r"\^{4,}")
+_VISIBLE_SUFFIX = "===!"
+_VISIBLE_PREFIX = "^^^!"
+
+
+def _drop_marker(text, marker):
+    """Remove the first ``marker`` and the newline right after it, if any."""
+    start = text.find(marker)
+    if start == -1:
+        return text
+    end = start + len(marker)
+    if text[end : end + 1] == "\n":
+        end += 1
+    return text[:start] + text[end:]
 
 
 def _extract_suffix_code_from_htmlsrc(htmlsrc):
@@ -218,8 +233,12 @@ def _extract_suffix_code_from_htmlsrc(htmlsrc):
         return ""
     match = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
     text = html.unescape(match.group(1) if match else htmlsrc)
-    marker = _INVISIBLE_SUFFIX_RE.search(text) or _VISIBLE_SUFFIX_RE.search(text)
-    return text[marker.end() :].strip() if marker else ""
+    marker = _INVISIBLE_SUFFIX_RE.search(text)
+    if marker:
+        return text[marker.end() :].strip()
+    if _VISIBLE_SUFFIX in text:
+        return text.partition(_VISIBLE_SUFFIX)[2].strip()
+    return ""
 
 
 def _build_static_parsons_response(
@@ -246,8 +265,9 @@ def _starter_code_from_question(question):
     """
     The code a student sees in the editor before changing anything: a custom
     exercise's question_json.starter_code, or for a book-authored question the
-    visible part of the activecode <textarea> source -- after any invisible
-    "^^^^" prefix and before the "===="/"===!" test suffix.
+    activecode <textarea> source split the way activecode.js splits it -- the
+    invisible "^^^^" prefix and "====" test suffix removed, and the "^^^!" and
+    "===!" markers dropped while their visible code stays.
     """
     starter = (question.question_json or {}).get("starter_code")
     if starter is not None:
@@ -258,25 +278,38 @@ def _starter_code_from_question(question):
     if not match:
         return ""
     text = html.unescape(match.group(1))
-    suffixes = [
-        m.start()
-        for m in (_INVISIBLE_SUFFIX_RE.search(text), _VISIBLE_SUFFIX_RE.search(text))
-        if m
-    ]
-    if suffixes:
-        text = text[: min(suffixes)]
-    prefix = re.search(r"^[ \t]*\^{4,}[ \t]*\n?", text, flags=re.MULTILINE)
+    prefix = _INVISIBLE_PREFIX_RE.search(text)
     if prefix:
-        text = text[prefix.end() :]
-    return re.sub(r"^[ \t]*\^\^\^![ \t]*\n?", "", text, flags=re.MULTILINE)
+        text = _drop_marker(text[prefix.start() :], prefix.group(0))
+    text = _drop_marker(text, _VISIBLE_PREFIX)
+    suffix = _INVISIBLE_SUFFIX_RE.search(text)
+    if suffix:
+        text = text[: suffix.start()]
+    return _drop_marker(text, _VISIBLE_SUFFIX)
 
 
-async def _fetch_starter_code(problem_id):
-    """Starter code for ``problem_id``, or "" if the question can't be found."""
+async def _fetch_starter_code(problem_id, course_name):
+    """
+    Starter code for ``problem_id``, or "" if the question can't be found.
+    Question names are unique only within a base course, so look in the
+    course's base course first, then fall back to a global name match (a
+    cloned course or a question pulled in from another book) -- the same
+    order the main CodeTailor path uses.
+    """
     if not problem_id:
         return ""
     try:
-        question = await fetch_question(problem_id)
+        question = None
+        if course_name:
+            try:
+                course = await fetch_course(course_name)
+            except AttributeError:
+                course = None
+            basecourse = getattr(course, "base_course", None)
+            if basecourse:
+                question = await fetch_question(problem_id, basecourse=basecourse)
+        if not question:
+            question = await fetch_question(problem_id)
     except Exception as e:
         rslogger.error(
             f"CodeTailor: could not fetch starter code for '{problem_id}': {e}"
@@ -441,7 +474,7 @@ async def parsons_scaffolding(
     # since it needs neither.
     if parsons_personalized and parsonsexample_html:
         label_language = "java" if (language or "").lower() == "java" else "python"
-        starter_code = await _fetch_starter_code(problem_id)
+        starter_code = await _fetch_starter_code(problem_id, course_name)
         if _adds_no_code(student_code or "", starter_code, label_language):
             label_puzzle = build_label_puzzle(
                 parsonsexample_code,

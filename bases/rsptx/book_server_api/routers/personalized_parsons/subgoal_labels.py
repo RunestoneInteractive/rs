@@ -49,8 +49,11 @@ def _is_full_line_comment(line, language):
 def _looks_like_code(text, language):
     """
     Whether a comment's text is commented-out code (``total = 0``,
-    ``for num in nums:``, ``return avg``) rather than a description of a step.
-    Plain words do not count, even when they happen to parse ("Setup").
+    ``for num in nums:``, ``return avg``, ``count: int``) rather than a
+    description of a step. Any statement other than a bare expression is
+    code; a bare expression is code only when it starts with a keyword or uses
+    code punctuation, so plain words do not count even when they happen to
+    parse ("Setup").
     """
     if language == "java":
         return bool(re.search(r"[;{}]$", text)) or text in ("else", "} else {")
@@ -58,12 +61,14 @@ def _looks_like_code(text, language):
         return True
     for candidate in (text, text + "\n    pass"):
         try:
-            ast.parse(candidate)
+            tree = ast.parse(candidate)
             break
         except (SyntaxError, ValueError):
             continue
     else:
         return False
+    if any(not isinstance(statement, ast.Expr) for statement in tree.body):
+        return True
     return bool(_PY_KEYWORD_START_RE.match(text) or _CODE_PUNCTUATION_RE.search(text))
 
 
