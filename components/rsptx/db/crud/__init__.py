@@ -14,6 +14,7 @@ from .crud import (
     INTERACTION_ONLY_EVENTS,
 )
 from .user import (
+    count_users_created_since,
     fetch_user,
     fetch_user_by_email,
     create_user,
@@ -600,6 +601,7 @@ __all__ += [
     "fetch_user_by_email",
     "create_user",
     "update_user",
+    "count_users_created_since",
     "delete_user",
     "set_reset_token",
     "consume_reset_token",

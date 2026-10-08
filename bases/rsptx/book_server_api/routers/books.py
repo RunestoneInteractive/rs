@@ -23,7 +23,7 @@ Detailed Module Description
 # Standard library
 # ----------------
 import asyncio
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from functools import lru_cache
 import json
 import os
@@ -31,13 +31,19 @@ import os.path
 import random
 import socket
 import tempfile
+import time
 from typing import Optional
 from urllib.parse import quote
 
 # Third-party imports
 # -------------------
 from fastapi import APIRouter, Cookie, Request, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+)
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemBytecodeCache, FileSystemLoader
 from jinja2.exceptions import TemplateNotFound
@@ -48,6 +54,7 @@ from pydantic import StringConstraints
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.crud import (
+    count_users_created_since,
     create_useinfo_entry,
     fetch_chapter_for_subchapter,
     fetch_course,
@@ -593,8 +600,9 @@ async def serve_page(
         and not course_row.is_supporter
     ):
         show_rs_banner = True
-    elif course_row.course_name == course_row.base_course and random.random() <= 0.3:
-        # Show banners to base course users 30% of the time.
+    elif course_row.course_name == course_row.base_course and random.random() <= 0.90:
+        # Show banners to base course users 90% of the time - this is throttled in the
+        # browser to once per session regardless.
         show_rs_banner = True
     else:
         show_rs_banner = False
@@ -670,6 +678,43 @@ async def serve_page(
             ),
             status_code=307,
         )
+
+
+# Students This Term
+# ==================
+# The PreTeXt donation banner (bookfuncs.js) can say how many students have
+# started using Runestone this term. Terms start on August 1 (fall) and
+# January 1 (winter/spring); counting new accounts since then scans auth_user,
+# so each worker keeps the answer for an hour.
+TERM_STUDENTS_TTL = 3600
+_term_students_cache = {"since": None, "count": 0, "expires": 0.0}
+_term_students_lock = asyncio.Lock()
+
+
+def current_term_start(today: date) -> date:
+    """The most recent August 1 or January 1 on or before ``today``."""
+    if today.month >= 8:
+        return date(today.year, 8, 1)
+    return date(today.year, 1, 1)
+
+
+@router.get("/term_students")
+async def term_students():
+    """How many accounts have been created since the current term began."""
+    since = current_term_start(canonical_utcnow().date())
+    async with _term_students_lock:
+        cache = _term_students_cache
+        if cache["since"] != since or time.monotonic() >= cache["expires"]:
+            cache["count"] = await count_users_created_since(
+                datetime.combine(since, datetime.min.time())
+            )
+            cache["since"] = since
+            cache["expires"] = time.monotonic() + TERM_STUDENTS_TTL
+        count = cache["count"]
+    return JSONResponse(
+        {"count": count, "since": since.isoformat()},
+        headers={"Cache-Control": f"public, max-age={TERM_STUDENTS_TTL}"},
+    )
 
 
 @router.get("/crashtest")

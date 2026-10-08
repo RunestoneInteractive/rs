@@ -1227,47 +1227,258 @@ function notifyRunestoneComponents() {
     document.dispatchEvent(new Event("runestone:pre-login-complete"));
 }
 
-function placeAdCopy() {
-    let adTemplate = `         <aside id="adcopy_1" class="adcopy" style="display: none;">
+// The original two appeals, still used for the inline ad (pages with no PreTeXt
+// masthead or navbar). Sphinx books carry the same copy in their own layout
+// template as ``ad=1`` and ``ad=2``.
+const LEGACY_AD_COPY = [
+    "Runestone Academy can only continue if we get support from individuals like you. As a student you are well aware of the high cost of textbooks.  Our mission is to provide great books to you for free, but we ask that you consider a $10 donation, more if you can or less if $10 is a burden.",
+    "Making great stuff takes time and $$.  If you appreciate the book you are reading now and want to keep quality materials free for other students please consider a donation to Runestone Academy. We ask that you consider a $10 donation, but if you can give more thats great, if $10 is too much for your budget we would be happy with whatever you can afford as a show of support.",
+];
+
+// The PreTeXt banner rotates between these at random. Each has its own ``ad``
+// number, starting after the legacy ones, so donate-page visits in the access
+// logs can be credited to the copy that sent them. The term-students appeal
+// needs a live count from the book server; ``headline`` is a function of it.
+export const BANNER_COPY = [
+    {
+        ad: 3,
+        headline: "This book is free, and we want to keep it that way.",
+        body: "Runestone Academy is a 501(c)(3) nonprofit supported by readers like you. If this book is helping you, a $10 gift keeps it free for the next student.",
+        button: "Donate $10",
+    },
+    {
+        ad: 4,
+        needsTermStudents: true,
+        headline: ({ count, since }) =>
+            `${describeStudentCount(count)} students have started using Runestone books since ${since}.`,
+        body: "We don't charge for them, and we never will. If Runestone is helping you, a tax-deductible gift helps keep it that way.",
+        button: "Chip in",
+    },
+    {
+        ad: 5,
+        headline: "Free textbooks aren't free to make.",
+        body: "If this book is helping you, please consider a tax-deductible $10 gift to Runestone Academy. Any amount helps.",
+        button: "Donate",
+    },
+];
+
+// Early in a term (and on a dev server) the count is too small to impress, so
+// the banner uses one of the other appeals instead.
+export const MIN_TERM_STUDENTS = 1000;
+
+/**
+ * Round down to two significant figures so the banner reads "More than
+ * 48,000" rather than a suspiciously precise 48,213, and never overstates.
+ */
+export function describeStudentCount(count) {
+    const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(count)) - 1);
+    const rounded = Math.floor(count / magnitude) * magnitude;
+    const shown = rounded.toLocaleString("en-US");
+    return rounded < count ? `More than ${shown}` : shown;
+}
+
+/**
+ * Fetch the number of students who joined since the term began, formatted for
+ * the headline, or null when it is unavailable or too small to use.
+ */
+export async function fetchTermStudents() {
+    try {
+        const response = await fetch(
+            `${eBookConfig.new_server_prefix}/books/term_students`,
+        );
+        if (!response.ok) {
+            return null;
+        }
+        const { count, since } = await response.json();
+        if (!(count >= MIN_TERM_STUDENTS) || !since) {
+            return null;
+        }
+        // ``since`` is a bare date; format it in UTC so a reader west of
+        // Greenwich does not see "July 31" for August 1.
+        const sinceText = new Date(`${since}T00:00:00Z`).toLocaleDateString(
+            "en-US",
+            { month: "long", day: "numeric", timeZone: "UTC" },
+        );
+        return { count, since: sinceText };
+    } catch (e) {
+        console.error("Failed to fetch term students:", e);
+        return null;
+    }
+}
+
+/**
+ * Resolve ``BANNER_COPY[index]`` to plain strings. If the term-students appeal
+ * cannot get its count, fall back to the next appeal that needs nothing.
+ */
+export async function resolveBannerCopy(index) {
+    const copy = BANNER_COPY[index];
+    if (!copy.needsTermStudents) {
+        return copy;
+    }
+    const stats = await fetchTermStudents();
+    if (stats) {
+        return { ...copy, headline: copy.headline(stats) };
+    }
+    return BANNER_COPY[(index + 1) % BANNER_COPY.length];
+}
+
+// When a reader closes the PreTeXt top-of-page banner we leave them alone for
+// two days, on every book, by remembering when they did it.
+export const AD_DISMISSED_KEY = "rs_ad_dismissed_at";
+export const AD_DISMISS_MS = 48 * 60 * 60 * 1000;
+
+export function adRecentlyDismissed(now = Date.now()) {
+    let dismissedAt;
+    try {
+        dismissedAt = Number(localStorage.getItem(AD_DISMISSED_KEY));
+    } catch (e) {
+        return false;
+    }
+    // A timestamp from the future (the clock was moved back) must not
+    // silence the banner for however long that gap is.
+    return (
+        dismissedAt > 0 &&
+        dismissedAt <= now &&
+        now - dismissedAt < AD_DISMISS_MS
+    );
+}
+
+// Even undismissed, the banner appears only on the first page of a visit, not
+// on every page a student loads while working through a chapter. A visit ends
+// after 30 minutes without a page view (the usual analytics definition); the
+// clock lives in localStorage rather than sessionStorage so that opening a
+// chapter in a new tab does not count as a new visit.
+export const AD_LAST_PAGEVIEW_KEY = "rs_ad_last_pageview";
+export const AD_VISIT_GAP_MS = 30 * 60 * 1000;
+
+/**
+ * Record this page view and report whether it continues a visit already under
+ * way. Every page view extends the visit, including ones where the banner was
+ * held back for a dismissal, so a dismissal that expires mid-visit waits for
+ * the next visit instead of popping up between pages.
+ */
+export function adVisitInProgress(now = Date.now()) {
+    let lastPageview;
+    try {
+        lastPageview = Number(localStorage.getItem(AD_LAST_PAGEVIEW_KEY));
+        localStorage.setItem(AD_LAST_PAGEVIEW_KEY, String(now));
+    } catch (e) {
+        return false;
+    }
+    return (
+        lastPageview > 0 &&
+        lastPageview <= now &&
+        now - lastPageview < AD_VISIT_GAP_MS
+    );
+}
+
+function dismissAd(banner) {
+    try {
+        localStorage.setItem(AD_DISMISSED_KEY, String(Date.now()));
+    } catch (e) {
+        // Storage blocked: the banner still closes, it just comes back on
+        // the next page.
+    }
+    banner.remove();
+}
+
+function shouldShowAd() {
+    return (
+        (typeof showAd !== "undefined" && showAd) ||
+        eBookConfig.course_attrs?.showAd
+    );
+}
+
+/**
+ * PreTeXt books get a dismissible banner across the top of the page, above the
+ * masthead and navbar, instead of an ad dropped into the middle of the
+ * reading. Authors objected to the interruption.
+ */
+export async function placeAdBanner(
+    topOfPage,
+    index = Math.floor(Math.random() * BANNER_COPY.length),
+) {
+    if (document.getElementById("rs-ad-banner")) {
+        return null;
+    }
+    // Always record the page view, even when a dismissal is holding the
+    // banner back, so the visit clock stays current.
+    const continuingVisit = adVisitInProgress();
+    if (continuingVisit || adRecentlyDismissed()) {
+        return null;
+    }
+    const copy = await resolveBannerCopy(index);
+    // Another call may have placed a banner while we waited on the count.
+    if (document.getElementById("rs-ad-banner")) {
+        return null;
+    }
+    const banner = document.createElement("aside");
+    banner.id = "rs-ad-banner";
+    banner.className = "adbanner";
+    banner.setAttribute("aria-label", "Support Runestone Academy");
+    banner.innerHTML = `
+        <div class="adbanner-text">
+            <strong>${copy.headline}</strong>
+            <p>${copy.body}</p>
+        </div>
+        <div class="adbanner-donate">
+            <a href="/admin/auth/donate?ad=${copy.ad}">${copy.button}</a>
+        </div>
+        <button type="button" class="adbanner-close"
+            aria-label="Dismiss for 48 hours" title="Dismiss for 48 hours">&times;</button>`;
+    banner
+        .querySelector(".adbanner-close")
+        .addEventListener("click", () => dismissAd(banner));
+    topOfPage.before(banner);
+    return banner;
+}
+
+// Sphinx books (and any page without a PreTeXt masthead or navbar) keep the
+// old behavior: the appeal appears after a randomly chosen component.
+function placeInlineAd() {
+    let adNum = Math.floor(Math.random() * LEGACY_AD_COPY.length) + 1;
+    let adTemplate = LEGACY_AD_COPY.map(
+        (text, i) => `
+         <aside id="adcopy_${i + 1}" class="adcopy" style="display: none;">
            <strong>Before you keep reading...</strong>
-           <p>Runestone Academy can only continue if we get support from individuals like you. As a student you are well aware of the high cost of textbooks.  Our mission is to provide great books to you for free, but we ask that you consider a $10 donation, more if you can or less if $10 is a burden.
+           <p>${text}
            </p>
-           <div class="donatea">
-           <a href="/admin/auth/donate?ad=1">Support Runestone Academy Today</a>
+           <div class="donate${"ab"[i]}">
+           <a href="/admin/auth/donate?ad=${i + 1}">Support Runestone Academy Today</a>
            </div>
-         </aside>         
-         <aside id="adcopy_2" class="adcopy" style="display: none;">
-            <strong>Before you keep reading...</strong>
-            <p>Making great stuff takes time and $$.  If you appreciate the book you are reading now and want to keep quality materials free for other students please consider a donation to Runestone Academy. We ask that you consider a $10 donation, but if you can give more thats great, if $10 is too much for your budget we would be happy with whatever you can afford as a show of support.
-            </p>
-            <div class="donateb">
-            <a href="/admin/auth/donate?ad=2">Support Runestone Academy Today</a>
-            </div>
-         </aside>
-`;
+         </aside>`,
+    ).join("");
     if (!document.getElementById("adcopy_1")) {
         document.body.insertAdjacentHTML("beforeend", adTemplate);
     }
-    if (
-        (typeof showAd !== "undefined" && showAd) ||
-        eBookConfig.course_attrs?.showAd
-    ) {
-        let adNum = Math.floor(Math.random() * 2) + 1;
-        let adBlock = document.getElementById(`adcopy_${adNum}`);
-        let rsElements = document.querySelectorAll(".runestone");
-        if (rsElements.length > 0) {
-            let randomIndex = Math.floor(Math.random() * rsElements.length);
-            rsElements[randomIndex].after(adBlock);
-            // find the a tag within the ad block and change the href from /runestone/default/donate to /admin/auth/donate
-            const aTag = adBlock.querySelector("a");
-            if (aTag && aTag.href.includes("/runestone/default/donate")) {
-                aTag.href = aTag.href.replace(
-                    "/runestone/default/donate",
-                    "/admin/auth/donate",
-                );
-            }
-            adBlock.style.display = "block";
+    let adBlock = document.getElementById(`adcopy_${adNum}`);
+    let rsElements = document.querySelectorAll(".runestone");
+    if (rsElements.length > 0) {
+        let randomIndex = Math.floor(Math.random() * rsElements.length);
+        rsElements[randomIndex].after(adBlock);
+        // find the a tag within the ad block and change the href from /runestone/default/donate to /admin/auth/donate
+        const aTag = adBlock.querySelector("a");
+        if (aTag && aTag.href.includes("/runestone/default/donate")) {
+            aTag.href = aTag.href.replace(
+                "/runestone/default/donate",
+                "/admin/auth/donate",
+            );
         }
+        adBlock.style.display = "block";
+    }
+}
+
+function placeAdCopy() {
+    if (!shouldShowAd()) {
+        return;
+    }
+    let topOfPage =
+        document.getElementById("ptx-masthead") ||
+        document.getElementById("ptx-navbar");
+    if (topOfPage) {
+        placeAdBanner(topOfPage);
+    } else {
+        placeInlineAd();
     }
 }
 
