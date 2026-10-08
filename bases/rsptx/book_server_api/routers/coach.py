@@ -28,6 +28,15 @@ from rsptx.logging import rslogger
 # -------------------------
 from fastapi.responses import JSONResponse
 from .personalized_parsons.end_to_end import get_parsons_help
+from .personalized_parsons.buggy_code_checker import (
+    clean_java_code,
+    clean_python_code,
+)
+from .personalized_parsons.subgoal_labels import (
+    build_label_puzzle,
+    is_label_line,
+    label_texts,
+)
 from typing import Optional
 import re
 from fastapi import status
@@ -233,6 +242,110 @@ def _build_static_parsons_response(
     )
 
 
+def _starter_code_from_question(question):
+    """
+    The code a student sees in the editor before changing anything: a custom
+    exercise's question_json.starter_code, or for a book-authored question the
+    visible part of the activecode <textarea> source -- after any invisible
+    "^^^^" prefix and before the "===="/"===!" test suffix.
+    """
+    starter = (question.question_json or {}).get("starter_code")
+    if starter is not None:
+        return starter
+    match = re.search(
+        r"<textarea[^>]*>(.*?)</textarea>", question.htmlsrc or "", flags=re.DOTALL
+    )
+    if not match:
+        return ""
+    text = html.unescape(match.group(1))
+    suffixes = [
+        m.start()
+        for m in (_INVISIBLE_SUFFIX_RE.search(text), _VISIBLE_SUFFIX_RE.search(text))
+        if m
+    ]
+    if suffixes:
+        text = text[: min(suffixes)]
+    prefix = re.search(r"^[ \t]*\^{4,}[ \t]*\n?", text, flags=re.MULTILINE)
+    if prefix:
+        text = text[prefix.end() :]
+    return re.sub(r"^[ \t]*\^\^\^![ \t]*\n?", "", text, flags=re.MULTILINE)
+
+
+async def _fetch_starter_code(problem_id):
+    """Starter code for ``problem_id``, or "" if the question can't be found."""
+    if not problem_id:
+        return ""
+    try:
+        question = await fetch_question(problem_id)
+    except Exception as e:
+        rslogger.error(
+            f"CodeTailor: could not fetch starter code for '{problem_id}': {e}"
+        )
+        return ""
+    return _starter_code_from_question(question) if question else ""
+
+
+def _adds_no_code(student_code, starter_code, language):
+    """
+    True when the student has written no code of their own: nothing beyond
+    def/import lines, comments and blank lines, or exactly the starter code's
+    statements (e.g. the untouched ``print(average([...]))`` call it ships with).
+    """
+    clean = clean_java_code if language == "java" else clean_python_code
+    student = clean(student_code)
+    return not student or student == clean(starter_code)
+
+
+def _drop_starter_comments(student_code, starter_code, language):
+    """Remove full-line comments the student's code shares with the starter."""
+    starter_comments = label_texts(starter_code, language)
+    return "\n".join(
+        line
+        for line in student_code.splitlines()
+        if not (
+            is_label_line(line, language) and " ".join(line.split()) in starter_comments
+        )
+    )
+
+
+def _function_header(starter_code, language):
+    """
+    The starter code's header lines for the labels-only puzzle: the first
+    ``def`` and any ``class`` lines above it. Python only -- a Java header
+    would also need its closing braces -- and None when there is no ``def``.
+    """
+    if language == "java":
+        return None
+    header = []
+    for line in starter_code.splitlines():
+        if re.match(r"\s*class\s", line):
+            header.append(line.rstrip())
+        elif re.match(r"\s*(?:async\s+)?def\s", line):
+            header.append(line.rstrip())
+            return header
+    return None
+
+
+def _build_label_parsons_response(label_puzzle, parsons_attrs, personalization_level):
+    """Return the ||split|| response string for a labels-only Parsons problem
+    built from the backup problem's subgoal labels (see build_label_puzzle)."""
+    solution, label_markup = label_puzzle
+    parsons_html = f"""
+            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
+{label_markup}
+            </pre>
+            """
+    return (
+        solution
+        + "||split||"
+        + parsons_html
+        + "||split||"
+        + personalization_level
+        + "||split||"
+        + "subgoal_labels"
+    )
+
+
 @router.get("/get_question_html")
 async def get_question_html(request: Request, div_id: str):
     """
@@ -318,6 +431,29 @@ async def parsons_scaffolding(
         parsonsexample_code = extract_parsons_code(parsonsexample_html)
     else:
         parsonsexample_code = "LLM-example"
+
+    # A student who asks for help before writing any code has nothing for
+    # CodeTailor to personalize. When the instructor wrote subgoal labels as
+    # comments in the backup problem, give them a puzzle of just those labels,
+    # under the function header from the starter code (locked in place for
+    # the settled-block "Multiple" personalization). Untouched starter code
+    # counts as no code. Checked before the login and API-token branches,
+    # since it needs neither.
+    if parsons_personalized and parsonsexample_html:
+        label_language = "java" if (language or "").lower() == "java" else "python"
+        starter_code = await _fetch_starter_code(problem_id)
+        if _adds_no_code(student_code or "", starter_code, label_language):
+            label_puzzle = build_label_puzzle(
+                parsonsexample_code,
+                label_language,
+                header=_function_header(starter_code, label_language),
+                # settled-block CodeTailor puzzles lock the header in place
+                settle_header=personalization_level == "Multiple",
+            )
+            if label_puzzle:
+                return _build_label_parsons_response(
+                    label_puzzle, parsons_attrs, personalization_level
+                )
 
     if user is None:
         # Browsing-mode/anonymous visitors can get the pre-authored backup
@@ -470,6 +606,14 @@ async def parsons_scaffolding(
 
     if language and language.lower() == "python":
         internal_test_case = clean_python_testcase(internal_test_case)
+
+    # Comments that ship with the starter code ("# write code here") are not
+    # the student's subgoal labels, so CodeTailor should not keep them.
+    student_code = _drop_starter_comments(
+        student_code or "",
+        _starter_code_from_question(question),
+        "java" if (language or "").lower() == "java" else "python",
+    )
 
     print("start_to: get_parsons_help", api_token, language, personalization_level)
 
