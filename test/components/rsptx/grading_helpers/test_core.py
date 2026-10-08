@@ -192,6 +192,32 @@ async def test_last_answer_selectquestion_grade_is_stored_under_the_selector():
     assert crt.await_args.args[2] == "selector_q"
 
 
+async def test_first_answer_scores_the_first_submission():
+    # The book server saves the answer row before grading, so the first answer
+    # must be recognised by the missing grade row, not an empty answer table.
+    spec = _score_spec(which_to_grade="first_answer")
+    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, update, create as crt, total as tot, score_one:
+        result = await core.grade_submission(_student(), _answer_submission())
+
+    assert result.score == 10
+    assert crt.await_args.args[2:] == ("q1", 10)
+    tot.assert_awaited()
+
+
+async def test_first_answer_keeps_the_first_score():
+    grade = SimpleNamespace(id=1, score=4, comment="autograded")
+    spec = _score_spec(which_to_grade="first_answer")
+    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(grade, spec)
+    with dl, assigned, fetch, update as upd, create as crt, total as tot, score_one:
+        result = await core.grade_submission(_student(), _answer_submission())
+
+    assert result.score == 4
+    upd.assert_not_called()
+    crt.assert_not_called()
+    tot.assert_not_called()
+
+
 async def test_best_answer_replaces_a_score_above_the_assignment_maximum():
     # The question is worth 1 here, but its shared question_grades row holds a 2
     # earned in another assignment where it is worth 2. A correct answer here

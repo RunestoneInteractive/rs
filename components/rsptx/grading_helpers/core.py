@@ -3,7 +3,6 @@ from datetime import timedelta
 from rsptx.db.models import AuthUserValidator, DeadlineExceptionValidator
 from rsptx.db.crud import (
     is_assigned,
-    fetch_answers,
     create_question_grade_entry,
     fetch_grade,
     fetch_question_grade,
@@ -120,17 +119,17 @@ async def grade_submission(
                 )
             update_total = True
         elif scoreSpec.which_to_grade == "first_answer":
-            answers = await fetch_answers(
-                submission.div_id, submission.event, user.course_name, user.username
-            )
-            if len(answers) > 0:
+            # Key this on the grade row, not the answer table: the book server
+            # saves this submission's answer row before grading it, so counting
+            # answers always found one and the first answer was never scored.
+            if existing_grade is not None:
+                scoreSpec.score = existing_grade.score
                 return scoreSpec
-            else:
-                scoreSpec.score = await score_one_answer(scoreSpec, submission)
-                await create_question_grade_entry(
-                    user.username, user.course_name, div_id, scoreSpec.score
-                )
-                update_total = True
+            scoreSpec.score = await score_one_answer(scoreSpec, submission)
+            await create_question_grade_entry(
+                user.username, user.course_name, div_id, scoreSpec.score
+            )
+            update_total = True
         elif scoreSpec.which_to_grade == "last_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
             answer = await fetch_question_grade(user.username, user.course_name, div_id)
