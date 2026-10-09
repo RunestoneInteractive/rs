@@ -1340,7 +1340,7 @@ export default class Parsons extends RunestoneBase {
                         options,
                     );
                 } else {
-                    this.initializeAreas(
+                    await this.initializeAreas(
                         this.blocksFromHash(sourceHash),
                         this.blocksFromHash(answerHash),
                         options,
@@ -1370,7 +1370,7 @@ export default class Parsons extends RunestoneBase {
             // visible when the page loads, so the size is off.  This forces
             // a realignment.
             if (this.isTimed && !this.assessmentTaken) {
-                this.resetView();
+                await this.resetView();
             }
         }
     }
@@ -3618,7 +3618,7 @@ export default class Parsons extends RunestoneBase {
         }
     }
     // Put all the blocks back into the source area, reshuffling as necessary
-    resetView() {
+    async resetView() {
         // Clear everything
         this.clearFeedback();
         // CodeTailor: Hide the Copy Answer Button again
@@ -3674,13 +3674,13 @@ export default class Parsons extends RunestoneBase {
         }
         if (this.options.scaffolding === true) {
             // CodeTailor: initialize the pre-placed Parsons blocks including the settled blocks, if any.
-            this.initializeAreas(
+            await this.initializeAreas(
                 this.blocksFromSource(),
                 this.settledBlocksFromSource(),
                 {},
             );
         } else {
-            this.initializeAreas(this.blocksFromSource(), [], {});
+            await this.initializeAreas(this.blocksFromSource(), [], {});
         }
         this.initializeInteractivity();
         document.body.scrollTop = scrollTop;

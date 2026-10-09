@@ -561,6 +561,57 @@ describe("persistence", () => {
     });
 });
 
+// initializeAreas awaits MathJax for math problems, so it can finish after its
+// caller moves on. initializeInteractivity's MathJax callback reads the
+// pairedBins initializeAreas sets, so it must not start before the areas are
+// done (it threw "reading 'length'" on every math Parsons restored from a
+// saved answer).
+describe("initializeAreas finishes before interactivity starts", () => {
+    function slowAreas(events) {
+        const orig = Parsons.prototype.initializeAreas;
+        vi.spyOn(Parsons.prototype, "initializeAreas").mockImplementation(
+            async function (...args) {
+                await tick(5);
+                const result = await orig.apply(this, args);
+                events.push("areas done");
+                return result;
+            },
+        );
+        vi.spyOn(
+            Parsons.prototype,
+            "initializeInteractivity",
+        ).mockImplementation(function () {
+            events.push("interactivity");
+        });
+    }
+
+    it("when restoring a saved answer", async () => {
+        const p = await makeParsons({
+            blocks: INDENTED_BLOCKS,
+            attrs: INDENTED_ATTRS,
+        });
+        answer(p, [0, 1]);
+        p.setLocalStorage();
+
+        const events = [];
+        slowAreas(events);
+        await makeParsons({ blocks: INDENTED_BLOCKS, attrs: INDENTED_ATTRS });
+        await tick(20);
+        vi.restoreAllMocks();
+        expect(events).toEqual(["areas done", "interactivity"]);
+    });
+
+    it("when the student resets", async () => {
+        const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        const events = [];
+        slowAreas(events);
+        p.resetButton.click();
+        await tick(20);
+        vi.restoreAllMocks();
+        expect(events).toEqual(["areas done", "interactivity"]);
+    });
+});
+
 describe("keyboard movement model", () => {
     it("moveRight moves a source block into the answer area", async () => {
         const p = await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
