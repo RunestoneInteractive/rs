@@ -14,6 +14,7 @@
 # ----------------
 import datetime
 import os
+from collections import Counter
 import re
 import shutil
 import subprocess
@@ -32,7 +33,7 @@ import pretext.project
 
 # import xml.etree.ElementTree as ET
 
-from sqlalchemy import create_engine, Table, MetaData, and_, update
+from sqlalchemy import create_engine, Table, MetaData, and_, null, update
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
@@ -42,6 +43,7 @@ from rsptx.configuration import settings
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.build_tools.question_json import convert_question
 
 
 # Return the synchronous database URL for the current SERVER_CONFIG.
@@ -586,6 +588,9 @@ def manifest_data_to_db(course_name, manifest_path):
     Arguments:
         course_name {string} -- Name of the course (should be a base course)
         manifest_path {path} -- path to runestone-manifest.xml file
+
+    Returns a Counter of ``(question_type, stored)`` pairs: how many questions
+    of each type did or did not get a ``question_json``.
     """
     try:
         DBURL = get_dburl()
@@ -617,6 +622,8 @@ def manifest_data_to_db(course_name, manifest_path):
     _set_course_attributes(sess, db_context, course_name, manifest_path)
 
     sess.commit()
+    _log_question_json_stats(db_context)
+    return db_context.get("question_json_stats", Counter())
 
 
 def _initialize_db_context(engine, sess, course_name, manifest_path):
@@ -996,7 +1003,7 @@ def _process_single_timed_assignment(
         if qtype == "webwork" and el is not None:
             dbtext = ET.tostring(el).decode("utf8")
 
-        question_json = _question_json_from_xml(qtype, el)
+        question_json = _question_json_for(qtype, el, question, idchild, db_context)
 
         # Build question data
         if parent is not None:
@@ -1020,9 +1027,8 @@ def _process_single_timed_assignment(
             practice="F",
             author=db_context["author"],
             owner=db_context["owner"],
+            question_json=_sql_json(question_json),
         )
-        if question_json is not None:
-            valudict["question_json"] = question_json
 
         # Insert or update question
         namekey = old_ww_id if old_ww_id else idchild
@@ -1296,7 +1302,7 @@ def _process_single_question(
             dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
-    question_json = _question_json_from_xml(qtype, el)
+    question_json = _question_json_for(qtype, el, question, idchild, db_context)
     practice = _determine_practice_flag(qtype, el)
     autograde = _determine_autograde(dbtext)
 
@@ -1325,9 +1331,8 @@ def _process_single_question(
         practice=practice,
         author=db_context["author"],
         owner=db_context["owner"],
+        question_json=_sql_json(question_json),
     )
-    if question_json is not None:
-        valudict["question_json"] = question_json
     # Insert or update question
     namekey = old_ww_id if old_ww_id else idchild
     _upsert_question(sess, db_context, namekey, valudict, course_name)
@@ -1380,84 +1385,38 @@ def _extract_question_metadata(question, dbtext):
     return el, idchild, old_ww_id, qtype
 
 
-def _inner_html(el):
-    """Return the markup inside ``el``, without the element's own tags."""
-    if el is None:
-        return ""
-    inner = (el.text or "") + "".join(
-        ET.tostring(child, encoding="unicode", with_tail=True) for child in el
+def _question_json_for(qtype, el, question, name, db_context):
+    """Return the question_json for a question, or None.
+
+    Only a lossless conversion is stored: the assignment builder regenerates
+    a question's HTML from its question_json when it is copied or edited, so
+    anything the JSON can't represent would be lost. Returning None also
+    clears a question_json left by an earlier build of the book.
+    """
+    conversion = convert_question(qtype, el, question.find("./htmlsrc"))
+    if conversion is None:
+        return None
+    stats = db_context.setdefault("question_json_stats", Counter())
+    stats[qtype, conversion.lossless] += 1
+    if conversion.lossless:
+        return conversion.question_json
+    rslogger.debug(
+        f"No question_json for {name}: {'; '.join(conversion.losses) or 'not converted'}"
     )
-    return inner.strip()
+    return None
 
 
-def _match_items(root, tag):
-    """Return ``[{id, label, feedback?}, ...]`` for each ``tag`` child of ``root``."""
-    items = []
-    for card in root.findall(f"./{tag}"):
-        item = {
-            "id": (card.findtext("./id") or "").strip(),
-            "label": _inner_html(card.find("./label")),
-        }
-        feedback = _inner_html(card.find("./feedback"))
-        if feedback:
-            item["feedback"] = feedback
-        items.append(item)
-    return items
+def _sql_json(value):
+    # A JSON column stores Python None as the JSON value null; we want NULL.
+    return null() if value is None else value
 
 
-def _dragndrop_xml_to_json(root):
-    """Convert a ``<dragndrop>`` question element to its ``question_json``.
-
-    PreTeXt writes a cardsort as XML inside ``<script type="text/xml">``::
-
-        <dragndrop>
-          <statement>...</statement>
-          <feedback>...</feedback>
-          <premise><id/><label/><feedback/>?</premise> ...
-          <response><id/><label/><feedback/>?</response> ...
-          <answer premise="..." response="..."/> ...
-        </dragndrop>
-
-    The result follows the dragndrop schema in
-    ``docs/source/question_json_schema.rst``. A premise with no ``<answer>``
-    is a distractor. The dragndrop component reads the same shape, so it
-    renders identically from this JSON or from the XML.
-    """
-    return {
-        "statement": _inner_html(root.find("./statement")),
-        "feedback": _inner_html(root.find("./feedback")),
-        "left": _match_items(root, "premise"),
-        "right": _match_items(root, "response"),
-        "correctAnswers": [
-            [answer.get("premise", ""), answer.get("response", "")]
-            for answer in root.findall("./answer")
-        ],
-    }
-
-
-# question_type -> converter for a question authored as XML in a
-# ``<script type="text/xml">`` block whose root element is named for the type
-XML_QUESTION_CONVERTERS = {
-    "dragndrop": _dragndrop_xml_to_json,
-}
-
-
-def _question_json_from_xml(qtype, el):
-    """Return the ``question_json`` for a question written as XML, else None.
-
-    Questions in the older HTML markup have no XML block and get None, which
-    leaves their ``question_json`` column alone.
-    """
-    if qtype not in XML_QUESTION_CONVERTERS or el is None:
-        return None
-    root = el.find(f".//script[@type='text/xml']/{qtype}")
-    if root is None:
-        return None
-    try:
-        return XML_QUESTION_CONVERTERS[qtype](root)
-    except Exception as e:
-        rslogger.error(f"Could not convert {qtype} XML to question_json: {e}")
-        return None
+def _log_question_json_stats(db_context):
+    stats = db_context.get("question_json_stats", Counter())
+    for qtype in sorted({qtype for qtype, _ in stats}):
+        stored = stats[qtype, True]
+        total = stored + stats[qtype, False]
+        rslogger.info(f"question_json stored for {stored} of {total} {qtype}")
 
 
 def _find_pytutor_id(el):

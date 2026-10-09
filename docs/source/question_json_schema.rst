@@ -99,7 +99,7 @@ populated when the JSON is built.
    * - questionText
      - string
      - fillintheblank, clickablearea
-     - Question body text (may contain ___ blank placeholders for FITB)
+     - Question body text (each ``{blank}`` marks a blank in FITB)
    * - language
      - string
      - activecode, parsonsprob
@@ -144,6 +144,106 @@ populated when the JSON is built.
      - boolean
      - activecode
      - Enable Codelens step-through debugger
+   * - visible_prefix_code
+     - string
+     - activecode
+     - Code before the student's code that is shown but can't be edited (``^^^!``)
+   * - visible_suffix_code
+     - string
+     - activecode
+     - Code after the student's code that is shown but can't be edited (``===!``)
+   * - iotests
+     - IoTest[] (see IoTest section)
+     - activecode
+     - Input/output tests run against the program (``===iotests===``)
+   * - filename
+     - string
+     - activecode
+     - File name of this activecode when another one adds it with ``addFiles``
+   * - timeLimit
+     - number
+     - activecode
+     - Run time limit in milliseconds (default: 25000)
+   * - compileArgs
+     - string
+     - activecode
+     - Compiler arguments, e.g. ``['-std=c++17', '-Wall']``
+   * - linkArgs
+     - string
+     - activecode
+     - Linker arguments
+   * - runArgs
+     - string
+     - activecode
+     - Arguments passed to the program when it runs
+   * - interpreterArgs
+     - string
+     - activecode
+     - Arguments passed to the interpreter
+   * - addFiles
+     - string[]
+     - activecode
+     - Ids of other activecodes or datafiles whose contents are added as files
+   * - compileAlso
+     - string
+     - activecode
+     - Additional source files to compile with the program
+   * - sourceFile
+     - string
+     - activecode
+     - File name to save the student's code as
+   * - highlightLines
+     - string
+     - activecode
+     - Lines to highlight, e.g. ``1-2,5``
+   * - includes
+     - string[]
+     - activecode
+     - Ids of activecodes whose code runs before this one
+   * - dbUrl
+     - string
+     - activecode
+     - URL of the SQLite database for an SQL activecode
+   * - autoRun
+     - boolean
+     - activecode
+     - Run the code when the page loads
+   * - hideCode
+     - boolean
+     - activecode
+     - Hide the editor, showing only the output
+   * - hideHistory
+     - boolean
+     - activecode
+     - Hide the history scrubber
+   * - enableDownload
+     - boolean
+     - activecode
+     - Show a button to download the code
+   * - gradeButton
+     - boolean
+     - activecode
+     - Show a button to show the grade
+   * - noPair
+     - boolean
+     - activecode
+     - Disable pair programming for this activecode
+   * - showLastSql
+     - boolean
+     - activecode
+     - For SQL, show only the result of the last statement
+   * - chatCodes
+     - boolean
+     - activecode
+     - Enable chat.codes sharing
+   * - tie
+     - string
+     - activecode
+     - Id of a related element to tie this activecode to
+   * - caption
+     - string
+     - activecode
+     - Caption shown under the activecode
    * - attachment
      - boolean
      - shortanswer
@@ -156,6 +256,10 @@ populated when the JSON is built.
      - boolean
      - mchoice
      - Force checkbox UI for multiple-select
+   * - random
+     - boolean
+     - mchoice
+     - Show the answers in a random order
    * - poll_type
      - string
      - poll
@@ -168,6 +272,11 @@ populated when the JSON is built.
      - number
      - poll
      - Maximum value for scale-type polls
+   * - results
+     - "instructor" | "all"
+     - poll
+     - Who sees the results: ``"all"`` shows students the class's votes after
+       they vote; instructors always see them
    * - left
      - MatchItem[] (see MatchItem section)
      - dragndrop, matching
@@ -211,7 +320,19 @@ populated when the JSON is built.
    * - customOrder
      - number[]
      - parsonsprob
-     - Custom block ordering indices when orderMode is custom
+     - Block indices in display order (``data-order``). With orderMode custom the builder orders blocks by each block's ``displayOrder`` instead, so set both
+   * - runnable
+     - boolean
+     - parsonsprob
+     - Once solved, run the student's code in ``runnableCode``
+   * - runnableCode
+     - string
+     - parsonsprob
+     - The program a solved runnable parsons runs; the student's code replaces ``==PARSONSCODE==``
+   * - runnableOptions
+     - object
+     - parsonsprob
+     - Options for that program, named as for activecode: ``language``, ``selectedExistingDataFiles``, ``enableCodelens``, and any activecode option from ``timeLimit`` on (e.g. ``compileArgs``, ``addFiles``)
    * - blanks
      - BlankWithFeedback[] (see BlankWithFeedback section)
      - fillintheblank
@@ -309,11 +430,6 @@ Source: ``types/exercises.ts`` - inline type on ``left`` and ``right`` fields
 
    { "id": "a", "label": "Python", "feedback": "Python checks types at run time." }
 
-Book questions get ``question_json`` too. When a PreTeXt ``cardsort`` is written
-as XML (``<script type="text/xml"><dragndrop>...``), the build converts it to
-the dragndrop shape above while loading ``runestone-manifest.xml``, including
-any ``<feedback>`` on a ``<premise>`` or ``<response>``. Questions in the older
-HTML markup are left without ``question_json``.
 
 ParsonsBlock
 ~~~~~~~~~~~~
@@ -372,7 +488,7 @@ Source: ``utils/preview/parsonsPreview.tsx`` - ``interface ParsonsBlock``
    * - displayOrder
      - number
      - No
-     - Custom display ordering index
+     - Position the block is shown in when orderMode is custom
    * - pairedWithBlockAbove
      - boolean
      - No
@@ -452,6 +568,31 @@ Source: ``components/.../FillInTheBlankExercise/types.ts`` -
      "incorrectFeedback": "Binary search requires a precondition on the input."
    }
 
+IoTest
+~~~~~~
+
+One input/output test of an activecode program.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Field
+     - Type
+     - Required
+     - Description
+   * - input
+     - string
+     - Yes
+     - Text given to the program on standard input
+   * - out
+     - string
+     - Yes
+     - Output the program must print
+
+.. code-block:: json
+
+   { "input": "3\n", "out": "***\n***\n***\n" }
+
 Per-Question-Type Field Mapping
 -------------------------------
 
@@ -503,6 +644,84 @@ activecode
    * - enableCodelens
      - boolean
      - true
+   * - visible_prefix_code
+     - string
+     - (none)
+   * - visible_suffix_code
+     - string
+     - (none)
+   * - iotests
+     - IoTest[]
+     - (none)
+   * - filename
+     - string
+     - (none)
+   * - timeLimit
+     - number
+     - 25000
+   * - compileArgs
+     - string
+     - (none)
+   * - linkArgs
+     - string
+     - (none)
+   * - runArgs
+     - string
+     - (none)
+   * - interpreterArgs
+     - string
+     - (none)
+   * - addFiles
+     - string[]
+     - (none)
+   * - compileAlso
+     - string
+     - (none)
+   * - sourceFile
+     - string
+     - (none)
+   * - highlightLines
+     - string
+     - (none)
+   * - includes
+     - string[]
+     - (none)
+   * - dbUrl
+     - string
+     - (none)
+   * - autoRun
+     - boolean
+     - false
+   * - hideCode
+     - boolean
+     - false
+   * - hideHistory
+     - boolean
+     - false
+   * - enableDownload
+     - boolean
+     - false
+   * - gradeButton
+     - boolean
+     - false
+   * - noPair
+     - boolean
+     - false
+   * - showLastSql
+     - boolean
+     - false
+   * - chatCodes
+     - boolean
+     - false
+   * - tie
+     - string
+     - (none)
+   * - caption
+     - string
+     - (none)
+
+The fields from ``visible_prefix_code`` on are optional and are written only
+when set; most come from books rather than the assignment builder.
 
 mchoice
 ~~~~~~~
@@ -519,6 +738,12 @@ mchoice
    * - optionList
      - Option[]
      - Two empty options
+   * - forceCheckboxes
+     - boolean
+     - false
+   * - random
+     - boolean
+     - false
 
 shortanswer
 ~~~~~~~~~~~
@@ -551,6 +776,21 @@ poll
    * - optionList
      - Option[]
      - Two empty options
+   * - poll_type
+     - "options" | "scale"
+     - "options"
+   * - scale_min
+     - number
+     - (none; 1 for a scale)
+   * - scale_max
+     - number
+     - (none; the number of choices for a scale)
+   * - results
+     - "instructor" | "all"
+     - "instructor"
+
+A scale poll also lists its numbers in ``optionList`` (``"1"`` ... ``"n"``),
+which is what the builder renders.
 
 dragndrop
 ~~~~~~~~~
@@ -629,6 +869,29 @@ parsonsprob
    * - noindent
      - boolean
      - false
+   * - grader
+     - "line" | "dag"
+     - "line"
+   * - orderMode
+     - "random" | "custom"
+     - "random"
+   * - customOrder
+     - number[]
+     - (none)
+   * - runnable
+     - boolean
+     - false
+   * - runnableCode
+     - string
+     - (none)
+   * - runnableOptions
+     - object
+     - (none)
+
+A block's ``indent`` is its level: the builder writes 4 spaces per level in
+front of every line of the block, and parsons.js grades the rank of each
+line's indentation. Lines after the first keep their indentation relative to
+the first line in ``content``.
 
 fillintheblank
 ~~~~~~~~~~~~~~
@@ -738,7 +1001,9 @@ Multiple Choice
        { "choice": "Berlin", "feedback": "Berlin is the capital of Germany.", "correct": false },
        { "choice": "Paris", "feedback": "Correct!", "correct": true },
        { "choice": "Madrid", "feedback": "Madrid is the capital of Spain.", "correct": false }
-     ]
+     ],
+     "forceCheckboxes": false,
+     "random": true
    }
 
 Short Answer
@@ -828,7 +1093,7 @@ Fill in the Blank
 .. code-block:: json
 
    {
-     "questionText": "The time complexity of binary search is O(___) and it requires a ___ array.",
+     "questionText": "The time complexity of binary search is O({blank}) and it requires a {blank} array.",
      "blanks": [
        {
          "id": "blank-1",
@@ -940,6 +1205,23 @@ When a new question is created, ``getDefaultQuestionJson()`` in
      - true
    * - enableCodelens
      - true
+
+Book Questions
+--------------
+
+Book questions get ``question_json`` too. While loading a book's
+``runestone-manifest.xml``, ``components/rsptx/build_tools/question_json.py``
+converts the HTML of each question of a supported type (all those above except
+``iframe``; PreTeXt calls a poll a *query*) into the shape above. A conversion
+records anything the schema can't represent, such as a fill-in blank with
+feedback for specific wrong answers. Because the assignment builder
+regenerates a question's HTML from its ``question_json`` when the question is
+copied or edited, the build stores only a lossless conversion and sets
+``question_json`` to NULL otherwise.
+
+Hints, solutions, and an introduction or conclusion that PreTeXt puts beside
+a question belong to the book, not the question, so they are not part of
+``question_json`` and don't prevent storing it.
 
 Implementation Notes
 --------------------

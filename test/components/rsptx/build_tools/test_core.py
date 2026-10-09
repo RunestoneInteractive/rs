@@ -355,27 +355,6 @@ CARDSORT_JSON = {
 }
 
 
-def _question_el(question):
-    return question.find(".//*[@data-component]")
-
-
-def test_dragndrop_xml_to_question_json():
-    question = ET.fromstring(CARDSORT_QUESTION)
-    assert core._question_json_from_xml("dragndrop", _question_el(question)) == (
-        CARDSORT_JSON
-    )
-
-
-def test_question_json_from_xml_skips_html_markup():
-    question = ET.fromstring(
-        '<question><htmlsrc><ul data-component="dragndrop" id="old">'
-        '<li data-subcomponent="draggable" id="old_drag1">a</li>'
-        "</ul></htmlsrc></question>"
-    )
-    assert core._question_json_from_xml("dragndrop", _question_el(question)) is None
-    assert core._question_json_from_xml("matching", _question_el(question)) is None
-
-
 @pytest.fixture
 def question_db():
     engine = create_engine("sqlite://")
@@ -431,3 +410,27 @@ def test_process_question_stores_dragndrop_question_json(question_db):
         "label"
     ] = '<img src="/ns/books/published/bk/generated/sqrt16.svg"/>'
     assert row.question_json == expected
+
+
+def test_process_question_clears_question_json_it_cannot_store(question_db):
+    sess, db_context = question_db
+    chapter, sub = _chapter_xml("Cards")
+    core._process_single_question(
+        sess, db_context, chapter, sub, ET.fromstring(CARDSORT_QUESTION), "bk"
+    )
+    # A later build of the book fixes the order of the cards, which
+    # question_json has no place for.
+    question = ET.fromstring(CARDSORT_QUESTION)
+    question.find(".//*[@data-component]").set("data-random", "no")
+    core._process_single_question(sess, db_context, chapter, sub, question, "bk")
+    # SQL NULL, not the JSON value null
+    assert (
+        sess.execute(
+            text("select count(*) from questions where question_json is null")
+        ).scalar()
+        == 1
+    )
+    assert db_context["question_json_stats"] == {
+        ("dragndrop", True): 1,
+        ("dragndrop", False): 1,
+    }
