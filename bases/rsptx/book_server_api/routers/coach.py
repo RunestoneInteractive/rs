@@ -39,6 +39,7 @@ from rsptx.auth.session import get_optional_user
 from rsptx.db.crud.crud import fetch_api_token
 from rsptx.db.crud.course import fetch_course
 from rsptx.db.crud.question import fetch_question
+from rsptx.db.crud import fetch_source_code
 
 # .. _APIRouter config:
 #
@@ -207,6 +208,79 @@ def _extract_suffix_code_from_htmlsrc(htmlsrc):
     if "===!" in text:
         return text.partition("===!")[2].strip()
     return ""
+
+
+# A quoted name with a file extension, e.g. open("scores.csv") or
+# new File("words.txt") -- a possible data file to look up in source_code.
+# Single spaces inside the name are allowed, since uploaded datafiles keep
+# theirs (open("my data.csv")).
+_FILENAME_LITERAL_RE = re.compile(
+    r"""["']([\w\-./]+(?: [\w\-./]+)*\.[A-Za-z0-9]{1,8})["']"""
+)
+# Bounds the source_code lookups that guessed filename literals can trigger.
+# Names the question declares in data-datafile are always kept.
+_MAX_DATA_FILE_CANDIDATES = 20
+
+
+def _data_file_candidates(htmlsrc, *code_sources):
+    """
+    Filenames the question's program may open. Livecode (JOBE) questions list
+    them in data-datafile, but Python questions don't declare them anywhere --
+    Skulpt resolves open() at runtime -- so also take every quoted
+    filename-like literal from the question's code, its tests and the
+    student's code. Names that turn out not to be data files simply miss in
+    the source_code lookup.
+    """
+    declared = []
+    htmlsrc = htmlsrc or ""
+    match = re.search(r'data-datafile\s*=\s*"([^"]*)"', htmlsrc)
+    if match:
+        declared.extend(name.strip() for name in match.group(1).split(","))
+    declared = list(dict.fromkeys(name for name in declared if name))
+    textarea = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
+    question_code = html.unescape(textarea.group(1)) if textarea else ""
+    inferred = []
+    for text in (question_code, *code_sources):
+        inferred.extend(_FILENAME_LITERAL_RE.findall(text or ""))
+    inferred = [name for name in dict.fromkeys(inferred) if name not in declared]
+    return declared + inferred[:_MAX_DATA_FILE_CANDIDATES]
+
+
+async def _fetch_data_files(candidates, course_scopes):
+    """
+    Resolve candidate filenames against source_code -- the same store
+    Skulpt's file reader and livecode.js fall back to -- so the files can be
+    shipped to JOBE with every CodeTailor test run.
+
+    course_scopes is a list of (base_course, course_name) pairs tried in
+    order: the requesting course first, then the book the question came from
+    (which differs for cloned courses and cross-book selectquestions).
+    Returns dicts in the shape evaluate_fixed_code._push_data_files expects.
+    """
+    data_files = []
+    for name in candidates:
+        for base_course, course_name in course_scopes:
+            try:
+                row = await fetch_source_code(
+                    base_course=base_course, course_name=course_name, filename=name
+                )
+            except Exception:
+                # fetch_source_code raises when nothing matches
+                row = None
+            if row and row.main_code is not None:
+                filename = row.filename or name
+                # data-datafile names the acid while the code names the file,
+                # so the same file can be resolved twice -- ship it once
+                if filename not in {data_file["filename"] for data_file in data_files}:
+                    data_files.append(
+                        {
+                            "filename": filename,
+                            "content": row.main_code,
+                            "is_binary": bool(row.is_binary),
+                        }
+                    )
+                break
+    return data_files
 
 
 def _build_static_parsons_response(
@@ -467,6 +541,25 @@ async def parsons_scaffolding(
     if language and language.lower() == "python":
         internal_test_case = clean_python_testcase(internal_test_case)
 
+    # Files the program opens (datafiles) must travel with each JOBE test run,
+    # or every generated solution fails with a missing-file error.
+    data_files = await _fetch_data_files(
+        _data_file_candidates(question.htmlsrc, internal_test_case, student_code),
+        list(
+            dict.fromkeys(
+                [
+                    (basecourse, course_name),
+                    (question.base_course, question.base_course),
+                ]
+            )
+        ),
+    )
+    if data_files:
+        rslogger.info(
+            f"CodeTailor: '{problem_id}' uses data files "
+            f"{[data_file['filename'] for data_file in data_files]}"
+        )
+
     print("start_to: get_parsons_help", api_token, language, personalization_level)
 
     adaptive_attr = 'data-adaptive="true"'
@@ -512,6 +605,7 @@ async def parsons_scaffolding(
             # this can be returned verbatim as the fixed/example code when
             # LLM personalization falls back (see end_to_end.generate_example_solution)
             "CF (Code)": student_code,
+            "Data_Files": data_files,
         }
         return get_parsons_help(api_token, language, input_dict, personalization_level)
 
@@ -536,6 +630,7 @@ async def parsons_scaffolding(
                 language,
                 problem_description,
                 internal_test_case,
+                data_files,
             )
             if not example_code:
                 return (

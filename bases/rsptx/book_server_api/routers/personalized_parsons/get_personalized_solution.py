@@ -224,7 +224,9 @@ def get_fixed_code(
     return fixed_code_response
 
 
-def get_example_solution(api_token, language, problem_description, unittest_code):
+def get_example_solution(
+    api_token, language, problem_description, unittest_code, data_files=None
+):
     """
     Get an example solution for the coding problem using the LLM, called when we do not have an instructor-provided example solution.
     Inputs:
@@ -232,6 +234,7 @@ def get_example_solution(api_token, language, problem_description, unittest_code
         language (str): The programming language of the code ("python" or "java").
         problem_description (str): The description of the coding problem.
         unittest_code (str): The unittest code to validate the fixed code.
+        data_files (list): The question's data files the code may open.
     Output:
         str: The generated example solution code. Or an empty string if the LLM-generated code does not pass the unittest.
     """
@@ -278,7 +281,12 @@ Requirements:
     # test if the LLM_example_code is correct remove all potential #
     LLM_example_code = LLM_example_code.lstrip("#").rstrip("#").strip()
     unittest_result, cleaned_LLM_example_code = unittest_evaluation(
-        language, LLM_example_code, "", "", unittest_case=unittest_code
+        language,
+        LLM_example_code,
+        "",
+        "",
+        unittest_case=unittest_code,
+        data_files=data_files,
     )
     if unittest_result:
         # LLM_example_code is correct

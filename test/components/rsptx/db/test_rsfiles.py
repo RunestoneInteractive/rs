@@ -70,3 +70,51 @@ async def test_update_source_code_changes_is_binary_on_existing_row(init_test_db
     )
     assert row.is_binary is True
     assert row.main_code == "second"
+
+
+async def test_fetch_source_code_prefers_cloned_course_copy(init_test_db):
+    """A cloned course's own copy of a file wins over the base book's.
+
+    The base row is inserted first, so an unordered query would most likely
+    return it.
+    """
+    await update_source_code(
+        acid="clone_override.csv",
+        filename="clone_override.csv",
+        course_id="test_base_book",
+        main_code="base",
+    )
+    await update_source_code(
+        acid="clone_override.csv",
+        filename="clone_override.csv",
+        course_id="test_clone_course",
+        main_code="clone",
+    )
+    by_filename = await fetch_source_code(
+        base_course="test_base_book",
+        course_name="test_clone_course",
+        filename="clone_override.csv",
+    )
+    assert by_filename.main_code == "clone"
+    by_acid = await fetch_source_code(
+        base_course="test_base_book",
+        course_name="test_clone_course",
+        acid="clone_override.csv",
+    )
+    assert by_acid.main_code == "clone"
+
+
+async def test_fetch_source_code_falls_back_to_base_book(init_test_db):
+    """A clone without its own copy still gets the base book's file."""
+    await update_source_code(
+        acid="base_only.csv",
+        filename="base_only.csv",
+        course_id="test_base_book",
+        main_code="base",
+    )
+    row = await fetch_source_code(
+        base_course="test_base_book",
+        course_name="test_clone_course",
+        filename="base_only.csv",
+    )
+    assert row.main_code == "base"
