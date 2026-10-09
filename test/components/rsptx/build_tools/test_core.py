@@ -1,9 +1,12 @@
+import copy
+
 import lxml.etree as ET
 import pytest
 from sqlalchemy import (
     Column,
     DateTime,
     Integer,
+    JSON,
     MetaData,
     String,
     Table,
@@ -271,3 +274,160 @@ def test_merge_duplicate_page_questions_scoped_and_rollback(merge_db):
         assert len(core.merge_duplicate_page_questions(conn, "book")) == 1
         trans.rollback()
         assert conn.execute(text("select count(*) from questions")).scalar() == 4
+
+
+# A PreTeXt cardsort with feedback on cards, as it appears in
+# runestone-manifest.xml. The empty exercise <feedback/> and the <answer/>
+# elements are self-closing, as an XML serializer writes them.
+CARDSORT_QUESTION = """
+<question optional="yes">
+  <label>Exercise 5.12.2 Cardsort Problem, Feedback on Cards.</label>
+  <htmlsrc>
+    <div class="ptx-runestone-container">
+      <div class="runestone cardsort_section">
+        <div data-component="dragndrop" data-question_label="" id="bk_cards">
+          <script type="text/xml">
+            <dragndrop>
+              <statement>
+<div class="para">Place each number in <em>one</em> category.</div></statement>
+              <feedback/>
+              <premise>
+                <id>bk_cards_drag1</id>
+                <label>
+                  <span class="process-math">\\(-7\\)</span>
+                </label>
+              </premise>
+              <premise>
+                <id>bk_cards_drag2</id>
+                <label><img src="generated/sqrt16.svg"/></label>
+                <feedback>
+<div class="para">Simplify first.</div></feedback>
+              </premise>
+              <premise>
+                <id>bk_cards_drag3</id>
+                <label>i</label>
+              </premise>
+              <response>
+                <id>bk_cards_drop1</id>
+                <label>Integer</label>
+                <feedback>
+<div class="para">The integers are whole.</div></feedback>
+              </response>
+              <response>
+                <id>bk_cards_drop2</id>
+                <label>Irrational</label>
+              </response>
+              <answer premise="bk_cards_drag1" response="bk_cards_drop1"/>
+              <answer premise="bk_cards_drag2" response="bk_cards_drop1"/>
+            </dragndrop>
+          </script>
+        </div>
+      </div>
+    </div>
+  </htmlsrc>
+</question>
+"""
+
+CARDSORT_JSON = {
+    "statement": '<div class="para">Place each number in <em>one</em> category.</div>',
+    "feedback": "",
+    "left": [
+        {"id": "bk_cards_drag1", "label": '<span class="process-math">\\(-7\\)</span>'},
+        {
+            "id": "bk_cards_drag2",
+            "label": '<img src="generated/sqrt16.svg"/>',
+            "feedback": '<div class="para">Simplify first.</div>',
+        },
+        {"id": "bk_cards_drag3", "label": "i"},
+    ],
+    "right": [
+        {
+            "id": "bk_cards_drop1",
+            "label": "Integer",
+            "feedback": '<div class="para">The integers are whole.</div>',
+        },
+        {"id": "bk_cards_drop2", "label": "Irrational"},
+    ],
+    "correctAnswers": [
+        ["bk_cards_drag1", "bk_cards_drop1"],
+        ["bk_cards_drag2", "bk_cards_drop1"],
+    ],
+}
+
+
+def _question_el(question):
+    return question.find(".//*[@data-component]")
+
+
+def test_dragndrop_xml_to_question_json():
+    question = ET.fromstring(CARDSORT_QUESTION)
+    assert core._question_json_from_xml("dragndrop", _question_el(question)) == (
+        CARDSORT_JSON
+    )
+
+
+def test_question_json_from_xml_skips_html_markup():
+    question = ET.fromstring(
+        '<question><htmlsrc><ul data-component="dragndrop" id="old">'
+        '<li data-subcomponent="draggable" id="old_drag1">a</li>'
+        "</ul></htmlsrc></question>"
+    )
+    assert core._question_json_from_xml("dragndrop", _question_el(question)) is None
+    assert core._question_json_from_xml("matching", _question_el(question)) is None
+
+
+@pytest.fixture
+def question_db():
+    engine = create_engine("sqlite://")
+    meta = MetaData()
+    questions = Table(
+        "questions",
+        meta,
+        Column("id", Integer, primary_key=True),
+        Column("base_course", String),
+        Column("name", String),
+        Column("timestamp", DateTime),
+        Column("is_private", String),
+        Column("question_type", String),
+        Column("htmlsrc", String),
+        Column("autograde", String),
+        Column("from_source", String),
+        Column("chapter", String),
+        Column("subchapter", String),
+        Column("topic", String),
+        Column("qnumber", String),
+        Column("optional", String),
+        Column("practice", String),
+        Column("author", String),
+        Column("owner", String),
+        Column("question_json", JSON),
+        UniqueConstraint("name", "base_course"),
+    )
+    meta.create_all(engine)
+    sess = sessionmaker(bind=engine)()
+    yield sess, {
+        "questions": questions,
+        "author": "a",
+        "owner": "o",
+        "ext_img_patt": core.re.compile(r"""src="external"""),
+        "gen_img_patt": core.re.compile(r"""src="generated"""),
+    }
+    sess.close()
+
+
+def test_process_question_stores_dragndrop_question_json(question_db):
+    sess, db_context = question_db
+    chapter, sub = _chapter_xml("Cards")
+    question = ET.fromstring(CARDSORT_QUESTION)
+    core._process_single_question(sess, db_context, chapter, sub, question, "bk")
+    q = db_context["questions"]
+    row = sess.execute(q.select()).one()
+    assert row.name == "bk_cards"
+    assert row.question_type == "dragndrop"
+    assert '<script type="text/xml">' in row.htmlsrc
+    # image urls are made absolute in the JSON just as they are in htmlsrc
+    expected = copy.deepcopy(CARDSORT_JSON)
+    expected["left"][1][
+        "label"
+    ] = '<img src="/ns/books/published/bk/generated/sqrt16.svg"/>'
+    assert row.question_json == expected

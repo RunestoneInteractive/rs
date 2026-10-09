@@ -298,10 +298,22 @@ Source: ``types/exercises.ts`` - inline type on ``left`` and ``right`` fields
      - string
      - Yes
      - Display text for the item
+   * - feedback
+     - string
+     - No
+     - dragndrop only: shown when this card is out of place (a premise not in
+       its response, or a response holding the wrong premises), after the
+       student's third incorrect check
 
 .. code-block:: json
 
-   { "id": "a", "label": "Python" }
+   { "id": "a", "label": "Python", "feedback": "Python checks types at run time." }
+
+Book questions get ``question_json`` too. When a PreTeXt ``cardsort`` is written
+as XML (``<script type="text/xml"><dragndrop>...``), the build converts it to
+the dragndrop shape above while loading ``runestone-manifest.xml``, including
+any ``<feedback>`` on a ``<premise>`` or ``<response>``. Questions in the older
+HTML markup are left without ``question_json``.
 
 ParsonsBlock
 ~~~~~~~~~~~~

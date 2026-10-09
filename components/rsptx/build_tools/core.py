@@ -996,6 +996,8 @@ def _process_single_timed_assignment(
         if qtype == "webwork" and el is not None:
             dbtext = ET.tostring(el).decode("utf8")
 
+        question_json = _question_json_from_xml(qtype, el)
+
         # Build question data
         if parent is not None:
             subchap_label = parent.find("./id").text
@@ -1019,6 +1021,8 @@ def _process_single_timed_assignment(
             author=db_context["author"],
             owner=db_context["owner"],
         )
+        if question_json is not None:
+            valudict["question_json"] = question_json
 
         # Insert or update question
         namekey = old_ww_id if old_ww_id else idchild
@@ -1292,11 +1296,14 @@ def _process_single_question(
             dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
+    question_json = _question_json_from_xml(qtype, el)
     practice = _determine_practice_flag(qtype, el)
     autograde = _determine_autograde(dbtext)
 
     # Fix image URLs
     dbtext = _fix_image_urls(dbtext, db_context, course_name)
+    if question_json is not None:
+        question_json = _fix_image_urls_in_json(question_json, db_context, course_name)
 
     # Build question data
     sbc = subchapter.find("./id").text
@@ -1319,6 +1326,8 @@ def _process_single_question(
         author=db_context["author"],
         owner=db_context["owner"],
     )
+    if question_json is not None:
+        valudict["question_json"] = question_json
     # Insert or update question
     namekey = old_ww_id if old_ww_id else idchild
     _upsert_question(sess, db_context, namekey, valudict, course_name)
@@ -1369,6 +1378,86 @@ def _extract_question_metadata(question, dbtext):
         # Note: dbtext will be updated with ET.tostring(el) in the calling function if needed
 
     return el, idchild, old_ww_id, qtype
+
+
+def _inner_html(el):
+    """Return the markup inside ``el``, without the element's own tags."""
+    if el is None:
+        return ""
+    inner = (el.text or "") + "".join(
+        ET.tostring(child, encoding="unicode", with_tail=True) for child in el
+    )
+    return inner.strip()
+
+
+def _match_items(root, tag):
+    """Return ``[{id, label, feedback?}, ...]`` for each ``tag`` child of ``root``."""
+    items = []
+    for card in root.findall(f"./{tag}"):
+        item = {
+            "id": (card.findtext("./id") or "").strip(),
+            "label": _inner_html(card.find("./label")),
+        }
+        feedback = _inner_html(card.find("./feedback"))
+        if feedback:
+            item["feedback"] = feedback
+        items.append(item)
+    return items
+
+
+def _dragndrop_xml_to_json(root):
+    """Convert a ``<dragndrop>`` question element to its ``question_json``.
+
+    PreTeXt writes a cardsort as XML inside ``<script type="text/xml">``::
+
+        <dragndrop>
+          <statement>...</statement>
+          <feedback>...</feedback>
+          <premise><id/><label/><feedback/>?</premise> ...
+          <response><id/><label/><feedback/>?</response> ...
+          <answer premise="..." response="..."/> ...
+        </dragndrop>
+
+    The result follows the dragndrop schema in
+    ``docs/source/question_json_schema.rst``. A premise with no ``<answer>``
+    is a distractor. The dragndrop component reads the same shape, so it
+    renders identically from this JSON or from the XML.
+    """
+    return {
+        "statement": _inner_html(root.find("./statement")),
+        "feedback": _inner_html(root.find("./feedback")),
+        "left": _match_items(root, "premise"),
+        "right": _match_items(root, "response"),
+        "correctAnswers": [
+            [answer.get("premise", ""), answer.get("response", "")]
+            for answer in root.findall("./answer")
+        ],
+    }
+
+
+# question_type -> converter for a question authored as XML in a
+# ``<script type="text/xml">`` block whose root element is named for the type
+XML_QUESTION_CONVERTERS = {
+    "dragndrop": _dragndrop_xml_to_json,
+}
+
+
+def _question_json_from_xml(qtype, el):
+    """Return the ``question_json`` for a question written as XML, else None.
+
+    Questions in the older HTML markup have no XML block and get None, which
+    leaves their ``question_json`` column alone.
+    """
+    if qtype not in XML_QUESTION_CONVERTERS or el is None:
+        return None
+    root = el.find(f".//script[@type='text/xml']/{qtype}")
+    if root is None:
+        return None
+    try:
+        return XML_QUESTION_CONVERTERS[qtype](root)
+    except Exception as e:
+        rslogger.error(f"Could not convert {qtype} XML to question_json: {e}")
+        return None
 
 
 def _find_pytutor_id(el):
@@ -1422,6 +1511,20 @@ def _fix_image_urls(dbtext, db_context, course_name):
         f"""src="/ns/books/published/{course_name}/generated""", dbtext
     )
     return dbtext
+
+
+def _fix_image_urls_in_json(value, db_context, course_name):
+    """Apply ``_fix_image_urls`` to every string in a ``question_json`` value."""
+    if isinstance(value, str):
+        return _fix_image_urls(value, db_context, course_name)
+    if isinstance(value, list):
+        return [_fix_image_urls_in_json(v, db_context, course_name) for v in value]
+    if isinstance(value, dict):
+        return {
+            k: _fix_image_urls_in_json(v, db_context, course_name)
+            for k, v in value.items()
+        }
+    return value
 
 
 def _upsert_question(sess, db_context, namekey, valudict, course_name):

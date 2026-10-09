@@ -23,6 +23,48 @@ const removePTags = (content: string): string => {
     .replace(/<\/p>/g, "</span>");
 };
 
+/*
+ * The data-subcomponent markup has no place for feedback on an individual card,
+ * so a question with any (e.g. a PreTeXt cardsort stored from a book) is written
+ * as a JSON script block instead, which the dragndrop component also reads.
+ * Item ids become element ids, so prefix them to keep them unique on a page.
+ */
+const generateDragAndDropJson = ({
+  left,
+  right,
+  correctAnswers,
+  feedback,
+  statement,
+  safeId
+}: Omit<DragAndDropPreviewProps, "name"> & { safeId: string }): string => {
+  const scopedId = (id: string): string => `${safeId}_${id}`;
+  const toItem = (item: ItemWithLabel) => ({
+    id: scopedId(item.id),
+    label: removePTags(item.label || ""),
+    ...(item.feedback && { feedback: item.feedback })
+  });
+  const jsonData = {
+    statement:
+      statement || "Match items from the left column with their corresponding items on the right.",
+    feedback: feedback || DEFAULT_INCORRECT_FEEDBACK,
+    left: left.map(toItem),
+    right: right.map(toItem),
+    correctAnswers: correctAnswers.map(([leftId, rightId]) => [scopedId(leftId), scopedId(rightId)])
+  };
+
+  // "</" would end the script element early.
+  const jsonString = JSON.stringify(jsonData, null, 2).replace(/<\//g, "<\\/");
+
+  return `
+<div class="runestone flex justify-content-center">
+<div data-component="dragndrop" data-question_label="${safeId}" id="${safeId}">
+  <script type="application/json">
+${jsonString}
+  </script>
+</div>
+</div>`;
+};
+
 export const generateDragAndDropPreview = ({
   left,
   right,
@@ -32,6 +74,11 @@ export const generateDragAndDropPreview = ({
   statement
 }: DragAndDropPreviewProps): string => {
   const safeId = sanitizeId(name, "exercise_" + Date.now());
+
+  if ([...left, ...right].some((item) => item.feedback)) {
+    return generateDragAndDropJson({ left, right, correctAnswers, feedback, statement, safeId });
+  }
+
   let html = "";
 
   const usedLeftItems = new Set<string>();

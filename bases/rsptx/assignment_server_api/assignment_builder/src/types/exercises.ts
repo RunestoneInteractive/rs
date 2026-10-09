@@ -92,8 +92,8 @@ export type QuestionJSON = Partial<{
   attachment: boolean;
   statement: string;
   optionList: Option[];
-  left: { id: string; label: string }[];
-  right: { id: string; label: string }[];
+  left: { id: string; label: string; feedback?: string }[];
+  right: { id: string; label: string; feedback?: string }[];
   correctAnswers: string[][];
   feedback: string;
   blocks: ParsonsBlock[];

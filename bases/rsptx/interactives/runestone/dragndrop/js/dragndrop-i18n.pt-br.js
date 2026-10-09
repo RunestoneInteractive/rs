@@ -9,5 +9,7 @@ load({
             "Por favor, posicione todos os cartões antes de verificar sua resposta. Você ainda tem $1 para posicionar.",
         msg_dragndrop_check_me: "Verificar",
         msg_dragndrop_reset: "Resetar",
+        msg_dragndrop_card_feedback: "Comentário sobre $1",
+        msg_dragndrop_card_feedback_tip: "Mostrar comentário",
     },
 });
