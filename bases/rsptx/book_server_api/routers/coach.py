@@ -212,8 +212,13 @@ def _extract_suffix_code_from_htmlsrc(htmlsrc):
 
 # A quoted name with a file extension, e.g. open("scores.csv") or
 # new File("words.txt") -- a possible data file to look up in source_code.
-_FILENAME_LITERAL_RE = re.compile(r"""["']([\w\-./]+\.[A-Za-z0-9]{1,8})["']""")
-# Bounds the source_code lookups a single request can trigger.
+# Single spaces inside the name are allowed, since uploaded datafiles keep
+# theirs (open("my data.csv")).
+_FILENAME_LITERAL_RE = re.compile(
+    r"""["']([\w\-./]+(?: [\w\-./]+)*\.[A-Za-z0-9]{1,8})["']"""
+)
+# Bounds the source_code lookups that guessed filename literals can trigger.
+# Names the question declares in data-datafile are always kept.
 _MAX_DATA_FILE_CANDIDATES = 20
 
 
@@ -226,18 +231,19 @@ def _data_file_candidates(htmlsrc, *code_sources):
     student's code. Names that turn out not to be data files simply miss in
     the source_code lookup.
     """
-    names = []
+    declared = []
     htmlsrc = htmlsrc or ""
     match = re.search(r'data-datafile\s*=\s*"([^"]*)"', htmlsrc)
     if match:
-        names.extend(name.strip() for name in match.group(1).split(","))
+        declared.extend(name.strip() for name in match.group(1).split(","))
+    declared = list(dict.fromkeys(name for name in declared if name))
     textarea = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
     question_code = html.unescape(textarea.group(1)) if textarea else ""
+    inferred = []
     for text in (question_code, *code_sources):
-        names.extend(_FILENAME_LITERAL_RE.findall(text or ""))
-    return list(dict.fromkeys(name for name in names if name))[
-        :_MAX_DATA_FILE_CANDIDATES
-    ]
+        inferred.extend(_FILENAME_LITERAL_RE.findall(text or ""))
+    inferred = [name for name in dict.fromkeys(inferred) if name not in declared]
+    return declared + inferred[:_MAX_DATA_FILE_CANDIDATES]
 
 
 async def _fetch_data_files(candidates, course_scopes):
