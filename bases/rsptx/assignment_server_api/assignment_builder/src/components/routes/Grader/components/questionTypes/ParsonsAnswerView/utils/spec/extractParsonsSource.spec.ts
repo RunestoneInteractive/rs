@@ -53,7 +53,9 @@ if left &lt; right:
   });
 
   it("recognizes tabs as the indentation unit", () => {
-    expect(extractParsonsSource('<pre class="parsonsblocks">first\n---\n\tsecond</pre>')).toMatchObject({
+    expect(
+      extractParsonsSource('<pre class="parsonsblocks">first\n---\n\tsecond</pre>')
+    ).toMatchObject({
       indentUnit: "\t"
     });
   });
