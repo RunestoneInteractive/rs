@@ -569,6 +569,36 @@ class CourseInstructor(Base, IdMixin):
 CourseInstructorValidator: TypeAlias = sqlalchemy_to_pydantic(CourseInstructor)  # type: ignore
 
 
+class CourseGrader(Base, IdMixin):
+    """A user who may grade only through the restricted grader workflow.
+
+    This is intentionally separate from ``CourseInstructor``. Adding a user to
+    this table must not grant access to the existing instructor endpoints,
+    roster, gradebook, or student reports.
+    """
+
+    __tablename__ = "course_grader"
+    __table_args__ = (
+        UniqueConstraint("course_id", "user_id", name="uq_course_grader_course_user"),
+    )
+
+    course_id = Column(
+        Integer,
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("auth_user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+
+CourseGraderValidator: TypeAlias = sqlalchemy_to_pydantic(CourseGrader)  # type: ignore
+
+
 # Enrollments
 # -----------
 #
@@ -658,6 +688,9 @@ class Assignment(Base, IdMixin):
     name = Column(String(512), nullable=False)
     points = Column(Integer, default=0)
     released = Column(Web2PyBoolean, nullable=False)
+    # Server-enforced blind grading is opt-in per assignment. NULL is treated as
+    # False so older rows and callers that omit the field remain identified.
+    blind_grading = Column(Web2PyBoolean)
     description = Column(Text)
     duedate = Column(DateTime, nullable=False)
     updated_date = Column(DateTime, nullable=True)
