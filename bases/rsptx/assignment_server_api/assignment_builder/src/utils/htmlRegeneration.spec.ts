@@ -58,7 +58,8 @@ describe("regenerateHtmlSrc", () => {
       const qJson = {
         statement: "What is 2+2?",
         optionList: [{ choice: "4", correct: true }],
-        forceCheckboxes: true
+        forceCheckboxes: true,
+        random: true
       };
       const exercise: Exercise = {
         ...baseExercise,
@@ -68,7 +69,7 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "new_name");
 
-      expect(spy).toHaveBeenCalledWith("What is 2+2?", qJson.optionList, "new_name", true);
+      expect(spy).toHaveBeenCalledWith("What is 2+2?", qJson.optionList, "new_name", true, true);
       expect(result).toBe("<mc />");
     });
 
@@ -78,7 +79,7 @@ describe("regenerateHtmlSrc", () => {
 
       regenerateHtmlSrc(exercise, "new_name");
 
-      expect(spy).toHaveBeenCalledWith("", [], "new_name", undefined);
+      expect(spy).toHaveBeenCalledWith("", [], "new_name", undefined, undefined);
     });
 
     it("uses empty QuestionJSON when question_json is absent", () => {
@@ -87,7 +88,7 @@ describe("regenerateHtmlSrc", () => {
 
       regenerateHtmlSrc(exercise, "new_name");
 
-      expect(spy).toHaveBeenCalledWith("", [], "new_name", undefined);
+      expect(spy).toHaveBeenCalledWith("", [], "new_name", undefined, undefined);
     });
   });
 
@@ -139,6 +140,27 @@ describe("regenerateHtmlSrc", () => {
       );
     });
 
+    it("keeps DAG grading, custom order and the runnable program when copying", () => {
+      const spy = vi.spyOn(parsonsPreview, "generateParsonsPreview").mockReturnValue("<parsons />");
+      const qJson = {
+        grader: "dag",
+        orderMode: "custom",
+        customOrder: [1, 0],
+        runnable: true,
+        runnableCode: "==PARSONSCODE==",
+        runnableOptions: { language: "cpp", compileArgs: "['-Wall']" }
+      };
+      const exercise: Exercise = {
+        ...baseExercise,
+        question_type: "parsonsprob",
+        question_json: JSON.stringify(qJson)
+      };
+
+      regenerateHtmlSrc(exercise, "p_name");
+
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining(qJson));
+    });
+
     it("uses instructions field over questionText when both present", () => {
       const spy = vi.spyOn(parsonsPreview, "generateParsonsPreview").mockReturnValue("<parsons />");
       const qJson = { instructions: "Sort these", questionText: "fallback" };
@@ -177,7 +199,12 @@ describe("regenerateHtmlSrc", () => {
         prefix_code: "prefix",
         starter_code: "starter",
         suffix_code: "suffix",
-        stdin: "input"
+        stdin: "input",
+        selectedExistingDataFiles: ["data.csv"],
+        enableCodeTailor: true,
+        parsonspersonalize: "movable",
+        compileArgs: "['-Wall']",
+        visible_suffix_code: "main()"
       };
       const exercise: Exercise = {
         ...baseExercise,
@@ -194,7 +221,10 @@ describe("regenerateHtmlSrc", () => {
         "starter",
         "suffix",
         "ac_name",
-        "input"
+        "input",
+        [{ acid: "data.csv" }],
+        expect.objectContaining({ enableCodeTailor: true, parsonspersonalize: "movable" }),
+        { compileArgs: "['-Wall']", visible_suffix_code: "main()" }
       );
       expect(result).toBe("<ac />");
     });
@@ -209,7 +239,18 @@ describe("regenerateHtmlSrc", () => {
 
       regenerateHtmlSrc(exercise, "ac_name");
 
-      expect(spy).toHaveBeenCalledWith("", "python", "", "", "", "ac_name", undefined);
+      expect(spy).toHaveBeenCalledWith(
+        "",
+        "python",
+        "",
+        "",
+        "",
+        "ac_name",
+        undefined,
+        [],
+        expect.any(Object),
+        {}
+      );
     });
   });
 
@@ -333,6 +374,24 @@ describe("regenerateHtmlSrc", () => {
   });
 
   describe("poll question type", () => {
+    it("passes who sees the results", () => {
+      const spy = vi.spyOn(poll, "generatePollPreview").mockReturnValue("<poll />");
+      const exercise: Exercise = {
+        ...baseExercise,
+        question_type: "poll",
+        question_json: JSON.stringify({
+          statement: "Rate it",
+          optionList: [{ choice: "1" }, { choice: "2" }],
+          poll_type: "scale",
+          results: "all"
+        })
+      };
+
+      regenerateHtmlSrc(exercise, "poll_name");
+
+      expect(spy).toHaveBeenCalledWith("Rate it", ["1", "2"], "poll_name", "scale", "all");
+    });
+
     it("calls generatePollPreview with option choices and new name", () => {
       const spy = vi.spyOn(poll, "generatePollPreview").mockReturnValue("<poll />");
       const qJson = {
@@ -348,7 +407,13 @@ describe("regenerateHtmlSrc", () => {
 
       const result = regenerateHtmlSrc(exercise, "poll_name");
 
-      expect(spy).toHaveBeenCalledWith(qJson.statement, ["Yes", "No"], "poll_name", "options");
+      expect(spy).toHaveBeenCalledWith(
+        qJson.statement,
+        ["Yes", "No"],
+        "poll_name",
+        "options",
+        undefined
+      );
       expect(result).toBe("<poll />");
     });
 
@@ -362,7 +427,7 @@ describe("regenerateHtmlSrc", () => {
 
       regenerateHtmlSrc(exercise, "poll_name");
 
-      expect(spy).toHaveBeenCalledWith("", [], "poll_name", undefined);
+      expect(spy).toHaveBeenCalledWith("", [], "poll_name", undefined, undefined);
     });
 
     it("supports legacy questionText when statement is absent", () => {
@@ -375,7 +440,7 @@ describe("regenerateHtmlSrc", () => {
 
       regenerateHtmlSrc(exercise, "poll_name");
 
-      expect(spy).toHaveBeenCalledWith("Legacy poll", [], "poll_name", undefined);
+      expect(spy).toHaveBeenCalledWith("Legacy poll", [], "poll_name", undefined, undefined);
     });
   });
 

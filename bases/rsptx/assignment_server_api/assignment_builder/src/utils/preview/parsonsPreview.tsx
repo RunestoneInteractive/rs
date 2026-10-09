@@ -1,5 +1,12 @@
 import { sanitizeId } from "../sanitize";
 
+import {
+  ActiveCodeAdvancedOptions,
+  advancedAttributes,
+  escapeAttribute,
+  escapeTextarea
+} from "./activeCode";
+
 export interface ParsonsBlock {
   id: string;
   content: string;
@@ -15,6 +22,14 @@ export interface ParsonsBlock {
   pairedWithBlockAbove?: boolean;
 }
 
+// The activecode program a solved runnable parsons runs: the options of its
+// <textarea>, named as for an activecode question.
+export interface ParsonsRunnableOptions extends ActiveCodeAdvancedOptions {
+  language?: string;
+  selectedExistingDataFiles?: string[];
+  enableCodelens?: boolean;
+}
+
 export interface ParsonsPreviewProps {
   instructions: string;
   blocks: ParsonsBlock[];
@@ -27,7 +42,35 @@ export interface ParsonsPreviewProps {
   grader?: "line" | "dag";
   orderMode?: "random" | "custom";
   customOrder?: number[];
+  // Once solved, run the student's code: parsons.js puts it in place of
+  // ==PARSONSCODE== in runnableCode.
+  runnable?: boolean;
+  runnableCode?: string;
+  runnableOptions?: ParsonsRunnableOptions;
 }
+
+// The hidden activecode parsons.js renders when a runnable parsons is solved
+const generateRunnable = (
+  safeId: string,
+  code: string,
+  options: ParsonsRunnableOptions = {}
+): string => {
+  const datafiles = options.selectedExistingDataFiles?.length
+    ? ` data-datafile="${escapeAttribute(options.selectedExistingDataFiles.join(","))}"`
+    : "";
+
+  return `
+  <div style="display: none" id="${safeId}-runnable">
+    <div data-component="parsons-runnable" id="${safeId}-runnable-ac">
+      <textarea data-lang="${escapeAttribute(options.language || "python")}" data-codelens="${
+        options.enableCodelens ? "true" : "false"
+      }" data-timelimit="${options.timeLimit ?? 25000}"${datafiles}${advancedAttributes(
+        options
+      )} style="visibility: hidden;">
+${escapeTextarea(code)}</textarea>
+    </div>
+  </div>`;
+};
 
 export const generateParsonsPreview = ({
   instructions,
@@ -40,7 +83,10 @@ export const generateParsonsPreview = ({
   questionLabel,
   grader = "line",
   orderMode = "random",
-  customOrder
+  customOrder,
+  runnable = false,
+  runnableCode = "",
+  runnableOptions
 }: ParsonsPreviewProps): string => {
   const safeId = sanitizeId(name);
 
@@ -79,16 +125,13 @@ export const generateParsonsPreview = ({
     .map((block) => {
       let blockContent = block.content;
 
-      if (blockContent.includes("\n")) {
-        const lines = blockContent.split("\n");
-
-        blockContent = lines
-          .map((line, i) => {
-            if (i === 0) return line;
-            return " ".repeat(block.indent * 4) + line;
-          })
-          .join("\n");
-      }
+      // parsons.js reads a line's indentation from its leading spaces, so
+      // every line of the block, the first included, carries the block's
+      // indent; later lines keep their own indentation relative to it.
+      blockContent = blockContent
+        .split("\n")
+        .map((line) => " ".repeat(block.indent * 4) + line)
+        .join("\n");
 
       // Add DAG tag/depends annotations for non-distractor blocks
       if (grader === "dag" && !block.isDistractor && block.tag) {
@@ -115,7 +158,8 @@ export const generateParsonsPreview = ({
     dataAttributes += ` data-language="${language}"`;
   }
 
-  if (adaptive && grader !== "dag") {
+  // parsons.js offers adaptive help with either grader
+  if (adaptive) {
     dataAttributes += ' data-adaptive="true"';
   }
 
@@ -129,6 +173,10 @@ export const generateParsonsPreview = ({
 
   if (grader === "dag") {
     dataAttributes += ' data-grader="dag"';
+  }
+
+  if (runnable) {
+    dataAttributes += ' data-runnable="true"';
   }
 
   if (orderMode === "custom") {
@@ -211,6 +259,6 @@ export const generateParsonsPreview = ({
     <pre class="parsonsblocks" data-question_label="${questionLabel || name}"${dataAttributes}>
 ${blocksContent}
     </pre>  
-  </div>
+  </div>${runnable ? generateRunnable(safeId, runnableCode, runnableOptions) : ""}
 </div>`;
 };
