@@ -8,6 +8,7 @@ import { DataGrid } from "@/components/ui/DataGrid";
 import { Icon } from "@/components/ui/Icon";
 import { Toolbar } from "@/components/ui/Toolbar/Toolbar";
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
+import { isNotFoundError } from "@/utils/apiError";
 
 import styles from "../../Grader.module.css";
 import { DeadlineExceptionDialog } from "../../components/DeadlineExceptionDialog";
@@ -112,11 +113,21 @@ export const GraderQuestionsPage: React.FC = () => {
   const id = Number(assignmentId);
   const navigate = useNavigate();
   const { isDemo } = useGraderTourContext();
-  const { data: realData, isLoading } = useGetGraderQuestionsQuery(id, {
+  const {
+    data: realData,
+    error,
+    isLoading
+  } = useGetGraderQuestionsQuery(id, {
     skip: !id || isDemo,
     refetchOnMountOrArgChange: true
   });
   const data = isDemo ? (getDemoQuestionsFor(id) ?? undefined) : realData;
+
+  useEffect(() => {
+    if (isNotFoundError(error)) {
+      navigate("/grader", { replace: true });
+    }
+  }, [error, navigate]);
 
   const [viewMode, setViewMode] = useViewModeStorage<GraderViewMode>(
     VIEW_MODE_STORAGE_KEY,

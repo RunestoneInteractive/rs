@@ -1,6 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { assignmentApi } from "@store/assignment/assignment.logic.api";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
+import { courseApi } from "@store/course/course.logic.api";
 import { datafileApi } from "@store/datafile/datafile.logic.api";
 import { datasetApi } from "@store/dataset/dataset.logic.api";
 import { exercisesApi } from "@store/exercises/exercises.logic.api";
@@ -16,6 +17,7 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware({ serializableCheck: false }).concat(
         assignmentApi.middleware,
         assignmentExerciseApi.middleware,
+        courseApi.middleware,
         readingsApi.middleware,
         exercisesApi.middleware,
         datasetApi.middleware,

@@ -89,6 +89,7 @@ from .course import (
     fetch_current_instructors_for_course,
     fetch_instructor_courses,
     is_course_instructor,
+    fetch_recent_instructor_courses as fetch_recent_instructor_courses,
     fetch_users_for_course,
     fetch_courses_by_institution,
     institution_match_score,

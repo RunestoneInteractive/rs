@@ -12,6 +12,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Icon } from "@/components/ui/Icon";
 import { notify } from "@/components/ui/notify";
+import { isNotFoundError } from "@/utils/apiError";
 
 import styles from "../../Grader.module.css";
 import { DeadlineExceptionDialog } from "../../components/DeadlineExceptionDialog";
@@ -39,10 +40,14 @@ export const GraderQuestionPage: React.FC = () => {
 
   const { isDemo, demoSelected, setDemoSelected } = useGraderTourContext();
 
-  const { data: qRealData } = useGetGraderQuestionsQuery(aid, {
+  const { data: qRealData, error: questionsError } = useGetGraderQuestionsQuery(aid, {
     skip: !aid || isDemo
   });
-  const { data: realData, isLoading } = useGetGraderAnswersQuery(
+  const {
+    data: realData,
+    error: answersError,
+    isLoading
+  } = useGetGraderAnswersQuery(
     { assignmentId: aid, questionId: qid },
     { skip: !aid || !qid || isDemo }
   );
@@ -52,6 +57,12 @@ export const GraderQuestionPage: React.FC = () => {
   const data = isDemo ? (getDemoAnswersFor(aid, qid) ?? undefined) : realData;
   const qData = isDemo ? (getDemoQuestionsFor(aid) ?? undefined) : qRealData;
   const questionMeta = qData?.questions.find((q) => q.id === qid);
+
+  useEffect(() => {
+    if (isNotFoundError(questionsError) || isNotFoundError(answersError)) {
+      navigate("/grader", { replace: true });
+    }
+  }, [answersError, navigate, questionsError]);
   const lateStudentsBySid = useMemo(
     () =>
       new Map<string, LateStudent>(

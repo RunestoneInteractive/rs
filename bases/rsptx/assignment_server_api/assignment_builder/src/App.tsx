@@ -1,5 +1,10 @@
 import { AppNavBar } from "@components/shell/AppNavBar";
 import { useScrollShadow } from "@components/shell/useScrollShadow";
+import {
+  useGetRecentInstructorCoursesQuery,
+  useSwitchInstructorCourseMutation
+} from "@store/course/course.logic.api";
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import {
   Navigate,
@@ -14,7 +19,13 @@ import "./App.css";
 import { routerService } from "@/router";
 
 import shellStyles from "./components/shell/AppShell.module.css";
-import { buildNavBar } from "./navUtils.js";
+import {
+  getRestoredCourseDestination,
+  markCourseSwitch,
+  reconcileServerCourse,
+  syncCourseHistoryEntry
+} from "./courseHistory";
+import { buildNavBar, getCourseSwitchDestination } from "./navUtils.js";
 import AssignmentEditor, { AddQuestionTabGroup, MoreOptions } from "./renderers/assignment.jsx";
 import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import {
@@ -73,7 +84,85 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { sentinelRef, scrolled } = useScrollShadow();
-  const items = buildNavBar(window.eBookConfig, navigate);
+  const { data: instructorCourses = [], refetch: refetchInstructorCourses } =
+    useGetRecentInstructorCoursesQuery(undefined, {
+      skip: window.eBookConfig.isInstructor === false
+    });
+  const [switchInstructorCourse, { isLoading: isSwitchingCourse }] =
+    useSwitchInstructorCourseMutation();
+  const currentCourse = window.eBookConfig.course ?? "";
+  const serverCourse = instructorCourses.find(({ is_current }) => is_current)?.course_name;
+
+  useEffect(() => {
+    const redirectToServerCourse = (courseName: string | undefined): boolean => {
+      const destination = reconcileServerCourse(currentCourse, courseName, location.pathname);
+
+      if (!destination) return false;
+
+      window.location.replace(destination);
+      return true;
+    };
+
+    if (redirectToServerCourse(serverCourse)) return;
+
+    const destination = syncCourseHistoryEntry(currentCourse, location.pathname);
+
+    if (destination) {
+      window.location.replace(destination);
+      return;
+    }
+
+    let cancelled = false;
+    const handlePageShow = async (event: PageTransitionEvent) => {
+      if (event.persisted && window.eBookConfig.isInstructor !== false) {
+        try {
+          const refreshed = await refetchInstructorCourses();
+
+          if (cancelled) return;
+
+          const restoredServerCourse = refreshed.data?.find(
+            ({ is_current }) => is_current
+          )?.course_name;
+
+          if (redirectToServerCourse(restoredServerCourse)) return;
+        } catch {
+          // Fall back to the local history checks when the refresh is unavailable.
+        }
+      }
+
+      const restoredDestination = getRestoredCourseDestination(
+        event.persisted,
+        currentCourse,
+        location.pathname
+      );
+
+      if (restoredDestination) {
+        window.location.replace(restoredDestination);
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [currentCourse, location.key, location.pathname, refetchInstructorCourses, serverCourse]);
+
+  const handleCourseSwitch = async (courseName: string) => {
+    try {
+      await switchInstructorCourse(courseName).unwrap();
+      markCourseSwitch(courseName);
+      window.location.replace(getCourseSwitchDestination(location.pathname));
+    } catch {
+      return;
+    }
+  };
+  const items = buildNavBar(window.eBookConfig, navigate, {
+    courses: instructorCourses,
+    onSwitch: handleCourseSwitch,
+    isSwitching: isSwitchingCourse
+  });
   const isFullBleedRoute = FULL_BLEED_ROUTE.test(location.pathname);
 
   return (

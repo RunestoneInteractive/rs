@@ -80,6 +80,22 @@ describe("AppNavBar", () => {
     expect(screen.queryByRole("button", { name: /gone/i })).not.toBeInTheDocument();
   });
 
+  it("does not invoke disabled course items", async () => {
+    const command = vi.fn();
+    const items: NavItem[] = [
+      {
+        label: "Course: cs101",
+        items: [{ label: "cs102", command, disabled: true }]
+      }
+    ];
+
+    renderWithMantine(<AppNavBar items={items} />);
+    await userEvent.click(screen.getByRole("button", { name: /course: cs101/i }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: /cs102/i }));
+
+    expect(command).not.toHaveBeenCalled();
+  });
+
   it("renders the Runestone logo image alongside the wordmark", () => {
     const { container } = renderWithMantine(<AppNavBar items={makeItems()} />);
 

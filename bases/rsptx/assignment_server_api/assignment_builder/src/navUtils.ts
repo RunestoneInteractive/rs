@@ -10,10 +10,27 @@ export interface NavItem {
   visible?: boolean;
   separator?: boolean;
   activePrefixes?: string[];
+  disabled?: boolean;
+}
+
+export interface CourseSwitcherOptions {
+  courses: Array<{ course_name: string; is_current: boolean }>;
+  onSwitch: (courseName: string) => void;
+  isSwitching?: boolean;
 }
 
 export const isNavItemActive = (item: NavItem, pathname: string): boolean =>
   !!item.activePrefixes?.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
+export const getCourseSwitchDestination = (pathname: string): string => {
+  const isGraderRoute =
+    pathname === "/grader" ||
+    pathname.startsWith("/grader/") ||
+    pathname === "/gradebook" ||
+    pathname.startsWith("/gradebook/");
+
+  return isGraderRoute ? "/assignment/instructor/grader" : "/assignment/instructor/builder";
+};
 
 const defaultEBookConfig: EBookConfig = {
   isInstructor: true,
@@ -47,18 +64,37 @@ const createNavigateToPath = (navigate?: (path: string) => void) => (path: strin
   }
 };
 
-export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) => void) => {
+export const buildNavBar = (
+  eBookConfig: EBookConfig,
+  navigate?: (path: string) => void,
+  courseSwitcher?: CourseSwitcherOptions
+) => {
   const { isInstructor, course, username } = isEmptyObject(eBookConfig)
     ? defaultEBookConfig
     : eBookConfig;
 
   const navigateToPath = createNavigateToPath(navigate);
 
+  const courseItems: NavItem[] = courseSwitcher
+    ? courseSwitcher.courses.map((availableCourse) => ({
+        label: availableCourse.course_name,
+        icon: availableCourse.is_current ? "check" : undefined,
+        command: availableCourse.is_current
+          ? undefined
+          : () => courseSwitcher.onSwitch(availableCourse.course_name),
+        disabled: availableCourse.is_current || courseSwitcher.isSwitching
+      }))
+    : [];
+
+  if (courseItems.length === 0) {
+    courseItems.unshift({ label: course || "Current course", icon: "check", disabled: true });
+  }
+
   const items: Array<NavItem> = [
     {
-      label: "Home",
-      icon: "home",
-      command: () => navigateToPath("/runestone/default/index")
+      label: `Course: ${course || "Course"}`,
+      icon: "book",
+      items: courseItems
     },
     {
       label: `Back to ${course || "Course"}`,

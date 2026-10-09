@@ -1,11 +1,12 @@
 import type { GraderQuestionsResponse } from "@store/grader/grader.logic.api";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fireEvent, renderWithMantine, screen } from "@/test/renderWithMantine";
+import { fireEvent, renderWithMantine, screen, waitFor } from "@/test/renderWithMantine";
 
 import { GraderQuestionsPage } from "../GraderQuestionsPage";
 
-const { mockUseGetGraderQuestionsQuery, mockParams } = vi.hoisted(() => ({
+const { mockNavigate, mockUseGetGraderQuestionsQuery, mockParams } = vi.hoisted(() => ({
+  mockNavigate: vi.fn(),
   mockUseGetGraderQuestionsQuery: vi.fn(),
   mockParams: { assignmentId: "1" }
 }));
@@ -20,7 +21,7 @@ vi.mock("@store/grader/grader.logic.api", async (importOriginal) => {
 });
 
 vi.mock("react-router-dom", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
   useParams: () => mockParams
 }));
 
@@ -51,6 +52,7 @@ const makeQuestions = (count: number): GraderQuestionsResponse => ({
 describe("GraderQuestionsPage table pagination", () => {
   beforeEach(() => {
     localStorage.clear();
+    mockNavigate.mockReset();
     mockParams.assignmentId = "1";
     // The table view is the one with a pager; cards are the default.
     localStorage.setItem("grader.questionsViewMode", "table");
@@ -116,5 +118,17 @@ describe("GraderQuestionsPage table pagination", () => {
     });
 
     expect(screen.getByText("Question 01")).toBeInTheDocument();
+  });
+
+  it("returns to the assignment list when the assignment belongs to another course", async () => {
+    mockUseGetGraderQuestionsQuery.mockReturnValue({
+      data: undefined,
+      error: { status: 404 },
+      isLoading: false
+    });
+
+    renderWithMantine(<GraderQuestionsPage />);
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/grader", { replace: true }));
   });
 });

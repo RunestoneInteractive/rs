@@ -263,6 +263,39 @@ async def fetch_course_access_for_user(user_id: int) -> Dict[str, datetime.datet
         return {row.course_name: row.last_access for row in res}
 
 
+async def fetch_recent_instructor_courses(
+    instructor_id: int, limit: int = 10
+) -> List[Dict[str, Any]]:
+    """Return courses taught by ``instructor_id`` in recent-access order.
+
+    ``user_courses.last_access`` is optional because older instructor/course
+    relationships may not have a matching enrollment row. Those courses are
+    retained and sorted alphabetically after courses with recorded activity.
+    """
+    most_recent_access = func.max(UserCourse.last_access).label("last_access")
+    query = (
+        select(Courses.course_name, most_recent_access)
+        .join(CourseInstructor, CourseInstructor.course == Courses.id)
+        .outerjoin(
+            UserCourse,
+            and_(
+                UserCourse.user_id == instructor_id,
+                UserCourse.course_id == Courses.id,
+            ),
+        )
+        .where(CourseInstructor.instructor == instructor_id)
+        .group_by(Courses.course_name)
+        .order_by(most_recent_access.desc().nulls_last(), Courses.course_name)
+        .limit(limit)
+    )
+    async with async_session() as session:
+        rows = (await session.execute(query)).all()
+        return [
+            {"course_name": row.course_name, "last_access": row.last_access}
+            for row in rows
+        ]
+
+
 #
 async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
     """

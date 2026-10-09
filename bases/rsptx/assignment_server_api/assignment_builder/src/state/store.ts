@@ -4,6 +4,7 @@ import { assignmentApi } from "@store/assignment/assignment.logic.api.js";
 import { assignmentExerciseSlice } from "@store/assignmentExercise/assignmentExercise.logic";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { chooseExercisesSlice } from "@store/chooseExercises/chooseExercises.logic";
+import { courseApi } from "@store/course/course.logic.api";
 import { datafileApi } from "@store/datafile/datafile.logic.api";
 import { datasetSlice } from "@store/dataset/dataset.logic";
 import { datasetApi } from "@store/dataset/dataset.logic.api";
@@ -38,6 +39,7 @@ const reducersMap = {
   student: studentReducer,
   [assignmentApi.reducerPath]: assignmentApi.reducer,
   [assignmentExerciseApi.reducerPath]: assignmentExerciseApi.reducer,
+  [courseApi.reducerPath]: courseApi.reducer,
   assignmentTemp: assignmentSlice.reducer,
   user: userSlice.reducer,
   readings: readingsSlice.reducer,
@@ -63,6 +65,7 @@ export const setupStore = (preloadedState?: Partial<RootState>) => {
       return getDefaultMiddleware({ serializableCheck: false }).concat(
         assignmentApi.middleware,
         assignmentExerciseApi.middleware,
+        courseApi.middleware,
         readingsApi.middleware,
         exercisesApi.middleware,
         datasetApi.middleware,
