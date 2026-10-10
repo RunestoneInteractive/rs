@@ -28,6 +28,15 @@ from rsptx.logging import rslogger
 # -------------------------
 from fastapi.responses import JSONResponse
 from .personalized_parsons.end_to_end import get_parsons_help
+from .personalized_parsons.buggy_code_checker import (
+    clean_java_code,
+    clean_python_code,
+)
+from .personalized_parsons.subgoal_labels import (
+    build_label_puzzle,
+    is_label_line,
+    label_texts,
+)
 from typing import Optional
 import re
 from fastapi import status
@@ -190,22 +199,45 @@ def _escape_parsons_block_markup(block_markup):
     return html.escape(block_markup, quote=False)
 
 
+# Activecode source markers, matched the way activecode.js matches them: the
+# first occurrence anywhere, newline or not. The invisible (test) suffix is
+# four or more "=" -- activecode.js accepts "=====" and longer from older
+# books -- and the invisible prefix four or more "^". "===!" and "^^^!" mark
+# visible suffixes and prefixes, which stay in the editor.
+_INVISIBLE_SUFFIX_RE = re.compile(r"={4,}")
+_INVISIBLE_PREFIX_RE = re.compile(r"\^{4,}")
+_VISIBLE_SUFFIX = "===!"
+_VISIBLE_PREFIX = "^^^!"
+
+
+def _drop_marker(text, marker):
+    """Remove the first ``marker`` and the newline right after it, if any."""
+    start = text.find(marker)
+    if start == -1:
+        return text
+    end = start + len(marker)
+    if text[end : end + 1] == "\n":
+        end += 1
+    return text[:start] + text[end:]
+
+
 def _extract_suffix_code_from_htmlsrc(htmlsrc):
     """
     Book-authored activecode questions never get question_json.suffix_code
     populated by the build pipeline (only instructor-authored custom
     exercises do) -- their test code instead lives in the raw <textarea>
-    source, after a "====" or "===!" delimiter, same convention used by
-    build_tools/core.py::_determine_autograde.
+    source, after a "====" (or longer) or "===!" delimiter line, same
+    convention used by build_tools/core.py::_determine_autograde.
     """
     if not htmlsrc:
         return ""
     match = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
     text = html.unescape(match.group(1) if match else htmlsrc)
-    if "====" in text:
-        return text.partition("====")[2].strip()
-    if "===!" in text:
-        return text.partition("===!")[2].strip()
+    marker = _INVISIBLE_SUFFIX_RE.search(text)
+    if marker:
+        return text[marker.end() :].strip()
+    if _VISIBLE_SUFFIX in text:
+        return text.partition(_VISIBLE_SUFFIX)[2].strip()
     return ""
 
 
@@ -226,6 +258,124 @@ def _build_static_parsons_response(
         + personalization_level
         + "||split||"
         + "example_solution"
+    )
+
+
+def _starter_code_from_question(question):
+    """
+    The code a student sees in the editor before changing anything: a custom
+    exercise's question_json.starter_code, or for a book-authored question the
+    activecode <textarea> source split the way activecode.js splits it -- the
+    invisible "^^^^" prefix and "====" test suffix removed, and the "^^^!" and
+    "===!" markers dropped while their visible code stays.
+    """
+    starter = (question.question_json or {}).get("starter_code")
+    if starter is not None:
+        return starter
+    match = re.search(
+        r"<textarea[^>]*>(.*?)</textarea>", question.htmlsrc or "", flags=re.DOTALL
+    )
+    if not match:
+        return ""
+    text = html.unescape(match.group(1))
+    prefix = _INVISIBLE_PREFIX_RE.search(text)
+    if prefix:
+        text = _drop_marker(text[prefix.start() :], prefix.group(0))
+    text = _drop_marker(text, _VISIBLE_PREFIX)
+    suffix = _INVISIBLE_SUFFIX_RE.search(text)
+    if suffix:
+        text = text[: suffix.start()]
+    return _drop_marker(text, _VISIBLE_SUFFIX)
+
+
+async def _fetch_starter_code(problem_id, course_name):
+    """
+    Starter code for ``problem_id``, or "" if the question can't be found.
+    Question names are unique only within a base course, so look in the
+    course's base course first, then fall back to a global name match (a
+    cloned course or a question pulled in from another book) -- the same
+    order the main CodeTailor path uses.
+    """
+    if not problem_id:
+        return ""
+    try:
+        question = None
+        if course_name:
+            try:
+                course = await fetch_course(course_name)
+            except AttributeError:
+                course = None
+            basecourse = getattr(course, "base_course", None)
+            if basecourse:
+                question = await fetch_question(problem_id, basecourse=basecourse)
+        if not question:
+            question = await fetch_question(problem_id)
+    except Exception as e:
+        rslogger.error(
+            f"CodeTailor: could not fetch starter code for '{problem_id}': {e}"
+        )
+        return ""
+    return _starter_code_from_question(question) if question else ""
+
+
+def _adds_no_code(student_code, starter_code, language):
+    """
+    True when the student has written no code of their own: nothing beyond
+    def/import lines, comments and blank lines, or exactly the starter code's
+    statements (e.g. the untouched ``print(average([...]))`` call it ships with).
+    """
+    clean = clean_java_code if language == "java" else clean_python_code
+    student = clean(student_code)
+    return not student or student == clean(starter_code)
+
+
+def _drop_starter_comments(student_code, starter_code, language):
+    """Remove full-line comments the student's code shares with the starter."""
+    starter_comments = label_texts(starter_code, language)
+    return "\n".join(
+        line
+        for line in student_code.splitlines()
+        if not (
+            is_label_line(line, language) and " ".join(line.split()) in starter_comments
+        )
+    )
+
+
+def _function_header(starter_code, language):
+    """
+    The starter code's header lines for the labels-only puzzle: the first
+    ``def`` and any ``class`` lines above it. Python only -- a Java header
+    would also need its closing braces -- and None when there is no ``def``.
+    """
+    if language == "java":
+        return None
+    header = []
+    for line in starter_code.splitlines():
+        if re.match(r"\s*class\s", line):
+            header.append(line.rstrip())
+        elif re.match(r"\s*(?:async\s+)?def\s", line):
+            header.append(line.rstrip())
+            return header
+    return None
+
+
+def _build_label_parsons_response(label_puzzle, parsons_attrs, personalization_level):
+    """Return the ||split|| response string for a labels-only Parsons problem
+    built from the backup problem's subgoal labels (see build_label_puzzle)."""
+    solution, label_markup = label_puzzle
+    parsons_html = f"""
+            <pre class="parsonsblocks" data-question_label="1" data-numbered="left" {parsons_attrs} style="visibility: hidden;">
+{label_markup}
+            </pre>
+            """
+    return (
+        solution
+        + "||split||"
+        + parsons_html
+        + "||split||"
+        + personalization_level
+        + "||split||"
+        + "subgoal_labels"
     )
 
 
@@ -314,6 +464,29 @@ async def parsons_scaffolding(
         parsonsexample_code = extract_parsons_code(parsonsexample_html)
     else:
         parsonsexample_code = "LLM-example"
+
+    # A student who asks for help before writing any code has nothing for
+    # CodeTailor to personalize. When the instructor wrote subgoal labels as
+    # comments in the backup problem, give them a puzzle of just those labels,
+    # under the function header from the starter code (locked in place for
+    # the settled-block "Multiple" personalization). Untouched starter code
+    # counts as no code. Checked before the login and API-token branches,
+    # since it needs neither.
+    if parsons_personalized and parsonsexample_html:
+        label_language = "java" if (language or "").lower() == "java" else "python"
+        starter_code = await _fetch_starter_code(problem_id, course_name)
+        if _adds_no_code(student_code or "", starter_code, label_language):
+            label_puzzle = build_label_puzzle(
+                parsonsexample_code,
+                label_language,
+                header=_function_header(starter_code, label_language),
+                # settled-block CodeTailor puzzles lock the header in place
+                settle_header=personalization_level == "Multiple",
+            )
+            if label_puzzle:
+                return _build_label_parsons_response(
+                    label_puzzle, parsons_attrs, personalization_level
+                )
 
     if user is None:
         # Browsing-mode/anonymous visitors can get the pre-authored backup
@@ -466,6 +639,14 @@ async def parsons_scaffolding(
 
     if language and language.lower() == "python":
         internal_test_case = clean_python_testcase(internal_test_case)
+
+    # Comments that ship with the starter code ("# write code here") are not
+    # the student's subgoal labels, so CodeTailor should not keep them.
+    student_code = _drop_starter_comments(
+        student_code or "",
+        _starter_code_from_question(question),
+        "java" if (language or "").lower() == "java" else "python",
+    )
 
     print("start_to: get_parsons_help", api_token, language, personalization_level)
 
