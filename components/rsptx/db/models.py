@@ -785,6 +785,15 @@ class QuestionGrade(Base, IdMixin):
             "sid",
             unique=True,
         ),
+        # The grader's per-question class stats. Production's unique index
+        # leads with sid, so without this a question shared by many courses
+        # reads every course's grades for it. INCLUDE makes it index-only.
+        Index(
+            "question_grades_course_div_idx",
+            "course_name",
+            "div_id",
+            postgresql_include=["sid", "score"],
+        ),
     )
 
     sid = Column(String(512), nullable=False, index=True)

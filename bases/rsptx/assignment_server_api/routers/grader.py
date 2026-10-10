@@ -6,7 +6,7 @@ from typing import Any, List, Literal, Optional
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_
 
 from rsptx.auth.session import auth_manager
 from rsptx.db.async_session import async_session
@@ -17,6 +17,7 @@ from rsptx.db.crud import (
     fetch_gradebook,
     fetch_grade,
     fetch_interaction_useinfo,
+    fetch_interaction_useinfo_for_questions,
     fetch_one_assignment,
     fetch_page_readers,
     fetch_question_grade,
@@ -159,59 +160,238 @@ class GradeUpdatePayload(BaseModel):
     assignment_id: Optional[int] = None
 
 
-async def _select_question_answered_sids(session, question, course, instructor_ids):
-    """The students who have answered a ``selectquestion``.
+class _QuestionTally:
+    """What the batched queries learn about one question on the list."""
+
+    def __init__(self, max_points: int):
+        self.max_points = max_points
+        self.answered: set = set()
+        self.total_attempts = 0
+        #: Set from the answer table when it has a ``correct`` column;
+        #: otherwise derived from question_grades below.
+        self.correct_count: Optional[int] = None
+        self.avg_percent: Optional[float] = None
+        self.graded_count = 0
+        self.average_score = 0.0
+
+
+def _excluding(column, instructor_list):
+    """``column NOT IN instructors`` as a list of 0 or 1 clauses."""
+    return [column.notin_(instructor_list)] if instructor_list else []
+
+
+async def _answer_table_stats(tbl, tallies, course, instructor_list):
+    """Fill in answered / attempts / correct / avg percent for every question
+    stored in one answer table, from a single query.
+
+    ``DISTINCT ON (div_id, sid) ... ORDER BY id DESC`` keeps each student's
+    latest answer, and the window count rides along on that row so attempts
+    need no second query.
+    """
+    has_correct = hasattr(tbl, "correct")
+    has_percent = hasattr(tbl, "percent")
+    cols = [
+        tbl.div_id,
+        tbl.sid,
+        func.count().over(partition_by=(tbl.div_id, tbl.sid)).label("attempts"),
+    ]
+    if has_correct:
+        cols.append(tbl.correct)
+    if has_percent:
+        cols.append(tbl.percent)
+    query = (
+        select(*cols)
+        .where(
+            and_(
+                tbl.div_id.in_(list(tallies)),
+                tbl.course_name == course.course_name,
+                *_excluding(tbl.sid, instructor_list),
+            )
+        )
+        .distinct(tbl.div_id, tbl.sid)
+        .order_by(tbl.div_id, tbl.sid, tbl.id.desc())
+    )
+    async with async_session() as session:
+        rows = (await session.execute(query)).all()
+
+    correct_sids: dict = {name: set() for name in tallies}
+    percents: dict = {name: [] for name in tallies}
+    for row in rows:
+        tally = tallies[row.div_id]
+        if row.sid:
+            tally.answered.add(row.sid)
+        tally.total_attempts += int(row.attempts)
+        if has_correct and (row.correct or (has_percent and (row.percent or 0) >= 1.0)):
+            correct_sids[row.div_id].add(row.sid)
+        if has_percent and row.percent is not None:
+            percents[row.div_id].append(row.percent)
+
+    for name, tally in tallies.items():
+        if has_correct:
+            tally.correct_count = len(correct_sids[name])
+        if percents[name]:
+            tally.avg_percent = round(sum(percents[name]) / len(percents[name]), 4)
+
+
+async def _code_table_stats(tallies, course, instructor_list):
+    """Answered / attempts from the ``code`` table for activecode-like
+    questions, which save a row for every run whether or not tests ran."""
+    query = (
+        select(Code.acid, Code.sid, func.count(Code.id))
+        .where(
+            and_(
+                Code.acid.in_(list(tallies)),
+                Code.course_id == course.id,
+                *_excluding(Code.sid, instructor_list),
+            )
+        )
+        .group_by(Code.acid, Code.sid)
+    )
+    async with async_session() as session:
+        for acid, sid, count in (await session.execute(query)).all():
+            tally = tallies[acid]
+            if sid:
+                tally.answered.add(sid)
+            tally.total_attempts += int(count or 0)
+
+
+async def _interaction_stats(events_by_name, tallies, course, instructor_ids):
+    """Videos and polls have no answer table; their submissions are useinfo
+    rows, so "answered" has to be counted from there or every one of them
+    reports 0 answered no matter how much the class interacted."""
+    all_events = set().union(*events_by_name.values())
+    for u in await fetch_interaction_useinfo_for_questions(
+        events_by_name, course.course_name, all_events
+    ):
+        if u.event not in events_by_name.get(u.div_id, ()):
+            continue
+        if not u.sid or u.sid in instructor_ids:
+            continue
+        if is_interaction_event(u.event, u.act):
+            tallies[u.div_id].answered.add(u.sid)
+            tallies[u.div_id].total_attempts += 1
+
+
+async def _reading_stats(readings, tallies, course, instructor_ids):
+    """A reading has no answers.  What it has is readers: count the students
+    who opened the page, so the row reports what happened instead of a flat 0.
+    See issue #1493.
+
+    :param readings: ``{question name: page url suffix}``.
+    """
+    readers = await fetch_page_readers(course.course_name, readings.values())
+    for name, suffix in readings.items():
+        tallies[name].answered.update(readers[suffix] - instructor_ids)
+
+
+async def _question_grade_stats(tallies, course, instructor_list):
+    """Graded count and average score for every question in one query, plus
+    the "correct" count for questions whose answers have no ``correct``
+    column: a grade at full marks."""
+    query = select(QuestionGrade.div_id, QuestionGrade.sid, QuestionGrade.score).where(
+        and_(
+            QuestionGrade.course_name == course.course_name,
+            QuestionGrade.div_id.in_(list(tallies)),
+            QuestionGrade.score != None,  # noqa: E711
+            *_excluding(QuestionGrade.sid, instructor_list),
+        )
+    )
+    async with async_session() as session:
+        rows = (await session.execute(query)).all()
+
+    scores: dict = {name: [] for name in tallies}
+    for div_id, sid, score in rows:
+        scores[div_id].append((sid, score))
+    for name, tally in tallies.items():
+        graded = scores[name]
+        if graded:
+            tally.average_score = sum(s for _, s in graded) / len(graded)
+            tally.graded_count = len({sid for sid, _ in graded})
+        if tally.correct_count is None:
+            tally.correct_count = (
+                len({sid for sid, s in graded if s >= float(tally.max_points)})
+                if tally.max_points > 0
+                else 0
+            )
+
+
+async def _select_question_answered_sids(questions, course, instructor_ids):
+    """The students who have answered each ``selectquestion``.
 
     Their answers are filed under whichever question each of them was served,
     so counting rows under the wrapper's own name reports 0 no matter how much
     of the class answered.  See issue #1481.
+
+    Every selectquestion's served questions are looked up together, one query
+    per question type rather than one per selectquestion.
+
+    :return: ``{wrapper name: {sid, ...}}``.
     """
-    resolved = await resolve_for_class(question, basecourse=course.base_course)
-    if not resolved:
-        return set()
-
+    answered = {q.name: set() for q in questions}
+    # (sid, served div_id) -> the wrappers that served it to that student
+    credit_to: dict = {}
     by_type: dict = {}
-    for r in resolved.values():
-        by_type.setdefault(r.question_type, set()).add(r.div_id)
+    for q in questions:
+        resolved = await resolve_for_class(q, basecourse=course.base_course)
+        for sid, r in resolved.items():
+            if not sid or sid in instructor_ids:
+                continue
+            credit_to.setdefault((sid, r.div_id), []).append(q.name)
+            by_type.setdefault(r.question_type, set()).add(r.div_id)
 
-    def served(sid, div_id):
-        r = resolved.get(sid)
-        return bool(sid) and sid not in instructor_ids and r and r.div_id == div_id
+    def credit(sid, div_id):
+        for name in credit_to.get((sid, div_id), ()):
+            answered[name].add(sid)
 
-    answered = set()
     for qtype, div_ids in by_type.items():
         tbl = _answer_table_for(qtype)
         if tbl is not None:
-            res = await session.execute(
-                select(tbl.sid, tbl.div_id)
-                .where(
-                    and_(
-                        tbl.div_id.in_(div_ids),
-                        tbl.course_name == course.course_name,
+            async with async_session() as session:
+                res = await session.execute(
+                    select(tbl.sid, tbl.div_id)
+                    .where(
+                        and_(
+                            tbl.div_id.in_(div_ids),
+                            tbl.course_name == course.course_name,
+                        )
                     )
+                    .distinct()
                 )
-                .distinct()
-            )
-            answered.update(sid for sid, div in res.all() if served(sid, div))
+                for sid, div_id in res.all():
+                    credit(sid, div_id)
 
         events = interaction_events_for(qtype)
         if events:
-            for div_id in div_ids:
-                for u in await fetch_interaction_useinfo(
-                    div_id, course.course_name, events
-                ):
-                    if served(u.sid, div_id) and is_interaction_event(u.event, u.act):
-                        answered.add(u.sid)
+            for u in await fetch_interaction_useinfo_for_questions(
+                div_ids, course.course_name, events
+            ):
+                if is_interaction_event(u.event, u.act):
+                    credit(u.sid, u.div_id)
 
         if qtype in CODE_TABLE_TYPES:
-            res = await session.execute(
-                select(Code.sid, Code.acid)
-                .where(and_(Code.acid.in_(div_ids), Code.course_id == course.id))
-                .distinct()
-            )
-            answered.update(sid for sid, acid in res.all() if served(sid, acid))
+            async with async_session() as session:
+                res = await session.execute(
+                    select(Code.sid, Code.acid)
+                    .where(and_(Code.acid.in_(div_ids), Code.course_id == course.id))
+                    .distinct()
+                )
+                for sid, acid in res.all():
+                    credit(sid, acid)
 
     return answered
+
+
+async def _guarded(label, coro):
+    """Run one batch of stats, logging a failure instead of failing the page.
+
+    Each batch uses its own session, so one bad query cannot abort the
+    transaction the others run in.  The questions it covers keep their zeros.
+    """
+    try:
+        return await coro
+    except Exception as e:  # pragma: no cover - defensive
+        rslogger.error(f"Grader stats failed for {label}: {e}")
+        return None
 
 
 @router.get("/assignments/{assignment_id}/questions")
@@ -221,6 +401,12 @@ async def list_assignment_questions(
 ):
     """Return the list of questions in the assignment along with aggregate
     student answer statistics. Only non-instructor answers are counted.
+
+    The statistics are gathered in batches -- one query per answer table, one
+    for question_grades, one for the course's page views, and so on -- rather
+    than several queries per question.  The page refetches this after every
+    grade an instructor saves, and the per-question loop took minutes on a
+    large course's readings.
     """
     course = await fetch_course(user.course_name)
     assignment = await fetch_one_assignment(assignment_id)
@@ -232,198 +418,93 @@ async def list_assignment_questions(
     instructor_ids = {
         u.username for u in await fetch_course_instructors(course.course_name)
     }
+    instructor_list = list(instructor_ids)
 
-    rows = await fetch_assignment_questions(assignment_id)
-    # Which shape a page view has in useinfo depends on the book's markup
-    # system, and every reading on the assignment is in the same book.
-    origin = await get_course_origin(course.base_course)
+    rows = list(await fetch_assignment_questions(assignment_id))
 
-    row_list = [r for r in rows]
+    tallies: dict = {}
+    by_table: dict = {}
+    code_names: set = set()
+    events_by_name: dict = {}
+    reading_rows = []
+    select_questions = []
+    for row in rows:
+        q = row.Question
+        tallies.setdefault(q.name, _QuestionTally(row.AssignmentQuestion.points or 0))
+        tbl = _answer_table_for(q.question_type)
+        if tbl is not None:
+            by_table.setdefault(tbl, set()).add(q.name)
+        if q.question_type in CODE_TABLE_TYPES:
+            code_names.add(q.name)
+        events = interaction_events_for(q.question_type)
+        if events:
+            events_by_name[q.name] = events
+        if q.question_type == "page":
+            reading_rows.append(q)
+        if is_select_question(q):
+            select_questions.append(q)
+
+    def subset(names):
+        return {name: tallies[name] for name in names}
+
+    for tbl, names in by_table.items():
+        await _guarded(
+            tbl.__tablename__,
+            _answer_table_stats(tbl, subset(names), course, instructor_list),
+        )
+    if code_names:
+        await _guarded(
+            "code", _code_table_stats(subset(code_names), course, instructor_list)
+        )
+    if events_by_name:
+        await _guarded(
+            "interactions",
+            _interaction_stats(events_by_name, tallies, course, instructor_ids),
+        )
+    if reading_rows:
+        # Which shape a page view has in useinfo depends on the book's markup
+        # system, and every reading on the assignment is in the same book.
+        origin = await get_course_origin(course.base_course)
+        readings = {
+            q.name: page_url_suffix(origin, q.chapter, q.subchapter)
+            for q in reading_rows
+        }
+        await _guarded(
+            "readings", _reading_stats(readings, tallies, course, instructor_ids)
+        )
+    if select_questions:
+        answered = await _guarded(
+            "selectquestions",
+            _select_question_answered_sids(select_questions, course, instructor_ids),
+        )
+        for name, sids in (answered or {}).items():
+            tallies[name].answered.update(sids)
+    # Last: it fills in correct_count for every question the answer tables
+    # did not.
+    await _guarded(
+        "question_grades", _question_grade_stats(tallies, course, instructor_list)
+    )
+
     questions: List[GraderQuestionStats] = []
-    instructor_list = list(instructor_ids) if instructor_ids else []
-    for row in row_list:
+    for row in rows:
         q = row.Question
         aq = row.AssignmentQuestion
-        tbl = _answer_table_for(q.question_type)
-        # Videos and polls have no answer table; their submissions are useinfo
-        # rows, so "answered" has to be counted from there or every one of them
-        # reports 0 answered no matter how much the class interacted.
-        interaction_events = interaction_events_for(q.question_type)
-
-        answered_count = 0
-        total_attempts = 0
-        correct_count = 0
-        graded_count = 0
-        average_score = 0.0
-        avg_percent: Optional[float] = None
-        max_points = aq.points or 0
-
-        try:
-            async with async_session() as session:
-                base_clauses = []
-                latest_ids_q = None
-                if tbl is not None:
-                    base_clauses = [
-                        tbl.div_id == q.name,
-                        tbl.course_name == course.course_name,
-                    ]
-                    if instructor_list:
-                        base_clauses.append(tbl.sid.notin_(instructor_list))
-                    latest_ids_q = (
-                        select(func.max(tbl.id))
-                        .where(and_(*base_clauses))
-                        .group_by(tbl.sid)
-                    )
-
-                answered_sids: set = set()
-                if tbl is not None:
-                    res = await session.execute(
-                        select(func.distinct(tbl.sid)).where(and_(*base_clauses))
-                    )
-                    answered_sids.update(s for (s,) in res.all() if s)
-                    res = await session.execute(
-                        select(func.count(tbl.id)).where(and_(*base_clauses))
-                    )
-                    total_attempts += int(res.scalar() or 0)
-
-                if interaction_events:
-                    for u in await fetch_interaction_useinfo(
-                        q.name, course.course_name, interaction_events
-                    ):
-                        if not u.sid or u.sid in instructor_ids:
-                            continue
-                        if is_interaction_event(u.event, u.act):
-                            answered_sids.add(u.sid)
-                            total_attempts += 1
-
-                if q.question_type == "page":
-                    # A reading has no answers. What it has is readers: count
-                    # the students who opened the page, so the row reports what
-                    # happened instead of a flat 0. See issue #1493.
-                    for reader in await fetch_page_readers(
-                        course.course_name,
-                        page_url_suffix(origin, q.chapter, q.subchapter),
-                    ):
-                        if reader not in instructor_ids:
-                            answered_sids.add(reader)
-
-                if q.question_type in CODE_TABLE_TYPES:
-                    code_clauses = [
-                        Code.acid == q.name,
-                        Code.course_id == course.id,
-                    ]
-                    if instructor_list:
-                        code_clauses.append(Code.sid.notin_(instructor_list))
-                    res = await session.execute(
-                        select(func.distinct(Code.sid)).where(and_(*code_clauses))
-                    )
-                    answered_sids.update(s for (s,) in res.all() if s)
-                    res = await session.execute(
-                        select(func.count(Code.id)).where(and_(*code_clauses))
-                    )
-                    total_attempts += int(res.scalar() or 0)
-
-                if is_select_question(q):
-                    answered_sids.update(
-                        await _select_question_answered_sids(
-                            session, q, course, instructor_ids
-                        )
-                    )
-
-                answered_count = len(answered_sids)
-
-                if (
-                    tbl is not None
-                    and hasattr(tbl, "correct")
-                    and latest_ids_q is not None
-                ):
-                    last_correct_clauses = [tbl.id.in_(latest_ids_q)]
-                    if hasattr(tbl, "percent"):
-                        last_correct_clauses.append(
-                            or_(
-                                tbl.correct == True,  # noqa: E712
-                                tbl.percent >= 1.0,
-                            )
-                        )
-                    else:
-                        last_correct_clauses.append(tbl.correct == True)  # noqa: E712
-                    res = await session.execute(
-                        select(func.count(func.distinct(tbl.sid))).where(
-                            and_(*last_correct_clauses)
-                        )
-                    )
-                    correct_count = int(res.scalar() or 0)
-                else:
-                    if max_points > 0:
-                        qg_clauses = [
-                            QuestionGrade.div_id == q.name,
-                            QuestionGrade.course_name == course.course_name,
-                            QuestionGrade.score != None,  # noqa: E711
-                            QuestionGrade.score >= float(max_points),
-                        ]
-                        if instructor_list:
-                            qg_clauses.append(QuestionGrade.sid.notin_(instructor_list))
-                        res = await session.execute(
-                            select(func.count(func.distinct(QuestionGrade.sid))).where(
-                                and_(*qg_clauses)
-                            )
-                        )
-                        correct_count = int(res.scalar() or 0)
-
-                if (
-                    tbl is not None
-                    and hasattr(tbl, "percent")
-                    and latest_ids_q is not None
-                ):
-                    res = await session.execute(
-                        select(func.avg(tbl.percent)).where(
-                            and_(
-                                tbl.id.in_(latest_ids_q),
-                                tbl.percent != None,  # noqa: E711
-                            )
-                        )
-                    )
-                    val = res.scalar()
-                    if val is not None:
-                        avg_percent = round(float(val), 4)
-
-                qg_base = [
-                    QuestionGrade.div_id == q.name,
-                    QuestionGrade.course_name == course.course_name,
-                    QuestionGrade.score != None,  # noqa: E711
-                ]
-                if instructor_list:
-                    qg_base.append(QuestionGrade.sid.notin_(instructor_list))
-
-                res = await session.execute(
-                    select(
-                        func.avg(QuestionGrade.score),
-                        func.count(func.distinct(QuestionGrade.sid)),
-                    ).where(and_(*qg_base))
-                )
-                row_avg = res.first()
-                if row_avg is not None:
-                    avg_val, gcount = row_avg
-                    average_score = float(avg_val) if avg_val is not None else 0.0
-                    graded_count = int(gcount or 0)
-        except Exception as e:  # pragma: no cover - defensive
-            rslogger.error(f"Grader stats failed for question {q.name}: {e}")
-
+        tally = tallies[q.name]
         questions.append(
             GraderQuestionStats(
                 id=q.id,
                 name=q.name,
                 question_type=q.question_type,
                 htmlsrc=q.htmlsrc,
-                points=max_points,
+                points=tally.max_points,
                 autograde=aq.autograde,
                 which_to_grade=aq.which_to_grade,
-                answered_count=answered_count,
-                total_attempts=total_attempts,
-                correct_count=correct_count,
-                graded_count=graded_count,
-                average_score=round(average_score, 2),
-                avg_percent=avg_percent,
+                answered_count=len(tally.answered),
+                total_attempts=tally.total_attempts,
+                correct_count=tally.correct_count or 0,
+                graded_count=tally.graded_count,
+                average_score=round(tally.average_score, 2),
+                avg_percent=tally.avg_percent,
             )
         )
 
