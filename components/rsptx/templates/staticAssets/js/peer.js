@@ -226,7 +226,10 @@ function connect(event) {
     // one that replaced it.
     let everOpened = false;
     let openedAt = 0;
-    ws = new WebSocket(`/ns/chat/${user}/ws`);
+    // Build an absolute URL: browsers older than mid-2024 reject a relative one
+    // and throw.  Matching the page's scheme gives wss: on https pages.
+    const wsScheme = location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${wsScheme}//${location.host}/ns/chat/${user}/ws`);
     messageTrail = {};
 
     ws.onclose = function (closeEvent) {

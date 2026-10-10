@@ -1,5 +1,6 @@
 import { TableDropdownOption } from "@/types/dataset";
 import { CreateExerciseFormType, QuestionJSON } from "@/types/exercises";
+import { pickActiveCodeAdvancedOptions } from "@/utils/preview/activeCode";
 
 export const DEFAULT_INCORRECT_FEEDBACK = "Not quite. Try again.";
 
@@ -19,7 +20,9 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       parsonspersonalize: data.parsonspersonalize,
       parsonsexample: data.parsonsexample,
       parsonsPersonalized: data.parsonsPersonalized,
-      enableCodelens: data.enableCodelens
+      enableCodelens: data.enableCodelens,
+      // Options from books, kept so editing a book question doesn't drop them
+      ...pickActiveCodeAdvancedOptions(data)
     }),
     ...(data.question_type === "shortanswer" && {
       attachment: data.attachment,
@@ -27,11 +30,17 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
     }),
     ...(data.question_type === "mchoice" && {
       statement: data.statement,
-      optionList: data.optionList
+      optionList: data.optionList,
+      forceCheckboxes: data.forceCheckboxes,
+      random: data.random
     }),
     ...(data.question_type === "poll" && {
       statement: data.statement,
-      optionList: data.optionList
+      optionList: data.optionList,
+      poll_type: data.poll_type,
+      scale_min: data.scale_min,
+      scale_max: data.scale_max,
+      results: data.results
     }),
     ...(data.question_type === "dragndrop" && {
       statement: data.statement,
@@ -53,7 +62,13 @@ export const buildQuestionJson = (data: CreateExerciseFormType) => {
       instructions: data.instructions,
       adaptive: data.adaptive,
       numbered: data.numbered,
-      noindent: data.noindent
+      noindent: data.noindent,
+      grader: data.grader,
+      orderMode: data.orderMode,
+      customOrder: data.customOrder,
+      runnable: data.runnable,
+      runnableCode: data.runnableCode,
+      runnableOptions: data.runnableOptions
     }),
     ...(data.question_type === "fillintheblank" && {
       questionText: data.questionText,

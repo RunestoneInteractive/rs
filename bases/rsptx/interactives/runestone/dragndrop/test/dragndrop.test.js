@@ -1100,3 +1100,225 @@ describe("TimedDragNDrop", () => {
         expect(timed).toBeInstanceOf(TimedDragNDrop);
     });
 });
+
+// The XML PreTeXt writes for a "cardsort" with feedback on cards: the
+// exercise <feedback> comes first, then cards that may carry their own
+// <feedback>. d3 is a distractor and z2 is a response nothing belongs in.
+const CARD_FEEDBACK_XML = `<dragndrop>
+  <statement><div class="para">Classify each number.</div></statement>
+  <feedback><div class="para">Simplify first.</div></feedback>
+  <premise><id>d1</id><label>-7</label></premise>
+  <premise><id>d2</id><label>sqrt 16</label><feedback><div class="para">sqrt 16 = 4.</div></feedback></premise>
+  <premise><id>d3</id><label>i</label><feedback><div class="para">i is not real.</div></feedback></premise>
+  <response><id>z1</id><label>Integer</label><feedback><div class="para">Integers are whole.</div></feedback></response>
+  <response><id>z2</id><label>Positive integer less than one</label><feedback><div class="para">Nothing belongs here.</div></feedback></response>
+  <answer premise="d1" response="z1"></answer>
+  <answer premise="d2" response="z1"></answer>
+</dragndrop>`;
+
+// The same question as lxml serializes it into the manifest/database: empty
+// elements are self-closing, here an empty exercise <feedback/>.
+const CARD_FEEDBACK_XML_SELF_CLOSING = CARD_FEEDBACK_XML.replace(
+    '<feedback><div class="para">Simplify first.</div></feedback>',
+    "<feedback/>",
+).replace(/><\/answer>/g, "/>");
+
+async function makeXmlDnd(xml, id = "test_dnd_xml") {
+    document.body.innerHTML = `
+      <div class="runestone">
+        <div data-component="dragndrop" id="${id}" data-random="no">
+          <script type="text/xml">${xml}</script>
+        </div>
+      </div>`;
+    const dnd = new DragNDrop({
+        orig: document.getElementById(id),
+        useRunestoneServices: false,
+    });
+    await dnd.component_ready_promise;
+    await tick();
+    return dnd;
+}
+
+// Three gradeable tries, so feedback that identifies wrong cards is shown.
+async function checkThreeTimes(dnd) {
+    for (let i = 0; i < 3; i++) {
+        dnd.submitButton.click();
+        await feedbackSettles();
+    }
+}
+
+describe("feedback on cards", () => {
+    it("reads the exercise feedback, not the first card's, from XML", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        expect(dnd.feedback).toBe('<div class="para">Simplify first.</div>');
+        expect(dnd.premiseArray.map((p) => p.id)).toEqual(["d1", "d2", "d3"]);
+        expect(Object.keys(dnd.cardFeedback).sort()).toEqual([
+            "d2",
+            "d3",
+            "z1",
+            "z2",
+        ]);
+    });
+
+    it("handles self-closing elements written by an XML serializer", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML_SELF_CLOSING);
+        expect(dnd.feedback).toBe("");
+        expect(dnd.premiseArray.map((p) => p.id)).toEqual(["d1", "d2", "d3"]);
+        expect(dnd.responseArray.map((r) => r.id)).toEqual(["z1", "z2"]);
+        const byId = Object.fromEntries(
+            dnd.premiseArray.map((p) => [p.id, p.dataset.category]),
+        );
+        expect(byId).toEqual({ d1: "z1", d2: "z1", d3: "distractor-d3" });
+    });
+
+    const infoCards = (dnd) =>
+        [...dnd.containerDiv.querySelectorAll(".draggable-card-info")].map(
+            (info) => info.dataset.card,
+        );
+    const popover = (id) => document.getElementById(id + "_info");
+    const infoButton = (id) =>
+        document.querySelector(
+            `.draggable-card-info[data-card="${id}"] > button`,
+        );
+
+    it("puts an info button after misplaced cards with feedback after three tries", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d1", "z1");
+        place(dnd, "d2", "z2");
+        place(dnd, "d3", "z2");
+        dnd.submitButton.click();
+        await feedbackSettles();
+        expect(infoCards(dnd)).toEqual([]);
+        await checkThreeTimes(dnd);
+        // z1 is missing d2, z2 holds cards that don't belong there
+        expect(infoCards(dnd).sort()).toEqual(["d2", "d3", "z1", "z2"]);
+        // card feedback stays out of the feedback area
+        expect(dnd.feedBackDiv.textContent).toContain("Simplify first.");
+        expect(dnd.feedBackDiv.textContent).not.toContain("sqrt 16 = 4.");
+        expect(popover("d2").textContent).toBe("sqrt 16 = 4.");
+        expect(popover("d2").hidden).toBe(true);
+    });
+
+    it("makes the info buttons tabbable disclosures outside the card's role=button", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const d2 = dnd.premiseArray.find((p) => p.id === "d2");
+        const button = infoButton("d2");
+        // not nested in the card, and right after it in tab order
+        expect(d2.contains(button)).toBe(false);
+        expect(d2.nextElementSibling.contains(button)).toBe(true);
+        expect(button.tabIndex).toBe(0);
+        expect(button.getAttribute("aria-label")).toBe("Feedback for sqrt 16");
+        expect(button.getAttribute("aria-expanded")).toBe("false");
+        expect(button.getAttribute("aria-controls")).toBe("d2_info");
+        const z2 = dnd.responseArray.find((r) => r.id === "z2");
+        expect(z2.contains(infoButton("z2"))).toBe(false);
+        expect(z2.previousElementSibling.contains(infoButton("z2"))).toBe(true);
+        expect(infoButton("z2").getAttribute("aria-label")).toBe(
+            "Feedback for Positive integer less than one",
+        );
+        // the card's own accessible name is unchanged
+        expect(d2.getAttribute("aria-label")).not.toContain("Feedback");
+        button.click();
+        expect(button.getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("opens one popover at a time and closes it on an outside click or Escape", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d3", "z2");
+        await checkThreeTimes(dnd);
+        infoButton("d2").click();
+        expect(popover("d2").hidden).toBe(false);
+        infoButton("z1").click();
+        expect(popover("d2").hidden).toBe(true);
+        expect(popover("z1").hidden).toBe(false);
+        document.body.click();
+        expect(popover("z1").hidden).toBe(true);
+        infoButton("d3").click();
+        infoButton("d3").focus();
+        infoButton("d3").dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        expect(popover("d3").hidden).toBe(true);
+        expect(infoButton("d3").getAttribute("aria-expanded")).toBe("false");
+        expect(document.activeElement).toBe(infoButton("d3"));
+    });
+
+    it("does not place a selected premise when a response's info button is clicked", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const d3 = dnd.premiseArray.find((p) => p.id === "d3");
+        dnd.selectPremise(d3);
+        const before = d3.parentElement;
+        infoButton("z2").click();
+        expect(d3.parentElement).toBe(before);
+        expect(popover("z2").hidden).toBe(false);
+    });
+
+    it("drops a premise's feedback when the premise is moved", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const d2 = dnd.premiseArray.find((p) => p.id === "d2");
+        dnd.selectPremise(d2);
+        dnd.moveSelectedPremise(dnd.draggableDiv, "dragzone");
+        expect(infoCards(dnd)).not.toContain("d2");
+        expect(d2.classList.contains("has-card-info")).toBe(false);
+    });
+
+    it("grades the same with info controls in the columns", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const counts = [dnd.correctNum, dnd.incorrectNum, dnd.unansweredNum];
+        expect(infoCards(dnd)).toContain("z1");
+        dnd.checkCurrentAnswer();
+        expect([dnd.correctNum, dnd.incorrectNum, dnd.unansweredNum]).toEqual(
+            counts,
+        );
+        expect(dnd.getAllCategories()).toEqual(["z1", "z2"]);
+        dnd.setLocalStorage({ correct: "F" });
+        expect(dnd.answerState).toEqual({ z1: ["d1"], z2: ["d2"] });
+    });
+
+    it("removes the info buttons on reset and when the answer is fixed", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        expect(infoCards(dnd).length).toBeGreaterThan(0);
+        place(dnd, "d2", "z1");
+        dnd.submitButton.click();
+        await feedbackSettles();
+        expect(infoCards(dnd)).toEqual([]);
+        expect(document.getElementById("d2_info")).toBe(null);
+        place(dnd, "d2", "z2");
+        await checkThreeTimes(dnd);
+        dnd.resetButton.click();
+        expect(infoCards(dnd)).toEqual([]);
+    });
+
+    it("reads card feedback from the JSON representation", async () => {
+        const question = {
+            ...JSON_QUESTION,
+            left: [
+                { id: "p1", label: "Dog" },
+                { id: "p2", label: "Cat", feedback: "Cats meow." },
+                { id: "p3", label: "Rock" },
+            ],
+        };
+        const dnd = await makeDnd({ question });
+        place(dnd, "p1", "r2");
+        place(dnd, "p2", "r1");
+        await checkThreeTimes(dnd);
+        expect(infoCards(dnd)).toEqual(["p2"]);
+        expect(popover("p2").textContent).toBe("Cats meow.");
+    });
+});

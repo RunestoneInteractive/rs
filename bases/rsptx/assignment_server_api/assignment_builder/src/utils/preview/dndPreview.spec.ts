@@ -325,3 +325,57 @@ describe("generateDragAndDropPreview", () => {
     expect(result).toContain('data-subcomponent="dropzone"');
   });
 });
+
+describe("generateDragAndDropPreview with feedback on cards", () => {
+  const parseJson = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const script = doc.querySelector('[data-component="dragndrop"] script');
+
+    expect(script?.getAttribute("type")).toBe("application/json");
+
+    return JSON.parse(script?.textContent || "");
+  };
+
+  it("writes a JSON script block that keeps each card's feedback", () => {
+    const result = generateDragAndDropPreview({
+      left: [baseLeft[0], { ...baseLeft[1], feedback: "<p>Bananas are yellow.</p>" }],
+      right: [{ ...baseRight[0], feedback: "Only red fruit." }, baseRight[1]],
+      correctAnswers: baseCorrectAnswers,
+      feedback: "Try again.",
+      name: "cards",
+      statement: "Sort the fruit."
+    });
+
+    expect(result).toContain('id="cards"');
+    expect(result).not.toContain("data-subcomponent");
+    expect(parseJson(result)).toEqual({
+      statement: "Sort the fruit.",
+      feedback: "Try again.",
+      left: [
+        { id: "cards_l1", label: "Apple" },
+        { id: "cards_l2", label: "Banana", feedback: "<p>Bananas are yellow.</p>" }
+      ],
+      right: [
+        { id: "cards_r1", label: "Red fruit", feedback: "Only red fruit." },
+        { id: "cards_r2", label: "Yellow fruit" }
+      ],
+      correctAnswers: [
+        ["cards_l1", "cards_r1"],
+        ["cards_l2", "cards_r2"]
+      ]
+    });
+  });
+
+  it("escapes closing tags so the script element is not cut short", () => {
+    const result = generateDragAndDropPreview({
+      left: [{ ...baseLeft[0], feedback: "</script><b>x</b>" }],
+      right: baseRight,
+      correctAnswers: [["l1", "r1"]],
+      feedback: "",
+      name: "cards"
+    });
+
+    expect(result).not.toContain("</script><b>");
+    expect(parseJson(result).left[0].feedback).toBe("</script><b>x</b>");
+  });
+});

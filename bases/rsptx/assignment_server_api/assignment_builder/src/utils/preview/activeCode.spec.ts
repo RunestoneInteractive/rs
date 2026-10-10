@@ -245,4 +245,109 @@ describe("generateActiveCodePreview", () => {
       expect(html).toContain('data-parsonsexample="LLM-example"');
     });
   });
+
+  describe("advanced options from books", () => {
+    const withOptions = (advanced: Parameters<typeof generateActiveCodePreview>[9]) =>
+      generateActiveCodePreview(
+        "",
+        "cpp",
+        "",
+        "int main() {",
+        "",
+        "ac",
+        undefined,
+        undefined,
+        undefined,
+        advanced
+      );
+
+    it("writes nothing extra when no option is set", () => {
+      expect(withOptions({})).toBe(
+        generateActiveCodePreview("", "cpp", "", "int main() {", "", "ac")
+      );
+    });
+
+    it("writes each option as its textarea attribute", () => {
+      const html = withOptions({
+        timeLimit: 1000,
+        compileArgs: "['-std=c++17', '-Wall']",
+        addFiles: ["add_h", "add_cpp"],
+        includes: ["first", "second"],
+        highlightLines: "1-2,5",
+        autoRun: true,
+        hideCode: false,
+        caption: 'Say "hi"'
+      });
+
+      expect(html).toContain("data-timelimit=1000");
+      expect(html).toContain(`data-compileargs="['-std=c++17', '-Wall']"`);
+      expect(html).toContain('data-add-files="add_h,add_cpp"');
+      expect(html).toContain('data-include="first second"');
+      expect(html).toContain('data-highlight-lines="1-2,5"');
+      expect(html).toContain('data-autorun="yes"');
+      expect(html).not.toContain("data-hidecode");
+      expect(html).toContain('data-caption="Say &quot;hi&quot;"');
+    });
+
+    it("puts visible code and io tests where activecode.js looks for them", () => {
+      const html = withOptions({
+        visible_prefix_code: "#include <iostream>",
+        visible_suffix_code: "}",
+        iotests: [{ input: "1\n", out: "*\n" }],
+        filename: "main.cpp"
+      });
+
+      expect(html).toContain('data-filename="main.cpp"');
+      expect(html).toContain(
+        '\n^^^^\n#include &lt;iostream>\n^^^!\nint main() {\n===!\n}\n====\n\n===iotests===\n[{"input":"1\\n","out":"*\\n"}]\n</textarea>'
+      );
+    });
+  });
+
+  describe("escaping the code", () => {
+    const codeOf = (html: string): string =>
+      (
+        new DOMParser()
+          .parseFromString(html, "text/html")
+          .querySelector("textarea") as HTMLTextAreaElement
+      ).value;
+
+    it("reads back exactly the code it was given", () => {
+      const starter = 'return str.replaceAll(">", "&gt;").replaceAll("<", "&lt;");';
+      const html = generateActiveCodePreview(
+        "",
+        "java",
+        'String a = "&amp;";',
+        starter,
+        'assert "</textarea>" != null;',
+        "ac"
+      );
+      const code = codeOf(html);
+
+      expect(code).toContain(starter);
+      expect(code).toContain('String a = "&amp;";');
+      expect(code).toContain('assert "</textarea>" != null;');
+    });
+
+    it("escapes visible code and io tests too", () => {
+      const html = generateActiveCodePreview(
+        "",
+        "cpp",
+        "",
+        "x",
+        "",
+        "ac",
+        undefined,
+        undefined,
+        undefined,
+        {
+          visible_prefix_code: "// &lt;",
+          iotests: [{ input: "", out: "a < b & c" }]
+        }
+      );
+
+      expect(codeOf(html)).toContain("// &lt;\n^^^!");
+      expect(codeOf(html)).toContain('"out":"a < b & c"');
+    });
+  });
 });

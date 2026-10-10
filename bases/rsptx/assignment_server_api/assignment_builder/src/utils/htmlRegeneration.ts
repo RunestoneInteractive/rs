@@ -1,6 +1,9 @@
 import { Exercise, QuestionJSON } from "@/types/exercises";
 import { safeJsonParse } from "@/utils/json";
-import { generateActiveCodePreview } from "@/utils/preview/activeCode";
+import {
+  generateActiveCodePreview,
+  pickActiveCodeAdvancedOptions
+} from "@/utils/preview/activeCode";
 import { generateClickableAreaPreview } from "@/utils/preview/clickableArea";
 import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
 import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
@@ -33,7 +36,8 @@ export const regenerateHtmlSrc = (exercise: HtmlRegenerationExercise, newName: s
           questionJson.statement || "",
           questionJson.optionList || [],
           newName,
-          questionJson.forceCheckboxes
+          questionJson.forceCheckboxes,
+          questionJson.random
         );
 
       case "fillintheblank":
@@ -52,7 +56,13 @@ export const regenerateHtmlSrc = (exercise: HtmlRegenerationExercise, newName: s
           adaptive: questionJson.adaptive ?? true,
           numbered: questionJson.numbered ?? "left",
           noindent: questionJson.noindent ?? false,
-          questionLabel: newName
+          questionLabel: newName,
+          grader: questionJson.grader,
+          orderMode: questionJson.orderMode,
+          customOrder: questionJson.customOrder,
+          runnable: questionJson.runnable,
+          runnableCode: questionJson.runnableCode,
+          runnableOptions: questionJson.runnableOptions
         });
 
       case "activecode":
@@ -63,7 +73,16 @@ export const regenerateHtmlSrc = (exercise: HtmlRegenerationExercise, newName: s
           questionJson.starter_code || "",
           questionJson.suffix_code || "",
           newName,
-          questionJson.stdin
+          questionJson.stdin,
+          (questionJson.selectedExistingDataFiles || []).map((acid) => ({ acid })),
+          {
+            enableCodeTailor: questionJson.enableCodeTailor,
+            parsonspersonalize: questionJson.parsonspersonalize,
+            parsonsexample: questionJson.parsonsexample,
+            parsonsPersonalized: questionJson.parsonsPersonalized,
+            enableCodelens: questionJson.enableCodelens
+          },
+          pickActiveCodeAdvancedOptions(questionJson)
         );
 
       case "shortanswer":
@@ -98,7 +117,8 @@ export const regenerateHtmlSrc = (exercise: HtmlRegenerationExercise, newName: s
           questionJson.statement || questionJson.questionText || "",
           questionJson.optionList?.map((opt) => opt.choice) || [],
           newName,
-          questionJson.poll_type
+          questionJson.poll_type,
+          questionJson.results
         );
 
       case "iframe":

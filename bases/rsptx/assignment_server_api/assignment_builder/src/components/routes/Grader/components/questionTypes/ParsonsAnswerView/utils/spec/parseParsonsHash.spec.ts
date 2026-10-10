@@ -8,6 +8,13 @@ describe("parseParsonsHash", () => {
     ]);
   });
 
+  it("ignores surrounding whitespace", () => {
+    expect(parseParsonsHash(" 0_1_0-2_2 ")).toEqual([
+      { lineIndexes: [0, 1], indent: 0 },
+      { lineIndexes: [2], indent: 2 }
+    ]);
+  });
+
   it.each(["", "-", null, undefined])("treats %j as an empty answer", (answer) => {
     expect(parseParsonsHash(answer)).toEqual([]);
   });

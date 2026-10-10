@@ -1,12 +1,10 @@
 import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
-import { describe, expect, it } from "vitest";
 
 import { renderWithMantine, screen, waitFor } from "@/test/renderWithMantine";
 
-import { AnswerRendererProps } from "../types";
-
-import { IframeAnswerView } from "./IframeAnswerView";
-import { extractFrameSpec } from "./utils";
+import { AnswerRendererProps } from "../../types";
+import { IframeAnswerView } from "../IframeAnswerView";
+import { extractFrameSpec } from "../utils";
 
 const DOENET_HTMLSRC = `
 <div class="ptx-runestone-container">

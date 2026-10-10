@@ -1,20 +1,8 @@
 import { GraderAnswerHistoryItem } from "@store/grader/grader.logic.api";
-import { describe, expect, it } from "vitest";
 
-import { answerForRestore, restoreDataForAttempt } from "./utils";
-describe("RunestoneGraderPreview restore data", () => {
-  it("parses legacy string matching answers before calling restoreAnswers", () => {
-    expect(answerForRestore("matching", '{"connections":[{"from":"left","to":"right"}]}')).toEqual({
-      connections: [{ from: "left", to: "right" }]
-    });
-  });
+import { restoreDataForAttempt } from "../restoreDataForAttempt";
 
-  it("keeps drag-and-drop JSON serialized because its component parses the string", () => {
-    const answer = '{"zone":["item"]}';
-
-    expect(answerForRestore("dragndrop", answer)).toBe(answer);
-  });
-
+describe("restoreDataForAttempt", () => {
   it("normalizes a null stored answer to the empty value expected by Runestone components", () => {
     expect(restoreDataForAttempt("mchoice", { id: 2, answer: null }, "student-1").answer).toBe("");
   });
