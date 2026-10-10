@@ -108,7 +108,6 @@ from .course_attrs import (
 )
 
 from .book import (
-    fetch_page_readers,
     count_reading_activities,
     create_user_chapter_progress_entry,
     create_user_state_entry,
@@ -574,7 +573,6 @@ __all__ += [
     "fetch_last_answer_table_entry",
     "fetch_course_access_for_user",
     "record_course_access",
-    "fetch_page_readers",
     "PAGE_KEY_PREFIX",
     "backfill_user_interactions",
     "fetch_backfill_bounds",

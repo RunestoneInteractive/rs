@@ -1482,6 +1482,27 @@ async def test_regrade_reading_can_award_late_work(auth_instructor_client):
     assert (await _grade_for("testuser1", "late_ch/late_sub")).score == 5
 
 
+async def _view_page(sid, chapter, subchapter):
+    """Log a page view the way the book server does, so it reaches both
+    useinfo and the user_interactions tracker the grader reads."""
+    import datetime
+
+    from rsptx.db.crud import create_useinfo_entry, page_interaction_key
+    from rsptx.db.models import UseinfoValidation
+
+    await create_useinfo_entry(
+        UseinfoValidation(
+            event="page",
+            act="view",
+            div_id=f"{chapter}/{subchapter}.html",
+            course_id=COURSE_NAME,
+            sid=sid,
+            timestamp=datetime.datetime(2024, 6, 1, 12, 0, 0),
+        ),
+        interaction_key=page_interaction_key(chapter, subchapter),
+    )
+
+
 async def test_question_stats_count_readers_of_a_reading(auth_instructor_client):
     """A reading has no answers, so the question list counts the students who
     opened the page instead of reporting 0 for every reading."""
@@ -1490,7 +1511,7 @@ async def test_question_stats_count_readers_of_a_reading(auth_instructor_client)
     await _add_reading_question(
         assignment_id, "stats_ch", "stats_sub", activity_names=["stats_q1"]
     )
-    await _log_useinfo("testuser1", "stats_ch/stats_sub.html", "page", "view")
+    await _view_page("testuser1", "stats_ch", "stats_sub")
 
     resp = await auth_instructor_client.get(
         f"/instructor/grader/assignments/{assignment_id}/questions"
@@ -1989,18 +2010,17 @@ async def test_question_stats_for_answer_table_questions(auth_instructor_client)
 
 
 async def test_question_stats_count_readers_per_reading(auth_instructor_client):
-    """Readers of several readings come from one pass over the course's page
-    views; each student is counted only for the pages they opened."""
+    """Readers of several readings come from one tracker query; each student
+    is counted only for the pages they opened, and instructors not at all."""
     await _enroll_student("testuser1", COURSE_NAME)
     assignment_id = await _create_assignment(auth_instructor_client, "stats_readings")
     await _add_reading_question(assignment_id, "rd_ch", "rd_one")
     await _add_reading_question(assignment_id, "rd_ch", "rd_two")
     await _add_reading_question(assignment_id, "rd_ch", "rd_three")
-    await _log_useinfo("rs_reader_a", "rd_ch/rd_one.html", "page", "view")
-    await _log_useinfo("rs_reader_b", "rd_ch/rd_one.html", "page", "view")
-    # Behind a path prefix, as some books log it.
-    await _log_useinfo("rs_reader_a", "/books/x/rd_ch/rd_two.html", "page", "view")
-    await _log_useinfo("test_instructor", "rd_ch/rd_two.html", "page", "view")
+    await _view_page("rs_reader_a", "rd_ch", "rd_one")
+    await _view_page("rs_reader_b", "rd_ch", "rd_one")
+    await _view_page("rs_reader_a", "rd_ch", "rd_two")
+    await _view_page("test_instructor", "rd_ch", "rd_two")
 
     resp = await auth_instructor_client.get(
         f"/instructor/grader/assignments/{assignment_id}/questions"

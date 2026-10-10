@@ -19,11 +19,11 @@ from rsptx.db.crud import (
     fetch_interaction_useinfo,
     fetch_interaction_useinfo_for_questions,
     fetch_one_assignment,
-    fetch_page_readers,
+    fetch_interacted_sids,
     fetch_question_grade,
     fetch_user,
     fetch_users_for_course,
-    get_course_origin,
+    page_interaction_key,
     create_question_grade_entry,
     is_interaction_event,
     set_manual_total,
@@ -62,7 +62,6 @@ from rsptx.grading_helpers.select_questions import (
 )
 from rsptx.grading_helpers.regrade import (
     RegradeOptions,
-    page_url_suffix,
     regrade_batch,
     recompute_totals_for,
     recompute_totals_detail,
@@ -272,16 +271,19 @@ async def _interaction_stats(events_by_name, tallies, course, instructor_ids):
             tallies[u.div_id].total_attempts += 1
 
 
-async def _reading_stats(readings, tallies, course, instructor_ids):
+async def _reading_stats(reading_rows, tallies, course, instructor_ids):
     """A reading has no answers.  What it has is readers: count the students
     who opened the page, so the row reports what happened instead of a flat 0.
     See issue #1493.
 
-    :param readings: ``{question name: page url suffix}``.
+    Read from ``user_interactions``, where page views are filed under the
+    page's chapter/subchapter labels -- the log itself records a URL path that
+    can only be matched by suffix, which meant scanning the course's history.
     """
-    readers = await fetch_page_readers(course.course_name, readings.values())
-    for name, suffix in readings.items():
-        tallies[name].answered.update(readers[suffix] - instructor_ids)
+    keys = {q.name: page_interaction_key(q.chapter, q.subchapter) for q in reading_rows}
+    readers = await fetch_interacted_sids(course.course_name, keys.values())
+    for name, key in keys.items():
+        tallies[name].answered.update(readers[key] - instructor_ids)
 
 
 async def _question_grade_stats(tallies, course, instructor_list):
@@ -462,15 +464,8 @@ async def list_assignment_questions(
             _interaction_stats(events_by_name, tallies, course, instructor_ids),
         )
     if reading_rows:
-        # Which shape a page view has in useinfo depends on the book's markup
-        # system, and every reading on the assignment is in the same book.
-        origin = await get_course_origin(course.base_course)
-        readings = {
-            q.name: page_url_suffix(origin, q.chapter, q.subchapter)
-            for q in reading_rows
-        }
         await _guarded(
-            "readings", _reading_stats(readings, tallies, course, instructor_ids)
+            "readings", _reading_stats(reading_rows, tallies, course, instructor_ids)
         )
     if select_questions:
         answered = await _guarded(

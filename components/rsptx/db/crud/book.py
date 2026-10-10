@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, List, Optional
 from collections import namedtuple
 from datetime import datetime
 from sqlalchemy import select, update, distinct, func
@@ -194,59 +194,6 @@ async def count_reading_activities(
         page_views = (await session.execute(page_query)).scalar() or 0
 
     return int(activities) + (1 if page_views else 0)
-
-
-async def fetch_page_readers(
-    course_name: str, page_url_suffixes: Iterable[str]
-) -> Dict[str, Set[str]]:
-    """The students who have opened each of several pages of the book.
-
-    A reading has no answers to count, so this is what "answered" means for
-    one: the students who got as far as loading the page.  See
-    :func:`count_reading_activities` for how a page view is recognised.
-
-    All the pages are answered from one pass over the course's page views
-    rather than one query per page.  A page view's ``div_id`` is a path that
-    can only be matched on its ending, so no index narrows the search below
-    "this course's page views"; doing that once per reading took ~24 s per
-    reading for a large course.
-
-    :param course_name: the course whose ``useinfo`` rows to read.
-    :param page_url_suffixes: how each page's views end, e.g.
-        ``"chapter/subchapter.html"``.
-    :return: ``{suffix: {sid, ...}}`` with an entry for every suffix asked for.
-    """
-    suffixes = set(page_url_suffixes)
-    readers: Dict[str, Set[str]] = {suffix: set() for suffix in suffixes}
-    if not suffixes:
-        return readers
-    # Join to courses rather than passing term_start_date as a value: given a
-    # literal date the planner ANDs in the timestamp index, which matches tens
-    # of millions of rows, and the query gets several times slower.
-    query = (
-        select(distinct(Useinfo.div_id), Useinfo.sid)
-        .select_from(Useinfo)
-        .join(Courses, Courses.course_name == Useinfo.course_id)
-        .where(
-            (Useinfo.course_id == course_name)
-            & (Useinfo.event == "page")
-            & (Useinfo.timestamp > Courses.term_start_date)
-        )
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        sids_by_page: Dict[str, Set[str]] = {}
-        for div_id, sid in res.all():
-            if div_id and sid:
-                sids_by_page.setdefault(div_id, set()).add(sid)
-
-    # A course has a few hundred distinct pages, so matching each one against
-    # each suffix is cheap compared with doing it per (page, student) row.
-    for div_id, sids in sids_by_page.items():
-        for suffix in suffixes:
-            if div_id.endswith(suffix):
-                readers[suffix].update(sids)
-    return readers
 
 
 async def fetch_page_activity_counts(
