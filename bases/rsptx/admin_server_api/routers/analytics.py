@@ -28,6 +28,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from rsptx.auth.session import auth_manager
 from rsptx.db.sync_session import engine
 from rsptx.configuration import settings
+from rsptx.data_types.interactions import PAGE_KEY_PREFIX
 from rsptx.endpoint_validators import instructor_role_required, with_course
 from rsptx.logging import rslogger
 from rsptx.templates import format_course_datetime, get_shared_templates
@@ -252,21 +253,25 @@ def _pad_with_enrolled(pt: pd.DataFrame, labels: list, fill_value) -> pd.DataFra
 # blocking on it directly -- which is exactly what the pool monitor reports as
 # loop lag. Aggregating first turns the result into one row per
 # (student, subchapter), which is what the report actually displays.
+#
+# The rows come from user_interactions, one per (student, item) with the
+# interaction count and first/last times already summarized, rather than from
+# useinfo's raw click log.
 _ACTIVITY_AGGREGATES = {
-    "sccount": ("count(distinct useinfo.div_id)", ["chapter", "subchapter"], False),
+    "sccount": ("count(distinct ui.div_id)", ["chapter", "subchapter"], False),
     "dividmin": (
-        "min(useinfo.timestamp)",
+        "min(ui.first_interaction)",
         ["chapter", "subchapter", "div_id"],
         True,
     ),
     "dividmax": (
-        "max(useinfo.timestamp)",
+        "max(ui.last_interaction)",
         ["chapter", "subchapter", "div_id"],
         True,
     ),
 }
 _DEFAULT_ACTIVITY_AGGREGATE = (
-    "count(useinfo.timestamp)",
+    "sum(ui.interactions)",
     ["chapter", "subchapter", "div_id"],
     False,
 )
@@ -290,21 +295,21 @@ def _make_activity_table(
     # div_id is only in the index for the per-exercise tables; leaving it out of
     # the GROUP BY for sccount is what collapses the result to one row per
     # subchapter per student.
-    extra_group = ", useinfo.div_id" if "div_id" in idxlist else ""
+    extra_group = ", ui.div_id" if "div_id" in idxlist else ""
 
     # The student label, the LTI-anonymous filter and the timezone shift all used
     # to be per-row pandas work over the raw click log. In SQL they cost nothing.
     data = pd.read_sql_query(
         f"""
         select auth_user.last_name || ', ' || auth_user.first_name
-                   || ' (' || useinfo.sid || ')' as sid,
+                   || ' (' || ui.sid || ')' as sid,
                questions.chapter, questions.subchapter{extra_group},
                {agg_expr} as value
-        from useinfo
-        join questions on useinfo.div_id = questions.name
+        from user_interactions ui
+        join questions on ui.div_id = questions.name
                       and questions.base_course = %(base_course)s {ch_clause}
-        join auth_user on auth_user.username = useinfo.sid
-        where useinfo.course_id = %(course_name)s
+        join auth_user on auth_user.username = ui.sid
+        where ui.course_name = %(course_name)s
           and auth_user.active = 'T'
           and auth_user.username !~ '^[0-9]{{38,}}@'
         group by 1, questions.chapter, questions.subchapter{extra_group}
@@ -510,7 +515,7 @@ def _build_student_detail(
     tdoff = pd.Timedelta(hours=tz_offset_hours)
 
     # ------------------------------------------------------------------
-    # 1. Activity from useinfo (every click this student made)
+    # 1. Activity from user_interactions (this student's clicks, summarized)
     # ------------------------------------------------------------------
     # Use a DISTINCT subquery on questions so that if a div_id appears more
     # than once in the questions table (duplicate rows or multi-chapter entries)
@@ -518,19 +523,19 @@ def _build_student_detail(
     # the plain JOIN fans out and inflates count(*) / sum() values.
     activity = pd.read_sql_query(
         """
-        select useinfo.div_id, q.chapter, q.subchapter,
-               count(*) as clicks,
-               min(useinfo.timestamp) as first_visit,
-               max(useinfo.timestamp) as last_visit
-        from useinfo
+        select ui.div_id, q.chapter, q.subchapter,
+               sum(ui.interactions) as clicks,
+               min(ui.first_interaction) as first_visit,
+               max(ui.last_interaction) as last_visit
+        from user_interactions ui
         join (
             select distinct name, chapter, subchapter
             from questions
             where base_course = %(base_course)s
-        ) q on useinfo.div_id = q.name
-        where useinfo.course_id = %(course_name)s and useinfo.sid = %(sid)s
-        group by useinfo.div_id, q.chapter, q.subchapter
-        order by q.chapter, q.subchapter, useinfo.div_id
+        ) q on ui.div_id = q.name
+        where ui.course_name = %(course_name)s and ui.sid = %(sid)s
+        group by ui.div_id, q.chapter, q.subchapter
+        order by q.chapter, q.subchapter, ui.div_id
         """,
         engine,
         params={"base_course": base_course, "course_name": course_name, "sid": sid},
@@ -911,13 +916,11 @@ def _reading_interactions(
 ) -> pd.DataFrame:
     """Interaction counts for the readings (``page`` questions) in an assignment.
 
-    A reading's own name never shows up in ``useinfo``, so matching on
-    ``div_id`` finds nothing for it.  What a student does with a reading is
-    open the page -- logged as a ``page`` event whose ``div_id`` ends with the
-    page's file name, ``<subchapter>.html`` for PreTeXt and
-    ``<chapter>/<subchapter>.html`` for Sphinx -- and work the activities on
-    it.  Both count here, with the same activities the reading progress bar
-    counts: from the book source, not optional.
+    A reading's own name is never logged.  What a student does with a reading
+    is open the page -- tracked in ``user_interactions`` under the page's
+    ``page_interaction_key``, ``page:<chapter>/<subchapter>`` -- and work the
+    activities on it.  Both count here, with the same activities the reading
+    progress bar counts: from the book source, not optional.
 
     Returns one row per (sid, reading) with the columns of the main
     interactions query.  Blocking (pandas); call from a worker thread.
@@ -925,50 +928,36 @@ def _reading_interactions(
     columns = ["sid", "div_id", "interactions", "first_interaction", "last_interaction"]
     if not reading_ids:
         return pd.DataFrame(columns=columns)
-    sid_clause = "AND u.sid = %(sid)s" if sid else ""
+    sid_clause = "AND ui.sid = %(sid)s" if sid else ""
     return pd.read_sql_query(
         f"""
         WITH pages AS (
             SELECT q.name, q.base_course, q.chapter, q.subchapter,
-                   CASE WHEN (
-                       SELECT ca.value FROM course_attributes ca
-                       JOIN courses b ON b.id = ca.course_id
-                       WHERE b.course_name = q.base_course
-                         AND ca.attr = 'markup_system'
-                       LIMIT 1
-                   ) = 'PreTeXt'
-                   THEN q.subchapter || '.html'
-                   ELSE q.chapter || '/' || q.subchapter || '.html'
-                   END AS suffix
+                   '{PAGE_KEY_PREFIX}' || q.chapter || '/' || q.subchapter AS key
             FROM questions q
             WHERE q.id = ANY(%(reading_ids)s)
         ),
-        hits AS (
-            SELECT u.sid, p.name, u.timestamp
-            FROM useinfo u
-            JOIN pages p
-              ON u.event = 'page'
-             AND right(u.div_id, length(p.suffix)) = p.suffix
-            WHERE u.course_id = %(course_name)s {sid_clause}
-            UNION ALL
-            SELECT u.sid, p.name, u.timestamp
-            FROM useinfo u
-            JOIN questions a ON a.name = u.div_id
+        items AS (
+            SELECT p.name, p.key AS div_id FROM pages p
+            UNION
+            SELECT p.name, a.name
+            FROM questions a
             JOIN pages p
               ON a.base_course = p.base_course
              AND a.chapter = p.chapter
              AND a.subchapter = p.subchapter
-            WHERE u.course_id = %(course_name)s {sid_clause}
-              AND a.from_source = 'T'
+            WHERE a.from_source = 'T'
               AND (a.optional = 'F' OR a.optional IS NULL)
               AND a.question_type <> 'page'
         )
-        SELECT sid, name AS div_id,
-               COUNT(*) AS interactions,
-               MIN(timestamp) AS first_interaction,
-               MAX(timestamp) AS last_interaction
-        FROM hits
-        GROUP BY sid, name
+        SELECT ui.sid, i.name AS div_id,
+               SUM(ui.interactions) AS interactions,
+               MIN(ui.first_interaction) AS first_interaction,
+               MAX(ui.last_interaction) AS last_interaction
+        FROM user_interactions ui
+        JOIN items i ON i.div_id = ui.div_id
+        WHERE ui.course_name = %(course_name)s {sid_clause}
+        GROUP BY ui.sid, i.name
         """,
         engine,
         params={"course_name": course_name, "reading_ids": reading_ids, "sid": sid},
@@ -1035,17 +1024,13 @@ def _make_assignment_table(
     ]
     n_enrolled = len(enrolled)
 
-    # 3. Interaction data from useinfo
+    # 3. Interaction data from user_interactions
     interactions = pd.read_sql_query(
         """
-        SELECT sid, div_id,
-               COUNT(*) AS interactions,
-               MIN(timestamp) AS first_interaction,
-               MAX(timestamp) AS last_interaction
-        FROM useinfo
-        WHERE course_id = %(course_name)s
+        SELECT sid, div_id, interactions, first_interaction, last_interaction
+        FROM user_interactions
+        WHERE course_name = %(course_name)s
           AND div_id = ANY(%(div_ids)s)
-        GROUP BY sid, div_id
         """,
         engine,
         params={"course_name": course_name, "div_ids": div_ids},
@@ -1258,15 +1243,11 @@ def _build_assignment_student_detail(
 
     interactions = pd.read_sql_query(
         """
-        SELECT div_id,
-               COUNT(*) AS interactions,
-               MIN(timestamp) AS first_interaction,
-               MAX(timestamp) AS last_interaction
-        FROM useinfo
-        WHERE course_id = %(course_name)s
+        SELECT div_id, interactions, first_interaction, last_interaction
+        FROM user_interactions
+        WHERE course_name = %(course_name)s
           AND sid = %(sid)s
           AND div_id = ANY(%(div_ids)s)
-        GROUP BY div_id
         """,
         engine,
         params={"course_name": course_name, "sid": sid, "div_ids": div_ids},

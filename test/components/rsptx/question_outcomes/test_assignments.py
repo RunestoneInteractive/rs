@@ -20,7 +20,10 @@ import pytest
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 from rsptx.db.async_session import async_session  # noqa: E402
+from sqlalchemy import func, select  # noqa: E402
+
 from rsptx.db.crud import (  # noqa: E402
+    backfill_user_interactions,
     create_course,
     create_instructor_course_entry,
     create_user_course_entry,
@@ -270,6 +273,18 @@ async def course_with_assignments(init_test_db):
             ]
         )
         await session.commit()
+    # Reading progress reads user_interactions, which the servers keep in step
+    # with useinfo as events are logged.  These rows went straight into
+    # useinfo, so fold them in the way a deploy would: with the backfill.
+    async with async_session() as session:
+        lo, hi = (
+            await session.execute(
+                select(func.min(Useinfo.id), func.max(Useinfo.id)).where(
+                    Useinfo.course_id == COURSE
+                )
+            )
+        ).one()
+    await backfill_user_interactions(lo, hi + 1, datetime.datetime(2000, 1, 1))
     return {
         "course": course,
         "other": other,

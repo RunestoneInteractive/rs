@@ -311,44 +311,6 @@ async def fetch_interaction_useinfo(
         return list(res.scalars())
 
 
-async def fetch_interaction_useinfo_for_questions(
-    div_ids: Iterable[str],
-    course_name: str,
-    events: Iterable[str],
-) -> List[Useinfo]:
-    """:func:`fetch_interaction_useinfo` for several questions in one query.
-
-    The grader's question list needs every video and poll on an assignment at
-    once.  Rows come back for all of ``div_ids`` and ``events`` together, so a
-    caller that mixes question types must check each row's ``event`` against
-    the events for that row's question, and filter through
-    ``is_interaction_event`` as usual.
-
-    :param div_ids: the questions' ``name``/``div_id`` values.
-    :param course_name: the course to restrict to (``useinfo.course_id``).
-    :param events: the useinfo ``event`` values to fetch.
-    :return: matching rows, oldest first.
-    """
-    div_ids = list(div_ids)
-    events = list(events)
-    if not div_ids or not events:
-        return []
-    query = (
-        select(Useinfo)
-        .where(
-            and_(
-                Useinfo.div_id.in_(div_ids),
-                Useinfo.course_id == course_name,
-                Useinfo.event.in_(events),
-            )
-        )
-        .order_by(Useinfo.timestamp.asc())
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        return list(res.scalars())
-
-
 async def fetch_last_poll_response(sid: str, course_name: str, poll_id: str) -> str:
     """
     Return a student's (sid) last response to a given poll (poll_id)

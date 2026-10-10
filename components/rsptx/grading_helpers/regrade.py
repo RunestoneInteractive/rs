@@ -11,7 +11,6 @@ from rsptx.db.crud import (
     fetch_grade,
     fetch_question_grade,
     fetch_users_for_course,
-    get_course_origin,
     upsert_grade,
 )
 from rsptx.db.models import (
@@ -209,19 +208,6 @@ async def _regrade_interaction_question(
     return item
 
 
-def page_url_suffix(origin: Optional[str], chapter: str, subchapter: str) -> str:
-    """How a page view for this subchapter ends in ``useinfo.div_id``.
-
-    A PreTeXt book serves each page as ``<subchapter>.html``; a Sphinx book
-    puts it under its chapter, ``<chapter>/<subchapter>.html``.  Either can be
-    logged behind a path prefix, so callers match on the ending rather than the
-    whole value.
-    """
-    if origin == "PreTeXt":
-        return f"{subchapter}.html"
-    return f"{chapter}/{subchapter}.html"
-
-
 async def _regrade_reading_question(
     item: RegradeDiffItem,
     sid: str,
@@ -253,14 +239,12 @@ async def _regrade_reading_question(
         accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
         deadline = _effective_deadline(assignment, accommodation)
 
-    origin = await get_course_origin(course.base_course)
     completed = await count_reading_activities(
         chapter=question.chapter,
         subchapter=question.subchapter,
         base_course=course.base_course,
         course_name=course.course_name,
         sid=sid,
-        page_url_suffix=page_url_suffix(origin, question.chapter, question.subchapter),
         deadline=deadline,
     )
 

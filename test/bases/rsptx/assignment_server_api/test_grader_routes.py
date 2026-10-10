@@ -769,24 +769,30 @@ async def _add_interaction_question(
 
 
 async def _log_useinfo(sid, div_id, event, act, when=None):
-    """Write a useinfo row directly, standing in for interactions students
-    logged before the scoring bug was fixed."""
+    """Log an event the way the servers do, through ``create_useinfo_entry``,
+    so it reaches both useinfo and the user_interactions tracker.  A page view
+    is given as its Sphinx path, ``chapter/subchapter.html``, and tracked under
+    that page's key, as books.py does."""
     import datetime
 
-    from rsptx.db.async_session import async_session
-    from rsptx.db.models import Useinfo
+    from rsptx.db.crud import create_useinfo_entry, page_interaction_key
+    from rsptx.db.models import UseinfoValidation
 
-    async with async_session.begin() as session:
-        session.add(
-            Useinfo(
-                timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
-                sid=sid,
-                event=event,
-                act=act,
-                div_id=div_id,
-                course_id=COURSE_NAME,
-            )
-        )
+    key = None
+    if event == "page":
+        chapter, _, page = div_id.rpartition("/")
+        key = page_interaction_key(chapter, page.removesuffix(".html"))
+    await create_useinfo_entry(
+        UseinfoValidation(
+            timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
+            sid=sid,
+            event=event,
+            act=act,
+            div_id=div_id,
+            course_id=COURSE_NAME,
+        ),
+        interaction_key=key,
+    )
 
 
 async def _grade_for(sid, div_id):

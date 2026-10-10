@@ -576,15 +576,6 @@ async def test_push_carries_the_course_id_for_the_lti_version_lookup():
     assert assignment.id == _assignment().id
 
 
-def test_page_url_suffix_follows_the_books_markup_system():
-    # A PreTeXt book serves each page at the top level...
-    assert regrade.page_url_suffix("PreTeXt", "ch", "sub") == "sub.html"
-    # ...a Sphinx book puts it under its chapter.
-    assert regrade.page_url_suffix("Runestone", "ch", "sub") == "ch/sub.html"
-    # An unlabelled book is the Sphinx shape, which is what most books are.
-    assert regrade.page_url_suffix(None, "ch", "sub") == "ch/sub.html"
-
-
 async def test_a_reading_is_scored_all_or_nothing_on_activities_done():
     """The reading rule: do ``activities_required`` of the page's activities --
     opening the page counts as one -- and the reading is worth full points."""
@@ -594,7 +585,6 @@ async def test_a_reading_is_scored_all_or_nothing_on_activities_done():
     course = SimpleNamespace(id=1, course_name="testcourse", base_course="base")
 
     with (
-        patch.object(regrade, "get_course_origin", AsyncMock(return_value="Runestone")),
         patch.object(regrade, "count_reading_activities", AsyncMock(return_value=3)),
         patch.object(regrade, "_upsert_autograde", AsyncMock()) as upsert,
     ):
@@ -620,7 +610,6 @@ async def test_a_reading_left_untouched_when_the_student_never_opened_it():
     course = SimpleNamespace(id=1, course_name="testcourse", base_course="base")
 
     with (
-        patch.object(regrade, "get_course_origin", AsyncMock(return_value=None)),
         patch.object(regrade, "count_reading_activities", AsyncMock(return_value=0)),
         patch.object(regrade, "_upsert_autograde", AsyncMock()) as upsert,
     ):
@@ -649,7 +638,6 @@ async def test_a_reading_with_no_activities_required_needs_only_the_page():
     course = SimpleNamespace(id=1, course_name="testcourse", base_course="base")
 
     with (
-        patch.object(regrade, "get_course_origin", AsyncMock(return_value=None)),
         patch.object(regrade, "count_reading_activities", AsyncMock(return_value=1)),
         patch.object(regrade, "_upsert_autograde", AsyncMock()),
     ):

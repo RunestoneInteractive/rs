@@ -17,9 +17,9 @@ from rsptx.db.crud import (
     fetch_gradebook,
     fetch_grade,
     fetch_interaction_useinfo,
-    fetch_interaction_useinfo_for_questions,
     fetch_one_assignment,
     fetch_interacted_sids,
+    fetch_interaction_counts,
     fetch_question_grade,
     fetch_user,
     fetch_users_for_course,
@@ -254,21 +254,21 @@ async def _code_table_stats(tallies, course, instructor_list):
             tally.total_attempts += int(count or 0)
 
 
-async def _interaction_stats(events_by_name, tallies, course, instructor_ids):
-    """Videos and polls have no answer table; their submissions are useinfo
-    rows, so "answered" has to be counted from there or every one of them
-    reports 0 answered no matter how much the class interacted."""
-    all_events = set().union(*events_by_name.values())
-    for u in await fetch_interaction_useinfo_for_questions(
-        events_by_name, course.course_name, all_events
-    ):
-        if u.event not in events_by_name.get(u.div_id, ()):
-            continue
-        if not u.sid or u.sid in instructor_ids:
-            continue
-        if is_interaction_event(u.event, u.act):
-            tallies[u.div_id].answered.add(u.sid)
-            tallies[u.div_id].total_attempts += 1
+async def _interaction_stats(names, tallies, course, instructor_ids):
+    """Videos and polls have no answer table; their submissions are logged
+    interactions, so "answered" has to be counted from those or every one of
+    them reports 0 answered no matter how much the class interacted.
+
+    Read from ``user_interactions``, which counts only real activity -- a
+    video's ``ready``, logged whenever its player is built, is left out.
+    """
+    counts = await fetch_interaction_counts(course.course_name, names)
+    for name, by_sid in counts.items():
+        for sid, n in by_sid.items():
+            if sid in instructor_ids:
+                continue
+            tallies[name].answered.add(sid)
+            tallies[name].total_attempts += n
 
 
 async def _reading_stats(reading_rows, tallies, course, instructor_ids):
@@ -362,13 +362,12 @@ async def _select_question_answered_sids(questions, course, instructor_ids):
                 for sid, div_id in res.all():
                     credit(sid, div_id)
 
-        events = interaction_events_for(qtype)
-        if events:
-            for u in await fetch_interaction_useinfo_for_questions(
-                div_ids, course.course_name, events
-            ):
-                if is_interaction_event(u.event, u.act):
-                    credit(u.sid, u.div_id)
+        if interaction_events_for(qtype):
+            for div_id, by_sid in (
+                await fetch_interaction_counts(course.course_name, div_ids)
+            ).items():
+                for sid in by_sid:
+                    credit(sid, div_id)
 
         if qtype in CODE_TABLE_TYPES:
             async with async_session() as session:
@@ -427,7 +426,7 @@ async def list_assignment_questions(
     tallies: dict = {}
     by_table: dict = {}
     code_names: set = set()
-    events_by_name: dict = {}
+    interaction_names: set = set()
     reading_rows = []
     select_questions = []
     for row in rows:
@@ -438,9 +437,8 @@ async def list_assignment_questions(
             by_table.setdefault(tbl, set()).add(q.name)
         if q.question_type in CODE_TABLE_TYPES:
             code_names.add(q.name)
-        events = interaction_events_for(q.question_type)
-        if events:
-            events_by_name[q.name] = events
+        if interaction_events_for(q.question_type):
+            interaction_names.add(q.name)
         if q.question_type == "page":
             reading_rows.append(q)
         if is_select_question(q):
@@ -458,10 +456,10 @@ async def list_assignment_questions(
         await _guarded(
             "code", _code_table_stats(subset(code_names), course, instructor_list)
         )
-    if events_by_name:
+    if interaction_names:
         await _guarded(
             "interactions",
-            _interaction_stats(events_by_name, tallies, course, instructor_ids),
+            _interaction_stats(interaction_names, tallies, course, instructor_ids),
         )
     if reading_rows:
         await _guarded(

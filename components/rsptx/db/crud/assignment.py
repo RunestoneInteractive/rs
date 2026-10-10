@@ -37,6 +37,7 @@ from ..models import (
     QuestionGrade,
     Useinfo,
     UserCourse,
+    UserInteraction,
     UserTopicPracticeCompletion,
     UserTopicPracticeLog,
 )
@@ -174,12 +175,12 @@ async def has_submissions_after_deadline(
     username: str, assignment_id: int, deadline: datetime.datetime
 ) -> bool:
     """
-    Check whether a student has any logged activity (useinfo) for a question
-    that belongs to the given assignment after the supplied deadline.
+    Check whether a student has any logged activity for a question that
+    belongs to the given assignment after the supplied deadline.
 
-    Looking at the useinfo table is intentional: it captures a row for every
-    save/submission and is far cheaper than querying each of the per-type
-    ``*_answers`` tables individually.
+    Read from ``user_interactions``, the per-(course, item, student) summary
+    of the log: it records every save/submission and is far cheaper than the
+    log itself or each of the per-type ``*_answers`` tables.
 
     :param username: str, the student's username (matches ``useinfo.sid``)
     :param assignment_id: int, the id of the assignment to check
@@ -187,24 +188,26 @@ async def has_submissions_after_deadline(
         after this time is considered late
     :return: bool, True if the student logged work after the deadline
     """
+    # The tracker's last interaction is after the deadline exactly when some
+    # logged activity is.
     query = (
-        select(Useinfo.id)
+        select(UserInteraction.id)
         .select_from(AssignmentQuestion)
         .join(Question, Question.id == AssignmentQuestion.question_id)
         .join(Assignment, Assignment.id == AssignmentQuestion.assignment_id)
         .join(Courses, Courses.id == Assignment.course)
         .join(
-            Useinfo,
+            UserInteraction,
             and_(
-                Useinfo.div_id == Question.name,
-                Useinfo.course_id == Courses.course_name,
+                UserInteraction.div_id == Question.name,
+                UserInteraction.course_name == Courses.course_name,
             ),
         )
         .where(
             and_(
                 AssignmentQuestion.assignment_id == assignment_id,
-                Useinfo.sid == username,
-                Useinfo.timestamp > deadline,
+                UserInteraction.sid == username,
+                UserInteraction.last_interaction > deadline,
             )
         )
         .limit(1)

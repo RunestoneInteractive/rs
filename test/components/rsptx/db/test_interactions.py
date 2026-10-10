@@ -232,3 +232,87 @@ async def test_backfill_from_useinfo(interaction_courses):
     await backfill_user_interactions(lo, hi, since)
     again = await _tracker_rows(RST_COURSE)
     assert again[("page:rch/rsub", "ui_s4")] == (t(2), t(5), 4)
+
+
+async def test_has_submissions_after_deadline(interaction_courses):
+    from rsptx.db.crud import has_submissions_after_deadline
+    from rsptx.db.models import Assignment, AssignmentQuestion, Question
+
+    async with async_session.begin() as session:
+        q = Question(
+            base_course="ui_rst_book",
+            name="ui_late_q",
+            chapter="c",
+            subchapter="s",
+            question_type="mchoice",
+            timestamp=t(1),
+            from_source=False,
+        )
+        a = Assignment(
+            course=interaction_courses[LIVE_COURSE].id,
+            name="ui_late",
+            duedate=t(6),
+            released=False,
+            points=1,
+            visible=True,
+            from_source=False,
+        )
+        session.add_all([q, a])
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=a.id,
+                question_id=q.id,
+                points=1,
+                sorting_priority=1,
+                autograde="pct_correct",
+                which_to_grade="last_answer",
+                reading_assignment=False,
+            )
+        )
+        assignment_id = a.id
+
+    await _log("ui_on_time", "ui_late_q", "mChoice", "answer:1", t(5))
+    await _log("ui_late", "ui_late_q", "mChoice", "answer:1", t(5))
+    await _log("ui_late", "ui_late_q", "mChoice", "answer:1", t(7))
+    # A player being built is not work, late or otherwise.
+    await _log("ui_ready", "ui_late_q", "video", "ready", t(7))
+
+    assert not await has_submissions_after_deadline("ui_on_time", assignment_id, t(6))
+    assert await has_submissions_after_deadline("ui_late", assignment_id, t(6))
+    assert not await has_submissions_after_deadline("ui_ready", assignment_id, t(6))
+
+
+async def test_count_reading_activities_respects_the_deadline(interaction_courses):
+    from rsptx.db.crud import count_reading_activities, create_question
+    from rsptx.db.models import QuestionValidator
+
+    for name in ("ui_r_a1", "ui_r_a2"):
+        await create_question(
+            QuestionValidator(
+                base_course="ui_rst_book",
+                name=name,
+                chapter="rch",
+                subchapter="rread",
+                author="x",
+                timestamp=t(1),
+                question_type="mchoice",
+                optional=False,
+                is_private=False,
+                from_source=True,
+                review_flag=False,
+            )
+        )
+    key = page_interaction_key("rch", "rread")
+    await _log("ui_reader", "rch/rread.html", "page", "view", t(2), key=key)
+    await _log("ui_reader", "ui_r_a1", "mChoice", "answer:1", t(3))
+    await _log("ui_reader", "ui_r_a2", "mChoice", "answer:1", t(8))
+
+    def count(deadline):
+        return count_reading_activities(
+            "rch", "rread", "ui_rst_book", LIVE_COURSE, "ui_reader", deadline
+        )
+
+    assert await count(None) == 3
+    assert await count(t(5)) == 2
+    assert await count(t(1)) == 0

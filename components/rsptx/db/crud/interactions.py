@@ -22,25 +22,14 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rsptx.data_types.answer_storage import INTERACTION_ACTS
+from rsptx.data_types.interactions import (  # noqa: F401  (re-exported)
+    PAGE_KEY_PREFIX,
+    page_interaction_key,
+)
 from rsptx.logging import rslogger
 from ..async_session import async_session
-from ..models import UserInteraction
+from ..models import Courses, UserInteraction
 from .crud import INTERACTION_ONLY_EVENTS, is_interaction_event
-
-#: The prefix that marks a tracker row as a page view.  No question div_id
-#: starts with it.
-PAGE_KEY_PREFIX = "page:"
-
-
-def page_interaction_key(chapter: str, subchapter: str) -> str:
-    """The ``user_interactions.div_id`` a view of this page is stored under.
-
-    :param chapter: the chapter label (``questions.chapter`` /
-        ``chapters.chapter_label``).
-    :param subchapter: the subchapter label (``questions.subchapter`` /
-        ``sub_chapters.sub_chapter_label``).
-    """
-    return f"{PAGE_KEY_PREFIX}{chapter}/{subchapter}"
 
 
 def interaction_key_for(
@@ -108,6 +97,22 @@ async def upsert_interaction(
         )
 
 
+def _since_term_start():
+    """Join and clause keeping only rows with activity since the course's term
+    started, as the useinfo queries these replace did.  ``last_interaction``
+    after the start is exactly "some activity since the start"; an interaction
+    *before* the start can't be told apart from one after it when both exist,
+    which only matters for a course used before its term began.
+    """
+    return (
+        Courses,
+        and_(
+            Courses.course_name == UserInteraction.course_name,
+            UserInteraction.last_interaction > Courses.term_start_date,
+        ),
+    )
+
+
 async def fetch_interacted_sids(
     course_name: str, div_ids: Iterable[str]
 ) -> Dict[str, Set[str]]:
@@ -121,16 +126,75 @@ async def fetch_interacted_sids(
     result: Dict[str, Set[str]] = {key: set() for key in keys}
     if not keys:
         return result
-    query = select(UserInteraction.div_id, UserInteraction.sid).where(
-        and_(
-            UserInteraction.course_name == course_name,
-            UserInteraction.div_id.in_(keys),
+    query = (
+        select(UserInteraction.div_id, UserInteraction.sid)
+        .join(*_since_term_start())
+        .where(
+            and_(
+                UserInteraction.course_name == course_name,
+                UserInteraction.div_id.in_(keys),
+            )
         )
     )
     async with async_session() as session:
         for div_id, sid in (await session.execute(query)).all():
             result[div_id].add(sid)
     return result
+
+
+async def fetch_interaction_counts(
+    course_name: str, div_ids: Iterable[str]
+) -> Dict[str, Dict[str, int]]:
+    """How many times each student interacted with each of ``div_ids``.
+
+    For a video or poll this is its submissions: the tracker only counts the
+    acts that are real activity, the same filter ``is_interaction_event``
+    applies to the useinfo rows.
+
+    :return: ``{div_id: {sid: interactions}}`` with an entry for every key
+        asked for.
+    """
+    keys = set(div_ids)
+    result: Dict[str, Dict[str, int]] = {key: {} for key in keys}
+    if not keys:
+        return result
+    query = select(
+        UserInteraction.div_id, UserInteraction.sid, UserInteraction.interactions
+    ).where(
+        and_(
+            UserInteraction.course_name == course_name,
+            UserInteraction.div_id.in_(keys),
+        )
+    )
+    async with async_session() as session:
+        for div_id, sid, n in (await session.execute(query)).all():
+            result[div_id][sid] = n
+    return result
+
+
+async def fetch_touched_div_ids(
+    course_name: str, sid: str, div_ids: Iterable[str]
+) -> Set[str]:
+    """Which of ``div_ids`` one student has touched in a course.
+
+    :param div_ids: tracker keys, as for :func:`fetch_interacted_sids`.
+    """
+    keys = set(div_ids)
+    if not keys:
+        return set()
+    query = (
+        select(UserInteraction.div_id)
+        .join(*_since_term_start())
+        .where(
+            and_(
+                UserInteraction.course_name == course_name,
+                UserInteraction.sid == sid,
+                UserInteraction.div_id.in_(keys),
+            )
+        )
+    )
+    async with async_session() as session:
+        return set((await session.execute(query)).scalars())
 
 
 # Backfill
@@ -226,6 +290,12 @@ WHERE chapter IS NOT NULL AND chapter <> ''
 GROUP BY 1, 2, 3
 {_UPSERT_TAIL}
 """
+
+
+def since_term_start():
+    """Public form of the term-start guard, for readers that build their own
+    queries on ``user_interactions``."""
+    return _since_term_start()
 
 
 async def fetch_backfill_bounds(since: datetime.datetime) -> tuple:
