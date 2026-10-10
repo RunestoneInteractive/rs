@@ -108,6 +108,7 @@ from .course_attrs import (
 )
 
 from .book import (
+    fetch_page_readers,
     count_reading_activities,
     create_user_chapter_progress_entry,
     create_user_state_entry,
@@ -115,7 +116,6 @@ from .book import (
     fetch_chapter_for_subchapter,
     fetch_last_page,
     fetch_page_activity_counts,
-    fetch_page_readers,
     fetch_subchapters,
     fetch_user_chapter_progress,
     fetch_user_chapter_progress_for,
@@ -149,6 +149,15 @@ from .library import (
     update_library_book,
 )
 
+from .interactions import (
+    PAGE_KEY_PREFIX,
+    backfill_user_interactions,
+    fetch_backfill_bounds,
+    fetch_interacted_sids,
+    interaction_key_for,
+    page_interaction_key,
+    upsert_interaction,
+)
 from .telemetry import (
     bucket_count,
     build_checkin_payload,
@@ -429,7 +438,6 @@ __all__ += [
     "fetch_chapter_for_subchapter",
     "fetch_last_page",
     "fetch_page_activity_counts",
-    "fetch_page_readers",
     "fetch_subchapters",
     "fetch_user_chapter_progress",
     "fetch_user_chapter_progress_for",
@@ -566,6 +574,14 @@ __all__ += [
     "fetch_last_answer_table_entry",
     "fetch_course_access_for_user",
     "record_course_access",
+    "fetch_page_readers",
+    "PAGE_KEY_PREFIX",
+    "backfill_user_interactions",
+    "fetch_backfill_bounds",
+    "fetch_interacted_sids",
+    "interaction_key_for",
+    "page_interaction_key",
+    "upsert_interaction",
     "fetch_last_poll_response",
     "fetch_poll_summary",
     "fetch_recent_useinfo",

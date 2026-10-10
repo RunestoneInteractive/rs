@@ -56,6 +56,7 @@ from rsptx.configuration import settings
 from rsptx.db.crud import (
     count_users_created_since,
     create_useinfo_entry,
+    page_interaction_key,
     fetch_chapter_for_subchapter,
     fetch_course,
     fetch_library_book,
@@ -574,7 +575,14 @@ async def serve_page(
             course_id=course_name,
             sid=user.username if user else "Anonymous",
             timestamp=canonical_utcnow(),
-        )
+        ),
+        # The log keeps the URL path; the tracker files the view under the
+        # page's labels, which is what a reading's question row has.
+        interaction_key=(
+            page_interaction_key(chapter, subchapter)
+            if user and chapter and subchapter
+            else None
+        ),
     )
     if "LOAD_BALANCER_HOST" in os.environ:
         canonical_host = os.environ["LOAD_BALANCER_HOST"]
