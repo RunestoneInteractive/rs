@@ -495,6 +495,10 @@ export default class DragNDrop extends RunestoneBase {
         if (info && premise.nextElementSibling !== info) {
             this.removeCardInfo(premise);
         }
+        // A premise returned to the left column is no longer misplaced.
+        if (premise.parentElement === this.draggableDiv) {
+            this.clearPremiseIncorrect(premise);
+        }
         const premiseLabel = getAccessibleElementText(premise);
         const response = this.responseArray.includes(premise.parentElement)
             ? premise.parentElement
@@ -1069,9 +1073,7 @@ export default class DragNDrop extends RunestoneBase {
         }
         for (let premise of this.premiseArray) {
             // Clear any incorrect highlighting left over from a previous check
-            premise.classList.remove("drop-incorrect");
-            premise.setAttribute("aria-invalid", "false");
-            premise.removeAttribute("aria-errormessage");
+            this.clearPremiseIncorrect(premise);
             this.draggableDiv.appendChild(premise);
         }
         this.updatePremiseAriaLabels();
@@ -1211,6 +1213,14 @@ export default class DragNDrop extends RunestoneBase {
         }
         await this.logBookEvent(data);
     }
+    clearPremiseIncorrect(premise) {
+        premise.classList.remove("drop-incorrect");
+        premise.setAttribute("aria-invalid", "false");
+        premise.removeAttribute("aria-errormessage");
+        document
+            .getElementById(premise.id + "_error")
+            ?.classList.add("visuallyhidden");
+    }
     clearIncorrectHighlights() {
         // Remove the red "drop-incorrect" highlighting and related a11y
         // attributes from every placed premise.
@@ -1218,9 +1228,7 @@ export default class DragNDrop extends RunestoneBase {
             for (let premise of Array.from(response.childNodes).filter(
                 this.ivp,
             )) {
-                premise.classList.remove("drop-incorrect");
-                premise.setAttribute("aria-invalid", "false");
-                premise.removeAttribute("aria-errormessage");
+                this.clearPremiseIncorrect(premise);
             }
         }
     }
@@ -1272,9 +1280,7 @@ export default class DragNDrop extends RunestoneBase {
                         .getElementById(premise.id + "_error")
                         .classList.remove("visuallyhidden");
                 } else {
-                    premise.classList.remove("drop-incorrect");
-                    premise.setAttribute("aria-invalid", "false");
-                    premise.removeAttribute("aria-errormessage");
+                    this.clearPremiseIncorrect(premise);
                 }
             }
         }

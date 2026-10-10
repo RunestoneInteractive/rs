@@ -309,6 +309,69 @@ describe("feedback rendering", () => {
     });
 });
 
+describe("returning a misplaced premise", () => {
+    async function dndWithRedPremise() {
+        const dnd = await makeDnd();
+        place(dnd, "p1", "r2");
+        place(dnd, "p2", "r1");
+        for (let i = 0; i < 3; i++) {
+            dnd.submitButton.click();
+            await feedbackSettles();
+        }
+        const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        expect(p1.classList.contains("drop-incorrect")).toBe(true);
+        return { dnd, p1 };
+    }
+
+    function expectNotMarkedIncorrect(premise) {
+        expect(premise.classList.contains("drop-incorrect")).toBe(false);
+        expect(premise.getAttribute("aria-invalid")).toBe("false");
+        expect(premise.hasAttribute("aria-errormessage")).toBe(false);
+        expect(
+            document
+                .getElementById(premise.id + "_error")
+                .classList.contains("visuallyhidden"),
+        ).toBe(true);
+    }
+
+    it("clears its red styling when dropped back in the dragzone", async () => {
+        const { dnd, p1 } = await dndWithRedPremise();
+        const drop = new Event("drop", { bubbles: true, cancelable: true });
+        Object.defineProperty(drop, "dataTransfer", {
+            value: { getData: () => p1.id },
+        });
+
+        dnd.draggableDiv.dispatchEvent(drop);
+
+        expect(p1.parentElement).toBe(dnd.draggableDiv);
+        expectNotMarkedIncorrect(p1);
+    });
+
+    it("clears its red styling when returned with the keyboard", async () => {
+        const { dnd, p1 } = await dndWithRedPremise();
+
+        p1.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        p1.parentElement.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+        );
+
+        expect(p1.parentElement).toBe(dnd.draggableDiv);
+        expectNotMarkedIncorrect(p1);
+    });
+
+    it("keeps a premise red while it stays in a response", async () => {
+        const { dnd } = await dndWithRedPremise();
+        const p2 = dnd.premiseArray.find((p) => p.id === "p2");
+
+        dnd.responseArray.find((r) => r.id === "r2").appendChild(p2);
+        dnd.updatePremiseAriaLabel(p2);
+
+        expect(p2.classList.contains("drop-incorrect")).toBe(true);
+    });
+});
+
 describe("reset", () => {
     it("returns premises to the dragzone and starts the try count over", async () => {
         const dnd = await makeDnd();
