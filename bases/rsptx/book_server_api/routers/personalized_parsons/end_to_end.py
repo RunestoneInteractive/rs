@@ -9,6 +9,13 @@ from .generate_parsons_blocks import generate_Parsons_block
 from .get_parsons_code_distractors import generate_code_with_distrator
 from .get_personalized_solution import get_example_solution, get_fixed_code
 from .personalize_parsons import compare_code, personalize_Parsons_block
+from .subgoal_labels import (
+    attach_labels_to_code,
+    attach_labels_to_puzzle,
+    has_labels,
+    label_texts,
+    strip_comment_lines,
+)
 from .token_compare import code_similarity_score
 
 
@@ -53,6 +60,12 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
     else:
         return "Error: invalid personalize_level"
 
+    # Full-line comments -- subgoal labels and commented-out code -- stay out
+    # of block generation, where they would become draggable blocks or
+    # distractor candidates. When the student wrote labels, they are put back
+    # into the finished puzzle below.
+    code_for_blocks = strip_comment_lines(final_fixed_code, language)
+
     if personalize_level == "Solution":
         # generate Parsons puzzles with personalization only at the solution level with paired distractors
         final_Parsons_block = generate_multi_personalized_Parsons_blocks(
@@ -60,7 +73,7 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
             language,
             problem_description,
             buggy_code,
-            final_fixed_code,
+            code_for_blocks,
             default_start_code,
             default_test_code,
             unittest_code,
@@ -72,13 +85,18 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
             language,
             problem_description,
             buggy_code,
-            final_fixed_code,
+            code_for_blocks,
             default_start_code,
             default_test_code,
             unittest_code,
         )
     else:
         return "Error: invalid personalize_level"
+
+    if final_Parsons_block != "Correct_Code" and has_labels(buggy_code, language):
+        final_Parsons_block = attach_labels_to_puzzle(
+            final_Parsons_block, final_fixed_code, language
+        )
 
     return (
         final_fixed_code,
@@ -163,6 +181,16 @@ def request_fixed_code_from_openai(
 
         # For other cases, return the more similar one as the personalized result
         if similarity_personalized >= similarity_most_common:
+            # Testing stripped the comments; restore the student's labels from
+            # the LLM's raw output (it was asked to keep them) and drop the
+            # blank lines the stripped comments left. Only the student's own
+            # labels are kept, not comments the LLM added.
+            cleaned_fixed_code = attach_labels_to_code(
+                cleaned_fixed_code,
+                fixed_code,
+                language,
+                keep=label_texts(buggy_code, language),
+            )
             return cleaned_fixed_code.lstrip(), "AI_personalized"
         else:
             return example_solution.lstrip(), "example_more_personalized"
