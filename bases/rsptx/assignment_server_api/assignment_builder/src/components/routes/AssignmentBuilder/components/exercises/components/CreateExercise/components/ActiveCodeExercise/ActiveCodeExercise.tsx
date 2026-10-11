@@ -5,7 +5,10 @@ import { useFetchDatafilesQuery } from "@/store/datafile/datafile.logic.api";
 import { ExistingDataFile, SelectedDataFile } from "@/types/datafile";
 import { CreateExerciseFormType } from "@/types/exercises";
 import { createExerciseId } from "@/utils/exercise";
-import { generateActiveCodePreview } from "@/utils/preview/activeCode";
+import {
+  generateActiveCodePreview,
+  pickActiveCodeAdvancedOptions
+} from "@/utils/preview/activeCode";
 
 import { ACTIVE_CODE_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
@@ -104,7 +107,8 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
           parsonsexample: data.parsonsexample,
           parsonsPersonalized: data.parsonsPersonalized,
           enableCodelens: data.enableCodelens
-        }
+        },
+        pickActiveCodeAdvancedOptions(data)
       );
     },
     [allDatafiles]
@@ -243,6 +247,7 @@ export const ActiveCodeExercise: FC<ExerciseComponentProps> = ({
             parsonsexample={formData.parsonsexample}
             parsonsPersonalized={formData.parsonsPersonalized}
             enableCodelens={formData.enableCodelens}
+            advanced={pickActiveCodeAdvancedOptions(formData)}
           />
         );
 

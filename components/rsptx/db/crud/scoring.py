@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy import select, and_, or_
 
 from rsptx.response_helpers.core import canonical_utcnow
@@ -179,18 +179,20 @@ async def fetch_reading_assignment_spec(
         return res.first()
 
 
-async def fetch_assignment_scores(
+async def fetch_assignment_scores_with_points(
     assignment_id: int, course_name: str, username: str
-) -> List[QuestionGradeValidator]:
+) -> List[Tuple[QuestionGradeValidator, Optional[float]]]:
     """
-    Fetch all scores for a given assignment.
+    Fetch a student's question scores for an assignment, each paired with the
+    points the question is worth *in this assignment*.
 
-    :param assignment_id: int, the id of the assignment
-    :param course_id: int, the id of the course
-    :param username: str, the username of the student
-    :return: List[ScoringSpecification], a list of ScoringSpecification objects
+    ``question_grades`` has no assignment column: a question used in two
+    assignments shares one row, so a score earned where the question is worth
+    more can sit above what it is worth here. The points let the caller cap it.
+
+    :return: a list of ``(QuestionGradeValidator, points)`` tuples
     """
-    query = select(QuestionGrade).where(
+    query = select(QuestionGrade, AssignmentQuestion.points).where(
         and_(
             (QuestionGrade.sid == username),
             (QuestionGrade.div_id == Question.name),
@@ -202,5 +204,7 @@ async def fetch_assignment_scores(
 
     async with async_session() as session:
         res = await session.execute(query)
-        rslogger.debug(f"{res=}")
-        return [QuestionGradeValidator.from_orm(q) for q in res.scalars()]
+        return [
+            (QuestionGradeValidator.from_orm(grade), points)
+            for grade, points in res.all()
+        ]

@@ -1,27 +1,31 @@
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 from collections import namedtuple
 from datetime import datetime
 from sqlalchemy import select, update, distinct, func
 from ..models import (
     Chapter,
     ChapterValidator,
-    Courses,
     SubChapter,
     SubChapterValidator,
     Question,
-    Useinfo,
     UserState,
     UserStateValidator,
     UserSubChapterProgress,
     UserSubChapterProgressValidator,
     UserChapterProgress,
     UserChapterProgressValidator,
+    UserInteraction,
     AuthUserValidator,
 )
 from ..async_session import async_session
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.logging import rslogger
 from .course import fetch_course
+from .interactions import (
+    fetch_touched_div_ids,
+    page_interaction_key,
+    since_term_start,
+)
 from rsptx.validation import schemas
 
 
@@ -118,7 +122,6 @@ async def count_reading_activities(
     base_course: str,
     course_name: str,
     sid: str,
-    page_url_suffix: str,
     deadline: Optional[datetime] = None,
 ) -> int:
     """Count the activities one student has completed on one reading page.
@@ -129,27 +132,24 @@ async def count_reading_activities(
     plus one for every non-optional activity on the page they have interacted
     with.  Interacting with the same activity twice still counts once.
 
-    A page view is logged as a ``useinfo`` row with ``event == "page"`` whose
-    ``div_id`` is the page's file name -- ``<subchapter>.html`` for a PreTeXt
-    book and ``<chapter>/<subchapter>.html`` for a Sphinx one, sometimes behind
-    a path prefix.  The caller passes whichever shape its book uses as
-    ``page_url_suffix`` and the match is on the ending.
+    Read from ``user_interactions``: the page view is the row under
+    ``page_interaction_key(chapter, subchapter)``, and an activity counts when
+    the student touched it at all.  With a deadline, what matters is whether
+    the *first* interaction came before it.
 
     :param chapter: the chapter label (``questions.chapter``).
     :param subchapter: the subchapter label (``questions.subchapter``).
     :param base_course: the base course the questions belong to.
-    :param course_name: the course whose ``useinfo`` rows to read.
+    :param course_name: the course to count in.
     :param sid: the student's username.
-    :param page_url_suffix: how this book's page views end, e.g.
-        ``"chapter/subchapter.html"``.
     :param deadline: when given, activity after it does not count.
     :return: the number of activities attempted, the page itself included.
     """
     # Same filter as the progress bar: only activities that came from the book
     # source and are not marked optional are ones the reader was asked to do.
     # The page's own question row is not an activity -- it is counted by the
-    # page view below -- and never matches a useinfo div_id anyway.
-    where_clause_common = (
+    # page view below.
+    activity_names = select(Question.name).where(
         (Question.subchapter == subchapter)
         & (Question.chapter == chapter)
         & (Question.from_source == True)  # noqa: E712
@@ -160,68 +160,31 @@ async def count_reading_activities(
         & (Question.base_course == base_course)
         & (Question.question_type != "page")
     )
-
-    activity_query = (
-        select(func.count(distinct(Useinfo.div_id)))
-        .select_from(Useinfo)
-        .join(Question, Question.name == Useinfo.div_id)
-        .join(Courses, Courses.course_name == Useinfo.course_id)
-        .where(
-            where_clause_common
-            & (Useinfo.course_id == course_name)
-            & (Useinfo.sid == sid)
-            & (Useinfo.timestamp > Courses.term_start_date)
+    page_key = page_interaction_key(chapter, subchapter)
+    query = (
+        select(
+            func.count(distinct(UserInteraction.div_id)).filter(
+                UserInteraction.div_id != page_key
+            ),
+            func.count().filter(UserInteraction.div_id == page_key),
         )
-    )
-    page_query = (
-        select(func.count())
-        .select_from(Useinfo)
-        .join(Courses, Courses.course_name == Useinfo.course_id)
+        .join(*since_term_start())
         .where(
-            (Useinfo.course_id == course_name)
-            & (Useinfo.sid == sid)
-            & (Useinfo.event == "page")
-            & (Useinfo.div_id.endswith(page_url_suffix, autoescape=True))
-            & (Useinfo.timestamp > Courses.term_start_date)
+            (UserInteraction.course_name == course_name)
+            & (UserInteraction.sid == sid)
+            & (
+                UserInteraction.div_id.in_(activity_names)
+                | (UserInteraction.div_id == page_key)
+            )
         )
     )
     if deadline is not None:
-        activity_query = activity_query.where(Useinfo.timestamp <= deadline)
-        page_query = page_query.where(Useinfo.timestamp <= deadline)
+        query = query.where(UserInteraction.first_interaction <= deadline)
 
     async with async_session() as session:
-        activities = (await session.execute(activity_query)).scalar() or 0
-        page_views = (await session.execute(page_query)).scalar() or 0
+        activities, page_views = (await session.execute(query)).one()
 
-    return int(activities) + (1 if page_views else 0)
-
-
-async def fetch_page_readers(course_name: str, page_url_suffix: str) -> List[str]:
-    """The students who have opened one page of the book.
-
-    A reading has no answers to count, so this is what "answered" means for
-    one: the students who got as far as loading the page.  See
-    :func:`count_reading_activities` for how a page view is recognised.
-
-    :param course_name: the course whose ``useinfo`` rows to read.
-    :param page_url_suffix: how this book's page views end, e.g.
-        ``"chapter/subchapter.html"``.
-    :return: the distinct student usernames, in no particular order.
-    """
-    query = (
-        select(distinct(Useinfo.sid))
-        .select_from(Useinfo)
-        .join(Courses, Courses.course_name == Useinfo.course_id)
-        .where(
-            (Useinfo.course_id == course_name)
-            & (Useinfo.event == "page")
-            & (Useinfo.div_id.endswith(page_url_suffix, autoescape=True))
-            & (Useinfo.timestamp > Courses.term_start_date)
-        )
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        return [sid for sid in res.scalars() if sid]
+    return int(activities or 0) + (1 if page_views else 0)
 
 
 async def fetch_page_activity_counts(
@@ -265,25 +228,12 @@ async def fetch_page_activity_counts(
         ("page" if q.question_type == "page" else q.name): 0
         for q in page_divids.scalars()
     }
-    query = (
-        select(distinct(Useinfo.div_id))
-        .join(Courses, Courses.course_name == Useinfo.course_id)
-        .where(
-            where_clause_common
-            & (Question.name == Useinfo.div_id)
-            & (Useinfo.course_id == course_name)
-            & (Useinfo.sid == username)
-            & (Useinfo.timestamp > Courses.term_start_date)
-        )
-    )
-    async with async_session() as session:
-        sid_counts = await session.execute(query)
-
-    # doing a call to scalars() on a single column join query like this reduces
-    # the row to just the string.  So each row is just a string representing a unique
-    # div_id the user has interacted with on this page.
-    for row in sid_counts.scalars():
-        div_counts[row] = 1
+    # Which of them this student has touched.  The "page" entry is left at 0:
+    # the client marks the page itself as attempted once it loads.
+    for div_id in await fetch_touched_div_ids(
+        course_name, username, [name for name in div_counts if name != "page"]
+    ):
+        div_counts[div_id] = 1
 
     return div_counts
 
@@ -488,6 +438,37 @@ async def fetch_user_chapter_progress(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return UserChapterProgressValidator.from_orm(res.scalars().first())
+
+
+async def fetch_user_chapter_progress_for(
+    user, chapter_labels: List[str]
+) -> Dict[str, UserChapterProgressValidator]:
+    """
+    Retrieve the user's UserChapterProgress entries for several chapters at once.
+
+    :param user: AuthUserValidator, the user
+    :param chapter_labels: the chapter labels to look up
+    :return: a dict mapping chapter label to its UserChapterProgressValidator;
+        chapters with no entry are absent
+    """
+    if not chapter_labels:
+        return {}
+    query = (
+        select(UserChapterProgress)
+        .where(
+            (UserChapterProgress.user_id == str(user.id))  # stored as a string
+            & (UserChapterProgress.chapter_id.in_(chapter_labels))
+        )
+        .order_by(UserChapterProgress.id)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        progress: Dict[str, UserChapterProgressValidator] = {}
+        for row in res.scalars():
+            progress.setdefault(
+                row.chapter_id, UserChapterProgressValidator.from_orm(row)
+            )
+        return progress
 
 
 async def create_user_chapter_progress_entry(

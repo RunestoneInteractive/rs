@@ -33,6 +33,7 @@ from psycopg2.sql import Identifier, SQL
 # our own package imports
 
 from rsptx.db.crud import (
+    backfill_user_interactions,
     build_checkin_payload,
     set_last_sent,
     copy_course_attributes,
@@ -49,6 +50,7 @@ from rsptx.db.crud import (
     delete_user,
     fetch_all_course_attributes,
     fetch_assignments,
+    fetch_backfill_bounds,
     fetch_course,
     fetch_courses_by_start_date,
     fetch_courses_for_user,
@@ -1992,6 +1994,69 @@ async def telemetry(config, send):
             click.echo(f"\nSent. Server responded HTTP {status_code}.")
         else:
             click.echo(f"\nServer responded HTTP {status_code}; not recorded.")
+    finally:
+        await term_models()
+
+
+@cli.command("backfill-interactions")
+@click.option(
+    "--since",
+    default="2026-01-01",
+    show_default=True,
+    help="Only fold in useinfo rows logged on or after this date (UTC).",
+)
+@click.option(
+    "--start-id",
+    type=int,
+    default=None,
+    help="Resume from this useinfo id (printed after every batch).",
+)
+@click.option(
+    "--end-id",
+    type=int,
+    default=None,
+    help="Stop before this useinfo id. Default: max(id) when the command starts.",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=1_000_000,
+    show_default=True,
+    help="useinfo ids per transaction.",
+)
+@pass_config
+async def backfill_interactions(config, since, start_id, end_id, batch_size):
+    """Fill user_interactions from historical useinfo rows.
+
+    Run after the user_interactions migration and after the servers that write
+    it are deployed: rows logged from then on are recorded live, so the
+    default end (max id at start) is all the history there is to fold in.
+    Each batch commits on its own, so the command can be stopped and resumed
+    with --start-id.  Re-running a range is safe for first/last interaction
+    times but inflates the interaction counts.
+    """
+    since_dt = datetime.datetime.fromisoformat(since)
+    try:
+        first, last = await fetch_backfill_bounds(since_dt)
+        if first is None:
+            click.echo(f"No useinfo rows since {since}; nothing to do.")
+            return
+        lo = start_id if start_id is not None else first
+        stop = end_id if end_id is not None else last + 1
+        click.echo(f"Backfilling useinfo ids {lo}..{stop - 1} since {since}")
+        total = 0
+        while lo < stop:
+            hi = min(lo + batch_size, stop)
+            started = datetime.datetime.now()
+            rows = await backfill_user_interactions(lo, hi, since_dt)
+            total += rows
+            elapsed = (datetime.datetime.now() - started).total_seconds()
+            click.echo(
+                f"  ids {lo}..{hi - 1}: {rows} tracker rows in {elapsed:.1f}s"
+                f"  (resume with --start-id {hi})"
+            )
+            lo = hi
+        click.echo(f"Done: {total} tracker rows inserted or updated.")
     finally:
         await term_models()
 

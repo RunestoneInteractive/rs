@@ -1,8 +1,9 @@
+import datetime
 import time
 import uuid
 from typing import Optional
 from pydal.validators import CRYPT
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 from fastapi import HTTPException
 from ..models import (
     AuthUser,
@@ -130,6 +131,20 @@ async def delete_user(username):
         await session.execute(deluser)
         # This will delete many other things as well based on the CASECADING
         # foreign keys
+
+
+async def count_users_created_since(since: datetime.datetime) -> int:
+    """
+    Count the accounts created on or after ``since`` (naive UTC).
+
+    auth_user.created_on is not indexed, so this is a full scan of a large
+    table; callers should cache the result rather than run it per request.
+    """
+    query = (
+        select(func.count()).select_from(AuthUser).where(AuthUser.created_on >= since)
+    )
+    async with async_session() as session:
+        return (await session.execute(query)).scalar_one()
 
 
 async def fetch_user_by_email(email: str) -> Optional[AuthUserValidator]:

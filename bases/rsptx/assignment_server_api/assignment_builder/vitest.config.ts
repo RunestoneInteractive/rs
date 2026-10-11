@@ -32,7 +32,7 @@ export default mergeConfig(
       setupFiles: "vitest.setup.ts",
       testTimeout: 10000,
       hookTimeout: 10000,
-      include: ["src/**/*.spec.*"],
+      include: ["src/**/*.spec.*", "src/**/*.test.*"],
       clearMocks: true,
       coverage: {
         provider: "istanbul",

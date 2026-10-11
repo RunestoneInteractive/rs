@@ -478,7 +478,9 @@ async def test_manual_total_requires_score_when_manual(auth_instructor_client):
 # ---------------------------------------------------------------------------
 
 
-async def _assignment_with_question(client, name, div_id, points=10):
+async def _assignment_with_question(
+    client, name, div_id, points=10, question_type="mchoice"
+):
     """Create an assignment in the instructor's course with one linked question."""
     from rsptx.db.crud import create_assignment_question, create_question, fetch_course
     from rsptx.db.models import AssignmentQuestionValidator, QuestionValidator
@@ -495,7 +497,7 @@ async def _assignment_with_question(client, name, div_id, points=10):
             author="test_instructor",
             question="grade rollup test question?",
             timestamp=canonical_utcnow(),
-            question_type="mchoice",
+            question_type=question_type,
             is_private=False,
             from_source=False,
             review_flag=False,
@@ -767,24 +769,30 @@ async def _add_interaction_question(
 
 
 async def _log_useinfo(sid, div_id, event, act, when=None):
-    """Write a useinfo row directly, standing in for interactions students
-    logged before the scoring bug was fixed."""
+    """Log an event the way the servers do, through ``create_useinfo_entry``,
+    so it reaches both useinfo and the user_interactions tracker.  A page view
+    is given as its Sphinx path, ``chapter/subchapter.html``, and tracked under
+    that page's key, as books.py does."""
     import datetime
 
-    from rsptx.db.async_session import async_session
-    from rsptx.db.models import Useinfo
+    from rsptx.db.crud import create_useinfo_entry, page_interaction_key
+    from rsptx.db.models import UseinfoValidation
 
-    async with async_session.begin() as session:
-        session.add(
-            Useinfo(
-                timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
-                sid=sid,
-                event=event,
-                act=act,
-                div_id=div_id,
-                course_id=COURSE_NAME,
-            )
-        )
+    key = None
+    if event == "page":
+        chapter, _, page = div_id.rpartition("/")
+        key = page_interaction_key(chapter, page.removesuffix(".html"))
+    await create_useinfo_entry(
+        UseinfoValidation(
+            timestamp=when or datetime.datetime(2024, 6, 1, 12, 0, 0),
+            sid=sid,
+            event=event,
+            act=act,
+            div_id=div_id,
+            course_id=COURSE_NAME,
+        ),
+        interaction_key=key,
+    )
 
 
 async def _grade_for(sid, div_id):
@@ -1084,6 +1092,66 @@ async def test_answers_list_includes_students_who_did_not_submit(
     assert mine[0]["answer"] is None
     assert mine[0]["timestamp"] is None
     assert mine[0]["score"] is None
+
+
+async def test_answer_text_serializes_json_backed_answers():
+    import json
+
+    from rsptx.assignment_server_api.routers.grader import _answer_text
+
+    stored_answer = {"connections": [{"from": "prompt-1", "to": "response-1"}]}
+
+    assert json.loads(_answer_text(stored_answer)) == stored_answer
+
+
+async def test_answers_list_serializes_matching_answer_as_json(
+    auth_instructor_client,
+):
+    """JSON-backed answers stay valid JSON for compact frontend renderers."""
+    import datetime
+    import json
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import MatchingAnswers
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id, question = await _assignment_with_question(
+        auth_instructor_client,
+        "answers_matching_json",
+        "answers_matching_json_q",
+        question_type="matching",
+    )
+    stored_answer = {
+        "connections": [
+            {"from": "prompt-1", "to": "response-1"},
+            {"from": "prompt-2", "to": "response-2"},
+        ]
+    }
+    async with async_session.begin() as session:
+        session.add(
+            MatchingAnswers(
+                timestamp=datetime.datetime(2024, 6, 1, 12, 0, 0),
+                sid="testuser1",
+                div_id=question.name,
+                course_name=COURSE_NAME,
+                answer=stored_answer,
+                correct=True,
+                percent=1.0,
+            )
+        )
+
+    resp = await auth_instructor_client.get(
+        "/instructor/grader/questions/answers",
+        params={"assignment_id": assignment_id, "question_id": question.id},
+    )
+
+    assert resp.status_code == 200
+    mine = next(
+        answer
+        for answer in resp.json()["detail"]["answers"]
+        if answer["sid"] == "testuser1"
+    )
+    assert json.loads(mine["answer"]) == stored_answer
 
 
 async def test_answers_list_keeps_grade_without_submission(auth_instructor_client):
@@ -1420,6 +1488,27 @@ async def test_regrade_reading_can_award_late_work(auth_instructor_client):
     assert (await _grade_for("testuser1", "late_ch/late_sub")).score == 5
 
 
+async def _view_page(sid, chapter, subchapter):
+    """Log a page view the way the book server does, so it reaches both
+    useinfo and the user_interactions tracker the grader reads."""
+    import datetime
+
+    from rsptx.db.crud import create_useinfo_entry, page_interaction_key
+    from rsptx.db.models import UseinfoValidation
+
+    await create_useinfo_entry(
+        UseinfoValidation(
+            event="page",
+            act="view",
+            div_id=f"{chapter}/{subchapter}.html",
+            course_id=COURSE_NAME,
+            sid=sid,
+            timestamp=datetime.datetime(2024, 6, 1, 12, 0, 0),
+        ),
+        interaction_key=page_interaction_key(chapter, subchapter),
+    )
+
+
 async def test_question_stats_count_readers_of_a_reading(auth_instructor_client):
     """A reading has no answers, so the question list counts the students who
     opened the page instead of reporting 0 for every reading."""
@@ -1428,7 +1517,7 @@ async def test_question_stats_count_readers_of_a_reading(auth_instructor_client)
     await _add_reading_question(
         assignment_id, "stats_ch", "stats_sub", activity_names=["stats_q1"]
     )
-    await _log_useinfo("testuser1", "stats_ch/stats_sub.html", "page", "view")
+    await _view_page("testuser1", "stats_ch", "stats_sub")
 
     resp = await auth_instructor_client.get(
         f"/instructor/grader/assignments/{assignment_id}/questions"
@@ -1721,3 +1810,229 @@ async def test_answer_history_resolves_selectquestion(auth_instructor_client):
     history = resp.json()["detail"]["history"]
     assert [h["answer"] for h in history] == ["0", "2"]
     assert history[-1]["correct"] is True
+
+
+# ---------------------------------------------------------------------------
+# question list statistics for answer-table questions
+#
+# Pins the numbers the grading page shows, so the batched queries behind
+# ``list_assignment_questions`` keep reporting exactly what the old
+# one-question-at-a-time loop did.
+# ---------------------------------------------------------------------------
+
+
+async def _add_question(assignment_id, div_id, question_type, points, priority=1):
+    """Attach a plain question of ``question_type`` to an assignment. Returns
+    the question id."""
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import AssignmentQuestion, Question
+
+    async with async_session.begin() as session:
+        question = Question(
+            base_course=COURSE_NAME,
+            name=div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type=question_type,
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        session.add(question)
+        await session.flush()
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment_id,
+                question_id=question.id,
+                points=points,
+                autograde="pct_correct",
+                which_to_grade="last_answer",
+                reading_assignment=False,
+                sorting_priority=priority,
+            )
+        )
+        return question.id
+
+
+async def _add_rows(*rows):
+    from rsptx.db.async_session import async_session
+
+    async with async_session.begin() as session:
+        session.add_all(rows)
+
+
+async def test_question_stats_for_answer_table_questions(auth_instructor_client):
+    """answered / attempts / correct / average numbers for an mchoice, a
+    shortanswer (no ``correct`` column) and an activecode (answers in both
+    unittest_answers and code), with the instructor's own work left out."""
+    import datetime
+
+    from rsptx.db.crud import fetch_course
+    from rsptx.db.models import (
+        Code,
+        MchoiceAnswers,
+        QuestionGrade,
+        ShortanswerAnswers,
+        UnittestAnswers,
+    )
+
+    course = await fetch_course(COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_tables")
+    mc_id = await _add_question(assignment_id, "qstats_mc", "mchoice", 4, 1)
+    sa_id = await _add_question(assignment_id, "qstats_sa", "shortanswer", 5, 2)
+    ac_id = await _add_question(assignment_id, "qstats_ac", "activecode", 10, 3)
+
+    def t(minute):
+        return datetime.datetime(2024, 6, 1, 12, minute)
+
+    def mc(sid, minute, correct):
+        return MchoiceAnswers(
+            timestamp=t(minute),
+            sid=sid,
+            div_id="qstats_mc",
+            course_name=COURSE_NAME,
+            answer="1",
+            correct=correct,
+            percent=1.0 if correct else 0.0,
+        )
+
+    def code(sid, minute):
+        return Code(
+            timestamp=t(minute),
+            sid=sid,
+            acid="qstats_ac",
+            course_id=course.id,
+            code="print(1)",
+            language="python",
+        )
+
+    # Rows are added one call at a time so ids follow the timeline: the
+    # "latest answer" is the highest id.
+    for row in [
+        mc("qs_s1", 1, False),
+        mc("qs_s1", 2, True),  # s1 ends correct
+        mc("qs_s2", 3, True),
+        mc("qs_s2", 4, False),  # s2 ends wrong
+        mc("test_instructor", 5, True),  # not counted
+    ]:
+        await _add_rows(row)
+    await _add_rows(
+        ShortanswerAnswers(
+            timestamp=t(1),
+            sid="qs_s1",
+            div_id="qstats_sa",
+            course_name=COURSE_NAME,
+            answer="a",
+        ),
+        ShortanswerAnswers(
+            timestamp=t(2),
+            sid="qs_s2",
+            div_id="qstats_sa",
+            course_name=COURSE_NAME,
+            answer="b",
+        ),
+        UnittestAnswers(
+            timestamp=t(1),
+            sid="qs_s1",
+            div_id="qstats_ac",
+            course_name=COURSE_NAME,
+            answer="",
+            correct=True,
+            percent=1.0,
+            passed=1,
+            failed=0,
+        ),
+        code("qs_s1", 1),
+        code("qs_s1", 2),
+        code("qs_s4", 3),  # ran code but never ran the tests
+        QuestionGrade(
+            sid="qs_s1", course_name=COURSE_NAME, div_id="qstats_mc", score=4
+        ),
+        QuestionGrade(
+            sid="qs_s2", course_name=COURSE_NAME, div_id="qstats_mc", score=2
+        ),
+        QuestionGrade(
+            sid="test_instructor", course_name=COURSE_NAME, div_id="qstats_mc", score=4
+        ),
+        QuestionGrade(
+            sid="qs_s1", course_name=COURSE_NAME, div_id="qstats_sa", score=5
+        ),
+        QuestionGrade(
+            sid="qs_s2", course_name=COURSE_NAME, div_id="qstats_sa", score=3
+        ),
+    )
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    detail = resp.json()["detail"]
+    assert [q["id"] for q in detail["questions"]] == [mc_id, sa_id, ac_id]
+    stats = {q["id"]: q for q in detail["questions"]}
+
+    def numbers(q):
+        return {
+            k: q[k]
+            for k in (
+                "answered_count",
+                "total_attempts",
+                "correct_count",
+                "graded_count",
+                "average_score",
+                "avg_percent",
+                "points",
+            )
+        }
+
+    assert numbers(stats[mc_id]) == {
+        "answered_count": 2,
+        "total_attempts": 4,
+        "correct_count": 1,
+        "graded_count": 2,
+        "average_score": 3.0,
+        "avg_percent": 0.5,
+        "points": 4,
+    }
+    # No correct column: "correct" means graded at full marks.
+    assert numbers(stats[sa_id]) == {
+        "answered_count": 2,
+        "total_attempts": 2,
+        "correct_count": 1,
+        "graded_count": 2,
+        "average_score": 4.0,
+        "avg_percent": None,
+        "points": 5,
+    }
+    assert numbers(stats[ac_id]) == {
+        "answered_count": 2,
+        "total_attempts": 4,
+        "correct_count": 1,
+        "graded_count": 0,
+        "average_score": 0.0,
+        "avg_percent": 1.0,
+        "points": 10,
+    }
+
+
+async def test_question_stats_count_readers_per_reading(auth_instructor_client):
+    """Readers of several readings come from one tracker query; each student
+    is counted only for the pages they opened, and instructors not at all."""
+    await _enroll_student("testuser1", COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "stats_readings")
+    await _add_reading_question(assignment_id, "rd_ch", "rd_one")
+    await _add_reading_question(assignment_id, "rd_ch", "rd_two")
+    await _add_reading_question(assignment_id, "rd_ch", "rd_three")
+    await _view_page("rs_reader_a", "rd_ch", "rd_one")
+    await _view_page("rs_reader_b", "rd_ch", "rd_one")
+    await _view_page("rs_reader_a", "rd_ch", "rd_two")
+    await _view_page("test_instructor", "rd_ch", "rd_two")
+
+    resp = await auth_instructor_client.get(
+        f"/instructor/grader/assignments/{assignment_id}/questions"
+    )
+    assert resp.status_code == 200
+    answered = {
+        q["name"]: q["answered_count"] for q in resp.json()["detail"]["questions"]
+    }
+    assert answered == {"rd_ch/rd_one": 2, "rd_ch/rd_two": 1, "rd_ch/rd_three": 0}

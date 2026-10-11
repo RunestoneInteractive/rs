@@ -46,6 +46,8 @@ from rsptx.db.crud import (
     upsert_deadline_exception,
     create_question,
     fetch_course,
+    fetch_instructor_courses,
+    fetch_recent_instructor_courses,
     fetch_users_for_course,
     create_code_entry,
     fetch_subchapters,
@@ -64,6 +66,8 @@ from rsptx.db.crud import (
     fetch_student_assignment_scores,
     fetch_grade,
     fetch_user,
+    record_course_access,
+    update_user,
     user_in_course,
     get_peer_votes,
     search_exercises,
@@ -135,6 +139,54 @@ router = APIRouter(
     prefix="/instructor",
     tags=["instructor"],
 )
+
+
+class SwitchInstructorCourseRequest(BaseModel):
+    course_name: str
+
+
+@router.get("/courses/recent")
+@instructor_role_required()
+async def get_recent_instructor_courses(request: Request, user=Depends(auth_manager)):
+    """Return the ten most recently accessed courses taught by the user."""
+    courses = await fetch_recent_instructor_courses(user.id, limit=10)
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "courses": [
+                {
+                    **course,
+                    "is_current": course["course_name"] == user.course_name,
+                }
+                for course in courses
+            ]
+        },
+    )
+
+
+@router.post("/courses/switch")
+@instructor_role_required()
+async def switch_instructor_course(
+    request: Request,
+    payload: SwitchInstructorCourseRequest,
+    user=Depends(auth_manager),
+):
+    """Make one of the caller's instructor courses their active course."""
+    course = await fetch_course(payload.course_name)
+    if not course or not await fetch_instructor_courses(user.id, course.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not an instructor for that course",
+        )
+
+    await update_user(
+        user.id, {"course_name": course.course_name, "course_id": course.id}
+    )
+    await record_course_access(user.username, course.course_name, canonical_utcnow())
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={"status": "success", "course_name": course.course_name},
+    )
 
 
 @router.get("/reviewPeerAssignment")

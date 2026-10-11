@@ -23,6 +23,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
 from rsptx.question_outcomes.assignments import ReadingRef
+from rsptx.data_types.interactions import page_interaction_key
 from rsptx.question_outcomes.core import student_filter
 
 READING_STATES = ["completed", "in_progress", "not_started"]
@@ -34,35 +35,21 @@ READING_LABELS = {
 }
 
 
-def page_url_suffix(origin: Optional[str], chapter: str, subchapter: str) -> str:
-    """How a view of this page ends in ``useinfo.div_id``.
-
-    A PreTeXt book serves each page as ``<subchapter>.html``; a Sphinx book
-    puts it under its chapter.  Kept in step with
-    ``rsptx.grading_helpers.regrade.page_url_suffix``.
+def _tracker_rows(alias: str) -> str:
+    """``user_interactions`` rows for the course and keys, shaped for
+    ``student_filter``: its cutoff test reads ``<alias>.timestamp``, and the
+    time that decides "done by the cutoff" is the first interaction.  Rows
+    with no activity since the term started are left out, as the useinfo
+    queries this replaced did.
     """
-    if origin == "PreTeXt":
-        return f"{subchapter}.html"
-    return f"{chapter}/{subchapter}.html"
-
-
-def _course_facts(conn: Connection, course_name: str, base_course: str):
-    """The course's term start and its book's markup system."""
-    row = conn.execute(
-        text(
-            """
-            select c.term_start_date,
-                (select ca.value from course_attributes ca
-                    join courses b on b.id = ca.course_id
-                    where b.course_name = :base_course
-                        and ca.attr = 'markup_system'
-                    limit 1) as origin
-            from courses c where c.course_name = :course_name
-            """
-        ),
-        {"course_name": course_name, "base_course": base_course},
-    ).first()
-    return (row.term_start_date, row.origin) if row else (None, None)
+    return f"""
+        (select ui.sid, ui.div_id, ui.first_interaction as timestamp
+         from user_interactions ui
+         join courses c on c.course_name = ui.course_name
+         where ui.course_name = :course_name
+             and ui.div_id = any(:div_ids)
+             and ui.last_interaction > c.term_start_date) as {alias}
+    """
 
 
 def _page_activities(
@@ -110,59 +97,23 @@ def fetch_reading_activity(
     """
     if not readings or not sids:
         return {}
-    term_start, origin = _course_facts(conn, course_name, base_course)
     counts: Dict[Tuple[str, str], int] = {}
 
-    activities = _page_activities(conn, readings)
-    if activities:
-        params = {
-            "course_name": course_name,
-            "div_ids": sorted(activities),
-            "term_start": term_start,
-        }
-        join = student_filter(sids, cutoffs, params, "u")
-        rows = conn.execute(
-            text(
-                f"""
-                select distinct u.sid, u.div_id
-                from useinfo as u {join}
-                where u.course_id = :course_name
-                    and u.div_id = any(:div_ids)
-                    and u.timestamp > :term_start
-                """
-            ),
-            params,
-        ).all()
-        for r in rows:
-            key = (r.sid, activities[r.div_id])
-            counts[key] = counts.get(key, 0) + 1
-
-    # Opening the page is one more activity, however many times it was opened.
-    suffixes = {
-        page_url_suffix(origin, r.chapter, r.subchapter): r.name for r in readings
-    }
-    params = {
-        "course_name": course_name,
-        "suffixes": sorted(suffixes),
-        "term_start": term_start,
-    }
+    # Each activity touched counts once; opening the page is one more,
+    # however many times it was opened.  Both are rows in user_interactions,
+    # the page view under its page_interaction_key.
+    reading_of = _page_activities(conn, readings)
+    reading_of.update(
+        {page_interaction_key(r.chapter, r.subchapter): r.name for r in readings}
+    )
+    params = {"course_name": course_name, "div_ids": sorted(reading_of)}
     join = student_filter(sids, cutoffs, params, "u")
     rows = conn.execute(
-        text(
-            f"""
-            select distinct u.sid, s.suffix
-            from useinfo as u {join}
-                join unnest(cast(:suffixes as text[])) as s(suffix)
-                    on right(u.div_id, length(s.suffix)) = s.suffix
-            where u.course_id = :course_name
-                and u.event = 'page'
-                and u.timestamp > :term_start
-            """
-        ),
+        text(f"select distinct u.sid, u.div_id from {_tracker_rows('u')} {join}"),
         params,
     ).all()
     for r in rows:
-        key = (r.sid, suffixes[r.suffix])
+        key = (r.sid, reading_of[r.div_id])
         counts[key] = counts.get(key, 0) + 1
     return counts
 

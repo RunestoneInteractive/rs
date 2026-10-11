@@ -14,6 +14,7 @@
 # ----------------
 import datetime
 import os
+from collections import Counter
 import re
 import shutil
 import subprocess
@@ -32,7 +33,7 @@ import pretext.project
 
 # import xml.etree.ElementTree as ET
 
-from sqlalchemy import create_engine, Table, MetaData, and_, update
+from sqlalchemy import create_engine, Table, MetaData, and_, null, update
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
@@ -42,6 +43,7 @@ from rsptx.configuration import settings
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.build_tools.question_json import convert_question
 
 
 # Return the synchronous database URL for the current SERVER_CONFIG.
@@ -586,6 +588,9 @@ def manifest_data_to_db(course_name, manifest_path):
     Arguments:
         course_name {string} -- Name of the course (should be a base course)
         manifest_path {path} -- path to runestone-manifest.xml file
+
+    Returns a Counter of ``(question_type, stored)`` pairs: how many questions
+    of each type did or did not get a ``question_json``.
     """
     try:
         DBURL = get_dburl()
@@ -617,6 +622,8 @@ def manifest_data_to_db(course_name, manifest_path):
     _set_course_attributes(sess, db_context, course_name, manifest_path)
 
     sess.commit()
+    _log_question_json_stats(db_context)
+    return db_context.get("question_json_stats", Counter())
 
 
 def _initialize_db_context(engine, sess, course_name, manifest_path):
@@ -996,6 +1003,8 @@ def _process_single_timed_assignment(
         if qtype == "webwork" and el is not None:
             dbtext = ET.tostring(el).decode("utf8")
 
+        question_json = _question_json_for(qtype, el, question, idchild, db_context)
+
         # Build question data
         if parent is not None:
             subchap_label = parent.find("./id").text
@@ -1018,6 +1027,7 @@ def _process_single_timed_assignment(
             practice="F",
             author=db_context["author"],
             owner=db_context["owner"],
+            question_json=_sql_json(question_json),
         )
 
         # Insert or update question
@@ -1292,11 +1302,14 @@ def _process_single_question(
             dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
+    question_json = _question_json_for(qtype, el, question, idchild, db_context)
     practice = _determine_practice_flag(qtype, el)
     autograde = _determine_autograde(dbtext)
 
     # Fix image URLs
     dbtext = _fix_image_urls(dbtext, db_context, course_name)
+    if question_json is not None:
+        question_json = _fix_image_urls_in_json(question_json, db_context, course_name)
 
     # Build question data
     sbc = subchapter.find("./id").text
@@ -1318,6 +1331,7 @@ def _process_single_question(
         practice=practice,
         author=db_context["author"],
         owner=db_context["owner"],
+        question_json=_sql_json(question_json),
     )
     # Insert or update question
     namekey = old_ww_id if old_ww_id else idchild
@@ -1371,6 +1385,40 @@ def _extract_question_metadata(question, dbtext):
     return el, idchild, old_ww_id, qtype
 
 
+def _question_json_for(qtype, el, question, name, db_context):
+    """Return the question_json for a question, or None.
+
+    Only a lossless conversion is stored: the assignment builder regenerates
+    a question's HTML from its question_json when it is copied or edited, so
+    anything the JSON can't represent would be lost. Returning None also
+    clears a question_json left by an earlier build of the book.
+    """
+    conversion = convert_question(qtype, el, question.find("./htmlsrc"))
+    if conversion is None:
+        return None
+    stats = db_context.setdefault("question_json_stats", Counter())
+    stats[qtype, conversion.lossless] += 1
+    if conversion.lossless:
+        return conversion.question_json
+    rslogger.debug(
+        f"No question_json for {name}: {'; '.join(conversion.losses) or 'not converted'}"
+    )
+    return None
+
+
+def _sql_json(value):
+    # A JSON column stores Python None as the JSON value null; we want NULL.
+    return null() if value is None else value
+
+
+def _log_question_json_stats(db_context):
+    stats = db_context.get("question_json_stats", Counter())
+    for qtype in sorted({qtype for qtype, _ in stats}):
+        stored = stats[qtype, True]
+        total = stored + stats[qtype, False]
+        rslogger.info(f"question_json stored for {stored} of {total} {qtype}")
+
+
 def _find_pytutor_id(el):
     """Find the id of the pytutorVisualizer div inside a codelens question.
 
@@ -1422,6 +1470,20 @@ def _fix_image_urls(dbtext, db_context, course_name):
         f"""src="/ns/books/published/{course_name}/generated""", dbtext
     )
     return dbtext
+
+
+def _fix_image_urls_in_json(value, db_context, course_name):
+    """Apply ``_fix_image_urls`` to every string in a ``question_json`` value."""
+    if isinstance(value, str):
+        return _fix_image_urls(value, db_context, course_name)
+    if isinstance(value, list):
+        return [_fix_image_urls_in_json(v, db_context, course_name) for v in value]
+    if isinstance(value, dict):
+        return {
+            k: _fix_image_urls_in_json(v, db_context, course_name)
+            for k, v in value.items()
+        }
+    return value
 
 
 def _upsert_question(sess, db_context, namekey, valudict, course_name):

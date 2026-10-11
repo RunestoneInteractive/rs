@@ -1,0 +1,38 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--rs-space-3);
+  width: 100%;
+}
+
+.start,
+.end {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.start {
+  flex: 1 1 auto;
+}
+
+.end {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .end {
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+}

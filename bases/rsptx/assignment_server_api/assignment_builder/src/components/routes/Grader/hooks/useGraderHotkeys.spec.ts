@@ -139,14 +139,14 @@ describe("useGraderHotkeys", () => {
       expect(handlers.focusComment).toHaveBeenCalledOnce();
     });
 
-    it("calls toggleHideGraded on h key", () => {
-      const handlers: GraderHotkeyHandlers = { toggleHideGraded: vi.fn() };
+    it("calls toggleHideFullCredit on h key", () => {
+      const handlers: GraderHotkeyHandlers = { toggleHideFullCredit: vi.fn() };
 
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("h");
 
-      expect(handlers.toggleHideGraded).toHaveBeenCalledOnce();
+      expect(handlers.toggleHideFullCredit).toHaveBeenCalledOnce();
     });
 
     it("calls openHelp on ? key", () => {
@@ -297,7 +297,7 @@ describe("useGraderHotkeys", () => {
       expect(() => fireKeyDown("c")).not.toThrow();
     });
 
-    it("does not throw when toggleHideGraded is not provided", () => {
+    it("does not throw when toggleHideFullCredit is not provided", () => {
       renderHook(() => useGraderHotkeys({}));
       expect(() => fireKeyDown("h")).not.toThrow();
     });
@@ -312,7 +312,7 @@ describe("useGraderHotkeys", () => {
         prevAttempt: vi.fn(),
         focusGrade: vi.fn(),
         focusComment: vi.fn(),
-        toggleHideGraded: vi.fn(),
+        toggleHideFullCredit: vi.fn(),
         openHelp: vi.fn()
       };
 

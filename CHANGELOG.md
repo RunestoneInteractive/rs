@@ -1,5 +1,292 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-08-20 → 2026-10-07)
+
+Coverage: changes landed after the previous changelog update on **2026-08-20**, through **2026-10-07**.
+
+### Highlights
+
+- **Dash server for instructor visualizations (new):** the dash prototype was revived as `/dash/`, with background callbacks running in a new `dash_worker` service on its own Celery queue; first pages are a chapter question-outcomes chart (first-try right / right after retry / never right / never tried) and an assignment progress page, built on a new `rsptx.question_outcomes` component, and the pages share the site navbar and footer (977d0e9e, ec4d0d00, 37478793, 28116c8b).
+- **Accessibility (WCAG AA):** core page colors were consolidated into design tokens with contrast and focus-visibility fixes, a main landmark added to the base templates, and the change-course, profile, legal, course-add, donate and student-report pages fixed; the VPAT was updated and added to the repo. In the interactives, dragndrop, matching, mchoice, parsons, hparsons, clickable, fitb, shortanswer and activecode all gained keyboard and screen-reader work — MathJax-rendered speech in aria labels (via a shared extraction helper), announced feedback and results, an accessible native help dialog for matching, keyboard entry hints and localized announcements for Parsons/HParsons, and labeled inputs, heading hierarchy, history position and announced output for activecode; screen-reader-only CSS classes were consolidated and MathJax queue/readiness handling was centralized in `RunestoneBase` (ef8e4772, dadc75eb, 99794f02, aecaf61c, ffc572f5, 11de3259, 993cabcd, 8237a454, 009ef5aa, a94b19bf, 9ef81bea, 4c032288, c205ae94, 1ffa1670, d88c7158, 979d90d8, 3a270015, 2527b6c5, bf884a0d, 7500631c, 32faf3a7, 91288d22, 64ce40f5, ca50920a, 553e2f9e, 99dbdffc, 6e47eb13, 06727dd0, 20acce2e, a0a05c2f, e89cd8e8, fcea52c4, 56fbca06, d906713a, 88d78241, 0732e910, b48ad76f, 31bd9586, 4bf5a39e, ff356b19, b02e0501, 9fbcc3db, 6eb65906, 33abf473, c74f734e, 8d1a10ab, 182f62a0, 5b307544, 738e9817, 6a05e648, edad6703, 1eacc3ec, 3292c0dc, 76382e22, 06a12845, 62dd7581, f360a751, dd2df19f, f2372c29, dd5d6ff1, 68fe3d1b).
+- **Grader and gradebook:** the gradebook moved to a React page, students with late work are highlighted, question summary data was reworked, the manual grading view displays questions better (with a manual-grading filter, separate toolbar and MultiGradeDialog formatting), selectquestion work is shown in the grader, table page and rows-per-page are remembered, the CSV export has the username back and rows are labeled "Last, First" (d4a01592, 3ae15728, f244484d, 80a3411b, 644fc508, 181a7258, 25a47806, d366816c, f3f1faa9, 779885c3, 89ca8577, 508d63d2, 3621497b).
+- **Grading correctness:** the autograder no longer overwrites a hand-entered grade, the re-grader can score readings, "all assignments" deadline exceptions apply when grading one assignment, question scores are capped at the assignment's points, the accommodation form no longer drops extra days/time limit, blank time limit/due date in exceptions are stored as NULL, quizly is graded as interaction-only, and the assignment overview SQL error was fixed and reading interactions counted (7ec6eee2, 702489db, 561ed0cf, 52204a51, cad2a741, fcfa38e8, a030c005, c9cd54f3, 07002c30).
+- **LTI:** grades are pushed to the LMS when an assignment is released; instructors can repush unchanged grades (regrade from the grader forces passback, released manual totals are forced, unreleased grades are guarded during recomputes); LTI 1.3 got Blackboard debugging (later dropped to DEBUG), a `has_lti1p3_user_association` check and blank emails for associated accounts; an LTI frame resizer was added (8fe49f0e, ee5ce316, ae1b0106, 9b2d2cb6, f20e706e, 0db4357c, b68a5dd0, 5c6e6e99, 4258becc, b3826a10, 86a582e7, 7835013a, 6d92180f).
+- **Assignments:** bulk edit actions on the assignment list, per-assignment randomized conditions, explicit chapter/subchapter numbers in builder pages, better exercise sorting when adding via book browse, cross-course doenet assignments, and assignment links no longer open in the wrong course (69f4c44d, 55bcd4ea, d10ecaa6, 1eb4308c, 2a0508f0, 8e05c41f, e564721b, ebe4c19a).
+- **Question editor:** a new editorial (JSON) interface for questions that keeps the rendered HTML in sync with edits and handles older questions without `question_json` (d591ba46, 16df9d38, 2b66ce7d, b069d17e, 3a439fda, 1608dcc9).
+- **Peer instruction:** async PI fixes, LLM calls routed by token provider, `visible_on`/`hidden_on` honored, the first vote stays visible after the second, duplicate vote2 submissions fixed, the peer-chat websocket no longer reconnects in a loop on session expiry, and impersonation/student-control access was locked down (eee5daed, 35d10da7, 8c7f18f7, 621141e0, a326aa5a, 3bb1774c, 3b247ed6, 929b8702, 35ccbc64, 1e673ad0).
+- **Security hardening:** cross-site state-changing requests carrying the auth cookie are blocked, compare-me results and attachment lookups are scoped to the caller, untrusted data is escaped in interactives `innerHTML` sinks, password validation was strengthened, and invalid JSON is handled gracefully (47b20729, 833e40d6, bd10d724, c5282b15, 1c71e0b5, 052d778c, cf39a7fa, 71774a12).
+- **Performance / connection pooling:** the connection pools no longer run dry, the book server stopped blocking its own event loop, admin analytics reports run off the event loop, `doAssignment`, `/assessment/results` and instructor checks were sped up, and `user_courses.last_access` replaces useinfo scans; added `watch_pool_monitor.py` (bf5a951b, 621e3cbf, ad116f5c, 08d2211f, a162deba, 128d190c).
+- **CodeTailor / Parsons:** fixed asymmetric block indentation, raw markup and HTML entities leaking into the LLM pipeline and clipboard, def/return/import detection, mangled comparison operators, and question lookup in cloned courses (8861f74f, 6b34e466, e0adacf2, 313e8c97, 317783ae, 461b3891, 6e92d260, 7028ecd3).
+- **Activecode binary files:** `source_code.is_binary` with migration, delivery of binary files to the server working directory, and per-language wiring of binary compile-also files (19be6d41, c3e0ab08, 38395e4f, d17ee167, 7b19d020).
+- **Problem reports:** reporters can file under their own GitHub account, email is included, and the console log is always persisted to sessionStorage (6312e90e, 83b0e7aa, c7b5b97b).
+- **Course & student experience:** term start date clarified, with a warning when students are in the book before it and a rewritten progress container; course name in the user menu; a typed course name wins over a picked book at enrollment; Material Symbols font self-hosted without clobbering PreTeXt's; PSA ads restored for PreTeXt books; StudyClues gated on a course attribute with response logging; assignment-download timestamps shown in local time (2f8cbe01, a9a0ea05, ab889db9, b6bf343c, 22e13cbd, 036aa25b, 614afe81, 4c499566, 1946fc04, f0ab9408, 03e0c3fe, 56b49c34, 76de0396, 0ef95cd0, a668a613).
+- **Books / builds / manifest:** fixed manifest titles containing markup and chapter numbers in titles, page-question IntegrityErrors on rebuild (with `dedup-page-questions`), duplicate images in the bake process, and webwork JS on assignment pages with PreTeXt templates; subtitles are searchable (3d297678, 00c5850a, 5e056d04, ce1bad13, b9f5007e, 1d69b4ac).
+- **Tooling & ops:** Python 3.14 (minimum 3.13), docker-compose env blocks consolidated into YAML anchors, `rsmanage courseinfo --students`, rsmanage prompts fixed in Docker, scripts to copy questions between base courses and to seed PTXSB demo students, the release command prints latest GitHub releases, eslint/ruff fixes, and new fall courses/books added (75477c67, 95a783e6, b021c429, 90bd2a8c, 626408d9, 154b5ee5, dba9a2d3, 6ee1b5dc, 4265e626, c4953bf2, a4bf0646, cbc843fc, 9d3869e2, d68d8f47).
+- **Releases:** app versions **9.0.10** through **9.3.3** shipped (including 9.1.0, 9.2.0 and 9.3.0); bundled runestone JS bumped **8.2.7 → 8.3.4**.
+
+### Commit notes (for reference)
+
+- 00c5850a Do not include chapter numbers in title when processing runestone-manifest
+- 1eb4308c CRUD: include chapter numbers in fetch_questions
+- 2a0508f0 Assibment builder - add explicit chapter/subchapter numbers to builder pages
+- 72caf6c3 added required save_code choice
+- dba9a2d3 Add script to copy questions between base courses
+- ef8e4772 Consolidate core page colors and initial audit for WCAG
+- dadc75eb Add main landmark to _base and _auth-base
+- 99794f02 Fix accessibility issues with change course select
+- aecaf61c Fix accessibility issues on profile page
+- e4846914 Remove login help link to blog
+- 8fc0406e Mark auth/profile as student_page
+- ffc572f5 Fix accessibility on legal & compliance
+- 11de3259 Fix accessibility issues on course add and donate pages
+- 993cabcd Fix accessibility issues on student report
+- a030c005 Grade quizly as an interaction-only question type
+- 8237a454 WCAG AA contrast and focus-visibility fixes
+- 009ef5aa Update VPAT for the August 2026 accessibility work
+- a94b19bf add vpat to repo
+- 29bcee1f update runestone to version 8.2.7
+- 8e05c41f Improve sorting of exercises when adding to assignment via book browse
+- 3999ff0b Potential fix for pull request finding
+- e564721b enable cross-course doenet assignments
+- a4696815 add migration for existing builds
+- 46afbef9 update version to 9.0.10
+- 4265e626 Get and print the latest releases on github
+- 9ef81bea Dragndrop: fix issues in keyboard navigation
+- 4c032288 Matching: improve keyboard navigation
+- c205ae94 Interactives common: Add mathjax aria extraction helper
+- 1ffa1670 Dragndrop: add mathjax rendered speech to aria-labels
+- d88c7158 Matching: use rendered mathjax in aria labels
+- 979d90d8 Matching: results announced by screen readers
+- 3a270015 Matching: include box status (correct/incorrect) in aria label
+- 2527b6c5 Matching: convert help to accessible native dialog
+- d1545b6c remove iframe migration
+- 488cdc08 Updates for studyClues
+- 5d335216 ignore the notes folder
+- bf884a0d Mchoice feedback screen reader fixes
+- 7500631c Mchoice legend move to top of fieldset
+- 32faf3a7 Mchoice: use mathjax generated text for accessible labels
+- 8861f74f Fix CodeTailor Parsons puzzle asymmetric block indentation
+- 9f8f1a12 Matching: fix timing issue for rendering dragables with mathjax content
+- 00871f5a Better handling of an empty 200 response
+- c163cf46 Matching: copy mathjax to connection report
+- c07382d7 Matching: fix timing edgecase
+- 91288d22 Shortanswer: add aria-live to feedback area
+- 64ce40f5 Shortanswer: change unlabeled fieldset wrapper to div
+- 1d69b4ac Make subtitle searchable
+- e0adacf2 Fix CodeTailor raw Parsons markup leaking into LLM pipeline and clipboard
+- 317783ae Fix def/return and import detection in Parsons block aggregation
+- 83b0e7aa Add email to problem reports
+- cbc843fc Add Duke’s fall course
+- eee5daed async PI fixes
+- ca50920a Clickable: keyboard navigation improvements
+- 6b34e466 Fix asymmetric Parsons block indentation from leading trim()
+- 313e8c97 Fix HTML entities leaking into CodeTailor clipboard copy
+- 7bbb554f fix check me issue
+- 75570d0b update runestone to version 8.2.8
+- e9241f43 update version to 9.0.11
+- 9d3869e2 Add books for Jan
+- 14f39d9a update runestone to version 8.2.9
+- 446bdecf update lock
+- 461b3891 Fix CodeTailor Parsons blocks mangling comparison operators
+- 052d778c Strengthen password validation
+- 4d5479c0 Matching: override PTX SVG background color
+- 0305b631 update runestone to version 8.2.10
+- 6e92d260 Fix CodeTailor question lookup failing in cloned courses
+- 553e2f9e Parsons: render MathJax generated text into accessible label
+- 99dbdffc Parsons: support screen-reader keyboard interaction
+- 6e47eb13 Parsons: announce Help Me feedback inline
+- 06727dd0 Parsons: show keyboard entry hint on focus
+- 20acce2e Parsons: exclude disabled blocks from keyboard navigation
+- a0a05c2f Parsons: localize keyboard announcements
+- a668a613 Report assignment-download timestamps in the instructor's local time
+- b9f5007e Ensure webwork js on assignment pages even using pretext templates
+- 9a440682 apply copilot suggested fixes
+- 2f8cbe01 Clarify term start date in course creation/settings
+- b6bf343c Reformat progress container text
+- 22e13cbd Rewrite default progresscontainer HTML
+- a9a0ea05 Warn when in book before termStartDate
+- ab889db9 Add eBookConfig.termStartDate to student facing pages
+- 3bb1774c Stop the peer-chat websocket from reconnecting in a loop when the session expires
+- f0ab9408 Fix #1475: self-host the Material Symbols font so icons stop showing as words
+- 508d63d2 Fix #1477: put the username back in the gradebook CSV export
+- 3621497b Fix #1463: label gradebook rows "Last, First" so their order reads as an order
+- d2867f1b update runestone to version 8.2.11
+- 03e0c3fe Fix #1510: stop the bundled icon subset from replacing PreTeXt's font
+- 3722dff7 update runestone to version 8.2.12
+- 1946fc04 Fix #1489: a typed course name wins over a book the student also picked
+- 95126ce3 Test the #1489 enrollment priority, and unstick the admin suite's event loops
+- 626408d9 Fix rsmanage prompts in Docker by unpinning asyncclick
+- 060a2f61 update runestone to version 8.2.13
+- 991e45b5 update version to 9.0.12
+- 9b624ac3 clear github token for release command
+- 397b7b94 update version
+- cf39a7fa fix: min length
+- 69f4c44d Add bulk edit actions to the assignment list
+- 55bcd4ea f-1193 Add bulk edit actions to the assignment list
+- e89cd8e8 Make the Parsons "Enter to activate" hint harder to miss
+- ebe4c19a Stop an assignment link from opening in the wrong course (#1494)
+- 7ec6eee2 Stop the autograder from overwriting a hand-entered grade (#1515)
+- 702489db Teach the re-grader how to score a reading (#1493)
+- bf5a951b Stop the connection pools from running dry
+- cfd1a631 update version to 9.1.0
+- f244484d f-1252 changes to summary data for questions
+- 5c6e6e99 LTI1p3: Verbose debugging for blackboard intrgration issue
+- 4258becc LTI1p3: Clarify possible cause of failure to access line items
+- 8df32f19 Pass CADDY_SITE_ADDRESS and CERTBOT_EMAIL from .env to admin server
+- fcea52c4 Hparsons: Improve keyboard and MathJax accessibility
+- 56fbca06 Hparsons: Announce feedback and reset status
+- d906713a Hparsons: Cancel stale feedback announcements
+- bf841001 update version to 9.1.1
+- 88d78241 Hparsons: Await queued MathJax block renders
+- 0732e910 Hparsons: harden activeBlock tracking
+- b48ad76f Hparsons: Align keyboard application mode
+- 31bd9586 Hparsons: Style keyboard application surface
+- 4bf5a39e Hparsons: Space selected block outlines
+- ff356b19 Hparsons: Show keyboard activation cue
+- b02e0501 HParsons: Allow space key to move active block in ParsonsInput
+- 9fbcc3db Hparsons: Keep reusable block IDs unique
+- 6eb65906 Hparsons: Localize interface and keyboard messages
+- 621e3cbf Stop the book server blocking its own event loop
+- b021c429 Consolidate docker-compose environment blocks into YAML anchors
+- bc5d8e49 Update date
+- 779885c3 Show a selectquestion's work in the grader (#1481)
+- c266518c Fix CI testing
+- 6c52782c change log level of unauthenticated requests
+- c4953bf2 f-0 fix eslint configuration
+- dd7b3cd0 f-0 small fix
+- afe13ebb f-0-fixeslint fix new files
+- 8fe49f0e Push grades to the LMS when an assignment is released
+- 3791b582 update runestone to version 8.3.0
+- 90bd2a8c rsmanage: add --students option to courseinfo
+- 602c8324 update version to 9.2.0
+- d5f06bb8 update image for version checkout
+- 128d190c scripts: add watch_pool_monitor.py for db pool log monitoring
+- ad116f5c admin: get the analytics reports off the event loop
+- b3826a10 LTI1p3: drop detailed logging to DEBUG level
+- d10ecaa6 per-assignment randomized conditions
+- d4a01592 f-1255 migrate the gradebook to a react page
+- 3f20c9ab report caller on IntegrityErrors
+- 33abf473 fitb: make the blanks readable to a screen reader
+- 6d92180f Add lti frame resizer
+- d68d8f47 Add virginia tech course
+- 0e7bda5f f-1255 fix lint
+- 89ca8577 Remember table page and rows per page (#1532)
+- 7028ecd3 Trip extra whitespace from front of blocks
+- 929b8702 Patch student control access
+- 1c71e0b5 Patch innerHtml on user input
+- bb464b93 Change HTTPException to JSONResponse
+- 28a78f70 f-1255 toolbar ui fix
+- 6312e90e Let reporters file problem reports under their own GitHub account
+- 1005265b Remove snark
+- 51a81a88 Fix excel doc too.
+- 9fc0f678 update version to 9.2.1
+- fcfa38e8 Store blank time_limit/due_date in save_exception as NULL
+- d591ba46 f-1257 add Editorial interface for questions
+- 3a439fda f-1257 fix lint
+- 76de0396 Gate StudyClues widget on the studyClues course attribute
+- 8c7f18f7 Honor visible_on/hidden_on in peer instruction pages (#1462)
+- e87babd4 update runestone to version 8.3.1
+- 036aa25b Add course name to user menu
+- 62dd7581 MathJax: settle readiness after load failures
+- f360a751 RunestoneBase: centralize MathJax queue handling
+- dd2df19f Interactives: rely on settled MathJax queue
+- 35ccbc64 Move control check
+- 71774a12 Gracefully handle invalid json
+- f2372c29 Improve MathJax readiness handling
+- 59cd0b31 Change to != for future-proofing
+- 3ae15728 f-1275 highlight users with late work in the grader
+- 69f953c4 oops: remove test title
+- 64de1491 Change to hincrby
+- 3b247ed6 Prevent impersonation
+- 1e673ad0 read back the assigned condition
+- e4acd99b Move guard outside of try
+- 7913e376 Add type to bare except
+- 6a2e5353 Updates for latest sqlalchemy reqs
+- fe047e0d update runestone to version 8.3.2
+- ac101e4f update version to 9.2.2
+- 2b66ce7d f-1257 fix editing for old questions without question_json
+- 1608dcc9 f-1257 fix test
+- 35d10da7 route async PI LLM calls by token provider
+- 614afe81 PreTeXt template needs course_name for menu
+- 4c499566 back fill providing course_name
+- cad2a741 Fix accommodation form dropping extra days / time limit
+- 621141e0 Keep the first vote visible after the second
+- 56b49c34 Restore PSA ads for PreTeXt books.
+- 19be6d41 Add is_binary to source_code
+- c3e0ab08 Add is_binary migration, crud, and endpoint tests
+- 38395e4f Deliver binary files to the server working directory
+- d17ee167 Wire binary compile-also files into the build per language
+- 7b19d020 Add binary file tests for datafile and livecode
+- 16df9d38 f-1257 Keep rendered question HTML synchronized with editorial JSON edits
+- a162deba Track last course access on user_courses instead of scanning useinfo
+- 034c4a5f update dependencies
+- c74f734e ActiveCode heading hierarchy respects context
+- 8d1a10ab Associate ActiveCode inputs with labels
+- 182f62a0 Announce ActiveCode format and download actions to screenreaders
+- 5b307544 ActiveCode output improvements for screenreaders
+- 738e9817 Make Activecode history 1 indexed and report full position to screenreaders
+- 6a05e648 Make Activecode save and run hotkey trigger accessible output
+- edad6703 Activecode: surpress aria-live output for autorun programs
+- 1eacc3ec Consolidate screen reader only css classes
+- 3292c0dc Activecode: accessibility improvements for unit test results and sql query results
+- 977d0e9e Add the dash server to the composed app with a question outcomes chart
+- 561ed0cf Apply "all assignments" deadline exceptions when grading one assignment
+- ec4d0d00 Add an assignment progress page to the dash server
+- 37478793 Give the dash pages the site navbar and footer
+- 28116c8b update menu
+- b069d17e f-1257 fix html regeneration
+- 08d6557b update version to 9.3.0
+- ce1bad13 fix bake process for duplicate images
+- 68fe3d1b Fix button label color
+- 0ef95cd0 log responses and mode from studyClues
+- 95a783e6 Set minimum python at 3.13 not 3.10
+- 9f4f7d08 update runestone to version 8.3.3
+- 701ab328 update pxx
+- 76382e22 Activecode: announce that document is rendered for lang=html
+- 06a12845 Activecode: screen reader improvement for slow compiling programs
+- dd5d6ff1 Donate promt dark and accessibility fixes
+- 80a3411b f-1563  improve the display of questions in the manual grading interface
+- ee5ce316 Regrade from grader needs to apply force=True to lti helper
+- 0ab60e6a better reset — when switching branches
+- a326aa5a Fix issue with multiple vote2 votes getting sent.
+- 2d24768c update version to 9.3.1
+- 3d297678 Fix manifest titles containing markup
+- 86a582e7 Add has_lti1p3_user_association check
+- 7835013a Allow blank emails for LTI1p3 associated accounts
+- 79c686dd Poll instead of sleeping in activecode announcement tests
+- 07002c30 Fix assignment_questions crash when a subchapter is not in the toc
+- 75477c67 Update to use Python3.14
+- 644fc508 f-1563 add MultiGradeDialog formatting
+- f804f843 update version to 9.3.2
+- 181a7258 f-1563 fix Matching type
+- dab5604d document parsons answer format
+- 7cf6ad94 Fix profile email tests: session loop scope and optional email form field
+- ae1b0106 Allow instructors to repush unchanged grades via LTI
+- 9b2d2cb6 Update force parameter logic in regrade function
+- f20e706e Update test_regrade_batch to Force send
+- 0db4357c Guard unreleased grades during instructor LTI recomputes
+- b68a5dd0 Force LTI passback for released manual totals
+- 5e056d04 Fix page question IntegrityError on rebuild; add dedup-page-questions
+- 47b20729 Block cross-site state-changing requests that carry the auth cookie
+- 25a47806 f-1563 fix parsons view
+- 154b5ee5 Fix rsmanage dependency
+- c5282b15 replace unsafe use of innerHTML with innerText
+- d366816c f-1569 add manual grading filter
+- f3f1faa9 f-1569 create separate toolbar
+- bd10d724 Escape untrusted data in interactives innerHTML sinks
+- 833e40d6 Scope compare-me results and attachment lookups to the caller
+- a4bf0646 help ruff find imports
+- c55d051c order imports
+- 409f22fc fix import order
+- c9cd54f3 Fix assignment overview SQL error and count reading interactions
+- 6ee1b5dc Add script to seed PTXSB with six students and Demo Assignment work
+- a6ddf6f6 update runestone to version 8.3.4
+- bafc10a7 update pxx
+- d34c60d0 update version to 9.3.3
+- c7b5b97b Always persist console log to sessionStorage for problem reports
+- 08d2211f Speed up doAssignment, /assessment/results, and instructor checks
+- 52204a51 Cap question scores at the assignment's points
+
 ## Updates since last changelog entry (2026-08-02 → 2026-08-19)
 
 Coverage: changes landed after the previous changelog update on **2026-08-02**, through **2026-08-19**.

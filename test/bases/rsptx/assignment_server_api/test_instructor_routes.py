@@ -12,6 +12,7 @@ connection pool.
 
 import pytest
 from fastapi.responses import HTMLResponse
+from types import SimpleNamespace
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -133,6 +134,95 @@ async def test_course_roster_rejects_non_instructor(auth_student_client):
     """A non-instructor (student) is rejected by @instructor_role_required()."""
     resp = await auth_student_client.get("/instructor/course_roster")
     assert resp.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Instructor course switcher
+# ---------------------------------------------------------------------------
+
+
+async def test_recent_instructor_courses_marks_current_course(auth_instructor_client):
+    response = await auth_instructor_client.get("/instructor/courses/recent")
+
+    assert response.status_code == 200
+    courses = response.json()["detail"]["courses"]
+    assert any(
+        course["course_name"] == "test_course_1" and course["is_current"]
+        for course in courses
+    )
+
+
+async def test_switch_instructor_course_updates_active_course(
+    auth_instructor_client, monkeypatch
+):
+    updated = {}
+    recorded = {}
+
+    async def fake_fetch_course(course_name):
+        return SimpleNamespace(id=22, course_name=course_name)
+
+    async def fake_instructor_courses(user_id, course_id):
+        return [SimpleNamespace(instructor=user_id, course=course_id)]
+
+    async def fake_update_user(user_id, values):
+        updated.update(user_id=user_id, values=values)
+
+    async def fake_record_access(username, course_name, timestamp):
+        recorded.update(username=username, course_name=course_name, timestamp=timestamp)
+
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.fetch_course",
+        fake_fetch_course,
+    )
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.fetch_instructor_courses",
+        fake_instructor_courses,
+    )
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.update_user",
+        fake_update_user,
+    )
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.record_course_access",
+        fake_record_access,
+    )
+
+    response = await auth_instructor_client.post(
+        "/instructor/courses/switch", json={"course_name": "test_course_2"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["detail"] == {
+        "status": "success",
+        "course_name": "test_course_2",
+    }
+    assert updated["values"] == {"course_name": "test_course_2", "course_id": 22}
+    assert recorded["course_name"] == "test_course_2"
+
+
+async def test_switch_instructor_course_rejects_course_not_taught(
+    auth_instructor_client, monkeypatch
+):
+    async def fake_fetch_course(course_name):
+        return SimpleNamespace(id=22, course_name=course_name)
+
+    async def fake_instructor_courses(user_id, course_id):
+        return []
+
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.fetch_course",
+        fake_fetch_course,
+    )
+    monkeypatch.setattr(
+        "rsptx.assignment_server_api.routers.instructor.fetch_instructor_courses",
+        fake_instructor_courses,
+    )
+
+    response = await auth_instructor_client.post(
+        "/instructor/courses/switch", json={"course_name": "not_my_course"}
+    )
+
+    assert response.status_code == 403
 
 
 # ---------------------------------------------------------------------------

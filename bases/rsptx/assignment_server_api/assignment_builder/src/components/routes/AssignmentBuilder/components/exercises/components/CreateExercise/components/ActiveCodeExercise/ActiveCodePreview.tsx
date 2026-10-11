@@ -3,7 +3,7 @@ import { FC } from "react";
 
 import { useFetchDatafilesQuery } from "@/store/datafile/datafile.logic.api";
 import { ExistingDataFile, SelectedDataFile } from "@/types/datafile";
-import { generateActiveCodePreview } from "@/utils/preview/activeCode";
+import { ActiveCodeAdvancedOptions, generateActiveCodePreview } from "@/utils/preview/activeCode";
 
 interface ActiveCodePreviewProps {
   instructions: string;
@@ -19,6 +19,8 @@ interface ActiveCodePreviewProps {
   parsonsexample?: string;
   parsonsPersonalized?: boolean;
   enableCodelens?: boolean;
+  // Options from books that the builder has no controls for
+  advanced?: ActiveCodeAdvancedOptions;
 }
 
 export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
@@ -34,7 +36,8 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
   parsonspersonalize,
   parsonsexample,
   parsonsPersonalized,
-  enableCodelens
+  enableCodelens,
+  advanced
 }) => {
   // Fetch datafiles list to get filenames for selected acids
   const { data: allDatafiles = [] } = useFetchDatafilesQuery();
@@ -69,7 +72,8 @@ export const ActiveCodePreview: FC<ActiveCodePreviewProps> = ({
             parsonsexample,
             parsonsPersonalized,
             enableCodelens
-          }
+          },
+          advanced
         )}
       />
     </div>

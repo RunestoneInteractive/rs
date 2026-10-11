@@ -15,7 +15,7 @@ export interface GraderHotkeyHandlers {
 
   focusComment?: () => void;
 
-  toggleHideGraded?: () => void;
+  toggleHideFullCredit?: () => void;
 
   openHelp?: () => void;
 }
@@ -88,7 +88,7 @@ export const useGraderHotkeys = (
           e.preventDefault();
           break;
         case "h":
-          handlers.toggleHideGraded?.();
+          handlers.toggleHideFullCredit?.();
           break;
       }
     };

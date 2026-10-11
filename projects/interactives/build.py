@@ -72,7 +72,12 @@ if sys.argv[1:] == ["--publish"]:
         subprocess.run(
             " ".join(
                 [
+                    # COPYFILE_DISABLE stops macOS tar from adding AppleDouble ._ files;
+                    # --no-xattrs keeps xattrs out of the pax headers.  Both are
+                    # harmless on Linux.
+                    "COPYFILE_DISABLE=1",
                     "tar",
+                    "--no-xattrs",
                     "--strip-components",
                     "1",
                     "-zcf",

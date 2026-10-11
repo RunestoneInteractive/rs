@@ -785,6 +785,15 @@ class QuestionGrade(Base, IdMixin):
             "sid",
             unique=True,
         ),
+        # The grader's per-question class stats. Production's unique index
+        # leads with sid, so without this a question shared by many courses
+        # reads every course's grades for it. INCLUDE makes it index-only.
+        Index(
+            "question_grades_course_div_idx",
+            "course_name",
+            "div_id",
+            postgresql_include=["sid", "score"],
+        ),
     )
 
     sid = Column(String(512), nullable=False, index=True)
@@ -860,6 +869,15 @@ SubChapterValidator: TypeAlias = sqlalchemy_to_pydantic(SubChapter)  # type: ign
 # ----------------------
 class UserSubChapterProgress(Base, IdMixin):
     __tablename__ = "user_sub_chapter_progress"
+    __table_args__ = (
+        Index(
+            "user_sub_chapter_progress_user_course_idx",
+            "user_id",
+            "course_name",
+            "chapter_id",
+            "sub_chapter_id",
+        ),
+    )
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), index=True)
     chapter_id = Column(String(512), index=True, nullable=False)
@@ -875,8 +893,43 @@ class UserSubChapterProgress(Base, IdMixin):
 UserSubChapterProgressValidator: TypeAlias = sqlalchemy_to_pydantic(UserSubChapterProgress)  # type: ignore
 
 
+# One row per (course, item, student): has this student touched this item, and
+# when.  A summary of ``useinfo`` kept up to date as events are logged, so that
+# questions like "who has opened this reading" read a small indexed table
+# instead of scanning the log.  Page views are stored under
+# ``page_interaction_key`` (see ``rsptx.db.crud.interactions``), not under their
+# URL path.  See notes/interaction_tracker_design.md.
+class UserInteraction(Base, IdMixin):
+    __tablename__ = "user_interactions"
+    __table_args__ = (
+        # The upsert target, and "this whole class, these items".
+        Index(
+            "user_interactions_course_div_sid_idx",
+            "course_name",
+            "div_id",
+            "sid",
+            unique=True,
+        ),
+        # "This student, this course".
+        Index("user_interactions_course_sid_idx", "course_name", "sid"),
+    )
+
+    course_name = Column(String(512), nullable=False)
+    div_id = Column(String(512), nullable=False)
+    sid = Column(String(512), nullable=False)
+    first_interaction = Column(DateTime, nullable=False)
+    last_interaction = Column(DateTime, nullable=False)
+    interactions = Column(Integer, nullable=False, server_default="1")
+
+
+UserInteractionValidator: TypeAlias = sqlalchemy_to_pydantic(UserInteraction)  # type: ignore
+
+
 class UserChapterProgress(Base, IdMixin):
     __tablename__ = "user_chapter_progress"
+    __table_args__ = (
+        Index("user_chapter_progress_user_id_chapter_id_idx", "user_id", "chapter_id"),
+    )
 
     user_id = Column(String(512), nullable=False)
     chapter_id = Column(String(512), nullable=False)

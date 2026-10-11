@@ -1,9 +1,10 @@
 import { ActiveCode } from "./activecode.js";
 import { t } from "../../common/js/rsi18n.js";
-import { getDataValue } from "../../common/js/domutil.js";
+import { escapeHtml, getDataValue } from "../../common/js/domutil.js";
 import MD5 from "./md5.js";
 import JUnitTestParser from "./extractUnitResults-JUnit.js";
 import DoctestTestParser from "./extractUnitResults-Doctest.js";
+import { errorTextToHtml, programOutputToHtml } from "./programOutput.js";
 import "../../codelens/js/pytutor-embed.bundle.js";
 import { base64encode } from "byte-base64";
 
@@ -650,8 +651,7 @@ export default class LiveCode extends ActiveCode {
                     );
                     odiv.innerHTML = this.parsedOutput.stdout;
                 } else {
-                    let output = result.stdout ? result.stdout : "";
-                    odiv.innerHTML = output;
+                    odiv.innerHTML = programOutputToHtml(result.stdout);
                 }
                 if (this.hasUnitTests() || this.iotests) {
                     if (this.parsedOutput.pct === undefined) {
@@ -680,7 +680,9 @@ export default class LiveCode extends ActiveCode {
                     odiv.innerHTML = t("msg_activecode_compile_only");
                 } else {
                     // any other case is real run time error
-                    odiv.innerHTML = result.stdout.replace(/\n/g, "<br>");
+                    odiv.innerHTML = programOutputToHtml(result.stdout, {
+                        newlines: true,
+                    });
                     if (result.stderr) {
                         this.addJobeErrorMessage(result.stderr);
                     }
@@ -695,7 +697,7 @@ export default class LiveCode extends ActiveCode {
                 break;
             default:
                 if (result.stderr) {
-                    odiv.innerHTML = result.stderr.replace(/\n/g, "<br>");
+                    odiv.innerHTML = errorTextToHtml(result.stderr);
                 } else {
                     this.addJobeErrorMessage(t("msg_activecode_server_err"));
                 }
@@ -756,7 +758,7 @@ export default class LiveCode extends ActiveCode {
             td3.classList.add("ac-feedback");
             // <pre> doesn't prevent browser from gulping leading space
             // so produce a version that transforms whitespace into html entities/tags
-            let producedRenderOutput = produced
+            let producedRenderOutput = escapeHtml(produced)
                 .replaceAll(" ", "&nbsp;")
                 .replaceAll("\n", "<br>");
             td3.innerHTML = `<pre>${producedRenderOutput}</pre>`;
@@ -777,13 +779,13 @@ export default class LiveCode extends ActiveCode {
                     }
                     break;
                 case 11: // compiler error
-                    odiv.innerHTML = result.cmpinfo.replace(/\n/g, "<br>");
+                    odiv.innerHTML = errorTextToHtml(result.cmpinfo);
                     td4.innerHTML = t("msg_activecode_test_compile_error");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.cmpinfo;
                     break;
                 case 12: // run time error
-                    odiv.innerHTML = result.stderr.replace(/\n/g, "<br>");
+                    odiv.innerHTML = errorTextToHtml(result.stderr);
                     td4.innerHTML = t("msg_activecode_test_run_error");
                     td4.classList.add("ac-feedback-fail");
                     this.errinfo = result.stderr;
@@ -799,7 +801,7 @@ export default class LiveCode extends ActiveCode {
                     break;
                 default:
                     if (result.stderr) {
-                        odiv.innerHTML = result.stderr.replace(/\n/g, "<br>");
+                        odiv.innerHTML = errorTextToHtml(result.stderr);
                     }
                     td4.innerHTML = t("msg_activecode_server_err");
                     td4.classList.add("ac-feedback-fail");
@@ -1124,17 +1126,4 @@ function unescapeHtml(safe) {
             .replace(/&quot;/g, '"')
             .replace(/&#x27;/g, "'");
     }
-}
-
-// Designed to produce HTML from a string, so always return a string
-function escapeHtml(str) {
-    if (str) {
-        return str
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/'/g, "&#x27;")
-            .replace(/"/g, "&quot;");
-    }
-    return "";
 }

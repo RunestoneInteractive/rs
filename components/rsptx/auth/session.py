@@ -26,7 +26,7 @@ from fastapi_login import LoginManager
 # Local application imports
 # -------------------------
 from rsptx.configuration import settings
-from rsptx.db.crud import fetch_instructor_courses, fetch_user
+from rsptx.db.crud import fetch_user, is_course_instructor
 from rsptx.db.models import AuthUserValidator
 
 
@@ -161,7 +161,4 @@ async def is_instructor(
         user = request.state.user
     if user is None:
         raise HTTPException(401)
-    elif len(await fetch_instructor_courses(user.id, user.course_id)) > 0:
-        return True
-    else:
-        return False
+    return await is_course_instructor(user.id, user.course_id)

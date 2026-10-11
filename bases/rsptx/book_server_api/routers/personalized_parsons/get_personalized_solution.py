@@ -2,6 +2,7 @@ from openai import OpenAI
 import re
 
 from .evaluate_fixed_code import clean_student_code, unittest_evaluation
+from .subgoal_labels import has_labels
 
 # Below is the system message as part of the prompt to generate the fixed code
 system_message = """
@@ -22,6 +23,13 @@ The [fixed-code] should follow the {programming_language} style guide.
 
 [control-structures]: '{control_structures}'
 [end-control-structures]
+"""
+
+# Appended to the system message when the student's code contains subgoal
+# labels (full-line comments naming the steps of their plan)
+label_message = """
+The [user-code] contains comment lines that name the steps of the student's plan (subgoal labels).
+The [fixed-code] should follow that plan. Keep every one of these comment lines in [fixed-code] exactly as written, each one directly above the code that carries out that step and at that code's indentation. Do not add any other comments.
 """
 
 
@@ -119,6 +127,8 @@ def build_code_prompt(
             unittest_code=unittest_code,
             control_structures=control_structures,
         )
+        if has_labels(buggy_code, language):
+            system_message += label_message
 
     prompt_code = "[user-code]:\n" + buggy_code + "\n[end-user-code]"
     prompt_messages = [

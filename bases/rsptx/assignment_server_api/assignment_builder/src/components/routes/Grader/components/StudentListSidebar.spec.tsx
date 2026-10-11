@@ -20,9 +20,10 @@ const manualQuestion = { autograde: "manual" };
 
 const renderSidebar = (props: Partial<React.ComponentProps<typeof StudentListSidebar>> = {}) => {
   const onSelect = vi.fn();
-  const onToggleHideGraded = vi.fn();
+  const onToggleHideFullCredit = vi.fn();
+  const onToggleHideUnanswered = vi.fn();
   const answers = props.answers ?? [
-    makeAnswer({ sid: "s1", first_name: "Ada", last_name: "Lovelace", score: 5, comment: "ok" }),
+    makeAnswer({ sid: "s1", first_name: "Ada", last_name: "Lovelace", score: 10, comment: "ok" }),
     makeAnswer({ sid: "s2", first_name: "Bob", last_name: "Stone" }),
     makeAnswer({ sid: "s3", attempts: 0, score: null })
   ];
@@ -32,12 +33,14 @@ const renderSidebar = (props: Partial<React.ComponentProps<typeof StudentListSid
       answers={answers}
       question={manualQuestion}
       onSelect={onSelect}
-      hideGraded={false}
-      onToggleHideGraded={onToggleHideGraded}
+      hideFullCredit={false}
+      onToggleHideFullCredit={onToggleHideFullCredit}
+      hideUnanswered={false}
+      onToggleHideUnanswered={onToggleHideUnanswered}
       {...props}
     />
   );
-  return { onSelect, onToggleHideGraded };
+  return { onSelect, onToggleHideFullCredit, onToggleHideUnanswered };
 };
 
 describe("StudentListSidebar", () => {
@@ -59,7 +62,7 @@ describe("StudentListSidebar", () => {
 
   it("filters the list by name and shows an empty note when nothing matches", async () => {
     renderSidebar();
-    const filter = screen.getByPlaceholderText("Filter…");
+    const filter = screen.getByPlaceholderText("Search students…");
 
     await userEvent.type(filter, "Ada");
     expect(screen.getAllByRole("option")).toHaveLength(1);
@@ -87,22 +90,60 @@ describe("StudentListSidebar", () => {
     expect(onSelect).toHaveBeenCalledWith("s2");
   });
 
-  it("toggles the hide-graded control and reports the new value", async () => {
-    const { onToggleHideGraded } = renderSidebar();
-    const toggle = screen.getByRole("button", { name: "Hide already-graded students" });
+  it("reports changes to both student filters", async () => {
+    const { onToggleHideFullCredit, onToggleHideUnanswered } = renderSidebar();
 
-    expect(toggle).toHaveTextContent("All students");
-    await userEvent.click(toggle);
-    expect(onToggleHideGraded).toHaveBeenCalledWith(true);
+    await userEvent.click(screen.getByRole("button", { name: "Student filters, 0 active" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Hide students with full credit" }));
+    await userEvent.click(
+      screen.getByRole("checkbox", { name: "Hide students with no submission" })
+    );
+
+    expect(onToggleHideFullCredit).toHaveBeenCalledWith(true);
+    expect(onToggleHideUnanswered).toHaveBeenCalledWith(true);
   });
 
-  it("hides graded students and relabels the toggle when hideGraded is on", () => {
-    renderSidebar({ hideGraded: true });
+  it("shows the number of active filters on the trigger", () => {
+    renderSidebar({ hideFullCredit: true, hideUnanswered: true });
 
-    expect(screen.getByRole("button", { name: "Hide already-graded students" })).toHaveTextContent(
-      "Hide graded"
+    expect(screen.getByRole("button", { name: "Student filters, 2 active" })).toHaveTextContent(
+      "Filters (2)"
     );
+  });
+
+  it("hides only students with full credit when that filter is on", () => {
+    renderSidebar({ hideFullCredit: true });
+
     expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+    expect(screen.getByText("Bob Stone")).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("keeps partially credited students visible when full-credit students are hidden", () => {
+    renderSidebar({
+      hideFullCredit: true,
+      answers: [
+        makeAnswer({ sid: "partial", first_name: "Partial", score: 5 }),
+        makeAnswer({ sid: "full", first_name: "Full", score: 10 })
+      ]
+    });
+
+    expect(screen.getByText("Partial")).toBeInTheDocument();
+    expect(screen.queryByText("Full")).not.toBeInTheDocument();
+  });
+
+  it("hides students with no submission when that filter is on", () => {
+    renderSidebar({ hideUnanswered: true });
+
+    expect(screen.queryByText("s3")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("combines the full-credit and no-submission filters", () => {
+    renderSidebar({ hideFullCredit: true, hideUnanswered: true });
+
+    expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
+    expect(screen.queryByText("s3")).not.toBeInTheDocument();
     expect(screen.getByText("Bob Stone")).toBeInTheDocument();
   });
 

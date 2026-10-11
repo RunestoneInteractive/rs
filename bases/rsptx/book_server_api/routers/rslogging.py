@@ -11,6 +11,7 @@
 # Standard library
 # ----------------
 import json
+import os
 import re
 from typing import Optional
 
@@ -54,7 +55,6 @@ from rsptx.db.crud import (
     fetch_user,
     INTERACTION_ONLY_EVENTS,
     is_interaction_event,
-    is_server_feedback,
     update_sub_chapter_progress,
     update_user_state,
 )
@@ -191,12 +191,6 @@ async def log_book_event(
         if create_answer_table:
             rcd = runestone_component_dict[EVENT2TABLE[entry.event]]
             valid_table = rcd.validator.from_orm(entry)  # type: ignore
-            # Do server-side grading if needed.
-            if feedback := await is_server_feedback(entry.div_id, user.course_name):
-                # The grader should also be defined if there's feedback.
-                assert rcd.grader
-                response_dict.update(await rcd.grader(valid_table, feedback))
-
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
         if entry.event in INTERACTION_ONLY_EVENTS:
@@ -615,8 +609,13 @@ async def create_upload_file(request: Request, file: UploadFile, div_id: str):
 
     contents = await file.read()  # these contents are bytes not a string
 
+    # The filename is shown back to instructors in the grader, so keep only
+    # characters that are safe both in an S3 key and in HTML.
+    filename = os.path.basename(file.filename or "")
+    filename = re.sub(r"[^A-Za-z0-9._-]", "_", filename).lstrip(".") or "upload"
+
     # create the file Key
-    fkey = f"{request.state.user.course_name}/{div_id}/{request.state.user.username}/{file.filename}"
+    fkey = f"{request.state.user.course_name}/{div_id}/{request.state.user.username}/{filename}"
     rslogger.debug(f"file key = {fkey} bucket = {settings.bucket}")
     client.put_object(
         Bucket=settings.bucket,
@@ -626,7 +625,7 @@ async def create_upload_file(request: Request, file: UploadFile, div_id: str):
         Metadata={"x-amz-meta-my-key": "your-value"},
     )
 
-    return {"filename": file.filename}
+    return {"filename": filename}
 
 
 @router.post("/update_reading_score")

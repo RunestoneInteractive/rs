@@ -348,17 +348,119 @@ function showLog(book) {
     })
         .then((response) => response.json())
         .then((res) => {
-            let d = new Date();
             let log = document.getElementById("lastlog");
             let div = document.getElementById("lastdiv");
             div.style.display = "block";
-            log.innerHTML = res.detail;
+            renderLog(log, res.detail);
         })
         .catch((err) => console.log(err));
 }
 
-function hideLog() {
-    document.getElementById("lastdiv").style.display = "none";
+// Classify a line that starts a new log record.  Returns {level, cont}
+// where cont says which following unprefixed lines belong to the record,
+// or null if the line does not start a record.
+//   "text"   - wrapped PreTeXt messages: any line up to a blank line
+//   "star"   - only "*   located at: ..." lines (bare PreTeXt messages)
+//   "indent" - only indented lines (Sphinx/docutils messages)
+//   "trace"  - indented lines plus the final exception line
+function logRecordStart(line) {
+    const severity = {
+        CRITICAL: "error",
+        FATAL: "error",
+        SEVERE: "error",
+        ERROR: "error",
+        WARNING: "warning",
+        DEPRECATE: "warning",
+    };
+    // pretext CLI: "ERROR   : * PTX:ERROR: ..."
+    let m = line.match(/^(DEBUG|INFO|WARNING|ERROR|CRITICAL)\s*:/);
+    if (m) {
+        return { level: severity[m[1]] || "info", cont: "text" };
+    }
+    // bare PreTeXt message: "* PTX:WARNING: ..."
+    m = line.match(/^\*\s*PTX:(\w+)/);
+    if (m) {
+        return { level: severity[m[1]] || "info", cont: "star" };
+    }
+    if (line.startsWith("Traceback (most recent call last)")) {
+        return { level: "error", cont: "trace" };
+    }
+    // Sphinx: "path/file.rst:39: ERROR: ..."
+    m = line.match(/:\d*:? (ERROR|WARNING|SEVERE|CRITICAL):/);
+    if (m) {
+        return { level: severity[m[1]], cont: "indent" };
+    }
+    return null;
+}
+
+// A PreTeXt location line, e.g.
+//   INFO    : *    located within: "expl-overload" (xml:id), "..." (title)
+// It belongs to the message above it, so it must not change the current
+// severity.  The xml:id is captured so it can be highlighted.
+const LOCATION_RE = /^(?:INFO\s*:\s*)?\*\s+located (?:at|within):/;
+const XMLID_RE = /("[^"]+") \(xml:id\)/;
+
+// Render the build log into pre, coloring ERROR records red and WARNING
+// records orange.  The xml:id in a location line takes the color of the
+// message it locates.
+function renderLog(pre, text) {
+    pre.replaceChildren();
+    let level = "info";
+    let cont = null;
+    for (const line of text.split("\n")) {
+        let span = document.createElement("span");
+        if (LOCATION_RE.test(line)) {
+            // further location lines are matched here, so only the bare
+            // PreTeXt form needs its continuation kept
+            if (cont !== "star") cont = null;
+            appendLocation(span, line, level, cont === "star");
+            pre.appendChild(span);
+            continue;
+        }
+        let start = logRecordStart(line);
+        let lineLevel = "info";
+        if (start) {
+            ({ level, cont } = start);
+            lineLevel = level;
+        } else if (line.trim() === "") {
+            cont = null;
+        } else if (cont === "text") {
+            lineLevel = level;
+        } else if (cont === "star" && /^\*\s/.test(line)) {
+            lineLevel = level;
+        } else if ((cont === "indent" || cont === "trace") && /^\s/.test(line)) {
+            lineLevel = level;
+        } else if (cont === "trace") {
+            // the exception line ends the traceback
+            lineLevel = level;
+            cont = null;
+        } else {
+            cont = null;
+        }
+        span.textContent = line + "\n";
+        if (lineLevel !== "info") {
+            span.className = `log-${lineLevel}`;
+        }
+        pre.appendChild(span);
+    }
+}
+
+function appendLocation(span, line, level, colorLine) {
+    if (colorLine && level !== "info") {
+        span.className = `log-${level}`;
+    }
+    let m = line.match(XMLID_RE);
+    if (!m) {
+        span.textContent = line + "\n";
+        return;
+    }
+    let id = document.createElement("span");
+    id.className = "log-xmlid";
+    if (level !== "info") {
+        id.classList.add(`log-${level}`);
+    }
+    id.textContent = m[1];
+    span.append(line.slice(0, m.index), id, line.slice(m.index + m[1].length) + "\n");
 }
 
 function updateDlList(res, kind) {

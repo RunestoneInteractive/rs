@@ -25,6 +25,7 @@ import { Icon } from "@/components/ui/Icon";
 import styles from "../Grader.module.css";
 
 import { StudentMultiSelect } from "./StudentMultiSelect";
+import { CompactAnswerView } from "./questionTypes";
 
 interface MultiGradeDialogProps {
   visible: boolean;
@@ -150,7 +151,17 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
                 <Table.Tr key={r.sid}>
                   <Table.Td>{studentLabel(r)}</Table.Td>
                   <Table.Td>
-                    <div className={styles.multiGradeAnswer}>{r.answer || "—"}</div>
+                    <div className={styles.multiGradeAnswer}>
+                      <CompactAnswerView
+                        questionType={
+                          r.selected_question_type ||
+                          data?.question.question_type ||
+                          question.question_type
+                        }
+                        answer={r.answer}
+                        htmlsrc={r.selected_htmlsrc || data?.question.htmlsrc || question.htmlsrc}
+                      />
+                    </div>
                   </Table.Td>
                   <Table.Td>
                     <NumberInput

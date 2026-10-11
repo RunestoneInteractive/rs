@@ -70,10 +70,6 @@
     transition: opacity var(--rs-transition-fast);
 }
 
-.toggleItemDisabled {
-    opacity: 0.45;
-}
-
 .modernDropdown {
     width: 6rem !important;
     border-radius: var(--rs-radius-sm) !important;

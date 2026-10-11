@@ -26,6 +26,7 @@ const installStorage = () => {
   const missing = (["localStorage", "sessionStorage"] as const).filter(
     (name) => typeof (globalThis as Record<string, unknown>)[name] === "undefined"
   );
+
   if (missing.length === 0) {
     return;
   }
@@ -62,7 +63,9 @@ if (typeof window !== "undefined") {
   if (!("ResizeObserver" in window)) {
     class ResizeObserverMock {
       observe() {}
+
       unobserve() {}
+
       disconnect() {}
     }
     (window as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverMock;

@@ -1,6 +1,7 @@
 import { PollType } from "@components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/types/PollTypes";
 import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreview";
 
+import { PollResults } from "@/types/exercises";
 import { generatePollPreview } from "@/utils/preview/poll";
 
 export interface PollPreviewProps {
@@ -9,6 +10,7 @@ export interface PollPreviewProps {
   options: { id: string; choice: string }[];
   scaleMax: number;
   questionName: string;
+  results?: PollResults;
 }
 
 export const PollPreview = ({
@@ -16,7 +18,8 @@ export const PollPreview = ({
   pollType,
   options,
   scaleMax,
-  questionName
+  questionName,
+  results
 }: PollPreviewProps) => {
   const previewOptions =
     pollType === "options"
@@ -26,7 +29,7 @@ export const PollPreview = ({
   return (
     <div style={{ display: "flex", alignItems: "start", justifyContent: "center" }}>
       <ExercisePreview
-        htmlsrc={generatePollPreview(question, previewOptions, questionName, pollType)}
+        htmlsrc={generatePollPreview(question, previewOptions, questionName, pollType, results)}
       />
     </div>
   );

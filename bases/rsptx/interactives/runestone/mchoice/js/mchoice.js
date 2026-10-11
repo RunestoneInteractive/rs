@@ -12,6 +12,7 @@
 ==========================================*/
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import { escapeHtml } from "../../common/js/domutil.js";
 import {
     disableMathJaxTabStops,
     getAccessibleElementText,
@@ -723,9 +724,9 @@ export default class MultipleChoice extends RunestoneBase {
         for (var i in data) {
             res +=
                 "<tr><td>" +
-                data[i][0] +
+                escapeHtml(data[i][0]) +
                 "</td><td>" +
-                data[i][1] +
+                escapeHtml(data[i][1]) +
                 "</td></tr>";
         }
         res += "</table>";
@@ -739,6 +740,8 @@ export default class MultipleChoice extends RunestoneBase {
         var body = "<table>";
         body += "<tr><th>Answer</th><th>Percent</th></tr>";
         var theClass = "";
+        // answerDict keys come from logged answers, which any student can
+        // write -- escape everything that goes into the table
         for (var k in kl) {
             if (kl[k] === misc.correct) {
                 theClass = "success";
@@ -746,8 +749,10 @@ export default class MultipleChoice extends RunestoneBase {
                 theClass = "info";
             }
             body +=
-                "<tr><td>" + kl[k] + "</td><td class='compare-me-progress'>";
-            var pct = answers[kl[k]] + "%";
+                "<tr><td>" +
+                escapeHtml(kl[k]) +
+                "</td><td class='compare-me-progress'>";
+            var pct = escapeHtml(answers[kl[k]]) + "%";
             body += "<div class='progress'>";
             body +=
                 "    <div class='progress-bar progress-bar-" +
@@ -763,7 +768,7 @@ export default class MultipleChoice extends RunestoneBase {
         if (misc.yourpct !== "unavailable") {
             body +=
                 "<br /><p>You have " +
-                misc.yourpct +
+                escapeHtml(misc.yourpct) +
                 "% correct for all questions</p>";
         }
         if (datadict.reslist !== undefined) {

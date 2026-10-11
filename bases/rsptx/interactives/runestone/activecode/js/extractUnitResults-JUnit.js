@@ -1,4 +1,5 @@
 import { t } from "../../common/js/rsi18n.js";
+import { programOutputToHtml } from "./programOutput.js";
 
 var testString = `Starting Tests
 Expected: Answer                   Actual: Answer                   Message: Checking method printAnswer()                     Passed: true
@@ -47,7 +48,7 @@ export default class JUnitTestParser {
             tbl.appendChild(tr);
             for (let i = 1; i < match.length - 1; i++) {
                 let td = document.createElement("td");
-                td.innerHTML = match[i];
+                td.textContent = match[i];
                 td.classList.add("ac-feedback");
                 tr.appendChild(td);
             }
@@ -70,10 +71,9 @@ export default class JUnitTestParser {
         }
         output = output.replace("Starting Tests", "");
         output = output.replace("Ending Tests", "");
-        output = output.replace(/\n/g, "<br>");
+        // escapes the student's output but keeps turtle graphics and images
+        output = programOutputToHtml(output, { newlines: true });
         output = output.replace(/(<br>)+/g, "<br>");
-        // do not mess up this next line, it is THE hack that makes turtle graphics and images work
-        output = output.replaceAll("&lt;img", "<img");
         this.stdout = output;
     }
 }

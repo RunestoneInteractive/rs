@@ -34,8 +34,9 @@
     color: white;
 }
 
+/* Dashed as well as red, so a misplaced card isn't marked by color alone. */
 .drop-incorrect {
-    border: 1px solid var(--draggableIncorrectBorder, red) !important;
+    border: 2px dashed var(--draggableIncorrectBorder, red) !important;
     background-color: var(--draggableIncorrectBg, #f2dede) !important;
 }
 
@@ -68,6 +69,71 @@
     clear: both;
     margin-bottom: 0;
     margin-top: 10px;
+}
+
+/* Feedback attached to an individual card. The info control is a sibling of
+   the card, a zero-height box at one of its edges: after a premise, so the
+   button sits in its bottom-right corner and the popover just below it; before
+   a response, so the button sits in its top-right corner beside the label. */
+.has-card-info {
+    padding-right: 2.4em;
+}
+
+.draggable-card-info {
+    position: relative;
+    height: 0;
+}
+
+.draggable-card-info-button {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 1.6em;
+    height: 1.6em;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--draggableIncorrectBorder, red);
+    background-color: var(--background, #ffffff);
+    color: var(--bodyFont, #000000);
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-weight: bold;
+    font-size: 0.9em;
+    line-height: 1.3em;
+    text-align: center;
+    cursor: pointer;
+}
+
+/* A response's control precedes it; skip the response's 5px top margin. */
+.draggable-card-info.for-response .draggable-card-info-button {
+    bottom: auto;
+    top: 13px;
+}
+
+.draggable-card-info.for-response .draggable-card-info-popover {
+    top: calc(17px + 1.5em);
+}
+
+.draggable-card-info-button:focus-visible {
+    outline: 3px solid #3498db;
+    outline-offset: 2px;
+}
+
+.draggable-card-info-popover {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    min-width: 14em;
+    z-index: 10;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: auto;
+    background-color: var(--background, #ffffff);
+    color: var(--bodyFont, #000000);
+    border: 1px solid var(--componentBorderColor, #000000);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .draggable-drop {

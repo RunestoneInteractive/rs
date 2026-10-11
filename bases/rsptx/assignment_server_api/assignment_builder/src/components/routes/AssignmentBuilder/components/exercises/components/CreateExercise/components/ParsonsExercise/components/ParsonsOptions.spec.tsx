@@ -19,7 +19,7 @@ const baseProps = {
 };
 
 describe("ParsonsOptions", () => {
-  it("switching the grader to DAG disables adaptive", async () => {
+  it("switching the grader to DAG leaves adaptive alone", async () => {
     const onGraderChange = vi.fn();
     const onAdaptiveChange = vi.fn();
 
@@ -34,7 +34,13 @@ describe("ParsonsOptions", () => {
     await userEvent.click(screen.getByText("DAG"));
 
     expect(onGraderChange).toHaveBeenCalledWith("dag");
-    expect(onAdaptiveChange).toHaveBeenCalledWith(false);
+    expect(onAdaptiveChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps the adaptive checkbox usable with the DAG grader", () => {
+    renderWithMantine(<ParsonsOptions {...baseProps} grader="dag" />);
+
+    expect(screen.getByLabelText("Adaptive")).toBeEnabled();
   });
 
   it("toggles the adaptive checkbox", async () => {

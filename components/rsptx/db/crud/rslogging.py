@@ -16,26 +16,42 @@ from ..async_session import async_session
 from rsptx.validation import schemas
 from .crud import EVENT2TABLE
 from .course import record_course_access
+from .interactions import interaction_key_for, upsert_interaction
 
 rslogger = logging.getLogger(__name__)
 
 
 # useinfo
 # -------
-async def create_useinfo_entry(log_entry: UseinfoValidation) -> UseinfoValidation:
-    """Add a row to the ``useinfo`` table.
+async def create_useinfo_entry(
+    log_entry: UseinfoValidation, interaction_key: Optional[str] = None
+) -> UseinfoValidation:
+    """Add a row to the ``useinfo`` table, and record the interaction in
+    ``user_interactions``.
 
     :param log_entry: Log entries contain a timestamp, an event, details about the event, a student id, and the identifier of the book element that was interacted with.
     :type log_entry: UseinfoValidation
+    :param interaction_key: the tracker key to record this event under, when
+        it is not ``log_entry.div_id``.  A page view must pass its
+        ``page_interaction_key``; without one it is not recorded, since its
+        div_id is a URL path.
     :return: A representation of the row inserted.
     :rtype: UseinfoValidation
     """
+    key = interaction_key or interaction_key_for(
+        log_entry.event, log_entry.act, log_entry.sid, log_entry.div_id
+    )
     async with async_session.begin() as session:
         new_entry = Useinfo(**log_entry.dict())
         rslogger.debug(f"timestamp = {log_entry.timestamp} ")
         rslogger.debug(f"New Entry = {new_entry}")
         rslogger.debug(f"session = {session}")
         session.add(new_entry)
+        if key and log_entry.course_id and log_entry.sid != "Anonymous":
+            # Same transaction, so no second pool checkout per logged event.
+            await upsert_interaction(
+                session, log_entry.course_id, key, log_entry.sid, log_entry.timestamp
+            )
     rslogger.debug(new_entry)
     try:
         await record_course_access(
@@ -252,6 +268,7 @@ async def fetch_last_answer_table_entry(
             )
         )
         .order_by(tbl.timestamp.desc())
+        .limit(1)
     )
     async with async_session() as session:
         res = await session.execute(query)

@@ -47,6 +47,11 @@ div.journal div.latexoutput {
     margin-top: 1rem;
 }
 
+/* the answer is set as plain text; keep the student's line breaks */
+.shortanswer__rendered-answer {
+    white-space: pre-wrap;
+}
+
 .shortanswer__feedback {
     margin-top: 1rem;
 }

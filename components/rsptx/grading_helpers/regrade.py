@@ -6,12 +6,11 @@ from sqlalchemy import and_, select
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import (
     count_reading_activities,
-    fetch_assignment_scores,
+    fetch_assignment_scores_with_points,
     fetch_deadline_exception,
     fetch_grade,
     fetch_question_grade,
     fetch_users_for_course,
-    get_course_origin,
     upsert_grade,
 )
 from rsptx.db.models import (
@@ -37,6 +36,7 @@ from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
     interaction_events_for,
 )
 from rsptx.grading_helpers.scoring import (
+    capped_question_total,
     score_answer_values,
     score_peer_values,
     PEER_SCORE_SENTINEL,
@@ -49,6 +49,7 @@ class RegradeOptions(BaseModel):
     overwrite_manual: bool = False
     enforce_deadline: bool = True
     recompute_totals: bool = True
+    resend_all_scores_via_lti: bool = False
     which_to_grade_override: Optional[str] = None
 
 
@@ -207,19 +208,6 @@ async def _regrade_interaction_question(
     return item
 
 
-def page_url_suffix(origin: Optional[str], chapter: str, subchapter: str) -> str:
-    """How a page view for this subchapter ends in ``useinfo.div_id``.
-
-    A PreTeXt book serves each page as ``<subchapter>.html``; a Sphinx book
-    puts it under its chapter, ``<chapter>/<subchapter>.html``.  Either can be
-    logged behind a path prefix, so callers match on the ending rather than the
-    whole value.
-    """
-    if origin == "PreTeXt":
-        return f"{subchapter}.html"
-    return f"{chapter}/{subchapter}.html"
-
-
 async def _regrade_reading_question(
     item: RegradeDiffItem,
     sid: str,
@@ -251,14 +239,12 @@ async def _regrade_reading_question(
         accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
         deadline = _effective_deadline(assignment, accommodation)
 
-    origin = await get_course_origin(course.base_course)
     completed = await count_reading_activities(
         chapter=question.chapter,
         subchapter=question.subchapter,
         base_course=course.base_course,
         course_name=course.course_name,
         sid=sid,
-        page_url_suffix=page_url_suffix(origin, question.chapter, question.subchapter),
         deadline=deadline,
     )
 
@@ -487,7 +473,7 @@ async def _recompute_total_for_user(
     whichever course the student currently has *active*, which is not
     necessarily the one being graded: the roster comes from ``user_courses``, so
     it includes students who have since moved on to another course. Scoring off
-    the active course made ``fetch_assignment_scores`` match no ``question_grades``
+    the active course made ``fetch_assignment_scores_with_points`` match no ``question_grades``
     rows at all and silently rolled the total up to 0.
 
     With ``dry_run`` the would-be total is computed and reported but nothing is
@@ -513,10 +499,10 @@ async def _recompute_total_for_user(
     if grade is None and only_existing:
         return TotalChange(sid=user.username, skipped_no_grade_row=True)
 
-    res = await fetch_assignment_scores(assignment.id, course_name, user.username)
-    total = 0
-    for row in res:
-        total += row.score or 0
+    res = await fetch_assignment_scores_with_points(
+        assignment.id, course_name, user.username
+    )
+    total = capped_question_total(res)
 
     total = apply_threshold_score(total, assignment.points, assignment.threshold_pct)
     change = TotalChange(
@@ -548,6 +534,7 @@ async def _push_total_changes(
     user_map: Dict[str, AuthUserValidator],
     push_unchanged: bool = False,
     instructor_triggered: bool = False,
+    force: bool = False,
 ) -> None:
     """Send the totals that moved to the course's LMS, in one batch.
 
@@ -566,6 +553,10 @@ async def _push_total_changes(
     Students with no ``grades`` row are always skipped; there is no score to
     send.
     """
+    # Never publish hidden grades, even when an instructor forces passback.
+    if not assignment.released:
+        return
+
     updates = []
     for c in changes:
         if c.skipped_no_grade_row:
@@ -583,6 +574,7 @@ async def _push_total_changes(
             assignment,
             course.id,
             updates,
+            force=force,
             instructor_triggered=instructor_triggered,
         )
 
@@ -639,6 +631,7 @@ async def recompute_totals_detail(
             user_map,
             push_unchanged=push_unchanged,
             instructor_triggered=instructor_triggered,
+            force=instructor_triggered,
         )
     return changes
 
@@ -683,6 +676,7 @@ async def regrade_batch(
     ``questions`` is a list of ``(QuestionValidator, AssignmentQuestion)`` tuples.
     When ``dry_run`` is true nothing is written to the database; the returned
     report contains the before/after diff so the UI can preview the operation.
+    Resending via LTI recomputes totals, then pushes unchanged totals too.
     """
     report = RegradeReport()
     # Recompute the total for every student we regraded, not just the ones whose
@@ -714,7 +708,11 @@ async def regrade_batch(
             elif item.new_score != item.old_score:
                 report.changed += 1
 
-    if not dry_run and options.recompute_totals and processed_sids:
+    if (
+        not dry_run
+        and (options.recompute_totals or options.resend_all_scores_via_lti)
+        and processed_sids
+    ):
         users = await fetch_users_for_course(course.course_name)
         user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
         changes: List[TotalChange] = []
@@ -734,6 +732,8 @@ async def regrade_batch(
             assignment,
             changes,
             user_map,
+            push_unchanged=options.resend_all_scores_via_lti,
+            force=instructor_triggered or options.resend_all_scores_via_lti,
             instructor_triggered=instructor_triggered,
         )
 

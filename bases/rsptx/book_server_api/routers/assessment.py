@@ -17,6 +17,7 @@
 # ----------------
 import datetime
 import random
+import re
 from typing import Optional, Dict, Any
 
 # Third-party imports
@@ -34,7 +35,6 @@ from rsptx.grading_helpers.comments import display_comment
 from rsptx.logging import rslogger
 from rsptx.configuration import settings
 from rsptx.db.crud import (
-    EVENT2TABLE,
     count_matching_questions,
     count_useinfo_for,
     did_start_timed,
@@ -56,11 +56,9 @@ from rsptx.db.crud import (
     fetch_user,
     fetch_user_experiment,
     fetch_viewed_questions,
-    is_server_feedback,
     update_selected_question,
 )
 from rsptx.response_helpers.core import make_json_response, canonical_utcnow
-from rsptx.db.models import runestone_component_dict
 from rsptx.validation.schemas import AssessmentRequest, SelectQRequest
 from rsptx.auth.session import is_instructor, auth_manager
 
@@ -109,14 +107,6 @@ async def get_assessment_results(
             ret["timestamp"].replace(tzinfo=datetime.timezone.utc).isoformat()
         )
         rslogger.debug(f"timestamp is {ret['timestamp']}")
-
-    # Do server-side grading if needed, which restores the answer and feedback.
-    if feedback := await is_server_feedback(request_data.div_id, request_data.course):
-        rcd = runestone_component_dict[EVENT2TABLE[request_data.event]]
-        # The grader should also be defined if there's feedback.
-        assert rcd.grader
-        # Use the grader to add server-side feedback to the returned dict.
-        ret.update(await rcd.grader(row, feedback))
 
     # get grade and instructor feedback if Any
     grades = await fetch_question_grade(sid, request_data.course, request_data.div_id)
@@ -221,11 +211,16 @@ async def get_latest_code(request: Request, acid: str, user=Depends(auth_manager
 
 # Used by :ref:`compareAnswers`
 @router.get("/getaggregateresults")
-async def getaggregateresults(request: Request, div_id: str, course_name: str):
+async def getaggregateresults(
+    request: Request, div_id: str, course_name: Optional[str] = None
+):
     """
     Provide the data for a summary of the answers for a multiple choice question.
     What percent of students chose each answer.  This is used when the compare me
     button is pressed by the student.
+
+    ``course_name`` is accepted for older clients but ignored: results always
+    come from the logged-in user's own course.
     """
     question = div_id
 
@@ -235,6 +230,7 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
             detail=dict(answerDict={}, misc={}, emess="You must be logged in"),
         )
 
+    course_name = request.state.user.course_name
     # Since open base courses may have many years of data we limit the
     # results there to the last 90 days.
     course = await fetch_course(course_name)
@@ -271,13 +267,15 @@ async def getaggregateresults(request: Request, div_id: str, course_name: str):
                     count += rdata[answer] / 100.0 * tot
                 pct = round(count / tot * 100.0)
 
-                if answer != "undefined" and answer != "":
+                # mchoice answers are choice indices ("1" or "1,3,5"); anything
+                # else in useinfo was not written by the component, and these
+                # keys are shown to every student who clicks "Compare me"
+                if re.fullmatch(r"[0-9,]+", answer):
                     rdata[answer] = pct
             except Exception as e:
                 rslogger.error(f"Bad data for {question} data is {key} -- {e}")
 
     miscdata["correct"] = correct
-    miscdata["course"] = course
 
     returnDict = dict(answerDict=rdata, misc=miscdata)
 
@@ -633,8 +631,11 @@ async def has_attachment(
     if sid is not None:
         sid = sid.strip()
     if request.state.user:
-        if sid is None:
+        if not sid:
             sid = request.state.user.username
+        elif sid != request.state.user.username and not await is_instructor(request):
+            # Only an instructor (the grader) may look up another student's file.
+            raise HTTPException(401)
         course_name = request.state.user.course_name
     else:
         return make_json_response(detail={"hasAttachment": False})
@@ -657,7 +658,8 @@ async def check_attachment(sid: str, div_id: str, course: str) -> Optional[str]:
         aws_secret_access_key=settings.spaces_secret,
     )
 
-    prepath = f"{course}/{div_id}/{sid}"
+    # Trailing slash so sid "bob" doesn't also match "bobby"'s uploads
+    prepath = f"{course}/{div_id}/{sid}/"
     rslogger.debug(f"checking path {prepath}")
     response = client.list_objects(Bucket=settings.bucket, Prefix=prepath)
     rslogger.debug(f"response = {response}")

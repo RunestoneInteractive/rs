@@ -125,7 +125,6 @@ Peer Instruction - {{ assignment_name }}
 <script src="/staticAssets/js/peer.js?v={{ peer_mtime }}"></script>
 <script>
     eBookConfig.peer = true;
-    eBookConfig.websocket_url = "/ns";
     var user = '{{ user.username }}';
     var assignment_id = {{ assignment_id }};
     var currentQuestion = '{{ current_question.name }}';

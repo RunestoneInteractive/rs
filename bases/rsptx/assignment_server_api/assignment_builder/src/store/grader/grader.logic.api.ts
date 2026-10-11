@@ -39,7 +39,7 @@ export interface GraderStudentAnswer {
   first_name?: string;
   last_name?: string;
   email?: string;
-  answer: string;
+  answer: string | null;
   correct?: boolean | null;
   percent?: number | null;
   timestamp?: string;
@@ -67,6 +67,9 @@ export interface GraderAnswerHistoryItem {
   percent?: number | null;
   timestamp?: string;
   source?: string | null;
+  min_height?: number | null;
+  drag_width?: number | null;
+  drop_width?: number | null;
 }
 
 export interface GraderUseinfoItem {
@@ -115,6 +118,7 @@ export interface RegradeRequest {
   overwrite_manual?: boolean;
   enforce_deadline?: boolean;
   recompute_totals?: boolean;
+  resend_all_scores_via_lti?: boolean;
   which_to_grade_override?: string | null;
 }
 
@@ -399,11 +403,13 @@ export const graderApi = createApi({
           await queryFulfilled;
 
           // The save now rolls the assignment total up as well, so the gradebook
-          // is stale too -- not just the per-question stats.
+          // is stale too. GraderQuestions is deliberately left alone: its stats
+          // are shown only on the question list, which refetches when it mounts,
+          // and refetching the whole assignment's stats after every save was
+          // what made grading slow on large courses.
           if (assignmentId) {
             dispatch(
               graderApi.util.invalidateTags([
-                { type: "GraderQuestions", id: assignmentId },
                 { type: "StudentScores", id: studentScoresTag(assignmentId, sid) },
                 "Gradebook"
               ])

@@ -30,7 +30,6 @@
   eBookConfig.gradeRecordingUrl = `${eBookConfig.app}/assignments/record_grade`;
   eBookConfig.new_server_prefix = "/ns";
   eBookConfig.authorServerUrl = "{{settings.author_server_url}}";
-  eBookConfig.websocketUrl = "{{settings.websocket_url}}"
   eBookConfig.enableDebug = true ? "{{settings.debug}}" == "True" : false;
   eBookConfig.termStartDate = "{{ course.term_start_date | default('', true) }}";
 </script>

@@ -18,7 +18,7 @@ turned into reusable functions that are defined in this file.
 import datetime
 import hashlib
 import json
-from typing import Dict, Optional, Any
+from typing import Optional
 import traceback
 
 # Third-party imports
@@ -36,11 +36,9 @@ from ..async_session import async_session
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.db.models import (
     AuthUserValidator,
-    Courses,
     CoursesValidator,
     DomainApprovals,
     InvoiceRequest,
-    Question,
     TraceBack,
     APIToken,
     APITokenValidator,
@@ -95,45 +93,6 @@ def is_interaction_event(event: str, act: str) -> bool:
     if allowed is None:
         return True
     return (act or "").split(":")[0] in allowed
-
-
-# Server-side grading
-# -------------------
-# Return the feedback associated with this question if this question should be graded on the server instead of on the client; otherwise, return None.
-async def is_server_feedback(div_id: str, course: str) -> Optional[Dict[str, Any]]:
-    """
-    Check if server feedback is available for the given div id (div_id) and course name (course).
-    If server feedback is available and login is required, return the decoded feedback.
-
-    :param div_id: str, the id of the div element
-    :param course: str, the name of the course
-    :return: Optional[Dict[str, Any]], a dictionary representing the decoded feedback (if available)
-    """
-    # Get the information about this question.
-    query = (
-        select(Question, Courses)
-        .where(Question.name == div_id)
-        .join(Courses, Question.base_course == Courses.base_course)
-        .where(Courses.course_name == course)
-    )
-    async with async_session() as session:
-        query_results = (await session.execute(query)).first()
-
-        # Get the feedback, if it exists.
-        feedback = query_results and query_results.Question.feedback
-        # If there's feedback and a login is required (necessary for server-side grading), return the decoded feedback.
-        try:
-            if feedback and query_results.Courses.login_required:
-                # Decode the feedback from JSON.
-                return json.loads(feedback)
-        except json.JSONDecodeError as e:
-            rslogger.error(
-                f"Failed to decode feedback for div_id {div_id} in course {course}: {e}"
-            )
-            # If decoding fails, we log the error and return None.
-            return None
-        # Otherwise, grade on the client.
-        return None
 
 
 # Development and Testing Utils

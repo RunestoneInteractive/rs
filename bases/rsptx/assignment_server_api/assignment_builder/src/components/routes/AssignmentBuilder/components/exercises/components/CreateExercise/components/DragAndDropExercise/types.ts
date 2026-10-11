@@ -3,6 +3,8 @@ import { CreateExerciseFormType } from "@/types/exercises";
 export interface ItemWithLabel {
   id: string;
   label: string;
+  // Shown when this card ends up in the wrong place (PreTeXt cardsort).
+  feedback?: string;
 }
 
 export interface DragBlock {

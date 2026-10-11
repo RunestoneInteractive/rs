@@ -25,7 +25,7 @@ const renderSubItem = (item: NavItem, index: number) => {
     <Menu.Item
       key={item.label ?? index}
       leftSection={leftSection}
-      disabled={!item.command}
+      disabled={item.disabled || !item.command}
       onClick={item.command}
     >
       {item.label}
@@ -104,7 +104,7 @@ const renderCompactItem = (item: NavItem, index: number, activePath: string) => 
       key={item.label ?? index}
       className={active ? styles.menuItemActive : undefined}
       leftSection={leftSection}
-      disabled={!item.command}
+      disabled={item.disabled || !item.command}
       onClick={item.command}
       aria-current={active ? "page" : undefined}
     >

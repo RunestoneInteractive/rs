@@ -12,23 +12,25 @@ from rsptx.configuration import settings
 from rsptx.db.crud import (
     consume_reset_token,
     create_user,
+    create_useinfo_entry,
     create_user_course_entry,
+    delete_user,
     delete_user_course_entry,
     fetch_course,
     fetch_course_access_for_user,
     fetch_courses_by_institution,
     fetch_courses_for_user,
     fetch_instructor_courses,
+    is_course_instructor,
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
     has_lti1p3_user_association,
     set_reset_token,
     update_user,
-    delete_user,
     user_in_course,
 )
-from rsptx.db.models import AuthUserValidator
+from rsptx.db.models import AuthUserValidator, UseinfoValidation
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
@@ -142,7 +144,7 @@ async def _navbar_context(user: AuthUserValidator) -> dict:
     course = await fetch_course(user.course_name)
     is_instructor = False
     if course and course.id:
-        is_instructor = bool(await fetch_instructor_courses(user.id, course.id))
+        is_instructor = await is_course_instructor(user.id, course.id)
     return {"course": course, "is_instructor": is_instructor}
 
 
@@ -524,8 +526,41 @@ async def courses_post(
 # ---------------------------------------------------------------------------
 
 
+async def _log_donate_visit(user, ad: str) -> None:
+    """Record a donate-page visit in useinfo, crediting the ad that sent it.
+
+    Matches what web2py's ``admin_logger`` wrote for its donate page (event
+    ``default``, act ``donate``), so old and new rows can be counted together.
+    The book banners link here with ``?ad=N``; anything else -- the
+    post-enrollment redirect, a hand-typed URL -- is logged as ``ad=none``.
+    Anonymous readers go under ``boguscourse`` because ``course_id`` is a
+    foreign key to courses.
+    """
+    ad_label = ad if ad.isdigit() and len(ad) <= 4 else "none"
+    if _user_exists(user):
+        sid = user.username
+        course = user.course_name or "boguscourse"
+    else:
+        sid = "Anonymous"
+        course = "boguscourse"
+    try:
+        await create_useinfo_entry(
+            UseinfoValidation(
+                event="default",
+                act="donate",
+                div_id=f"ad={ad_label}",
+                course_id=course,
+                sid=sid,
+                timestamp=canonical_utcnow(),
+            )
+        )
+    except Exception as e:
+        # A missing log row must never cost us the donation.
+        rslogger.error(f"Failed to log donate visit for {sid} / {course}: {e}")
+
+
 @router.get("/donate", response_class=HTMLResponse)
-async def donate_page(request: Request, next: str = ""):
+async def donate_page(request: Request, next: str = "", ad: str = ""):
     """Invite the reader to support Runestone.
 
     ``next`` is where they were actually headed. An LTI launch by a brand-new
@@ -538,6 +573,7 @@ async def donate_page(request: Request, next: str = ""):
     # registration as well as anonymous visitors who want to support Runestone.
     # Only build the (user-specific) navbar context when someone is signed in.
     user = await _current_user(request)
+    await _log_donate_visit(user, ad)
     context = {"request": request, "user": None, "next": _safe_next(next, "")}
     if _user_exists(user):
         context["user"] = user

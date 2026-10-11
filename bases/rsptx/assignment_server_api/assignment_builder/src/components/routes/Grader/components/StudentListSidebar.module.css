@@ -86,6 +86,11 @@
 .controls > * {
   width: 100%;
 }
+.filterOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
 
 .list {
   list-style: none;

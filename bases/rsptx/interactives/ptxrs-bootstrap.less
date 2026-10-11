@@ -31,3 +31,49 @@
     display: block;
     margin-bottom: 1em;
 }
+// The PreTeXt donation banner (bookfuncs.js placeAdBanner) sits above the
+// masthead, outside .ptx-runestone-container, so it is styled at top level.
+// Same width as the masthead so it lines up with the book below it.
+.adbanner {
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em 1.5em;
+    width: calc(100% - 2em);
+    max-width: var(--page-width, 1200px);
+    margin: 0.5em auto;
+    padding: 0.75em 3em 0.75em 1.25em;
+    background-color: var(--adcopy-background, #f2e0c3);
+    border: solid var(--adcopy-border, #000) 2px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.adbanner-text {
+    flex: 1 1 30em;
+}
+
+.adbanner-text p {
+    margin: 0.25em 0 0;
+}
+
+.adbanner-donate {
+    flex: 0 0 auto;
+    font-weight: bold;
+}
+
+.adbanner-close {
+    position: absolute;
+    top: 0.25em;
+    right: 0.4em;
+    padding: 0 0.3em;
+    border: none;
+    background: none;
+    color: inherit;
+    font-size: 1.75em;
+    line-height: 1;
+    cursor: pointer;
+}

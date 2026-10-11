@@ -144,6 +144,70 @@ describe("buildQuestionJson", () => {
       expect(result.optionList).toHaveLength(2);
       expect(result.optionList[1].correct).toBe(true);
     });
+
+    it("keeps the checkbox and random order settings", () => {
+      const data: CreateExerciseFormType = {
+        ...baseExercise,
+        question_type: "mchoice",
+        statement: "which?",
+        optionList: [],
+        forceCheckboxes: true,
+        random: true
+      };
+
+      const result = JSON.parse(buildQuestionJson(data));
+
+      expect(result.forceCheckboxes).toBe(true);
+      expect(result.random).toBe(true);
+    });
+  });
+
+  describe("parsonsprob grading and runnable settings", () => {
+    it("keeps them, so editing or copying doesn't drop them", () => {
+      const data: CreateExerciseFormType = {
+        ...baseExercise,
+        question_type: "parsonsprob",
+        blocks: [],
+        grader: "dag",
+        orderMode: "custom",
+        customOrder: [1, 0],
+        runnable: true,
+        runnableCode: "==PARSONSCODE==",
+        runnableOptions: { language: "python" }
+      };
+
+      const result = JSON.parse(buildQuestionJson(data));
+
+      expect(result).toMatchObject({
+        grader: "dag",
+        orderMode: "custom",
+        customOrder: [1, 0],
+        runnable: true,
+        runnableCode: "==PARSONSCODE==",
+        runnableOptions: { language: "python" }
+      });
+    });
+  });
+
+  describe("activecode options from books", () => {
+    it("keeps the options that are set, so editing doesn't drop them", () => {
+      const data: CreateExerciseFormType = {
+        ...baseExercise,
+        question_type: "activecode",
+        compileArgs: "['-Wall']",
+        includes: ["first"],
+        iotests: [{ input: "", out: "hi\n" }],
+        autoRun: true
+      };
+
+      const result = JSON.parse(buildQuestionJson(data));
+
+      expect(result.compileArgs).toBe("['-Wall']");
+      expect(result.includes).toEqual(["first"]);
+      expect(result.iotests).toEqual([{ input: "", out: "hi\n" }]);
+      expect(result.autoRun).toBe(true);
+      expect(result).not.toHaveProperty("linkArgs");
+    });
   });
 
   describe("poll question type", () => {
@@ -159,6 +223,28 @@ describe("buildQuestionJson", () => {
 
       expect(result.statement).toBe("rate this");
       expect(result.optionList).toHaveLength(1);
+    });
+
+    it("keeps the scale and who sees the results", () => {
+      const data: CreateExerciseFormType = {
+        ...baseExercise,
+        question_type: "poll",
+        statement: "rate this",
+        optionList: [{ choice: "1" }, { choice: "2" }, { choice: "3" }],
+        poll_type: "scale",
+        scale_min: 1,
+        scale_max: 3,
+        results: "all"
+      };
+
+      const result = JSON.parse(buildQuestionJson(data));
+
+      expect(result).toMatchObject({
+        poll_type: "scale",
+        scale_min: 1,
+        scale_max: 3,
+        results: "all"
+      });
     });
   });
 
