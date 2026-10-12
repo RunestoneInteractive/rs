@@ -15,10 +15,13 @@ _rsmanage() {
         'addinstructor:Add the existing user USERNAME as an instructor for COURSE'
         'adduser:Add a user (or users from a csv file)'
         'approvedomain:Approve a domain for LTI 1.3'
+        'backfill-interactions:Fill user_interactions from historical useinfo rows.'
+        'backfill-question-json:Give questions with only an htmlsrc their question_json.'
         'build:rsmanage build [options] COURSE Build the book for an...'
         'courseinfo:List all information for the single course COURSE_NAME'
         'datashop:Export the course data to the datashop format'
         'db:Connect to the database based on the current configuration'
+        'dedup-page-questions:Merge duplicate page questions left behind by subchapter...'
         'deletecourse:Delete COURSE_NAME and all of the data associated with it.'
         'env:Print out your configured environment If --checkdb is...'
         'fixtotals:Repair stale assignment totals in the grades table.'
@@ -112,6 +115,23 @@ _rsmanage() {
                         '--help[Show this message and exit.]' \
                         '1:domain: '
                     ;;
+                backfill-interactions)
+                    _arguments \
+                        '--since[Only fold in useinfo rows logged on or after this date (UTC).]:since: ' \
+                        '--start-id[Resume from this useinfo id (printed after every batch).]:start_id: ' \
+                        '--end-id[Stop before this useinfo id. Default\: max(id) when the command starts.]:end_id: ' \
+                        '--batch-size[useinfo ids per transaction.]:batch_size: ' \
+                        '--help[Show this message and exit.]'
+                    ;;
+                backfill-question-json)
+                    _arguments \
+                        '--basecourse[Only questions in this base course (may be repeated). Default\: all.]:basecourse: ' \
+                        '--type[Only questions of this question_type (may be repeated). Default\: all types with a converter.]:question_types: ' \
+                        '--name[Only the question with this name.]:name: ' \
+                        '--dry-run[Report what would be converted; write nothing.]' \
+                        '--verbose[List each question that cannot be converted.]' \
+                        '--help[Show this message and exit.]'
+                    ;;
                 build)
                     _arguments \
                         '--clone[clone the given repo before building]:clone: ' \
@@ -138,6 +158,13 @@ _rsmanage() {
                     ;;
                 db)
                     _arguments \
+                        '--help[Show this message and exit.]'
+                    ;;
+                dedup-page-questions)
+                    _arguments \
+                        '--basecourse[Limit to one book]:basecourse: ' \
+                        '--dry-run[Report what would change without writing]' \
+                        '--yes[Do not ask for confirmation]' \
                         '--help[Show this message and exit.]'
                     ;;
                 deletecourse)

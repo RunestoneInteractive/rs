@@ -2061,5 +2061,119 @@ async def backfill_interactions(config, since, start_id, end_id, batch_size):
         await term_models()
 
 
+@cli.command("backfill-question-json")
+@click.option(
+    "--basecourse",
+    multiple=True,
+    help="Only questions in this base course (may be repeated). Default: all.",
+)
+@click.option(
+    "--type",
+    "question_types",
+    multiple=True,
+    help="Only questions of this question_type (may be repeated). Default: all "
+    "types with a converter.",
+)
+@click.option("--name", help="Only the question with this name.")
+@click.option(
+    "--dry-run", is_flag=True, help="Report what would be converted; write nothing."
+)
+@click.option(
+    "--verbose", is_flag=True, help="List each question that cannot be converted."
+)
+@pass_config
+def backfill_question_json(config, basecourse, question_types, name, dry_run, verbose):
+    """Give questions with only an htmlsrc their question_json.
+
+    Only rows with from_source = 'F' and no question_json are touched; their
+    htmlsrc is converted with the converters manifest processing uses.  A
+    conversion is stored only when it is lossless, because the assignment
+    builder regenerates a question's HTML from its question_json.
+
+    \b
+        rsmanage backfill-question-json --dry-run --verbose
+        rsmanage backfill-question-json --basecourse thinkcspy
+        rsmanage backfill-question-json --type mchoice --type parsonsprob
+        rsmanage backfill-question-json --basecourse thinkcspy --name ex_3_1
+    """
+    from collections import Counter
+
+    from sqlalchemy import JSON, bindparam
+
+    from rsptx.build_tools.question_json import CONVERTERS, convert_htmlsrc
+
+    unknown = sorted(set(question_types) - set(CONVERTERS))
+    if unknown:
+        raise click.BadParameter(
+            f"{', '.join(unknown)}; choose from {', '.join(sorted(CONVERTERS))}",
+            param_hint="--type",
+        )
+
+    # A JSON column written with Python None holds the JSON value null rather
+    # than SQL NULL; both mean the question has no question_json.
+    query = (
+        "select id, name, base_course, question_type, htmlsrc from questions "
+        "where from_source = 'F' "
+        "and (question_json is null or question_json::text = 'null') "
+        "and htmlsrc is not null and question_type in :types"
+    )
+    params = {"types": list(question_types) or sorted(CONVERTERS)}
+    if basecourse:
+        query += " and base_course in :courses"
+        params["courses"] = list(basecourse)
+    if name:
+        query += " and name = :name"
+        params["name"] = name
+    stmt = text(query + " order by base_course, id").bindparams(
+        bindparam("types", expanding=True)
+    )
+    if basecourse:
+        stmt = stmt.bindparams(bindparam("courses", expanding=True))
+
+    engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    examined = Counter()
+    converted = Counter()
+    reasons = Counter()
+    updates = []
+    with engine.connect() as conn:
+        for row in conn.execute(stmt, params):
+            examined[row.question_type] += 1
+            conversion = convert_htmlsrc(row.question_type, row.htmlsrc)
+            if conversion is not None and conversion.lossless:
+                converted[row.question_type] += 1
+                updates.append({"id": row.id, "qjson": conversion.question_json})
+                continue
+            losses = conversion.losses if conversion else ["htmlsrc is empty"]
+            for loss in losses:
+                reasons[row.question_type, loss] += 1
+            if verbose:
+                click.echo(
+                    f"  #{row.id} {row.name} ({row.base_course}, "
+                    f"{row.question_type}): {'; '.join(losses)}"
+                )
+
+    click.echo(f"Questions with htmlsrc but no question_json: {sum(examined.values())}")
+    for qtype in sorted(examined):
+        click.echo(
+            f"  {qtype:<16} {converted[qtype]:>6} of {examined[qtype]:>6} convertible"
+        )
+    if reasons:
+        click.echo("Not convertible because of:")
+        for (qtype, reason), count in reasons.most_common(30):
+            click.echo(f"  {count:>6}  {qtype:<16} {reason[:90]}")
+
+    if not updates:
+        return
+    if dry_run:
+        click.echo(f"Dry run: {len(updates)} questions would get a question_json.")
+        return
+    update = text(
+        "update questions set question_json = :qjson where id = :id"
+    ).bindparams(bindparam("qjson", type_=JSON))
+    with engine.begin() as conn:
+        conn.execute(update, updates)
+    click.echo(f"Wrote question_json for {len(updates)} questions.")
+
+
 if __name__ == "__main__":
     cli(_anyio_backend="asyncio")
