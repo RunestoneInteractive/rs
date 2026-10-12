@@ -299,6 +299,8 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     useinfo_dict = data.model_dump()
     edit_distance = useinfo_dict.pop("editDist", None)
     cps = useinfo_dict.pop("changesPerSecond", None)
+    assignment_id = useinfo_dict.pop("assignment_id", None)
+    selector_id = useinfo_dict.pop("selector_id", None)
     useinfo_dict["course_id"] = useinfo_dict.pop("course")
     utcnow = canonical_utcnow()
     useinfo_dict["timestamp"] = utcnow
@@ -312,6 +314,23 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
             useinfo_dict["event"] = "activecode"
 
     await create_useinfo_entry(UseinfoValidation(**useinfo_dict))
+
+    # A run is the only record of work on a program with no unit tests, so a
+    # question scored on interaction has to be graded here; nothing reaches
+    # ``log_book_event`` for it. ``grade_submission`` ignores runs for every
+    # other scoring policy and waits for the ``unittest`` event instead.
+    score_spec = await grade_submission(
+        request.state.user,
+        LogItemIncoming(
+            event=useinfo_dict["event"],
+            act=useinfo_dict["act"],
+            div_id=data.div_id,
+            course_name=data.course,
+            sid=data.sid,
+            assignment_id=assignment_id,
+            selector_id=selector_id,
+        ),
+    )
 
     # Now add an entry to the code table - in the code table we use the name
     # acid (activecode id) instead of div_id -- just to be difficult
@@ -342,7 +361,16 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
                     ],
                 )
 
-    return make_json_response(status=status.HTTP_201_CREATED)
+    # As with ``log_book_event``, ``detail`` carries a score spec only when the run
+    # was graded, so the client can update the score shown on an assignment page.
+    run_scored = score_spec.assigned and score_spec.how_to_score in (
+        "interact",
+        "interaction",
+    )
+    return make_json_response(
+        status=status.HTTP_201_CREATED,
+        detail=score_spec.model_dump() if run_scored else None,
+    )
 
 
 async def same_class(user1: AuthUserValidator, user2: str) -> bool:

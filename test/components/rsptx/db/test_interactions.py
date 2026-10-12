@@ -14,6 +14,7 @@ from rsptx.db.crud import (
     backfill_user_interactions,
     create_course,
     create_useinfo_entry,
+    fetch_first_interaction,
     fetch_interacted_sids,
     interaction_key_for,
     page_interaction_key,
@@ -174,6 +175,13 @@ async def test_fetch_interacted_sids(interaction_courses):
         "page:rch/rsub2": {"ui_s1"},
         "ui_nobody": set(),
     }
+
+
+async def test_fetch_first_interaction(interaction_courses):
+    await _log("ui_s5", "ui_ac1", "activecode", "run", t(7))
+    await _log("ui_s5", "ui_ac1", "ac_error", "NameError", t(6))
+    assert await fetch_first_interaction(LIVE_COURSE, "ui_s5", "ui_ac1") == t(6)
+    assert await fetch_first_interaction(LIVE_COURSE, "ui_s6", "ui_ac1") is None
 
 
 async def test_backfill_from_useinfo(interaction_courses):

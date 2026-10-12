@@ -178,6 +178,9 @@ class LogRunIncoming(BaseModelNone):
     sid: Optional[str] = None
     editDist: Optional[int] = None
     changesPerSecond: Optional[float] = None
+    # set on an assignment page, and for a question served by a selectquestion
+    assignment_id: Optional[int] = None
+    selector_id: Optional[str] = None
 
 
 # Schemas for Completion Data

@@ -241,23 +241,7 @@ export default class RunestoneBase {
         // The log entry is saved. Everything below only updates the score display on
         // an assignment page; a failure here is a display bug, not a lost submission,
         // so it must never reach the alert above. See issue #1393.
-        try {
-            let scoreSpec = post_return ? post_return.detail : null;
-            // Only graded events come back with a score spec. Ungraded ones --
-            // view_toggle, selectquestion, parsonsMove and friends -- have no score
-            // to report, so there is nothing to update.
-            if (scoreSpec && "assigned" in scoreSpec && !this.isTimed) {
-                let boxId = this.selector_id
-                    ? this.selector_id.replace("-toggleSelectedQuestion", "")
-                    : this.divid;
-                let gradeBox = document.getElementById(`${boxId}_score`);
-                if (gradeBox) {
-                    this.updateScores(gradeBox, scoreSpec);
-                }
-            }
-        } catch (e) {
-            console.error(`Could not update the score display: ${e}`);
-        }
+        this.showReturnedScore(post_return);
         return post_return;
     }
     // update the score for the question and the total score
@@ -299,6 +283,28 @@ export default class RunestoneBase {
         }
     }
 
+    // Update the score shown on an assignment page from the score spec a logging
+    // endpoint returned in ``detail``. Never throws: the answer is already saved.
+    showReturnedScore(post_return) {
+        try {
+            let scoreSpec = post_return ? post_return.detail : null;
+            // Only graded events come back with a score spec. Ungraded ones --
+            // view_toggle, selectquestion, parsonsMove and friends -- have no score
+            // to report, so there is nothing to update.
+            if (scoreSpec && "assigned" in scoreSpec && !this.isTimed) {
+                let boxId = this.selector_id
+                    ? this.selector_id.replace("-toggleSelectedQuestion", "")
+                    : this.divid;
+                let gradeBox = document.getElementById(`${boxId}_score`);
+                if (gradeBox) {
+                    this.updateScores(gradeBox, scoreSpec);
+                }
+            }
+        } catch (e) {
+            console.error(`Could not update the score display: ${e}`);
+        }
+    }
+
     // .. _logRunEvent:
     //
     // logRunEvent
@@ -317,6 +323,14 @@ export default class RunestoneBase {
         }
         if (typeof eventInfo.errinfo !== "undefined") {
             eventInfo.errinfo = eventInfo.errinfo.toString();
+        }
+        // A run is graded when the question is scored on interaction, which needs
+        // the same assignment and selectquestion context as ``logBookEvent``.
+        if (this.selector_id) {
+            eventInfo.selector_id = this.selector_id;
+        }
+        if (window.assignmentId) {
+            eventInfo.assignment_id = window.assignmentId;
         }
         if (
             eBookConfig.isLoggedIn &&
@@ -355,6 +369,7 @@ export default class RunestoneBase {
                 }
             } else {
                 post_promise = await response.json();
+                this.showReturnedScore(post_promise);
             }
         }
         if (!this.isTimed || eBookConfig.debug) {

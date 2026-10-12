@@ -8,6 +8,7 @@ from rsptx.db.crud import (
     count_reading_activities,
     fetch_assignment_scores_with_points,
     fetch_deadline_exception,
+    fetch_first_interaction,
     fetch_grade,
     fetch_question_grade,
     fetch_users_for_course,
@@ -208,6 +209,49 @@ async def _regrade_interaction_question(
     return item
 
 
+async def _regrade_code_interaction(
+    item: RegradeDiffItem,
+    sid: str,
+    div_id: str,
+    scoring_div_id: str,
+    course: CoursesValidator,
+    aq,
+    assignment: AssignmentValidator,
+    options: RegradeOptions,
+    dry_run: bool,
+) -> RegradeDiffItem:
+    """Re-grade a code question (activecode, codelens) scored on interaction.
+
+    These have an answer table, but it is only written for some interactions
+    -- a unit test result, a codelens answer -- so a program with no unit tests
+    never reaches it; its runs are only in the log.  Scored on interaction, any
+    touch counts, as it did for the legacy autograder, so the question is just
+    whether the student's first interaction came before the deadline, which
+    ``user_interactions`` answers without scanning ``useinfo``.
+    """
+    first = await fetch_first_interaction(course.course_name, sid, scoring_div_id)
+    if first is not None and options.enforce_deadline:
+        accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
+        deadline = _effective_deadline(assignment, accommodation)
+        if deadline is not None and first > deadline:
+            first = None
+    if first is None:
+        item.skipped = "no_submission"
+        return item
+
+    new_score = score_answer_values(
+        how_to_score=aq.autograde,
+        max_score=aq.points or 0,
+        correct=None,
+        percent=None,
+    )
+    item.new_score = float(new_score)
+
+    if not dry_run:
+        await _upsert_autograde(sid, course.course_name, div_id, new_score)
+    return item
+
+
 async def _regrade_reading_question(
     item: RegradeDiffItem,
     sid: str,
@@ -329,6 +373,22 @@ async def regrade_one(
             return await _regrade_interaction_question(
                 item,
                 events,
+                sid,
+                div_id,
+                scoring_div_id,
+                course,
+                aq,
+                assignment,
+                options,
+                dry_run,
+            )
+
+        if scoring_type in CODE_TABLE_TYPES and aq.autograde in (
+            "interact",
+            "interaction",
+        ):
+            return await _regrade_code_interaction(
+                item,
                 sid,
                 div_id,
                 scoring_div_id,

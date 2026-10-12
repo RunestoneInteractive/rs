@@ -197,6 +197,32 @@ async def fetch_touched_div_ids(
         return set((await session.execute(query)).scalars())
 
 
+async def fetch_first_interaction(
+    course_name: str, sid: str, div_id: str
+) -> Optional[datetime.datetime]:
+    """When one student first touched one item in a course this term, or
+    ``None`` if they never have.
+
+    This is all an ``interact`` score needs: whether the student did anything
+    with the question, and whether they did it before the deadline.
+
+    :param div_id: a tracker key, as for :func:`fetch_interacted_sids`.
+    """
+    query = (
+        select(UserInteraction.first_interaction)
+        .join(*_since_term_start())
+        .where(
+            and_(
+                UserInteraction.course_name == course_name,
+                UserInteraction.sid == sid,
+                UserInteraction.div_id == div_id,
+            )
+        )
+    )
+    async with async_session() as session:
+        return (await session.execute(query)).scalar()
+
+
 # Backfill
 # --------
 # Builds tracker rows from historical useinfo, one id range at a time.  Each

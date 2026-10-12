@@ -653,3 +653,76 @@ async def test_a_reading_with_no_activities_required_needs_only_the_page():
         )
 
     assert result.new_score == 4
+
+
+def _code_question():
+    return SimpleNamespace(id=7, name="ac1", question_type="activecode")
+
+
+async def _regrade_code(aq, first_interaction, options=None):
+    course = SimpleNamespace(id=1, course_name="testcourse")
+    with (
+        patch.object(regrade, "fetch_question_grade", AsyncMock(return_value=None)),
+        patch.object(
+            regrade,
+            "fetch_first_interaction",
+            AsyncMock(return_value=first_interaction),
+        ) as first,
+        patch.object(regrade, "fetch_deadline_exception", AsyncMock(return_value=None)),
+        patch.object(regrade, "_upsert_autograde", AsyncMock()) as upsert,
+    ):
+        result = await regrade.regrade_one(
+            course,
+            "s1",
+            _code_question(),
+            aq,
+            _dated_assignment(datetime(2026, 2, 1)),
+            options or RegradeOptions(enforce_deadline=False),
+        )
+    return result, first, upsert
+
+
+def _interact_aq():
+    return SimpleNamespace(
+        points=3, autograde="interact", which_to_grade="first_answer"
+    )
+
+
+async def test_an_interact_activecode_is_regraded_from_the_tracker():
+    # A program with no unit tests leaves nothing in unittest_answers; the
+    # legacy autograder counted any logged interaction, and so must the regrade.
+    result, first, upsert = await _regrade_code(_interact_aq(), datetime(2026, 1, 5))
+
+    assert result.new_score == 3
+    assert upsert.await_args.args[3] == 3
+    assert first.await_args.args == ("testcourse", "s1", "ac1")
+
+
+async def test_an_interact_activecode_never_touched_is_skipped():
+    result, _, upsert = await _regrade_code(_interact_aq(), None)
+
+    assert result.skipped == "no_submission"
+    upsert.assert_not_called()
+
+
+async def test_an_interact_activecode_first_touched_after_the_deadline_is_skipped():
+    result, _, upsert = await _regrade_code(
+        _interact_aq(), datetime(2026, 3, 1), RegradeOptions(enforce_deadline=True)
+    )
+
+    assert result.skipped == "no_submission"
+    upsert.assert_not_called()
+
+
+async def test_a_pct_correct_activecode_still_uses_unit_test_results():
+    aq = SimpleNamespace(
+        points=3, autograde="pct_correct", which_to_grade="first_answer"
+    )
+    with patch.object(
+        regrade, "_fetch_answer_rows", AsyncMock(return_value=[])
+    ) as answer_rows:
+        result, first, _ = await _regrade_code(aq, datetime(2026, 1, 5))
+
+    answer_rows.assert_awaited()
+    first.assert_not_called()
+    assert result.skipped == "no_submission"

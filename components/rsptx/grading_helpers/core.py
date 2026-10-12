@@ -24,6 +24,7 @@ from rsptx.db.models import (
     GradeValidator,
     AssignmentValidator,
 )
+from rsptx.data_types.answer_storage import CODE_RUN_EVENTS
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from rsptx.grading_helpers.comments import is_hand_graded
@@ -71,6 +72,15 @@ async def grade_submission(
     # did something with a selectquestion.  This is required to get accurate grades
     # in reading assignments that have selectquestions (likely toggles).
     if submission.event == "selectquestion" and submission.act == "interaction":
+        return scoreSpec
+    # An activecode run says nothing about correctness -- the unit test result
+    # arrives separately as a ``unittest`` event -- so it only counts toward a
+    # question scored on interaction. Scoring it under any other policy would
+    # record a 0 ahead of the test result, which ``first_answer`` then keeps.
+    if submission.event in CODE_RUN_EVENTS and scoreSpec.how_to_score not in (
+        "interact",
+        "interaction",
+    ):
         return scoreSpec
 
     # from here on carefully use div_id which may be the selector_id for saving the score

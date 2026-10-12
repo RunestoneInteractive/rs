@@ -61,6 +61,12 @@ QTYPE_TO_INTERACTION_EVENTS = {
     "quizly": {"quizly"},
 }
 
+#: ``useinfo.event`` values that ``/logger/runlog`` writes for an activecode run:
+#: ``activecode`` for a clean run, ``ac_error`` for one that raised. Neither has an
+#: answer table, and a program with no unit tests logs nothing else, so for a
+#: question scored ``interact`` these rows are the only record of the work.
+CODE_RUN_EVENTS = {"activecode", "ac_error"}
+
 #: The acts that count as a genuine student interaction, keyed by ``useinfo``
 #: event. ``None`` means every act for that event counts. Only the part of the
 #: act before the first ``:`` is compared (videos log ``play:12.5``). The

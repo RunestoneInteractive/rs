@@ -262,3 +262,54 @@ async def test_reading_page_score_leaves_a_hand_entered_grade_alone():
 
     update.assert_not_called()
     total.assert_not_called()
+
+
+def _run_submission(event="activecode", act="run"):
+    """What ``/logger/runlog`` hands the grader for an activecode run."""
+    return SimpleNamespace(
+        div_id="q1",
+        selector_id=None,
+        event=event,
+        act=act,
+        course_name="course1",
+        assignment_id=42,
+        correct=None,
+        percent=None,
+    )
+
+
+async def test_a_run_scores_a_question_graded_on_interaction():
+    # A program with no unit tests is only ever logged by runlog; scored on
+    # interaction, running it is the whole requirement.
+    spec = _score_spec(which_to_grade="first_answer", how_to_score="interact")
+    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, update, create as crt, total as tot, score_one:
+        result = await core.grade_submission(_student(), _run_submission())
+
+    assert result.score == 10
+    assert crt.await_args.args[2:] == ("q1", 10)
+    tot.assert_awaited()
+
+
+async def test_a_run_that_raised_still_counts_as_interaction():
+    spec = _score_spec(which_to_grade="first_answer", how_to_score="interact")
+    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, update, create as crt, total, score_one:
+        await core.grade_submission(
+            _student(), _run_submission("ac_error", "NameError: x")
+        )
+
+    crt.assert_awaited()
+
+
+async def test_a_run_does_not_score_a_question_graded_on_correctness():
+    # The unit test result arrives afterwards as its own event. Scoring the run
+    # would store a 0 first, and first_answer would then keep it.
+    spec = _score_spec(which_to_grade="first_answer", how_to_score="pct_correct")
+    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, update as upd, create as crt, total as tot, score_one:
+        await core.grade_submission(_student(), _run_submission())
+
+    upd.assert_not_called()
+    crt.assert_not_called()
+    tot.assert_not_called()
