@@ -494,10 +494,12 @@ async def studyclues_query(
         "https://api.demo.learningclues.com/",
     )
     query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
+    course = await fetch_course(user.course_name)
+    book_id = get_studyclues_book_id(course)
 
     # Maybe cache the user_id for StudyClues in the future in Redis
     runestone_login_url = f"{api_base_domain.rstrip('/')}/auth/runestone_login"
-    params = {"runestone_username": user.username}
+    params = {"runestone_username": user.username, "course_id": book_id}
     rslogger.debug(
         f"Logging in to StudyClues with params: {params} and url: {runestone_login_url}"
     )
@@ -529,8 +531,6 @@ async def studyclues_query(
     data = response.json()
     lc_user = data.get("user_id")
 
-    course = await fetch_course(user.course_name)
-    book_id = get_studyclues_book_id(course)
     studyclues_params = {
         "course_id": book_id,  # todo: make this dynamic based on the basecourse
         "query": request_data.query,
