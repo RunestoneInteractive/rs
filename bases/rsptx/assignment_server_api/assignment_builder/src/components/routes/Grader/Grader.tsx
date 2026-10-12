@@ -5,11 +5,13 @@ import {
   useGetGraderQuestionsQuery
 } from "@store/grader/grader.logic.api";
 import React, { useState } from "react";
-import { Link, Outlet, useLocation, useParams } from "react-router-dom";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 
 import { Icon } from "@/components/ui/Icon";
 
 import styles from "./Grader.module.css";
+import { GraderBreadcrumb } from "./components/GraderBreadcrumb";
+import { GraderPageSection } from "./components/GraderPageSection";
 import { GraderSectionNav } from "./components/GraderSectionNav";
 import { ShortcutsHelpDialog } from "./components/ShortcutsHelpDialog";
 import { useEnsureEbookConfigForGrader } from "./hooks/useEnsureEbookConfigForGrader";
@@ -53,6 +55,12 @@ const GraderShell: React.FC = () => {
     isDemo && assignmentId && questionId ? getDemoAnswersFor(assignmentId, questionId) : aRealData;
   const questionMeta = qData?.questions.find((q) => q.id === questionId);
   const progress = aData ? getQuestionProgress(aData.answers, questionMeta) : null;
+  const isGradebook = location.pathname.endsWith("/gradebook");
+  const pageHeading = isGradebook
+    ? "Gradebook"
+    : questionId
+      ? questionMeta?.name || `Question #${questionId}`
+      : assignment?.name || "Assignments";
 
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -62,10 +70,10 @@ const GraderShell: React.FC = () => {
 
   return (
     <div className={shellClassName}>
-      <div className={styles.header}>
-        <div className={styles.title} data-tour="grader-title">
+      <header className={styles.header}>
+        <h1 className={styles.title} data-tour="grader-title">
           <span className={styles.titleText}>Assignment grader</span>
-        </div>
+        </h1>
         <div className={styles.headerActions}>
           <Tooltip label="Press ? for shortcuts" position="bottom">
             <Button
@@ -88,38 +96,20 @@ const GraderShell: React.FC = () => {
             Take tour
           </Button>
         </div>
-      </div>
+      </header>
 
       <GraderSectionNav />
 
-      <nav className={styles.breadcrumb} aria-label="breadcrumb" data-tour="grader-breadcrumb">
-        {assignment && (
-          <>
-            <Icon name="angle-right" size={10} className={styles.breadcrumbSep} />
-            <Link to={`/grader/${assignment.id}`}>{assignment.name}</Link>
-          </>
-        )}
-        {assignment && questionId && (
-          <>
-            <Icon name="angle-right" size={10} className={styles.breadcrumbSep} />
-            <span className={styles.breadcrumbCurrent}>
-              Question #{questionId}
-              {progress && (
-                <span
-                  className={styles.breadcrumbProgress}
-                  aria-label={`${progress.graded + progress.autograded} of ${progress.total} students graded`}
-                >
-                  {progress.graded + progress.autograded}/{progress.total} graded
-                </span>
-              )}
-            </span>
-          </>
-        )}
-      </nav>
+      <GraderBreadcrumb
+        assignment={assignment}
+        isGradebook={isGradebook}
+        progress={progress}
+        questionId={questionId}
+      />
 
-      <div className={styles.body}>
+      <GraderPageSection heading={pageHeading} pathname={location.pathname}>
         <Outlet />
-      </div>
+      </GraderPageSection>
 
       <ShortcutsHelpDialog
         visible={helpOpen}

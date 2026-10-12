@@ -29,6 +29,15 @@ It correctly bundles React in production mode and optimizes the build for the be
 The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
 
+### Accessibility checks
+
+Run `npm run lint:a11y` to report static JSX accessibility warnings. The command is
+currently non-blocking so existing warnings can be addressed incrementally.
+
+Run `npm run test:e2e:a11y` to scan the assignment builder and grader with axe. Axe
+violations are attached to the Playwright report and annotated, but do not fail the
+test yet. Navigation and page-loading assertions still fail normally.
+
 ### Production
 
 For production, the React app is currently mounted as a static app within the `assignment` server.  This will need to change eventually so that we can server the correct versions of the rest of the runestone javascript.
