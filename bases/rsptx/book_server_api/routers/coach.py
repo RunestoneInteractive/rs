@@ -134,8 +134,15 @@ def extract_parsons_code(html_block):
     )
     pre_content = pre_match.group(1) if pre_match else html_block
 
-    # Remove all HTML tags and extract the code lines
-    text = re.sub(r"<.*?>", "", pre_content, flags=re.DOTALL)
+    # Remove HTML tags -- only a "<" followed by a letter or "/" and closed on
+    # the same line. Some stored markup keeps a bare "<" in its code
+    # ("if close < low_close:"), and a looser pattern ran from that "<" to the
+    # next ">" (often in the paired distractor), deleting the code and the
+    # "---" between them so a correct block merged into its distractor.
+    text = re.sub(r"</?[A-Za-z][^<>\n]*>", "", pre_content)
+    # Escape any "<" left, so the result is escaped markup like the rest of
+    # the stored questions ("&lt;"), which the Parsons widget expects
+    text = text.replace("<", "&lt;")
     lines = text.strip().splitlines()
     if "-----" in lines:
         idx = lines.index("-----")
