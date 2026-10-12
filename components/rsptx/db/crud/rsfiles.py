@@ -172,6 +172,8 @@ async def fetch_source_code(
                 ),
             )
         )
+    # A cloned course's own copy of a file overrides the base book's
+    query = query.order_by((SourceCode.course_id == course_name).desc())
     async with async_session() as session:
         res = await session.execute(query)
         return SourceCodeValidator.from_orm(res.scalars().first())
