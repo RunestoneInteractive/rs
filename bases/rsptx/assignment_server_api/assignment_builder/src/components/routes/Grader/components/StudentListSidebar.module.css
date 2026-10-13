@@ -115,6 +115,10 @@
 .item:hover {
   background: var(--rs-surface-sunken);
 }
+.item:focus-visible {
+  outline: 3px solid var(--rs-brand-500);
+  outline-offset: 2px;
+}
 .item.active {
   background: var(--rs-brand-50);
   box-shadow: inset 3px 0 0 var(--rs-brand-500);

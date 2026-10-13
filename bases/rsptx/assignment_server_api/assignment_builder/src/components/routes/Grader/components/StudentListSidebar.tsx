@@ -68,6 +68,42 @@ export const StudentListSidebar: React.FC<Props> = ({
   }, [answers, filter, hideFullCredit, hideUnanswered]);
 
   const listRef = useRef<HTMLUListElement | null>(null);
+  const focusableSid = filtered.some((answer) => answer.sid === activeSid)
+    ? activeSid
+    : filtered[0]?.sid;
+
+  const handleOptionKeyDown = (event: React.KeyboardEvent<HTMLLIElement>, sid: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(sid);
+      return;
+    }
+
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+
+    const options = Array.from(
+      listRef.current?.querySelectorAll<HTMLElement>("[role='option']") ?? []
+    );
+    const currentIndex = options.indexOf(event.currentTarget);
+
+    if (currentIndex < 0 || options.length === 0) return;
+
+    event.preventDefault();
+
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? options.length - 1
+          : event.key === "ArrowDown"
+            ? Math.min(currentIndex + 1, options.length - 1)
+            : Math.max(currentIndex - 1, 0);
+    const nextOption = options[nextIndex];
+    const nextSid = nextOption.dataset.sid;
+
+    nextOption.focus();
+    if (nextSid && nextSid !== sid) onSelect(nextSid);
+  };
 
   return (
     <aside className={styles.sidebar} data-tour="grader-student-sidebar" aria-label="Students">
@@ -158,17 +194,13 @@ export const StudentListSidebar: React.FC<Props> = ({
               key={a.sid}
               role="option"
               aria-selected={active}
+              data-sid={a.sid}
               data-tour={active ? "grader-active-student" : undefined}
               title={lateTitle}
               className={`${styles.item} ${active ? styles.active : ""} ${late ? styles.late : ""}`}
               onClick={() => onSelect(a.sid)}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(a.sid);
-                }
-              }}
+              tabIndex={a.sid === focusableSid ? 0 : -1}
+              onKeyDown={(event) => handleOptionKeyDown(event, a.sid)}
             >
               <StatusDot status={status} />
               <div className={styles.itemBody}>

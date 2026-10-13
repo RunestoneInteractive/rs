@@ -24,13 +24,31 @@ interface Options {
   enabled?: boolean;
 }
 
-const isInputTarget = (t: EventTarget | null): boolean => {
-  if (!(t instanceof HTMLElement)) return false;
-  const tag = t.tagName;
+const INTERACTIVE_SELECTOR = [
+  "a[href]",
+  "button",
+  "input",
+  "select",
+  "summary",
+  "textarea",
+  "[contenteditable='true']",
+  "[role='button']",
+  "[role='checkbox']",
+  "[role='combobox']",
+  "[role='listbox']",
+  "[role='menu']",
+  "[role='menuitem']",
+  "[role='option']",
+  "[role='radio']",
+  "[role='slider']",
+  "[role='spinbutton']",
+  "[role='switch']",
+  "[role='tab']",
+  "[role='textbox']"
+].join(",");
 
-  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-  return t.isContentEditable;
-};
+const isInteractiveTarget = (target: EventTarget | null): boolean =>
+  target instanceof Element && target.closest(INTERACTIVE_SELECTOR) !== null;
 
 export const useGraderHotkeys = (
   handlers: GraderHotkeyHandlers,
@@ -43,14 +61,14 @@ export const useGraderHotkeys = (
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "?" && !isMod(e)) {
-        if (!isInputTarget(e.target)) {
+        if (!isInteractiveTarget(e.target)) {
           e.preventDefault();
           handlers.openHelp?.();
         }
         return;
       }
 
-      if (isInputTarget(e.target) || isMod(e) || e.altKey) return;
+      if (isInteractiveTarget(e.target) || isMod(e) || e.altKey) return;
 
       switch (e.key) {
         case "j":

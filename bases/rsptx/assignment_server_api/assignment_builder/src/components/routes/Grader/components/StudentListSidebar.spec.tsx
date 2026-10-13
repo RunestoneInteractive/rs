@@ -90,6 +90,48 @@ describe("StudentListSidebar", () => {
     expect(onSelect).toHaveBeenCalledWith("s2");
   });
 
+  it("keeps only the active option in the Tab order", () => {
+    renderSidebar({ activeSid: "s2" });
+    const options = screen.getAllByRole("option");
+
+    expect(options[0]).toHaveAttribute("tabindex", "-1");
+    expect(options[1]).toHaveAttribute("tabindex", "0");
+    expect(options[2]).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("uses the first visible option as the Tab stop when the active student is filtered out", () => {
+    renderSidebar({ activeSid: "missing" });
+    const options = screen.getAllByRole("option");
+
+    expect(options[0]).toHaveAttribute("tabindex", "0");
+    expect(options[1]).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("moves and selects with ArrowDown", async () => {
+    const { onSelect } = renderSidebar({ activeSid: "s1" });
+    const options = screen.getAllByRole("option");
+
+    options[0].focus();
+    await userEvent.keyboard("{ArrowDown}");
+
+    expect(options[1]).toHaveFocus();
+    expect(onSelect).toHaveBeenCalledWith("s2");
+  });
+
+  it("supports Home and End navigation", async () => {
+    const { onSelect } = renderSidebar({ activeSid: "s2" });
+    const options = screen.getAllByRole("option");
+
+    options[1].focus();
+    await userEvent.keyboard("{End}");
+    expect(options[2]).toHaveFocus();
+    expect(onSelect).toHaveBeenLastCalledWith("s3");
+
+    await userEvent.keyboard("{Home}");
+    expect(options[0]).toHaveFocus();
+    expect(onSelect).toHaveBeenLastCalledWith("s1");
+  });
+
   it("reports changes to both student filters", async () => {
     const { onToggleHideFullCredit, onToggleHideUnanswered } = renderSidebar();
 

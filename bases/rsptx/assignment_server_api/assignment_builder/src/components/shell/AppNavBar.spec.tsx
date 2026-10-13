@@ -60,6 +60,36 @@ describe("AppNavBar", () => {
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
   });
 
+  it("supports arrow navigation and closes a submenu with Escape", async () => {
+    const items: NavItem[] = [
+      {
+        label: "Help",
+        items: [
+          { label: "Guide", command: vi.fn() },
+          { label: "Contact", command: vi.fn() }
+        ]
+      }
+    ];
+
+    renderWithMantine(<AppNavBar items={items} />);
+    const helpButton = screen.getByRole("button", { name: /help/i });
+
+    helpButton.focus();
+    await userEvent.keyboard("{Enter}");
+
+    const menu = await screen.findByRole("menu");
+    const menuItems = within(menu).getAllByRole("menuitem");
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(menuItems[0]).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(menuItems[1]).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
+    expect(helpButton).toHaveFocus();
+  });
+
   it("hides sub-items whose visible flag is false", async () => {
     renderWithMantine(<AppNavBar items={makeItems()} />);
     await userEvent.click(screen.getByRole("button", { name: /user/i }));
