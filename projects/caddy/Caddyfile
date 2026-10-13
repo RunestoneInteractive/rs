@@ -39,6 +39,41 @@
 	# A `route` block runs its directives top-to-bottom in the order written,
 	# which is what lets us reproduce nginx's location precedence exactly.
 	route {
+		# ----- maintenance mode -----
+		# While the flag file exists, every request gets the static
+		# maintenance page with a 503. Toggle it from the host, no reload
+		# needed (the file matcher checks on every request):
+		#
+		#   touch maintenance/ON     # on  (relative to the compose directory)
+		#   rm maintenance/ON        # off
+		#
+		# Health checks still go through so a load balancer doesn't pull the
+		# node, and MAINTENANCE_BYPASS_IPS (space separated, default nobody
+		# real) can use the site normally to check things before reopening.
+		# Behind a load balancer the client address is the balancer's unless
+		# trusted_proxies is configured, so bypass by IP only works direct.
+		# Not mirrored in projects/nginx: nginx deployments don't get this.
+		@maintenance {
+			file {
+				root /srv/maintenance-flag
+				try_files /ON
+			}
+			not path /health /health/*
+			not client_ip {$MAINTENANCE_BYPASS_IPS:192.0.2.1}
+		}
+		handle @maintenance {
+			header Retry-After 600
+			header Cache-Control no-store
+			root * /srv/maintenance
+			rewrite * /index.html
+			# file_server answers other methods with 405; logger POSTs from
+			# open pages should see the 503 too.
+			method GET
+			file_server {
+				status 503
+			}
+		}
+
 		# ----- internal rewrites (no client redirect), same as nginx -----
 		# Serve the security contact file (RFC 9116) from staticAssets.
 		# rewrite ^/.well-known/security.txt$ /staticAssets/.well-known/security.txt

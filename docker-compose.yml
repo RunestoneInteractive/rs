@@ -342,6 +342,8 @@ services:
       # https://localhost -> local dev cert from Caddy's internal CA.
       # https://your.domain -> automatic Let's Encrypt certificate.
       - CADDY_SITE_ADDRESS=${CADDY_SITE_ADDRESS:-:80}
+      # Space-separated IPs/CIDRs that skip the maintenance page.
+      - MAINTENANCE_BYPASS_IPS=${MAINTENANCE_BYPASS_IPS:-192.0.2.1}
     ports:
       # ports are specified host:container
       - 80:80
@@ -351,6 +353,8 @@ services:
       # Persist issued certificates and Caddy state across restarts.
       - caddy_data:/data
       - caddy_config:/config
+      # `touch maintenance/ON` puts the site in maintenance mode, `rm` ends it.
+      - ./maintenance:/srv/maintenance-flag:ro
     depends_on:
       # admin serves the catch-all front door, so it is required.
       book:

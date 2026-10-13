@@ -41,3 +41,4 @@ justfile
 docker-compose.override.yml
 notes
 /.python-version
+/maintenance
