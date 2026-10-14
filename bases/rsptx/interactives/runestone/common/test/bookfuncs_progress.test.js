@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import {
     isNonContentPage,
+    isSubchapterPage,
     NON_CONTENT_PAGES,
     PageProgressBar,
 } from "../js/bookfuncs.js";
@@ -159,6 +160,39 @@ describe("isNonContentPage", () => {
     });
 });
 
+describe("isSubchapterPage", () => {
+    const page = "/ns/books/published/foo/topic-1-2.html";
+
+    it("is false for pages outside a book", () => {
+        expect(isSubchapterPage("/assignment/student/doAssignment", {})).toBe(
+            false,
+        );
+        expect(isSubchapterPage("/assignment/student/chooseAssignment")).toBe(
+            false,
+        );
+    });
+
+    it("is false for navigation pages", () => {
+        expect(isSubchapterPage("/ns/books/published/foo/index.html", {})).toBe(
+            false,
+        );
+    });
+
+    it("follows the chapter the server found for the page", () => {
+        expect(isSubchapterPage(page, { page: 0, page_chapter: "unit1" })).toBe(
+            true,
+        );
+        // A PreTeXt chapter, part or front matter page.
+        expect(isSubchapterPage(page, { page_chapter: null })).toBe(false);
+    });
+
+    it("assumes a subchapter when the server sent no chapter", () => {
+        // Logged out, or a page rendered by an older server.
+        expect(isSubchapterPage(page, {})).toBe(true);
+        expect(isSubchapterPage(page, undefined)).toBe(true);
+    });
+});
+
 describe("PageProgressBar counts", () => {
     beforeEach(() => {
         document.body.innerHTML = progressMarkup();
@@ -187,5 +221,13 @@ describe("PageProgressBar counts", () => {
         expect(bar.activitiesPossible).toBe(1);
         expect(bar.total).toBe(1);
         expect(bar.possible).toBe(1);
+    });
+
+    it("does not count page_chapter as an activity, or remove it", () => {
+        const activities = { page: 0, q1: 1, page_chapter: "unit1" };
+        new PageProgressBar(activities);
+
+        expect(possible()).toBe("2");
+        expect(activities.page_chapter).toBe("unit1");
     });
 });

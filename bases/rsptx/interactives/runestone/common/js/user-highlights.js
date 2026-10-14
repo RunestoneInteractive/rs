@@ -5,7 +5,7 @@
 "use strict";
 
 import { outerWidth, animate } from "./domutil.js";
-import { isNonContentPage } from "./bookfuncs.js";
+import { isSubchapterPage } from "./bookfuncs.js";
 import "../css/user-highlights.css";
 
 /*
@@ -34,10 +34,6 @@ async function fetchJson(url, params) {
 
 async function getCompletions() {
     // Get the completion status
-    if (isNonContentPage()) {
-        return;
-    }
-
     var currentPathname = window.location.pathname;
     if (currentPathname.indexOf("?") !== -1) {
         currentPathname = currentPathname.substring(
@@ -95,9 +91,6 @@ function showLastPositionBanner() {
 }
 
 function addNavigationAndCompletionButtons() {
-    if (isNonContentPage()) {
-        return;
-    }
     var completionButton = document.getElementById("completionButton");
     var navLinkBgRight = document.getElementById("navLinkBgRight");
     var navLinkBgLeft = document.getElementById("navLinkBgLeft");
@@ -320,9 +313,16 @@ function decorateTocEntry(entry, entryClass, infoClass, infoText) {
 async function enableCompletions() {
     // The completion button must exist before the navigation logic looks
     // for it (the jQuery version used a synchronous request here).
-    await getCompletions();
+    // Only subchapters have progress to fetch or record; the table of
+    // contents decorations below belong to pages that are not.
+    const subchapterPage = isSubchapterPage();
+    if (subchapterPage) {
+        await getCompletions();
+    }
     showLastPositionBanner();
-    addNavigationAndCompletionButtons();
+    if (subchapterPage) {
+        addNavigationAndCompletionButtons();
+    }
     await decorateTableOfContents();
 }
 

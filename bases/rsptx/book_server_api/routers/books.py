@@ -555,6 +555,12 @@ async def serve_page(
         )
         if assignment__spec:
             activity_info["assignment_spec"] = dict(**assignment__spec._mapping)
+        # None for a PreTeXt page that is not a subchapter (book root, part,
+        # chapter, introduction, front matter). The page skips the reading
+        # progress endpoints then, which could only answer 422. It travels in
+        # activity_info because PreTeXt books ship their own _base.html, and
+        # every one of those already emits eBookConfig.activities.
+        activity_info["page_chapter"] = chapter
 
     reading_list = []
     if RS_info:

@@ -408,6 +408,28 @@ export function isNonContentPage(pathname = window.location.pathname) {
     return NON_CONTENT_PAGES.some((p) => p.toLowerCase() === page);
 }
 
+/**
+ * True when pathname is a book page the server keeps reading progress for:
+ * a subchapter. The interactives also load on assignment pages, and a
+ * PreTeXt book's root, part, chapter, introduction and front matter pages
+ * are not subchapters either; asking the progress endpoints about any of
+ * them only earns a 422.
+ */
+export function isSubchapterPage(
+    pathname = window.location.pathname,
+    activities = window.eBookConfig?.activities,
+) {
+    if (!pathname.includes("/books/published/") || isNonContentPage(pathname)) {
+        return false;
+    }
+    // serve_page sends the chapter it found for the page, null when the page
+    // is not a subchapter. Pages rendered by an older server don't send it.
+    return (
+        !(activities && "page_chapter" in activities) ||
+        !!activities.page_chapter
+    );
+}
+
 export function countActivitiesInPage(root = document) {
     let activities = { page: 0 };
     root.querySelectorAll(".runestone").forEach(function (e, index) {
@@ -433,6 +455,12 @@ export class PageProgressBar {
         // opened. That is what lets a page with no activities on it still be
         // completed.
         this.total = 1;
+        // page_chapter rides along for isSubchapterPage; it is not an
+        // activity. Copy rather than delete so that check still sees it.
+        if (actDict && "page_chapter" in actDict) {
+            actDict = { ...actDict };
+            delete actDict.page_chapter;
+        }
         if (actDict && "assignment_spec" in actDict) {
             this.assignment_spec = actDict.assignment_spec;
             delete actDict.assignment_spec;

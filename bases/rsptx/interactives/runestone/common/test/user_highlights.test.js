@@ -40,10 +40,43 @@ function updateCalls(fetchMock) {
         .map(([, opts]) => JSON.parse(opts.body));
 }
 
+const BOOK_PAGE = "/ns/books/published/test_course/topic.html";
+
 beforeEach(() => {
     document.body.innerHTML = `<div id="scprogresscontainer"></div>`;
     document.body.classList.remove("pretext");
+    window.history.replaceState({}, "", BOOK_PAGE);
+    delete eBookConfig.activities;
     vi.restoreAllMocks();
+});
+
+const progressCalls = (fetchMock) =>
+    fetchMock.mock.calls.filter(([url]) =>
+        /getCompletionStatus|updatelastpage/.test(String(url)),
+    );
+
+describe("which pages track progress", () => {
+    it("leaves assignment pages alone", async () => {
+        window.history.replaceState({}, "", "/assignment/student/doAssignment");
+        const fetchMock = stubFetch({ completionStatus: 0 });
+        await login();
+        expect(progressCalls(fetchMock)).toEqual([]);
+        expect(document.getElementById("completionButton")).toBe(null);
+    });
+
+    it("leaves pages that are not subchapters alone", async () => {
+        eBookConfig.activities = { page_chapter: null };
+        const fetchMock = stubFetch({ completionStatus: 0 });
+        await login();
+        expect(progressCalls(fetchMock)).toEqual([]);
+    });
+
+    it("tracks a subchapter the server recognized", async () => {
+        eBookConfig.activities = { page: 0, page_chapter: "unit1" };
+        const fetchMock = stubFetch({ completionStatus: 0 });
+        await login();
+        expect(progressCalls(fetchMock).length).toBe(2);
+    });
 });
 
 describe("completion button", () => {
@@ -55,16 +88,16 @@ describe("completion button", () => {
         expect(button.textContent).toBe("Mark as Completed");
         const statusUrl = String(fetchMock.mock.calls[0][0]);
         expect(statusUrl).toContain("/logger/getCompletionStatus");
-        expect(statusUrl).toContain("lastPageUrl=%2F");
+        expect(statusUrl).toContain(
+            "lastPageUrl=%2Fns%2Fbooks%2Fpublished%2Ftest_course%2Ftopic.html",
+        );
     });
 
     it("shows the completed state for a finished page", async () => {
         stubFetch({ completionStatus: 1 });
         await login();
         const button = document.getElementById("completionButton");
-        expect(button.classList.contains("buttonConfirmCompletion")).toBe(
-            true,
-        );
+        expect(button.classList.contains("buttonConfirmCompletion")).toBe(true);
         expect(button.textContent).toContain("Completed. Well Done!");
     });
 
@@ -83,7 +116,7 @@ describe("completion button", () => {
             pageLoad: true,
             markingComplete: false,
             markingIncomplete: false,
-            lastPageUrl: "/",
+            lastPageUrl: BOOK_PAGE,
             course: "test_course",
         });
     });
@@ -94,9 +127,7 @@ describe("completion button", () => {
         const button = document.getElementById("completionButton");
         button.click();
         await tick(5);
-        expect(button.classList.contains("buttonConfirmCompletion")).toBe(
-            true,
-        );
+        expect(button.classList.contains("buttonConfirmCompletion")).toBe(true);
         let updates = updateCalls(fetchMock);
         expect(updates[updates.length - 1]).toMatchObject({
             completionFlag: 1,
