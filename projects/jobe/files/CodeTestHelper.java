@@ -335,9 +335,9 @@ public class CodeTestHelper {
                     + "\n";
 
         } else {
-            expected = expected.replaceAll("\\n", "<br>").replaceAll("\\r", "<br>");
-            actual = actual.replaceAll("\\n", "<br>").replaceAll("\\r", "<br>");
-            msg = msg.replaceAll("\\n", "<br>").replaceAll("\\r", "<br>");
+            // expected = expected.replaceAll("\\n", "<br>").replaceAll("\\r", "<br>");
+            // actual = actual.replaceAll("\\n", "<br>").replaceAll("\\r", "<br>");
+            // msg = msg.replaceAll("\\n", "<br>").replaceAll("\\r", "<br>");
             output = "Expected: " + expected + "\tActual: " + actual + "\tMessage: " + msg + "\tPassed: " + passed;
         }
 
