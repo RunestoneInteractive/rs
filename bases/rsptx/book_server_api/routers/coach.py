@@ -114,7 +114,14 @@ def clean_python_testcase(raw_test_code: str) -> str:
     result = result.replace(
         "class myTests(TestCaseGui):", "class myTests(unittest.TestCase):"
     )
-    result = re.sub(r"^\s*myTests\(\)\.main\(\)\s*$", "", result, flags=re.MULTILINE)
+    # A test file's own runner call (myTests().main() or unittest.main(...))
+    # exits before JOBE's PASS line prints, which reads as a failed test.
+    result = re.sub(
+        r"^\s*(?:myTests\(\)|unittest)\.main\(.*\)\s*$",
+        "",
+        result,
+        flags=re.MULTILINE,
+    )
     return result
 
 
@@ -718,7 +725,8 @@ async def parsons_scaffolding(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    if language and language.lower() == "python":
+    # Questions say "python3" as often as "python"
+    if language and language.lower().startswith("python"):
         internal_test_case = clean_python_testcase(internal_test_case)
 
     # Files the program opens (datafiles) must travel with each JOBE test run,
