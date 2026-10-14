@@ -879,6 +879,9 @@
   color: var(--rs-text-muted);
   margin-bottom: 4px;
 }
+.historyItem.active .historyMeta {
+  color: var(--rs-brand-800);
+}
 .historyAnswer {
   font-size: 11px;
   color: var(--rs-text-strong);

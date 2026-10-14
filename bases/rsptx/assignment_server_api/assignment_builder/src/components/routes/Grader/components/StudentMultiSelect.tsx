@@ -70,12 +70,12 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
   return (
     <div className={styles.multiSelectRoot}>
       <div className={`${styles.sectionCardHead} ${styles.multiSelectHead}`}>
-        <label className={styles.fieldHint}>
+        <div className={styles.fieldHint}>
           {label}
           {selected.length > 0 && (
             <span className={styles.textSubtle}> &middot; {selected.length} selected</span>
           )}
-        </label>
+        </div>
         <button type="button" onClick={toggleAllFiltered} className={styles.linkButton}>
           {allFilteredSelected ? "Clear all" : "Select all"}
         </button>
@@ -84,6 +84,7 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
         placeholder="Search students…"
+        aria-label="Search students"
         leftSection={<Icon name="search" />}
         size="sm"
       />

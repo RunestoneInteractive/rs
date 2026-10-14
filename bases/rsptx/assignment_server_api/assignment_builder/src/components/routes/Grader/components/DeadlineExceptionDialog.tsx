@@ -85,16 +85,18 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
         </Radio.Group>
         <div className={styles.numberFieldRow}>
           <div>
-            <label className={styles.fieldHint}>Extend deadline by (days)</label>
             <NumberInput
+              label="Extend deadline by (days)"
+              classNames={{ label: styles.fieldHint }}
               value={extraDays ?? ""}
               onChange={(v) => setExtraDays(typeof v === "number" ? v : 0)}
               min={0}
             />
           </div>
           <div>
-            <label className={styles.fieldHint}>Time-limit multiplier</label>
             <NumberInput
+              label="Time-limit multiplier"
+              classNames={{ label: styles.fieldHint }}
               value={timeMultiplier ?? ""}
               onChange={(v) => setTimeMultiplier(typeof v === "number" ? v : 1)}
               min={0}

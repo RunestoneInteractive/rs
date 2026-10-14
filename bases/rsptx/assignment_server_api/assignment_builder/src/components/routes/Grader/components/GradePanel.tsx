@@ -77,7 +77,12 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
     <div className={styles.gradePane} data-tour="grader-grade-panel">
       <div className={styles.gradePaneHeader}>
         <Icon name="user" size={18} className={styles.gradePaneAvatar} />
-        <div className={styles.gradePaneIdentity}>
+        <div
+          className={styles.gradePaneIdentity}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <div className={styles.gradePaneName}>{studentName}</div>
           <div className={styles.gradePaneMeta}>
             {student ? (
@@ -98,7 +103,7 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       {onAutoAdvanceChange && (
-        <label
+        <div
           data-tour="grader-auto-advance"
           className={styles.autoAdvanceToggle}
           title="When on, jumps to the next ungraded student a moment after saving. You can always undo from the toast."
@@ -107,10 +112,14 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
             checked={!!autoAdvance}
             onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
             size="xs"
+            label={
+              <>
+                <Icon name="forward" />
+                <span>Auto-advance after save</span>
+              </>
+            }
           />
-          <Icon name="forward" />
-          <span>Auto-advance after save</span>
-        </label>
+        </div>
       )}
 
       <div className={styles.gradePaneNav}>
@@ -142,10 +151,11 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       <div>
-        <label className={styles.fieldLabel}>Points (max {maxPoints})</label>
         <div data-tour="grader-points-input" className={styles.scoreRow}>
           <NumberInput
             ref={scoreInputRef}
+            label={`Points (max ${maxPoints})`}
+            classNames={{ label: styles.fieldLabel, input: styles.scoreInput }}
             value={score}
             onChange={(v) => onScoreChange(typeof v === "number" ? v : 0)}
             onBlur={onScoreBlur}
@@ -153,15 +163,15 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
             max={maxPoints}
             clampBehavior="strict"
             disabled={isDisabled}
-            classNames={{ input: styles.scoreInput }}
           />
         </div>
       </div>
 
       <div>
-        <label className={styles.fieldLabel}>Comment</label>
         <Textarea
           ref={commentRef}
+          label="Comment"
+          classNames={{ label: styles.fieldLabel }}
           data-tour="grader-comment-input"
           value={comment}
           onChange={(e) => onCommentChange(e.currentTarget.value)}

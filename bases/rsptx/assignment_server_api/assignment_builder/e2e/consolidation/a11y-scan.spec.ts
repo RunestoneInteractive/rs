@@ -1,5 +1,7 @@
 import { AxeBuilder } from "@axe-core/playwright";
 
+import { gotoApp } from "../fixtures/appNav";
+import { findGradableQuestion, gotoSplitView } from "../fixtures/grader";
 import { expect, test } from "../fixtures/scratch";
 
 const scan = (page: import("@playwright/test").Page) =>
@@ -40,7 +42,7 @@ test(
   "reports assignment list axe violations",
   { tag: ["@p2", "@a11y", "@assignments"] },
   async ({ page }, testInfo) => {
-    await page.goto("/builder");
+    await gotoApp(page, "/builder");
     await expect(page.getByRole("heading", { level: 1, name: "Assignments" })).toBeVisible();
 
     const results = await scan(page);
@@ -53,11 +55,55 @@ test(
   "reports grader assignment list axe violations",
   { tag: ["@p2", "@a11y", "@grader"] },
   async ({ page }, testInfo) => {
-    await page.goto("/grader");
+    await gotoApp(page, "/grader");
     await expect(page.getByRole("heading", { level: 1, name: "Assignment grader" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Assignments" })).toBeAttached();
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Assignments");
-    await expect(page.getByRole("region", { name: "Assignments" })).toBeVisible();
+    await expect(page.locator('[data-tour="grader-assignment-picker"]')).toBeVisible();
+
+    const results = await scan(page);
+
+    await reportViolations(testInfo, results);
+  }
+);
+
+test(
+  "reports grader question list axe violations",
+  { tag: ["@p2", "@a11y", "@grader"] },
+  async ({ page }, testInfo) => {
+    const target = await findGradableQuestion(page.request);
+
+    await gotoApp(page, `/grader/${target.assignmentId}`);
+    await expect(page.getByRole("region", { name: "Questions" })).toBeVisible();
+
+    const results = await scan(page);
+
+    await reportViolations(testInfo, results);
+  }
+);
+
+test(
+  "reports grader split view axe violations",
+  { tag: ["@p2", "@a11y", "@grader"] },
+  async ({ page }, testInfo) => {
+    const target = await findGradableQuestion(page.request);
+
+    await gotoSplitView(page, target);
+    await expect(page.getByRole("complementary", { name: "Students" })).toBeVisible();
+    await expect(page.locator('[data-tour="grader-grade-panel"]')).toBeVisible();
+
+    const results = await scan(page);
+
+    await reportViolations(testInfo, results);
+  }
+);
+
+test(
+  "reports grader gradebook axe violations",
+  { tag: ["@p2", "@a11y", "@grader", "@gradebook"] },
+  async ({ page }, testInfo) => {
+    await gotoApp(page, "/gradebook");
+    await expect(page.getByRole("heading", { level: 2, name: "Gradebook" })).toBeVisible();
 
     const results = await scan(page);
 

@@ -95,7 +95,7 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
     <div className={styles.submissionPane} data-tour="grader-preview-pane">
       <div className={styles.attemptBar} data-tour="grader-history">
         <div className={styles.attemptBarRow}>
-          <span className={styles.attemptLabel}>
+          <span className={styles.attemptLabel} role="status" aria-live="polite" aria-atomic="true">
             <Icon name="history" size={14} />
             <strong>
               {totalAttempts > 0
@@ -140,6 +140,7 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
             max={totalAttempts - 1}
             step={1}
             className={styles.attemptSlider}
+            thumbLabel={`Attempt ${activeAttempt + 1} of ${totalAttempts}`}
           />
         )}
       </div>

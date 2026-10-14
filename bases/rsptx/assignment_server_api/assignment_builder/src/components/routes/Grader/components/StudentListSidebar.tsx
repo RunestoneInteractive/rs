@@ -1,4 +1,4 @@
-import { Button, Checkbox, Popover, Progress, TextInput } from "@mantine/core";
+import { Button, Checkbox, Popover, Progress, TextInput, VisuallyHidden } from "@mantine/core";
 import { GraderStudentAnswer, LateStudent } from "@store/grader/grader.logic.api";
 import React, { useMemo, useRef } from "react";
 
@@ -49,7 +49,10 @@ export const StudentListSidebar: React.FC<Props> = ({
   hideUnanswered,
   onToggleHideUnanswered
 }) => {
+  const listInstructionsId = "grader-student-list-instructions";
   const [filter, setFilter] = React.useState("");
+  const [filtersOpened, setFiltersOpened] = React.useState(false);
+  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const progress = useMemo(
     () => getQuestionProgress(answers, question, { dirtySids }),
     [answers, question, dirtySids]
@@ -105,6 +108,15 @@ export const StudentListSidebar: React.FC<Props> = ({
     if (nextSid && nextSid !== sid) onSelect(nextSid);
   };
 
+  const handleFilterKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Escape" || !filtersOpened) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setFiltersOpened(false);
+    filterButtonRef.current?.focus();
+  };
+
   return (
     <aside className={styles.sidebar} data-tour="grader-student-sidebar" aria-label="Students">
       <header className={styles.header}>
@@ -143,12 +155,20 @@ export const StudentListSidebar: React.FC<Props> = ({
             value={filter}
             onChange={(e) => setFilter(e.currentTarget.value)}
             placeholder="Search students…"
+            aria-label="Search students"
             leftSection={<Icon name="search" size={14} />}
             size="xs"
           />
-          <Popover width="target" position="bottom-start" shadow="md">
+          <Popover
+            width="target"
+            position="bottom-start"
+            shadow="md"
+            opened={filtersOpened}
+            onChange={setFiltersOpened}
+          >
             <Popover.Target>
               <Button
+                ref={filterButtonRef}
                 variant={activeFilterCount > 0 ? "light" : "default"}
                 size="xs"
                 fullWidth
@@ -156,11 +176,13 @@ export const StudentListSidebar: React.FC<Props> = ({
                   <Icon name={activeFilterCount > 0 ? "filter-fill" : "filter"} size={13} />
                 }
                 aria-label={`Student filters, ${activeFilterCount} active`}
+                onClick={() => setFiltersOpened((opened) => !opened)}
+                onKeyDown={handleFilterKeyDown}
               >
                 Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
               </Button>
             </Popover.Target>
-            <Popover.Dropdown>
+            <Popover.Dropdown onKeyDown={handleFilterKeyDown}>
               <div className={styles.filterOptions}>
                 <Checkbox
                   checked={hideFullCredit}
@@ -180,7 +202,25 @@ export const StudentListSidebar: React.FC<Props> = ({
         </div>
       </header>
 
-      <ul ref={listRef} role="listbox" className={styles.list}>
+      <VisuallyHidden
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="student-filter-status"
+      >
+        {filtered.length} of {answers.length} students shown.
+      </VisuallyHidden>
+      <VisuallyHidden id={listInstructionsId}>
+        Use Up and Down Arrow keys to move between students. Use Home or End to jump to the first or
+        last student.
+      </VisuallyHidden>
+      <ul
+        ref={listRef}
+        role="listbox"
+        aria-label="Students"
+        aria-describedby={listInstructionsId}
+        className={styles.list}
+      >
         {filtered.length === 0 && <li className={styles.empty}>No students match the filter.</li>}
         {filtered.map((a) => {
           const status = getStudentStatus(a, question, { dirtySids });

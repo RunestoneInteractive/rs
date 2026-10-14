@@ -307,10 +307,9 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
           <div className={styles.fieldStack}>
             <div className={styles.applyRow}>
               <div>
-                <label className={styles.fieldHint}>
-                  Score (applied to every student × question)
-                </label>
                 <NumberInput
+                  label="Score (applied to every student × question)"
+                  classNames={{ label: styles.fieldHint }}
                   value={sameScore ?? ""}
                   onChange={(v) => setSameScore(typeof v === "number" ? v : null)}
                   min={0}
@@ -318,8 +317,9 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
                 />
               </div>
               <div className={styles.grow}>
-                <label className={styles.fieldHint}>Comment (optional)</label>
                 <Textarea
+                  label="Comment (optional)"
+                  classNames={{ label: styles.fieldHint }}
                   value={sameComment}
                   onChange={(e) => setSameComment(e.currentTarget.value)}
                   autosize

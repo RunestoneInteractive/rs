@@ -74,6 +74,21 @@ describe("StudentListSidebar", () => {
     expect(screen.getByText("No students match the filter.")).toBeInTheDocument();
   });
 
+  it("announces filtered result counts and exposes keyboard instructions", async () => {
+    renderSidebar();
+    const filter = screen.getByRole("textbox", { name: "Search students" });
+    const listbox = screen.getByRole("listbox", { name: "Students" });
+    const instructionsId = listbox.getAttribute("aria-describedby");
+
+    expect(screen.getByTestId("student-filter-status")).toHaveTextContent("3 of 3 students shown.");
+    expect(instructionsId).toBeTruthy();
+    expect(document.getElementById(instructionsId!)).toHaveTextContent(/Up and Down Arrow keys/);
+
+    await userEvent.type(filter, "Ada");
+
+    expect(screen.getByTestId("student-filter-status")).toHaveTextContent("1 of 3 students shown.");
+  });
+
   it("calls onSelect when a row is clicked", async () => {
     const { onSelect } = renderSidebar();
 
@@ -143,6 +158,22 @@ describe("StudentListSidebar", () => {
 
     expect(onToggleHideFullCredit).toHaveBeenCalledWith(true);
     expect(onToggleHideUnanswered).toHaveBeenCalledWith(true);
+  });
+
+  it("closes student filters with Escape and returns focus to the trigger", async () => {
+    renderSidebar();
+    const trigger = screen.getByRole("button", { name: "Student filters, 0 active" });
+
+    await userEvent.click(trigger);
+    const checkbox = screen.getByRole("checkbox", { name: "Hide students with full credit" });
+
+    checkbox.focus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(
+      screen.queryByRole("checkbox", { name: "Hide students with full credit" })
+    ).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("shows the number of active filters on the trigger", () => {
