@@ -85,6 +85,21 @@ describe("JUnitTestParser", () => {
         expect(p.table.textContent).toContain(PAYLOAD);
     });
 
+    it("turns CodeTestHelper's <br> newline marker into line breaks", () => {
+        const multi = [
+            "Starting Tests",
+            `Expected: a<br>b     Actual: ${PAYLOAD}<br>c     Message: Checking     Passed: false`,
+            "Ending Tests",
+        ].join("\n");
+        const p = new JUnitTestParser(multi, "q1");
+        const cells = p.table.querySelectorAll("td");
+        expect(cells.length).toBe(4);
+        expect(cells[1].querySelectorAll("br").length).toBe(1);
+        expect(cells[1].textContent.trim()).toBe("ab");
+        expect(cells[2].querySelector("img")).toBeNull();
+        expect(cells[2].textContent.trim()).toBe(`${PAYLOAD}c`);
+    });
+
     it("escapes stdout but keeps the turtle/image output", () => {
         const div = render(new JUnitTestParser(out, "q1").stdout);
         const imgs = div.querySelectorAll("img");

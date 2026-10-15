@@ -48,7 +48,13 @@ export default class JUnitTestParser {
             tbl.appendChild(tr);
             for (let i = 1; i < match.length - 1; i++) {
                 let td = document.createElement("td");
-                td.textContent = match[i];
+                // CodeTestHelper encodes newlines in a field as <br> so each
+                // result stays on one line. Rebuild them as elements; the
+                // field itself is student output and is never parsed as HTML.
+                match[i].split(/<br\s*\/?>/i).forEach((line, j) => {
+                    if (j > 0) td.appendChild(document.createElement("br"));
+                    td.appendChild(document.createTextNode(line));
+                });
                 td.classList.add("ac-feedback");
                 tr.appendChild(td);
             }
