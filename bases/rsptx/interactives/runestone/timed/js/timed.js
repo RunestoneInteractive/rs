@@ -246,6 +246,11 @@ export default class Timed extends RunestoneBase {
         this.startBtn.addEventListener(
             "click",
             async function () {
+                // check for a studyClues button and hide it if it exists
+                let scb = document.getElementById("studyclues-fab");
+                if (scb) {
+                    scb.style.display = "none";
+                }
                 this.finishButton.classList.add("timed-hidden"); // hide the finish button for now
                 if (this.flagButton) {
                     this.flagButton.classList.remove("timed-hidden");
