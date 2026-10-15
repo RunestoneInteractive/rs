@@ -179,6 +179,34 @@ describe("HParsons block grading", () => {
         expect(lateMath.tabIndex).toBe(-1);
     });
 
+    it("renders math again in blocks rebuilt by a restore", () => {
+        const hp = makeComponent({
+            blocks: MATH_BLOCKS,
+            blockAnswer: "0 1 2",
+        });
+        const blockTexts = () =>
+            Array.from(
+                hp.hparsonsInput.querySelectorAll(".parsons-block"),
+                (block) => block.textContent,
+            );
+        expect(blockTexts().join()).not.toContain("process-math");
+
+        localStorage.setItem(
+            hp.storageId,
+            JSON.stringify({ answerIndices: [2, 0] }),
+        );
+        hp.checkLocalStorage();
+        expect(hp.hparsonsInput.getBlockIndices()).toEqual([2, 0]);
+        expect(blockTexts().join()).not.toContain("process-math");
+
+        hp.queueMathJax.mockClear();
+        hp.restoreAnswers({ answer: [1] });
+        expect(hp.hparsonsInput.getBlockIndices()).toEqual([1]);
+        expect(blockTexts().join()).not.toContain("process-math");
+        expect(hp.queueMathJax).toHaveBeenCalledTimes(3);
+        localStorage.removeItem(hp.storageId);
+    });
+
     it("waits for queued MathJax block renders", async () => {
         const hp = makeComponent({
             blocks: MATH_BLOCKS,

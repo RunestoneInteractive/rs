@@ -229,12 +229,16 @@ export default class HParsons extends RunestoneBase {
                 ".parsons-block",
             );
             const renderPromises = Array.from(blocks, (block) => {
-                block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
-                if (block.innerHTML.indexOf("process-math") !== -1) {
-                    block.innerHTML = block.innerHTML.replace(
-                        /<span class="process-math">|<\/span>/g,
-                        "",
-                    );
+                // Decoding twice would turn an escaped "&lt;" into markup.
+                if (!block.dataset.mathPrepared) {
+                    block.dataset.mathPrepared = "true";
+                    block.innerHTML = this.decodeHTMLEntities(block.innerHTML);
+                    if (block.innerHTML.indexOf("process-math") !== -1) {
+                        block.innerHTML = block.innerHTML.replace(
+                            /<span class="process-math">|<\/span>/g,
+                            "",
+                        );
+                    }
                 }
                 return this.queueMathJax(block);
             });
@@ -293,6 +297,8 @@ export default class HParsons extends RunestoneBase {
         if (serverData.count) {
             this.feedbackController.checkCount = serverData.count;
         }
+        // Restoring rebuilds every block from its source, math markup and all.
+        this.renderMathInBlocks();
     }
 
     // RunestoneBase: Load what is in local storage
@@ -331,6 +337,8 @@ export default class HParsons extends RunestoneBase {
         if (localData.count) {
             this.feedbackController.checkCount = localData.count;
         }
+        // Restoring rebuilds every block from its source, math markup and all.
+        this.renderMathInBlocks();
     }
     // RunestoneBase: Set the state of the problem in local storage
     setLocalStorage(data) {
