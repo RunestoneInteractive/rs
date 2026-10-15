@@ -163,6 +163,10 @@
   border-color: var(--rs-border-brand);
   box-shadow: var(--rs-shadow-sm);
 }
+.card:focus-visible {
+  outline: 3px solid var(--rs-brand-500);
+  outline-offset: 2px;
+}
 .card:hover::before {
   opacity: 1;
 }

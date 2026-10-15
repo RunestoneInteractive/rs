@@ -201,6 +201,7 @@ export function DataGrid<T>({
     pageSize: initialPageSize
   });
   const [internalSelection, setInternalSelection] = useState<RowSelectionState>({});
+  const [keyboardRowId, setKeyboardRowId] = useState<string | null>(null);
 
   const sorting = controlledSorting ?? internalSorting;
   const setSorting = onSortingChange ?? setInternalSorting;
@@ -243,6 +244,7 @@ export function DataGrid<T>({
 
   const resolvedPageCount = table.getPageCount();
   const rows = table.getRowModel().rows;
+  const tabbableRowId = rows.some((row) => row.id === keyboardRowId) ? keyboardRowId : rows[0]?.id;
 
   // Column filters shrink the table from the inside, so a page index that came
   // from somewhere else (a restored preference, say) can point past the last
@@ -349,6 +351,52 @@ export function DataGrid<T>({
             <Table.Tr
               key={row.id}
               onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+              onFocus={
+                onRowClick
+                  ? (event) => {
+                      if (event.target === event.currentTarget) setKeyboardRowId(row.id);
+                    }
+                  : undefined
+              }
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.target !== event.currentTarget) return;
+
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onRowClick(row.original);
+                        return;
+                      }
+
+                      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+
+                      const rowElements = Array.from(
+                        event.currentTarget.parentElement?.querySelectorAll<HTMLElement>(
+                          "tr[data-clickable-row='true']"
+                        ) ?? []
+                      );
+                      const currentIndex = rowElements.indexOf(event.currentTarget);
+
+                      if (currentIndex < 0 || rowElements.length === 0) return;
+
+                      event.preventDefault();
+                      const nextIndex =
+                        event.key === "Home"
+                          ? 0
+                          : event.key === "End"
+                            ? rowElements.length - 1
+                            : event.key === "ArrowDown"
+                              ? Math.min(currentIndex + 1, rowElements.length - 1)
+                              : Math.max(currentIndex - 1, 0);
+
+                      rowElements[nextIndex].focus();
+                    }
+                  : undefined
+              }
+              tabIndex={onRowClick ? (row.id === tabbableRowId ? 0 : -1) : undefined}
+              data-clickable-row={onRowClick ? "true" : undefined}
+              className={onRowClick ? styles.clickableRow : undefined}
               style={onRowClick ? { cursor: "pointer" } : undefined}
               data-selected={row.getIsSelected() || undefined}
             >

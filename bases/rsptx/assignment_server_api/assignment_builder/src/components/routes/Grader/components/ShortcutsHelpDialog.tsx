@@ -87,8 +87,8 @@ export const ShortcutsHelpDialog: React.FC<Props> = ({ visible, onHide }) => {
           </div>
         ))}
         <div className={styles.dialogFootnote}>
-          Letter shortcuts are ignored while a text field has focus. Finish typing, then click
-          outside the field to use them.
+          Grader shortcuts are ignored while a form control, menu, link, or list option has focus.
+          Move focus back to the page to use them.
           <br />
           Tip: enable <strong>Auto-advance after save</strong> in the grade panel to jump to the
           next ungraded student automatically. You can always undo from the toast that appears.

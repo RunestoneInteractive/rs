@@ -27,6 +27,14 @@ const makeInput = (tag: "INPUT" | "TEXTAREA" | "SELECT"): HTMLElement => {
   return el;
 };
 
+const makeInteractive = (tag: "BUTTON" | "DIV", role?: string): HTMLElement => {
+  const el = document.createElement(tag);
+
+  if (role) el.setAttribute("role", role);
+  document.body.appendChild(el);
+  return el;
+};
+
 describe("useGraderHotkeys", () => {
   beforeEach(() => {
     mockDetectPlatform.mockReturnValue("other");
@@ -160,7 +168,7 @@ describe("useGraderHotkeys", () => {
     });
   });
 
-  describe("input target — keys are suppressed", () => {
+  describe("interactive target — keys are suppressed", () => {
     it("does not call next when target is INPUT", () => {
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
 
@@ -199,6 +207,30 @@ describe("useGraderHotkeys", () => {
       fireKeyDown("?", {}, makeInput("INPUT"));
 
       expect(handlers.openHelp).not.toHaveBeenCalled();
+    });
+
+    it("does not intercept ArrowDown from a menu button", () => {
+      const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+      const button = makeInteractive("BUTTON");
+
+      renderHook(() => useGraderHotkeys(handlers));
+
+      fireKeyDown("ArrowDown", {}, button);
+
+      expect(handlers.next).not.toHaveBeenCalled();
+      button.remove();
+    });
+
+    it("does not intercept arrows from a listbox option", () => {
+      const handlers: GraderHotkeyHandlers = { prev: vi.fn() };
+      const option = makeInteractive("DIV", "option");
+
+      renderHook(() => useGraderHotkeys(handlers));
+
+      fireKeyDown("ArrowUp", {}, option);
+
+      expect(handlers.prev).not.toHaveBeenCalled();
+      option.remove();
     });
   });
 

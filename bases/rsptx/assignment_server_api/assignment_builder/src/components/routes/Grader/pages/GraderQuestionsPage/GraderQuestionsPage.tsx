@@ -200,15 +200,12 @@ export const GraderQuestionsPage: React.FC = () => {
           />
         ),
         cell: ({ row }) => (
-          <span
-            data-tour="grader-question-select"
-            onClick={(e) => e.stopPropagation()}
-            style={{ display: "inline-flex" }}
-          >
+          <span data-tour="grader-question-select" style={{ display: "inline-flex" }}>
             <Checkbox
               aria-label={`Select ${row.original.name}`}
               checked={selectedQuestionIds.includes(row.original.id)}
               onChange={() => toggleSelected(row.original.id)}
+              onClick={(event) => event.stopPropagation()}
             />
           </span>
         )
@@ -505,21 +502,19 @@ export const GraderQuestionsPage: React.FC = () => {
               key={q.id}
               className={`${styles.cardSelectable} ${selected ? styles.cardSelected : ""}`}
             >
-              <span
-                className={styles.cardCheckbox}
-                data-tour="grader-question-select"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <span className={styles.cardCheckbox} data-tour="grader-question-select">
                 <Checkbox
                   aria-label={`Select ${q.name}`}
                   checked={selected}
                   onChange={() => toggleSelected(q.id)}
+                  onClick={(event) => event.stopPropagation()}
                 />
               </span>
               <button
                 data-tour="grader-question-card"
                 className={styles.card}
                 onClick={() => navigate(`/grader/${id}/questions/${q.id}`)}
+                aria-label={`Grade ${q.name}`}
               >
                 <div className={`${styles.cardTitle} ${styles.cardTitleSpread}`}>
                   <span className={styles.cardTitleText} title={q.name}>
