@@ -86,10 +86,44 @@ I don't know if any of the following are needed anymore.
         mtextInheritFont: true
     },
     loader: {
-        load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand', '[pretext]/mathjaxknowl3.js'],
-        paths: {pretext: "https://pretextbook.org/js/lib"},
+        load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand'],
     },
     startup: {
+        ready() {
+            // MathJax 4 replaced the internals that PreTeXt's
+            // mathjaxknowl3.js extension used, so define the \knowl macro
+            // here, the way PreTeXt's own MathJax 4 startup does.
+            const { Configuration } = MathJax._.input.tex.Configuration;
+            Configuration.create("knowl", { handler: { macro: ["knowl"] } });
+            const NodeUtil = MathJax._.input.tex.NodeUtil.default;
+            function GetArgumentMML(parser, name) {
+                const arg = parser.ParseArg(name);
+                if (!NodeUtil.isInferred(arg)) {
+                    return arg;
+                }
+                const children = NodeUtil.getChildren(arg);
+                if (children.length === 1) {
+                    return children[0];
+                }
+                const mrow = parser.create("node", "mrow");
+                NodeUtil.copyChildren(arg, mrow);
+                NodeUtil.copyAttributes(arg, mrow);
+                return mrow;
+            }
+            const CommandMap = MathJax._.input.tex.TokenMap.CommandMap;
+            new CommandMap("knowl", {
+                knowl(parser, name) {
+                    const url = parser.GetArgument(name);
+                    const arg = GetArgumentMML(parser, name);
+                    const mrow = parser.create("node", "mrow", [arg], {
+                        tabindex: "0",
+                        "data-knowl": url,
+                    });
+                    parser.Push(mrow);
+                },
+            });
+            MathJax.startup.defaultReady();
+        },
         pageReady() {
             return MathJax.startup.defaultPageReady().then(
                 function () {
@@ -106,7 +140,7 @@ I don't know if any of the following are needed anymore.
     };
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
     <script src="https://pretextbook.org/js/lib/knowl.js"></script>
 {% endif %}

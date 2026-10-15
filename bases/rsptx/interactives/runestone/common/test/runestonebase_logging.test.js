@@ -189,7 +189,44 @@ describe("MathJax queue", () => {
                 rb.queueMathJax(document.createElement("div")),
             ]),
         ).resolves.toEqual([null, null]);
-        expect(rb.aQueue._pendingPromise).toBe(false);
+    });
+
+    it("typesets the preamble before the component", async () => {
+        const typesetPromise = vi.fn().mockResolvedValue(undefined);
+        const component = document.createElement("div");
+        vi.stubGlobal("MathJax", { typesetPromise });
+        vi.stubGlobal("runestoneMathReady", Promise.resolve());
+        const rb = makeComponent({
+            preambleDiv: document.createElement("div"),
+        });
+
+        await rb.queueMathJax(component);
+
+        expect(typesetPromise).toHaveBeenNthCalledWith(1, [rb.preambleDiv]);
+        expect(typesetPromise).toHaveBeenNthCalledWith(2, [component]);
+    });
+
+    it("chains MathJax 3 typesets so they never overlap", async () => {
+        let running = 0;
+        let maxRunning = 0;
+        const typesetPromise = vi.fn(async () => {
+            running++;
+            maxRunning = Math.max(maxRunning, running);
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            running--;
+        });
+        vi.stubGlobal("MathJax", { version: "3.2.2", typesetPromise });
+        vi.stubGlobal("runestoneMathReady", Promise.resolve());
+        const first = makeComponent();
+        const second = makeComponent();
+
+        await Promise.all([
+            first.queueMathJax(document.createElement("div")),
+            second.queueMathJax(document.createElement("div")),
+        ]);
+
+        expect(typesetPromise).toHaveBeenCalledTimes(2);
+        expect(maxRunning).toBe(1);
     });
 
     it("uses MathJax startup readiness outside a Runestone page", async () => {

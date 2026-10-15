@@ -87,12 +87,6 @@ export default class RunestoneBase {
             this.is_toggle = true ? opts.is_toggle : false;
             this.is_select = true ? opts.is_select : false;
         }
-        this.mjelements = [];
-        let self = this;
-        this.mjReady = new Promise(function (resolve, reject) {
-            self.mjresolver = resolve;
-        });
-        this.aQueue = new AutoQueue();
         if (opts && typeof opts.preamble !== "undefined") {
             this.preamble = opts.preamble;
             let y = document.createElement("div");
@@ -103,9 +97,8 @@ export default class RunestoneBase {
             opts.orig.appendChild(y);
             y.id = "ltx_preamble";
             y.style.display = "none";
-            // Add the preamble to the queue object so it can prepend it to
-            // future MathJax processing
-            this.aQueue.preamble = y;
+            // queueMathJax typesets this before the component's own math.
+            this.preambleDiv = y;
         }
 
         this.jsonHeaders = new Headers({
@@ -622,18 +615,32 @@ export default class RunestoneBase {
      * Queue MathJax rendering for `component`.
      *
      * This is the only MathJax entry point interactive components should use.
-     * It serializes typesetting for this Runestone component and waits for the
-     * page's initial MathJax pass when one is configured. The returned promise
-     * always resolves to `null` when MathJax is unavailable or failed to load,
-     * allowing callers to perform their post-render layout and accessibility
-     * work in `.then()` without their own feature checks or polling. A genuine
-     * MathJax typesetting error still rejects the promise.
+     * It waits for the page's initial MathJax pass when one is configured. The
+     * returned promise always resolves to `null` when MathJax is unavailable
+     * or failed to load, allowing callers to perform their post-render layout
+     * and accessibility work in `.then()` without their own feature checks or
+     * polling. A genuine MathJax typesetting error still rejects the promise.
+     *
+     * MathJax 4 chains `typesetPromise` calls itself, so calls run in the
+     * order they are made (issue #1582). MathJax 3 does not, so for it the
+     * calls are chained here.
      *
      * Templates that define `window.runestoneMathReady` must settle it after
      * either a successful initial typeset or a MathJax load failure.
      */
-    queueMathJax(component) {
-        return this.aQueue.enqueue(component);
+    async queueMathJax(component) {
+        const mathJax = await getMathJax();
+        if (!mathJax) return null;
+        if (this.preambleDiv) {
+            // Typesetting the preamble registers its \newcommand and
+            // \DeclareMathOperator definitions with the TeX input jax.
+            // Those definitions are global and persist for every later
+            // typesetPromise call on the page, so the component does not
+            // need its own copy of the preamble -- see issue #1248, where
+            // prepending a copy put the raw macro source on screen.
+            await typeset(mathJax, [this.preambleDiv]);
+        }
+        return typeset(mathJax, [component]);
     }
 
     decorateStatus() {
@@ -667,98 +674,36 @@ export default class RunestoneBase {
     }
 }
 
-// Inspiration and lots of code for this solution come from
-// https://stackoverflow.com/questions/53540348/js-async-await-tasks-queue
-// The idea here is that until MathJax is ready we can just enqueue things
-// once mathjax becomes ready then we can drain the queue and continue as usual.
+// Resolve to the page's MathJax once its initial typesetting pass is done, or
+// to null when MathJax is missing or failed to load.
+async function getMathJax() {
+    // PreTeXt/Runestone pages resolve this after their initial page-level
+    // typesetting pass. Standalone pages can use MathJax's startup promise.
+    const readiness =
+        window.runestoneMathReady ?? globalThis.MathJax?.startup?.promise;
+    if (readiness) {
+        try {
+            await readiness;
+        } catch {
+            return null;
+        }
+    }
 
-class Queue {
-    constructor() {
-        this._items = [];
-    }
-    enqueue(item) {
-        this._items.push(item);
-    }
-    dequeue() {
-        return this._items.shift();
-    }
-    get size() {
-        return this._items.length;
-    }
+    const mathJax = globalThis.MathJax;
+    return typeof mathJax?.typesetPromise === "function" ? mathJax : null;
 }
 
-class AutoQueue extends Queue {
-    constructor() {
-        super();
-        this._pendingPromise = false;
+// MathJax 3 needs overlapping typesetPromise calls chained by the caller.
+let mathJax3Chain = Promise.resolve();
+
+function typeset(mathJax, elements) {
+    if (!mathJax.version?.startsWith("3.")) {
+        return mathJax.typesetPromise(elements);
     }
-
-    enqueue(component) {
-        return new Promise((resolve, reject) => {
-            super.enqueue({ component, resolve, reject });
-            this.dequeue();
-        });
-    }
-
-    async getMathJax() {
-        // PreTeXt/Runestone pages resolve this after their initial page-level
-        // typesetting pass. Standalone pages can use MathJax's startup promise.
-        const readiness =
-            window.runestoneMathReady ?? globalThis.MathJax?.startup?.promise;
-        if (readiness) {
-            try {
-                await readiness;
-            } catch {
-                return null;
-            }
-        }
-
-        const mathJax = globalThis.MathJax;
-        return typeof mathJax?.typesetPromise === "function" ? mathJax : null;
-    }
-
-    async dequeue() {
-        if (this._pendingPromise) return false;
-
-        let item = super.dequeue();
-
-        if (!item) return false;
-        this._pendingPromise = true;
-        try {
-            const mathJax = await this.getMathJax();
-            if (!mathJax) {
-                item.resolve(null);
-                return true;
-            }
-
-            console.log(
-                `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${this.preamble?.innerHTML}`,
-            );
-            if (this.preamble) {
-                // Typesetting the preamble registers its \newcommand and
-                // \DeclareMathOperator definitions with the TeX input jax.
-                // Those definitions are global and persist for every later
-                // typesetPromise call on the page, so the component does not
-                // need its own copy of the preamble -- see issue #1248, where
-                // prepending a copy put the raw macro source on screen.
-                await mathJax.typesetPromise([this.preamble]);
-                console.log(
-                    `MathJax typeset the preamble for ${item.component.id}`,
-                );
-            }
-            const payload = await mathJax.typesetPromise([item.component]);
-            item.resolve(payload);
-        } catch (e) {
-            item.reject(e);
-        } finally {
-            // Always release the queue before starting the next item. In
-            // particular, no-op MathJax work must not strand later entries.
-            this._pendingPromise = false;
-            this.dequeue();
-        }
-
-        return true;
-    }
+    const run = mathJax3Chain.then(() => mathJax.typesetPromise(elements));
+    // A failed typeset rejects for its caller but must not stall later ones.
+    mathJax3Chain = run.catch(() => {});
+    return run;
 }
 
 window.RunestoneBase = RunestoneBase;

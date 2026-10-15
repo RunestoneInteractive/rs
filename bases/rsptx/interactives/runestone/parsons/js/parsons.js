@@ -1101,8 +1101,8 @@ export default class Parsons extends RunestoneBase {
             this.options.language == "math" ||
             this.options.language == "text"
         ) {
-            // queueMathJax uses the same AutoQueue instance that processed the
-            // per-block items, so this runs after their final layout is ready.
+            // MathJax typesets in call order, so this runs after the
+            // per-block items have reached their final layout.
             self.queueMathJax(self.outerDiv).then(() => {
                 // Recalculate areaWidth and areaHeight from all blocks (source + answer)
                 // now that MathJax has rendered to final dimensions.
