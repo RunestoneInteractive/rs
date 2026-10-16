@@ -32,13 +32,17 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
         A tuple containing the final fixed code, the final Parsons block, the solution generation type, and the generation result type.
     """
     problem_description = dict_buggy_code["Problem Description"].replace("\\n", "\n")
-    buggy_code = dict_buggy_code["CF (Code)"].replace("\\n", "\n")
+    # The code fields arrive as real text, so they are used as is: turning
+    # \n escapes into newlines would break every string literal that has one
+    # (e.g. a Java test's String expect = "5\n10\n"), and the broken test
+    # then fails every fix.
+    buggy_code = dict_buggy_code["CF (Code)"]
     # can use a function to extract them in the future
     default_start_code = ""
     default_test_code = ""
-    unittest_code = dict_buggy_code["Unittest_Code"].replace("\\n", "\n")
+    unittest_code = dict_buggy_code["Unittest_Code"]
     # This can be "LLM-example" or a predefined example code
-    predefined_example = dict_buggy_code["Example"].replace("\\n", "\n")
+    predefined_example = dict_buggy_code["Example"]
     # files the program opens (e.g. datafiles) -- shipped with every test run
     data_files = dict_buggy_code.get("Data_Files")
     # check if language is java, keep it as it is, otherwise, assign it to "python" as default
