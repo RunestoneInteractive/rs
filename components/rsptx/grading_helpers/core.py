@@ -25,6 +25,7 @@ from rsptx.db.models import (
     AssignmentValidator,
 )
 from rsptx.data_types.answer_storage import CODE_RUN_EVENTS
+from rsptx.data_types.autograde import effective_autograde
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
 from rsptx.grading_helpers.comments import is_hand_graded
@@ -112,6 +113,12 @@ async def grade_submission(
             # first/last/best answer are indistinguishable here: score the
             # interaction and upsert the single question_grades row.
             scoreSpec.username = user.username
+            # Old assignments may still store pct_correct for a Khan exercise,
+            # which would score a wrong attempt 0; those are graded on
+            # interaction no matter what.
+            scoreSpec.how_to_score = effective_autograde(
+                submission.event, scoreSpec.how_to_score
+            )
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
             answer = await fetch_question_grade(user.username, user.course_name, div_id)
             if answer:

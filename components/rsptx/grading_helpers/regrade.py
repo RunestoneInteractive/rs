@@ -27,6 +27,7 @@ from rsptx.grading_helpers.comments import (
     AUTOGRADE_COMMENT,
     is_autograder_comment,
 )
+from rsptx.data_types.autograde import effective_autograde
 from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.logging import rslogger
 from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
@@ -153,6 +154,7 @@ async def _score_row(
 
 async def _regrade_interaction_question(
     item: RegradeDiffItem,
+    question_type: str,
     events: set,
     sid: str,
     div_id: str,
@@ -193,7 +195,7 @@ async def _regrade_interaction_question(
         return item
 
     new_score = score_answer_values(
-        how_to_score=aq.autograde,
+        how_to_score=effective_autograde(question_type, aq.autograde),
         max_score=aq.points or 0,
         correct=None,
         percent=None,
@@ -372,6 +374,7 @@ async def regrade_one(
         if events:
             return await _regrade_interaction_question(
                 item,
+                scoring_type,
                 events,
                 sid,
                 div_id,

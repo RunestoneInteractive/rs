@@ -59,6 +59,7 @@ QTYPE_TO_INTERACTION_EVENTS = {
     "youtube": {"video"},
     "poll": {"poll"},
     "quizly": {"quizly"},
+    "khanex": {"khanex"},
 }
 
 #: ``useinfo.event`` values that ``/logger/runlog`` writes for an activecode run:
@@ -78,4 +79,5 @@ INTERACTION_ACTS = {
     "video": {"play", "pause", "complete"},
     "poll": None,
     "quizly": None,
+    "khanex": None,
 }
