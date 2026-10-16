@@ -62,6 +62,18 @@ router = APIRouter(
     tags=["coach"],
 )
 
+# Questions whose label ends with this suffix always get the instructor's
+# backup Parsons problem, never a personalized one, whatever their
+# data-parsons-personalized says. PreTeXt's @codetailor can only ask for
+# personalization, so this lets a PreTeXt book pair a personalized and a
+# non-personalized copy of an exercise in an A/B <select>. Added for a
+# CodeTailor study in Fall 2026; it can be removed once that study ends.
+STATIC_ARM_SUFFIX = "-ct-static"
+
+
+def _is_static_arm(problem_id):
+    return bool(problem_id) and problem_id.endswith(STATIC_ARM_SUFFIX)
+
 
 @router.post("/python_check")
 async def python_check(request: Request):
@@ -532,7 +544,9 @@ async def parsons_scaffolding(
     parsonsexample = data.get("parsonsexample")
     problem_description = data.get("problem_description")
     internal_test_case = data.get("internal_test_case")
-    parsons_personalized = data.get("parsons_personalized", True)
+    parsons_personalized = data.get(
+        "parsons_personalized", True
+    ) and not _is_static_arm(problem_id)
 
     adaptive_attr = 'data-adaptive="true"'
     no_indent_attr = 'data-noindent="false"'
@@ -665,7 +679,9 @@ async def parsons_scaffolding(
     personalization_level = data.get("personalization_level")
     parsonsexample = data.get("parsonsexample")
     problem_description = data.get("problem_description")
-    parsons_personalized = data.get("parsons_personalized", True)
+    parsons_personalized = data.get(
+        "parsons_personalized", True
+    ) and not _is_static_arm(problem_id)
 
     if not problem_id:
         return JSONResponse(
