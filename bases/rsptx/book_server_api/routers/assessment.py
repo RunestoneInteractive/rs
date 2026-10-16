@@ -95,6 +95,10 @@ async def get_assessment_results(
                 status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
             )
     request_data.sid = sid
+    # Always the caller's own course: ``is_instructor`` only vouches for the
+    # session course, so honoring the client's course would let an instructor
+    # of any course read answers and grades from every other course.
+    request_data.course = user.course_name
 
     row = await fetch_last_answer_table_entry(request_data)
     # mypy complains that ``row.id`` doesn't exist (true, but the return type wasn't exact and this does exist).
