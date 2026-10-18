@@ -114,6 +114,8 @@ jobs:
             sleep 2
           done
           docker compose run --rm --no-deps --pull never rsmanage rsmanage initdb
+          docker compose run --rm --no-deps --pull never rsmanage \
+            rsmanage addinstructor testuser1 overview
 
       - name: Start API services
         working-directory: .

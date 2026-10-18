@@ -7,7 +7,10 @@ const STACK_DOWN_MESSAGE = (url: string) =>
   `(docker compose up -d at the repo root for the backend on :80, npm start in ` +
   `assignment_builder for the Vite dev server on :5173).`;
 
-const LOGIN_URL = `${BACKEND_URL}/admin/auth/login`;
+const LOGIN_URL =
+  process.env.CI_A11Y === "true"
+    ? `${BACKEND_URL}/admin/auth/login?next=${encodeURIComponent("/builder")}`
+    : `${BACKEND_URL}/admin/auth/login`;
 const E2E_USER = "testuser1";
 const E2E_PASSWORD = "xxx";
 

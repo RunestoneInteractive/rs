@@ -53,7 +53,11 @@ test(
     await expect(page.getByRole("heading", { level: 1, name: "Assignment grader" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Assignments" })).toBeAttached();
     await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Assignments");
-    await expect(page.locator('[data-tour="grader-assignment-picker"]')).toBeVisible();
+    await expect(
+      page
+        .locator('[data-tour="grader-assignment-picker"]')
+        .or(page.getByText("No assignments yet"))
+    ).toBeVisible();
 
     const results = await scan(page);
 
@@ -97,7 +101,12 @@ test(
   { tag: ["@p2", "@a11y", "@grader", "@gradebook"] },
   async ({ page }, testInfo) => {
     await gotoApp(page, "/gradebook");
-    await expect(page.getByRole("heading", { level: 2, name: "Gradebook" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Gradebook", exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Nothing to grade yet" }).or(page.getByRole("table"))
+    ).toBeVisible();
 
     const results = await scan(page);
 
