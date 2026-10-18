@@ -120,7 +120,7 @@ jobs:
         run: |
           docker compose up -d --no-build redis jobe assignment admin
           for attempt in {1..60}; do
-            if curl --fail --silent http://localhost:8115/admin/auth/login >/dev/null \
+            if curl --fail --silent http://localhost:8115/auth/login >/dev/null \
               && curl --fail --silent http://localhost:8113/openapi.json >/dev/null; then
               exit 0
             fi
