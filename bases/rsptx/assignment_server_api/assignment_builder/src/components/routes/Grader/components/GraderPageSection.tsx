@@ -13,10 +13,11 @@ export const GraderPageSection: React.FC<GraderPageSectionProps> = ({
   pathname
 }) => {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const pagePathname = pathname.replace(/\/students\/[^/]+\/?$/, "");
 
   useEffect(() => {
     headingRef.current?.focus();
-  }, [pathname]);
+  }, [pagePathname]);
 
   return (
     <section className={styles.body} aria-labelledby="grader-page-heading">

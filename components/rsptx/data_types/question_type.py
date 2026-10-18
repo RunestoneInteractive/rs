@@ -79,6 +79,10 @@ class QuestionType(Enum):
         "Create a quiz question using the Quizly platform",
     )
 
+    # Legacy Khan Academy exercises.  The component is gone from new books, but
+    # questions of this type are still assigned in old courses.
+    KHANEX = ("khanex", "Khan Exercise", "")
+
     def to_dict(self):
         return {
             "value": self.value[0],
@@ -98,7 +102,20 @@ class QuestionType(Enum):
         """Types with no notion of a correct answer: all we can ever know is
         that the student interacted with them.  These correspond to the
         ``INTERACTION_ONLY_EVENTS`` the scorer recognises."""
-        return [cls.VIDEO, cls.YOUTUBE, cls.POLL, cls.QUIZLY]
+        return [cls.VIDEO, cls.YOUTUBE, cls.POLL, cls.QUIZLY, cls.KHANEX]
+
+    @classmethod
+    def interact_policy_only_types(cls):
+        """Types for which interact is the *only* autograde policy offered --
+        not even manual.  Khan exercises are kept for backward compatibility
+        and have always been graded on interaction."""
+        return [cls.KHANEX]
+
+    @classmethod
+    def manually_gradable_types(cls):
+        """Every type for which the manual autograde policy is offered."""
+        interact_only = set(cls.interact_policy_only_types())
+        return [member for member in cls if member not in interact_only]
 
     @classmethod
     def correctness_gradable_types(cls):

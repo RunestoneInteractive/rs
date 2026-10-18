@@ -1,5 +1,91 @@
 # ChangeLog
 
+## Updates since last changelog entry (2026-10-07 → 2026-10-16)
+
+Coverage: changes landed after the previous changelog update on **2026-10-07**, through **2026-10-16**.
+
+### Highlights
+
+- **Grading correctness:** `first_answer` questions are scored on the first submission, `last_answer` selectquestion grades are stored under the selector_id, interact-graded activecode runs are scored, and khanex questions are graded on interaction only — the builder offers only Interact for them, and old assignments that still store `pct_correct` are scored as interact (36acf3c0, fac09bf8, cf6f437d, 213fe86d).
+- **user_interactions tracker (new):** a per-(course, item, student) summary of useinfo now answers every "has touched / when" question; the grader's readings stats and the remaining readers moved to it, and the grader's question list is faster on large courses (7ab930a0, d7cf8525, 13190893, d3b0b9df).
+- **Delegated grading:** backend foundation for anonymous delegated grading (93fd10fa, 6a487be1, 169a305f).
+- **CodeTailor:** a question's data files ship with its JOBE test runs (a cloned course's own datafile wins over the base book's, and every declared datafile is kept), help is built from subgoal labels, four or more `=` are accepted before test code, passing solutions are accepted on python3 questions, and questions labeled `*-ct-static` get the backup puzzle (c1e6f1cc, 649e5c22, 6296b0c3, 344f6b6c, 260cb8ea, 3d5095a9, 0d13f56d, 1aaa477a).
+- **Book question_json:** `question_json` is stored for every book question type, the builder keeps book question options through save, copy and regenerate, dragndrop got per-card feedback and question_json for XML cardsorts, and `rsmanage backfill-question-json` replaces the standalone script (ee5cb57e, 297a74af, e6eb9c70, fb402ff1).
+- **Accessibility:** improved navigation, plus keyboard and component accessibility in the grader (7d75d3a2, f946b4f1, 30f6be26).
+- **MathJax:** the AutoQueue was dropped and server pages moved to MathJax 4; `mathjaxknowl3.js` loads once through the MathJax loader, and hparsons math renders again after restoring a saved answer (a93a1b27, f5d55f72, 8279c695).
+- **Interactives fixes:** Parsons awaits `initializeAreas` before starting and keeps blocks apart when code has a bare `<`; Java unit test feedback cells show line breaks; the peer chat websocket opens with an absolute URL (90bce244, 10c5e40a, 6eb3f4e9, 64a26c79).
+- **Donations:** the PreTeXt donation ad moved to a dismissible top-of-page banner, and donate page visits are logged to useinfo with the referring ad (8b85e082, f784d76c).
+- **Course & student experience:** a quick switch-course dropdown in the nav bar for the assignment builder, grader and gradebook; reading progress is only requested on subchapter pages; StudyClues is disabled when an exam starts; login sends `course_id` (1a29adf6, 7e1e7c76, 6b598004, 9bfb92f4).
+- **Security:** `/assessment/results` is scoped to the caller's own course, and a `SECURITY.md` with a private vulnerability reporting policy was added (cd66e5cf, de4fb1d1).
+- **Tooling & ops:** Caddy maintenance mode and a logical replication helper (for the Postgres upgrade), colored errors and warnings in the author server's build log, the worker image is no longer built separately from author, the assignment dump creates its output directory, the interactives release tarball is stripped of macOS AppleDouble files, e2e tests log in through `/admin/auth/login`, AGENTS.md guides for AI coding agents, and questionTypes tests (1fbae986, 80231350, 3e74083d, a3e53c19, 23dc3ddf, d27ed03a, 0dff41df, efbfbec8).
+- **Releases:** app versions **9.3.4** through **9.3.8** shipped; bundled runestone JS bumped **8.3.4 → 8.3.6**.
+
+### Commit notes (for reference)
+
+- 213fe86d Grade khanex questions on interaction only
+- 5091ba34 update version to 9.3.8
+- 1aaa477a CodeTailor: serve the backup puzzle for questions labeled *-ct-static
+- 60bf4466 update runestone to version 8.3.6
+- 26794101 merge migration heads
+- de4fb1d1 Add SECURITY.md with a private vulnerability reporting policy
+- cd66e5cf Scope /assessment/results to the caller's own course
+- 30f6be26 f-1579 improve grader components accessibility
+- 8279c695 Render hparsons math again after restoring a saved answer
+- a93a1b27 Drop the MathJax AutoQueue and move server pages to MathJax 4 (#1582)
+- 6eb3f4e9 Show line breaks in Java unit test feedback cells
+- 6b598004 Disable StudyClues when starting an exam
+- 7e1e7c76 Only ask for reading progress on subchapter pages
+- f946b4f1 f-1579 improve keyboard accessibility in Grader
+- 0d13f56d Let CodeTailor accept passing solutions on python3 questions
+- 1fbae986 Add Caddy maintenance mode and logical replication helper
+- 59b63cf5 update version to 9.3.7
+- cf6f437d Score interact-graded activecode runs
+- 9bfb92f4 Fix: send course_id on login.
+- fb402ff1 Add rsmanage backfill-question-json, replacing the standalone script
+- 7d75d3a2 f-1579 improves navigation accessibility
+- 10c5e40a Keep Parsons blocks apart when their code has a bare "<"
+- 12bc99e2 update version to 9.3.6
+- 13190893 Move the remaining "has touched / when" readers to user_interactions
+- d7cf8525 Read the grader's readings stats from user_interactions
+- 7ab930a0 Add user_interactions, a per-(course, item, student) summary of useinfo
+- d3b0b9df Speed up the grader's question list on large courses
+- f6aaee7c update version to 9.3.5
+- c634cb6a bug fixes
+- 97405d99 update runestone to version 8.3.5
+- ee5cb57e Store question_json for every book question type
+- 297a74af Builder: keep book question options through save, copy and regenerate
+- 6296b0c3 Keep every declared datafile; match spaced filenames; test clone precedence
+- 290bb7cf f-1563 fix lint
+- 1a29adf6 f-1589 Add a quick switch course dropdown for assignment builder, grader and gradebook in the nav bar
+- e6eb9c70 Dragndrop: feedback on individual cards, and question_json for XML cardsorts
+- 90bce244 Parsons: await initializeAreas before starting interactivity
+- f5d55f72 Load mathjaxknowl3.js once, through the MathJax loader
+- 64a26c79 Open the peer chat websocket with an absolute URL
+- 0dff41df Add AGENTS.md guides for AI coding agents
+- d27ed03a Log the e2e tests in through /admin/auth/login
+- 36acf3c0 Score first_answer questions on the first submission
+- fac09bf8 Store last_answer selectquestion grades under the selector_id
+- 73022726 update version to 9.3.4
+- 260cb8ea Match activecode's source markers and tighten subgoal-label detection
+- f784d76c Log donate page visits to useinfo with the referring ad
+- 8b85e082 Move PreTeXt donation ad to a dismissible top-of-page banner
+- 344f6b6c Give CodeTailor help built from subgoal labels
+- 3d5095a9 Accept four or more "=" before a question's test code in CodeTailor
+- 23dc3ddf Strip macOS AppleDouble files and xattrs from interactives release tarball
+- 467d9766 skip badly formatted query
+- a3e53c19 Fix assignment dump: create output dir and bind course param
+- 3e74083d No need to build worker as it is identical to author.
+- 80231350 Color errors and warnings in the author server's build log
+- e78a28f8 f-1563 return config
+- 7b105508 f-1563 fix specs extension
+- e38496bc f-1563 fix parser tests
+- 649e5c22 Prefer a cloned course's own datafile over the base book's
+- c1e6f1cc Ship a question's data files with CodeTailor's JOBE test runs
+- efbfbec8 f-1563 add questionTypes tests
+- 169a305f f-1251 fix comments
+- 6a487be1 f-1251 fix discription
+- 93fd10fa f-1251 adds the backend foundation for anonymous delegated grading
+
 ## Updates since last changelog entry (2026-08-20 → 2026-10-07)
 
 Coverage: changes landed after the previous changelog update on **2026-08-20**, through **2026-10-07**.

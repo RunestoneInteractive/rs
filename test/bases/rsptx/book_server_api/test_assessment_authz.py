@@ -1,5 +1,5 @@
 """
-Authorization and data-scoping tests for two assessment endpoints:
+Authorization and data-scoping tests for three assessment endpoints:
 
 - ``getaggregateresults`` must report on the caller's own course (never one
   named in the query string), must not return the course record, and must
@@ -7,6 +7,8 @@ Authorization and data-scoping tests for two assessment endpoints:
   rendered for every student who clicks "Compare me").
 - ``has_attachment`` must only let an instructor look up another student's
   attachment.
+- ``results`` must look up answers and grades in the caller's own course, never
+  one named in the request body, and only an instructor may name a ``sid``.
 
 These endpoints read ``request.state.user`` (set by the auth middleware), so
 the handlers are called directly with a stand-in request and the database
@@ -124,3 +126,75 @@ async def test_attachment_other_sid_allowed_for_instructor(attachment_stubs):
     )
     assert attachment_stubs["sid"] == "student2"
     assert attachment_stubs["course"] == "mycourse"
+
+
+@pytest.fixture
+def results_stubs(monkeypatch):
+    calls = {}
+
+    async def fake_fetch_last_answer_table_entry(query_data):
+        calls["answer_sid"] = query_data.sid
+        calls["answer_course"] = query_data.course
+        return SimpleNamespace(
+            id=1, model_dump=lambda: {"div_id": query_data.div_id, "answer": "0"}
+        )
+
+    async def fake_fetch_question_grade(sid, course_name, div_id):
+        calls["grade_sid"] = sid
+        calls["grade_course"] = course_name
+        return None
+
+    def set_instructor(value):
+        async def fake_is_instructor(request):
+            return value
+
+        monkeypatch.setattr(assessment, "is_instructor", fake_is_instructor)
+
+    monkeypatch.setattr(
+        assessment,
+        "fetch_last_answer_table_entry",
+        fake_fetch_last_answer_table_entry,
+    )
+    monkeypatch.setattr(assessment, "fetch_question_grade", fake_fetch_question_grade)
+    set_instructor(False)
+    calls["set_instructor"] = set_instructor
+    return calls
+
+
+def _results_request(**kw):
+    return assessment.AssessmentRequest(
+        div_id="q1", event="mChoice", course=kw.pop("course", "othercourse"), **kw
+    )
+
+
+async def test_results_instructor_scoped_to_own_course(results_stubs):
+    # An instructor of mycourse naming another course and one of its students
+    # must only ever see what that student did in mycourse.
+    results_stubs["set_instructor"](True)
+    req = _request(username="prof", course_name="mycourse")
+    await assessment.get_assessment_results(
+        _results_request(sid="student2"), req, user=req.state.user
+    )
+    assert results_stubs["answer_sid"] == "student2"
+    assert results_stubs["answer_course"] == "mycourse"
+    assert results_stubs["grade_sid"] == "student2"
+    assert results_stubs["grade_course"] == "mycourse"
+
+
+async def test_results_student_scoped_to_own_course(results_stubs):
+    req = _request(course_name="mycourse")
+    await assessment.get_assessment_results(
+        _results_request(), req, user=req.state.user
+    )
+    assert results_stubs["answer_sid"] == "student1"
+    assert results_stubs["answer_course"] == "mycourse"
+    assert results_stubs["grade_course"] == "mycourse"
+
+
+async def test_results_other_sid_rejected_for_student(results_stubs):
+    req = _request()
+    resp = await assessment.get_assessment_results(
+        _results_request(sid="student2"), req, user=req.state.user
+    )
+    assert resp.status_code == 401
+    assert "answer_sid" not in results_stubs

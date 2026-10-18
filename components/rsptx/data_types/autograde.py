@@ -9,6 +9,27 @@ INTERACTION_ONLY_QUESTION_TYPES = {
     qt.value_only() for qt in QuestionType.interaction_only_types()
 }
 
+#: The ``question_type`` values that are graded on interaction whatever
+#: autograde policy is stored for them.  Old assignments may still carry
+#: ``pct_correct`` for a Khan exercise from before this was enforced.
+INTERACT_POLICY_ONLY_QUESTION_TYPES = {
+    qt.value_only() for qt in QuestionType.interact_policy_only_types()
+}
+
+
+def effective_autograde(question_type: Optional[str], autograde: Optional[str]) -> str:
+    """The autograde policy to actually score a question with.
+
+    :param question_type: the ``Question.question_type`` (or, for an
+        interaction-only event, the useinfo ``event``, which has the same name).
+    :param autograde: the ``AssignmentQuestion.autograde`` stored for it.
+    :return: ``"interact"`` for a type in
+        :data:`INTERACT_POLICY_ONLY_QUESTION_TYPES`, otherwise ``autograde``.
+    """
+    if question_type in INTERACT_POLICY_ONLY_QUESTION_TYPES:
+        return "interact"
+    return autograde
+
 
 def default_autograde_for(question_type: Optional[str], is_reading: bool) -> str:
     """Pick the initial autograde policy for a newly added assignment question.
@@ -31,7 +52,7 @@ def default_autograde_for(question_type: Optional[str], is_reading: bool) -> str
 
 
 class AutogradeOptions(Enum):
-    MANUAL = ("manual", "Manual", QuestionType.all_types())
+    MANUAL = ("manual", "Manual", QuestionType.manually_gradable_types())
     # Videos and polls have no correct answer, so offering these would silently
     # score every student 0 forever.  Interact is the only autograde policy that
     # means anything for them.

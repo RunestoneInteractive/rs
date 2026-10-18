@@ -165,6 +165,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
                   </Table.Td>
                   <Table.Td>
                     <NumberInput
+                      aria-label={`Score for ${studentLabel(r)}`}
                       value={edits[r.sid]?.score ?? r.score ?? ""}
                       onChange={(v) => setScore(r.sid, typeof v === "number" ? v : null)}
                       min={0}
@@ -175,6 +176,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
                   </Table.Td>
                   <Table.Td>
                     <TextInput
+                      aria-label={`Comment for ${studentLabel(r)}`}
                       value={edits[r.sid]?.comment ?? r.comment ?? ""}
                       onChange={(e) => setComment(r.sid, e.currentTarget.value)}
                       placeholder="optional"
@@ -281,6 +283,7 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
       onClose={close}
       size="860px"
       centered
+      closeButtonProps={{ "aria-label": "Close manual grading dialog" }}
     >
       <div className={styles.dialogStack}>
         <p className={styles.dialogIntro}>
@@ -289,7 +292,11 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
           auto-grading.
         </p>
 
-        <Radio.Group value={mode} onChange={(v) => setMode(v as "same" | "grid")}>
+        <Radio.Group
+          label="Grading mode"
+          value={mode}
+          onChange={(v) => setMode(v as "same" | "grid")}
+        >
           <div className={styles.radioRow}>
             <Radio value="same" label="Same grade for all" />
             <Radio value="grid" label="Grade individually (grid)" />
@@ -307,11 +314,9 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
           <div className={styles.fieldStack}>
             <div className={styles.applyRow}>
               <div>
-                <label className={styles.fieldHint} htmlFor="multi-grade-score-input">
-                  Score (applied to every student × question)
-                </label>
                 <NumberInput
-                  id="multi-grade-score-input"
+                  label="Score (applied to every student × question)"
+                  classNames={{ label: styles.fieldHint }}
                   value={sameScore ?? ""}
                   onChange={(v) => setSameScore(typeof v === "number" ? v : null)}
                   min={0}
@@ -319,11 +324,9 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
                 />
               </div>
               <div className={styles.grow}>
-                <label className={styles.fieldHint} htmlFor="multi-grade-comment-input">
-                  Comment (optional)
-                </label>
                 <Textarea
-                  id="multi-grade-comment-input"
+                  label="Comment (optional)"
+                  classNames={{ label: styles.fieldHint }}
                   value={sameComment}
                   onChange={(e) => setSameComment(e.currentTarget.value)}
                   rows={1}

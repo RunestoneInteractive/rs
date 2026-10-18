@@ -98,4 +98,6 @@ def describe_interaction(event: str, act: str) -> str:
         return label
     if event == "poll":
         return f"Responded {act}" if act else "Responded"
+    if event == "khanex":
+        return "Answered correctly" if act == "answer:correct" else "Answered"
     return act or "Interacted"

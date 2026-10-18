@@ -128,7 +128,7 @@ from rsptx.validation.schemas import (
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
-from rsptx.data_types.autograde import AutogradeOptions
+from rsptx.data_types.autograde import AutogradeOptions, effective_autograde
 from rsptx.data_types.language import LanguageOptions
 from rsptx.data_types.question_type import QuestionType
 
@@ -792,6 +792,11 @@ async def get_assignment_questions(
         aq["base_course"] = q["base_course"]
         aq["htmlsrc"] = q["htmlsrc"]
         aq["question_type"] = q["question_type"]
+        if not aq["reading_assignment"]:
+            # Report the policy the question is actually graded with: an old
+            # Khan exercise may still store pct_correct, which is not among the
+            # options the builder offers for it and would render as a blank cell.
+            aq["autograde"] = effective_autograde(q["question_type"], aq["autograde"])
         aq["question_json"] = q["question_json"]
         aq["owner"] = q["owner"]
         aq["tags"] = q["tags"]

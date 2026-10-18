@@ -52,8 +52,9 @@ export const SaveStatusPill: React.FC<Props> = ({ status, onRetry, errorMessage 
   return (
     <span
       className={`${styles.savePill} ${PILL_CLASS[status]}`}
-      role="status"
-      aria-live="polite"
+      role={status === "error" ? "alert" : "status"}
+      aria-live={status === "error" ? "assertive" : "polite"}
+      aria-atomic="true"
       title={status === "error" ? errorMessage : undefined}
     >
       {status === "saving" && <Loader size={12} />}

@@ -32,4 +32,22 @@ describe("GraderPageSection", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Gradebook" })).toHaveFocus();
   });
+
+  it("does not steal focus when navigating between students on the same question", () => {
+    const { rerender } = render(
+      <GraderPageSection heading="Question" pathname="/grader/1/questions/2/students/s1">
+        <button type="button">Student row</button>
+      </GraderPageSection>
+    );
+    const studentRow = screen.getByRole("button", { name: "Student row" });
+
+    studentRow.focus();
+    rerender(
+      <GraderPageSection heading="Question" pathname="/grader/1/questions/2/students/s2">
+        <button type="button">Student row</button>
+      </GraderPageSection>
+    );
+
+    expect(studentRow).toHaveFocus();
+  });
 });

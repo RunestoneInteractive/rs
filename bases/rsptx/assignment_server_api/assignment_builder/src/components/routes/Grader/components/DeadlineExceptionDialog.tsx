@@ -3,7 +3,7 @@ import {
   AccommodationPayload,
   useUpsertAccommodationMutation
 } from "@store/grader/grader.logic.api";
-import React, { useEffect, useId, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import styles from "../Grader.module.css";
 
@@ -30,9 +30,6 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
   const [timeMultiplier, setTimeMultiplier] = useState<number | null>(1);
   const [visibleFlag, setVisibleFlag] = useState(false);
   const [allowLink, setAllowLink] = useState(false);
-  const extraDaysInputId = useId();
-  const timeMultiplierInputId = useId();
-
   const [upsert, { isLoading }] = useUpsertAccommodationMutation();
 
   useEffect(() => {
@@ -92,22 +89,18 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
         </Radio.Group>
         <div className={styles.numberFieldRow}>
           <div>
-            <label className={styles.fieldHint} htmlFor={extraDaysInputId}>
-              Extend deadline by (days)
-            </label>
             <NumberInput
-              id={extraDaysInputId}
+              label="Extend deadline by (days)"
+              classNames={{ label: styles.fieldHint }}
               value={extraDays ?? ""}
               onChange={(v) => setExtraDays(typeof v === "number" ? v : 0)}
               min={0}
             />
           </div>
           <div>
-            <label className={styles.fieldHint} htmlFor={timeMultiplierInputId}>
-              Time-limit multiplier
-            </label>
             <NumberInput
-              id={timeMultiplierInputId}
+              label="Time-limit multiplier"
+              classNames={{ label: styles.fieldHint }}
               value={timeMultiplier ?? ""}
               onChange={(v) => setTimeMultiplier(typeof v === "number" ? v : 1)}
               min={0}

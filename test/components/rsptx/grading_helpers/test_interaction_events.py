@@ -7,9 +7,11 @@ separately from the events listed in ``EVENT2TABLE``.
 """
 
 from rsptx.data_types.autograde import (
+    INTERACT_POLICY_ONLY_QUESTION_TYPES,
     INTERACTION_ONLY_QUESTION_TYPES,
     AutogradeOptions,
     default_autograde_for,
+    effective_autograde,
 )
 from rsptx.data_types.question_type import QuestionType
 from rsptx.db.crud import (
@@ -25,7 +27,7 @@ from rsptx.db.crud import (
 
 
 def test_video_and_poll_are_interaction_only():
-    assert INTERACTION_ONLY_EVENTS == {"video", "poll", "quizly"}
+    assert INTERACTION_ONLY_EVENTS == {"video", "poll", "quizly", "khanex"}
 
 
 def test_interaction_only_events_have_no_answer_table():
@@ -78,7 +80,13 @@ def _supported(option):
 
 
 def test_interaction_only_question_types():
-    assert INTERACTION_ONLY_QUESTION_TYPES == {"video", "youtube", "poll", "quizly"}
+    assert INTERACTION_ONLY_QUESTION_TYPES == {
+        "video",
+        "youtube",
+        "poll",
+        "quizly",
+        "khanex",
+    }
 
 
 def test_correctness_policies_exclude_interaction_only_types():
@@ -90,7 +98,28 @@ def test_correctness_policies_exclude_interaction_only_types():
 
 def test_interact_and_manual_still_offered_for_videos_and_polls():
     for option in (AutogradeOptions.INTERACT, AutogradeOptions.MANUAL):
-        assert INTERACTION_ONLY_QUESTION_TYPES <= _supported(option)
+        assert (
+            INTERACTION_ONLY_QUESTION_TYPES - INTERACT_POLICY_ONLY_QUESTION_TYPES
+            <= _supported(option)
+        )
+
+
+def test_khanex_is_offered_only_interact():
+    offered = [
+        option.value[0] for option in AutogradeOptions if "khanex" in _supported(option)
+    ]
+    assert offered == ["interact"]
+
+
+def test_khanex_is_graded_on_interaction_whatever_is_stored():
+    """Old assignments may still carry pct_correct for a Khan exercise."""
+    for stored in ("pct_correct", "all_or_nothing", "manual", None):
+        assert effective_autograde("khanex", stored) == "interact"
+
+
+def test_effective_autograde_leaves_other_types_alone():
+    assert effective_autograde("mchoice", "pct_correct") == "pct_correct"
+    assert effective_autograde("video", "manual") == "manual"
 
 
 def test_correctness_policies_still_offered_for_ordinary_questions():
@@ -114,6 +143,7 @@ def test_video_added_to_exercises_defaults_to_interact():
     assert default_autograde_for("youtube", is_reading=False) == "interact"
     assert default_autograde_for("video", is_reading=False) == "interact"
     assert default_autograde_for("poll", is_reading=False) == "interact"
+    assert default_autograde_for("khanex", is_reading=False) == "interact"
 
 
 def test_ordinary_question_added_to_exercises_defaults_to_pct_correct():
@@ -140,6 +170,7 @@ def test_interaction_events_for_video_types():
     assert interaction_events_for("video") == {"video"}
     assert interaction_events_for("youtube") == {"video"}
     assert interaction_events_for("poll") == {"poll"}
+    assert interaction_events_for("khanex") == {"khanex"}
 
 
 def test_interaction_events_for_ordinary_types_is_none():
@@ -202,6 +233,18 @@ def test_describe_poll_response():
     from rsptx.grading_helpers.answer_tables import describe_interaction
 
     assert describe_interaction("poll", "3") == "Responded 3"
+
+
+def test_describe_khanex_attempt():
+    from rsptx.grading_helpers.answer_tables import describe_interaction
+
+    assert describe_interaction("khanex", "answer:correct") == "Answered correctly"
+    assert describe_interaction("khanex", "answer:no") == "Answered"
+
+
+def test_any_khanex_act_counts_as_interaction():
+    assert is_interaction_event("khanex", "answer:correct")
+    assert is_interaction_event("khanex", "answer:no")
 
 
 def test_describe_handles_unparseable_position():

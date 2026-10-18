@@ -70,7 +70,7 @@ EVENT2TABLE = {
 # beyond the ``useinfo`` row, because the interaction *is* the submission. These
 # live next to ``EVENT2TABLE`` because the two together define the set of events
 # the scorer knows about -- an event in neither is logged and nothing more.
-INTERACTION_ONLY_EVENTS = {"video", "poll", "quizly"}
+INTERACTION_ONLY_EVENTS = {"video", "poll", "quizly", "khanex"}
 
 # The acts that count as a genuine student interaction live in
 # ``rsptx.data_types.answer_storage`` so that readers outside the db layer (the

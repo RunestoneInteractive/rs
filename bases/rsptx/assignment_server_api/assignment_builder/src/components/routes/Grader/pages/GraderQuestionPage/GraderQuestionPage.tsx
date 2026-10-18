@@ -314,14 +314,21 @@ export const GraderQuestionPage: React.FC = () => {
 
   if (!data && isLoading) {
     return (
-      <Center className={styles.loadingWrap}>
+      <Center
+        className={styles.loadingWrap}
+        role="status"
+        aria-live="polite"
+        aria-label="Loading student answers"
+      >
         <Loader />
       </Center>
     );
   }
   if (!data) {
     return (
-      <div className={styles.emptyState}>Couldn't load student answers. Refresh the page.</div>
+      <div className={styles.emptyState} role="alert">
+        Couldn't load student answers. Refresh the page.
+      </div>
     );
   }
 
