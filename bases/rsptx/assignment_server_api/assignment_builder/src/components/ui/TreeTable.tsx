@@ -1,4 +1,4 @@
-import { Checkbox, Table } from "@mantine/core";
+import { Checkbox, Table, VisuallyHidden } from "@mantine/core";
 import classNames from "classnames";
 import { ReactNode, RefCallback, useMemo, useState } from "react";
 
@@ -163,7 +163,7 @@ export const TreeTable = ({
                                 checked={checked}
                                 indeterminate={indeterminate}
                                 onChange={() => (checked ? onUnselect(node) : onSelect(node))}
-                                aria-label={`Select ${nodeLabel}`}
+                                label={<VisuallyHidden>{`Select ${nodeLabel}`}</VisuallyHidden>}
                               />
                             )}
                             {col.render(node)}

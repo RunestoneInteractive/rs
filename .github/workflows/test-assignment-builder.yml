@@ -3,8 +3,8 @@ name: Assignment Builder Tests
 on:
   pull_request:
     paths:
-      - 'bases/rsptx/assignment_server_api/assignment_builder/**'
-      - '.github/workflows/test-assignment-builder.yml'
+      - "bases/rsptx/assignment_server_api/assignment_builder/**"
+      - ".github/workflows/test-assignment-builder.yml"
 
 defaults:
   run:
@@ -24,11 +24,11 @@ jobs:
         #  - node version: newer Node ships a native globalThis.localStorage
         #    that shadows the one jsdom provides (see vitest.setup.ts).
         include:
-          - node: '22'
+          - node: "22"
             timezone: UTC
-          - node: '24'
+          - node: "24"
             timezone: America/Chicago
-          - node: '24'
+          - node: "24"
             timezone: Asia/Tokyo
 
     env:
@@ -56,3 +56,95 @@ jobs:
 
       - name: Run tests
         run: npx vitest run --coverage.enabled=false
+
+  accessibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      ADMIN_PROXY_URL: http://localhost:8115
+      ASSIGNMENT_PROXY_URL: http://localhost:8113
+      BOOK_PATH: ${{ github.workspace }}/.ci-books
+      CI_A11Y: "true"
+      COMPOSE_PROFILES: basic
+      DC_DEV_DBURL: postgresql://runestone:runestone@db/runestone_dev
+      DEV_DBURL: postgresql://runestone:runestone@localhost:2345/runestone_dev
+      FERNET_SECRET: hRjuISXQoWd2kQBT8g-2LkmLw4jdv8NCGXUE_GfFZ1w=
+      JWT_SECRET: ci-only-secret
+      REDIS_HOST: redis
+      RUNESTONE_HOST: localhost
+      SERVER_CONFIG: development
+      WEB2PY_PRIVATE_KEY: sha512:ci-only-key
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: bases/rsptx/assignment_server_api/assignment_builder/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Accessibility lint
+        run: npm run lint:a11y
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare backend directories
+        working-directory: .
+        run: mkdir -p "$BOOK_PATH"
+
+      - name: Pull backend images
+        working-directory: .
+        run: docker compose pull db redis jobe preflight rsmanage assignment admin
+
+      - name: Initialize database
+        working-directory: .
+        run: |
+          docker compose up -d --no-build db
+          for attempt in {1..30}; do
+            docker compose exec -T db pg_isready -U runestone -d runestone_dev && break
+            if [ "$attempt" -eq 30 ]; then exit 1; fi
+            sleep 2
+          done
+          docker compose run --rm --no-deps --pull never rsmanage rsmanage initdb
+
+      - name: Start API services
+        working-directory: .
+        run: |
+          docker compose up -d --no-build redis jobe assignment admin
+          for attempt in {1..60}; do
+            if curl --fail --silent http://localhost:8115/admin/auth/login >/dev/null \
+              && curl --fail --silent http://localhost:8113/openapi.json >/dev/null; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 60 ]; then exit 1; fi
+            sleep 2
+          done
+
+      - name: Run blocking axe checks
+        run: npm run test:e2e:a11y:ci
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assignment-builder-a11y-report
+          path: bases/rsptx/assignment_server_api/assignment_builder/e2e/playwright-report
+          if-no-files-found: ignore
+
+      - name: Show backend logs on failure
+        if: failure()
+        working-directory: .
+        run: docker compose logs --no-color --tail 200 assignment admin
+
+      - name: Stop backend services
+        if: always()
+        working-directory: .
+        run: docker compose stop

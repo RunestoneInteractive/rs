@@ -25,9 +25,16 @@ describe("AppNavBar", () => {
   it("renders top-level item labels as buttons", () => {
     renderWithMantine(<AppNavBar items={makeItems()} />);
 
-    expect(screen.getByRole("button", { name: /home/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /back to course/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /user/i })).toBeInTheDocument();
+    const home = screen.getByRole("button", { name: /home/i });
+    const backToCourse = screen.getByRole("button", { name: /back to course/i });
+    const user = screen.getByRole("button", { name: /user/i });
+
+    expect(home).toBeInTheDocument();
+    expect(backToCourse).toBeInTheDocument();
+    expect(user).toBeInTheDocument();
+    expect(home).not.toHaveAttribute("title");
+    expect(backToCourse).not.toHaveAttribute("title");
+    expect(user).not.toHaveAttribute("title");
   });
 
   it("invokes the command when a top-level item is clicked", async () => {

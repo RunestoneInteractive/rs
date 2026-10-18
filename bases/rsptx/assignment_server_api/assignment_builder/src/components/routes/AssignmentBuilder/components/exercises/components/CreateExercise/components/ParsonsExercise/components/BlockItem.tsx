@@ -322,6 +322,7 @@ export const BlockItem: FC<BlockItemProps> = ({
         <div
           ref={editorContainerRef}
           className="w-full relative"
+          role="presentation"
           onMouseMove={handleEditorMouseMove}
           onMouseLeave={handleEditorMouseLeave}
           onMouseDown={handleInputMouseDown}
@@ -337,6 +338,7 @@ export const BlockItem: FC<BlockItemProps> = ({
         <div
           ref={editorContainerRef}
           className="w-full relative"
+          role="presentation"
           onMouseMove={handleEditorMouseMove}
           onMouseLeave={handleEditorMouseLeave}
           onMouseDown={handleInputMouseDown}
@@ -370,7 +372,11 @@ export const BlockItem: FC<BlockItemProps> = ({
 
   // Render the options popover content
   const renderOptionsPanel = () => (
-    <div className={styles.optionsPanel} onMouseDown={(e) => e.stopPropagation()}>
+    <div
+      className={styles.optionsPanel}
+      role="presentation"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       {/* Block type section — Toggle switch */}
       {showDistractorToggle && (
         <div className={styles.optionsPanelSection}>
@@ -454,8 +460,11 @@ export const BlockItem: FC<BlockItemProps> = ({
             <span className={styles.optionsPanelSectionTitle}>DAG configuration</span>
             {onTagChange && (
               <div className={styles.optionsPanelField}>
-                <label className={styles.optionsPanelLabel}>Tag</label>
+                <label className={styles.optionsPanelLabel} htmlFor={`parsons-tag-${block.id}`}>
+                  Tag
+                </label>
                 <TextInput
+                  id={`parsons-tag-${block.id}`}
                   value={block.tag || ""}
                   onChange={(e) => onTagChange(block.id, e.target.value)}
                   className={styles.optionsPanelInput}
@@ -466,7 +475,7 @@ export const BlockItem: FC<BlockItemProps> = ({
             )}
             {onDependsChange && (
               <div className={styles.optionsPanelField}>
-                <label className={styles.optionsPanelLabel}>
+                <label className={styles.optionsPanelLabel} htmlFor={`parsons-depends-${block.id}`}>
                   Depends on
                   {allTags.length > 0 && (
                     <span className={styles.optionsPanelHint}>
@@ -475,6 +484,7 @@ export const BlockItem: FC<BlockItemProps> = ({
                   )}
                 </label>
                 <TextInput
+                  id={`parsons-depends-${block.id}`}
                   value={block.depends?.join(", ") || ""}
                   onChange={(e) => {
                     const deps = e.target.value
@@ -506,8 +516,11 @@ export const BlockItem: FC<BlockItemProps> = ({
           >
             <span className={styles.optionsPanelSectionTitle}>Display order</span>
             <div className={styles.optionsPanelField}>
-              <label className={styles.optionsPanelLabel}>Position</label>
+              <label className={styles.optionsPanelLabel} htmlFor={`parsons-position-${block.id}`}>
+                Position
+              </label>
               <TextInput
+                id={`parsons-position-${block.id}`}
                 value={block.displayOrder !== undefined ? String(block.displayOrder) : ""}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);

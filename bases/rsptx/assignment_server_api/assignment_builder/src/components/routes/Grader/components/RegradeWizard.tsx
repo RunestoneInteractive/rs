@@ -126,6 +126,7 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
       title="Regrade selected questions"
       opened={visible}
       onClose={close}
+      closeButtonProps={{ "aria-label": "Close regrade selected questions dialog" }}
       size="720px"
       centered
     >

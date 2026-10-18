@@ -16,7 +16,8 @@ import {
   Switch,
   TagsInput,
   Text,
-  Tooltip
+  Tooltip,
+  VisuallyHidden
 } from "@mantine/core";
 import { datasetSelectors } from "@store/dataset/dataset.logic";
 import {
@@ -212,7 +213,7 @@ export const SmartSearchExercises = ({
       {
         id: "select",
         enableSorting: false,
-        meta: { headerStyle: { width: 40 } },
+        meta: { headerStyle: { width: 40 }, hiddenHeaderLabel: "Select exercises" },
         header: ({ table }) => (
           <Checkbox
             size="sm"
@@ -361,6 +362,7 @@ export const SmartSearchExercises = ({
       <TabToolbar
         title="Search exercises"
         count={pagination?.total ?? 0}
+        headingLevel={2}
         scrolled={scrolled}
         leading={
           setViewMode && (
@@ -379,6 +381,7 @@ export const SmartSearchExercises = ({
       >
         <TagsInput
           className={styles.search}
+          label={<VisuallyHidden>Search exercises</VisuallyHidden>}
           value={globalTerms}
           onChange={(terms) => onGlobalFilterChange(terms.join(" "))}
           placeholder="Search terms…"
@@ -422,7 +425,7 @@ export const SmartSearchExercises = ({
               </Button>
             </>
           ) : (
-            <Text size="sm" c="dimmed">
+            <Text size="sm" c="var(--rs-text)">
               Select exercises to add
             </Text>
           )}

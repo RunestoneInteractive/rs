@@ -143,6 +143,7 @@ export const StudentListSidebar: React.FC<Props> = ({
             value={filter}
             onChange={(e) => setFilter(e.currentTarget.value)}
             placeholder="Search students…"
+            aria-label="Search students"
             leftSection={<Icon name="search" size={14} />}
             size="xs"
           />

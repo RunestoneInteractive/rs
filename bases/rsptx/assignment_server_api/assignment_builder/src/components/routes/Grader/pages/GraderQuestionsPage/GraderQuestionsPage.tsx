@@ -185,7 +185,7 @@ export const GraderQuestionsPage: React.FC = () => {
         id: "select",
         enableSorting: false,
         enableColumnFilter: false,
-        meta: { headerStyle: { width: 48 } },
+        meta: { headerStyle: { width: 48 }, hiddenHeaderLabel: "Select questions" },
         header: () => (
           <Checkbox
             aria-label="Select all questions"
@@ -215,11 +215,7 @@ export const GraderQuestionsPage: React.FC = () => {
         header: "Name",
         filterFn: "includesString",
         meta: { filter: { variant: "text", placeholder: "Search name" } },
-        cell: ({ row }) => (
-          <span className={styles.cellName} title={row.original.name}>
-            {row.original.name}
-          </span>
-        )
+        cell: ({ row }) => <span className={styles.cellName}>{row.original.name}</span>
       },
       {
         accessorKey: "question_type",

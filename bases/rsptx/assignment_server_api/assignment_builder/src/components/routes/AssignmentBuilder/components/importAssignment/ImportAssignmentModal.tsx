@@ -244,7 +244,7 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
                   </Tooltip>
                 ) : null}
                 {course.is_mine ? (
-                  <Badge size="sm" variant="light" color="gray">
+                  <Badge size="md" variant="light" color="gray">
                     Yours
                   </Badge>
                 ) : null}
@@ -283,11 +283,11 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
         render: (node) =>
           isCourseNode(node) ? (
             <Stack gap={0}>
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="var(--rs-text)">
                 {(node.data as ShareableTreeCourse).book_title}
               </Text>
               {(node.data as ShareableTreeCourse).institution ? (
-                <Text size="xs" c="dimmed">
+                <Text size="xs" c="var(--rs-text)">
                   {(node.data as ShareableTreeCourse).institution}
                 </Text>
               ) : null}
@@ -298,7 +298,7 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
         header: "Questions",
         width: "7rem",
         render: (node) => (
-          <Text size="xs" c="dimmed">
+          <Text size="xs" c="var(--rs-text)">
             {isCourseNode(node)
               ? `${(node.data as ShareableTreeCourse).shareable_count} assignment${
                   (node.data as ShareableTreeCourse).shareable_count === 1 ? "" : "s"
@@ -310,7 +310,7 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
         )
       },
       {
-        header: "",
+        header: <span className={styles.visuallyHidden}>Assignment actions</span>,
         width: "6rem",
         // A real button so the question list stays reachable from the keyboard;
         // the row itself has no click handler in this tree.
@@ -334,7 +334,13 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
   const totalPages = data?.pagination.pages ?? 0;
 
   return (
-    <Modal opened={visible} onClose={handleClose} title="Import assignments" size="72rem">
+    <Modal
+      opened={visible}
+      onClose={handleClose}
+      title="Import assignments"
+      closeButtonProps={{ "aria-label": "Close import assignments dialog" }}
+      size="72rem"
+    >
       <Stack gap="md">
         <Group justify="space-between" align="center">
           <SearchInput
@@ -407,7 +413,7 @@ export const ImportAssignmentModal = ({ visible, onHide }: ImportAssignmentModal
           </Group>
         ) : null}
 
-        <Text size="xs" c="dimmed">
+        <Text size="xs" c="var(--rs-text)">
           Checking a course takes everything it offers. Imports start hidden, exercises are used
           where they live rather than copied into your book, and anything you already have is
           skipped.

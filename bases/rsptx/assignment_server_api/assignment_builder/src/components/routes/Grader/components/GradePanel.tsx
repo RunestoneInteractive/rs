@@ -98,19 +98,20 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       {onAutoAdvanceChange && (
-        <label
+        <Switch
           data-tour="grader-auto-advance"
           className={styles.autoAdvanceToggle}
           title="When on, jumps to the next ungraded student a moment after saving. You can always undo from the toast."
-        >
-          <Switch
-            checked={!!autoAdvance}
-            onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
-            size="xs"
-          />
-          <Icon name="forward" />
-          <span>Auto-advance after save</span>
-        </label>
+          checked={!!autoAdvance}
+          onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
+          size="xs"
+          label={
+            <span className={styles.autoAdvanceLabel}>
+              <Icon name="forward" />
+              <span>Auto-advance after save</span>
+            </span>
+          }
+        />
       )}
 
       <div className={styles.gradePaneNav}>
@@ -142,9 +143,12 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       <div>
-        <label className={styles.fieldLabel}>Points (max {maxPoints})</label>
+        <label className={styles.fieldLabel} htmlFor="grader-points-input">
+          Points (max {maxPoints})
+        </label>
         <div data-tour="grader-points-input" className={styles.scoreRow}>
           <NumberInput
+            id="grader-points-input"
             ref={scoreInputRef}
             value={score}
             onChange={(v) => onScoreChange(typeof v === "number" ? v : 0)}
@@ -159,15 +163,17 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       <div>
-        <label className={styles.fieldLabel}>Comment</label>
+        <label className={styles.fieldLabel} htmlFor="grader-comment-input">
+          Comment
+        </label>
         <Textarea
+          id="grader-comment-input"
           ref={commentRef}
           data-tour="grader-comment-input"
           value={comment}
           onChange={(e) => onCommentChange(e.currentTarget.value)}
           onBlur={onCommentBlur}
-          autosize
-          minRows={4}
+          rows={4}
           disabled={isDisabled}
           placeholder={
             isDisabled

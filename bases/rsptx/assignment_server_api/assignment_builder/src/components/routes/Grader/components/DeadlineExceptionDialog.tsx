@@ -3,7 +3,7 @@ import {
   AccommodationPayload,
   useUpsertAccommodationMutation
 } from "@store/grader/grader.logic.api";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 
 import styles from "../Grader.module.css";
 
@@ -30,6 +30,8 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
   const [timeMultiplier, setTimeMultiplier] = useState<number | null>(1);
   const [visibleFlag, setVisibleFlag] = useState(false);
   const [allowLink, setAllowLink] = useState(false);
+  const extraDaysInputId = useId();
+  const timeMultiplierInputId = useId();
 
   const [upsert, { isLoading }] = useUpsertAccommodationMutation();
 
@@ -66,6 +68,7 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
       onClose={close}
       size="560px"
       centered
+      closeButtonProps={{ "aria-label": "Close deadline exception dialog" }}
     >
       <div className={styles.dialogStack}>
         <p className={styles.dialogIntro}>
@@ -77,7 +80,11 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
           label="Students"
           height={180}
         />
-        <Radio.Group value={scope} onChange={(v) => setScope(v as "assignment" | "all")}>
+        <Radio.Group
+          label="Apply accommodation to"
+          value={scope}
+          onChange={(v) => setScope(v as "assignment" | "all")}
+        >
           <Group gap="lg">
             <Radio value="assignment" label="This assignment" />
             <Radio value="all" label="All of the student's assignments" />
@@ -85,16 +92,22 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
         </Radio.Group>
         <div className={styles.numberFieldRow}>
           <div>
-            <label className={styles.fieldHint}>Extend deadline by (days)</label>
+            <label className={styles.fieldHint} htmlFor={extraDaysInputId}>
+              Extend deadline by (days)
+            </label>
             <NumberInput
+              id={extraDaysInputId}
               value={extraDays ?? ""}
               onChange={(v) => setExtraDays(typeof v === "number" ? v : 0)}
               min={0}
             />
           </div>
           <div>
-            <label className={styles.fieldHint}>Time-limit multiplier</label>
+            <label className={styles.fieldHint} htmlFor={timeMultiplierInputId}>
+              Time-limit multiplier
+            </label>
             <NumberInput
+              id={timeMultiplierInputId}
               value={timeMultiplier ?? ""}
               onChange={(v) => setTimeMultiplier(typeof v === "number" ? v : 1)}
               min={0}

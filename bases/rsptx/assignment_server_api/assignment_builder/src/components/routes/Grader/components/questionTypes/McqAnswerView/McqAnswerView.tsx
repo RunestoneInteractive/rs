@@ -13,7 +13,7 @@ export const McqAnswerView: React.FC<AnswerRendererProps> = (props) => {
   return (
     <div>
       <QuestionPreviewHeader {...props} />
-      <h4 className={styles.sectionTitle}>Selected option{selected.length > 1 ? "s" : ""}</h4>
+      <h3 className={styles.sectionTitle}>Selected option{selected.length > 1 ? "s" : ""}</h3>
       <div className={styles.optionChips}>
         {selected.length === 0 ? (
           <span className={styles.mutedNote}>(no selection)</span>

@@ -10,7 +10,15 @@ module.exports = {
       jsx: true
     }
   },
-  plugins: ["react", "import", "@typescript-eslint", "prettier", "react-hooks", "only-warn"],
+  plugins: [
+    "react",
+    "import",
+    "@typescript-eslint",
+    "prettier",
+    "react-hooks",
+    "jsx-a11y",
+    "only-warn"
+  ],
   extends: [
     "airbnb-typescript",
     "plugin:@typescript-eslint/recommended",

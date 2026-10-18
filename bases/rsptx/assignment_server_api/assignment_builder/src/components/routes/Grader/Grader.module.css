@@ -508,7 +508,7 @@
 }
 .chipUnknown {
   background: var(--rs-neutral-200);
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
 }
 
 .floatBtn {
@@ -572,7 +572,7 @@
 }
 .gradePaneMeta {
   font-size: 11px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
 }
 .gradePaneMeta .mono {
   font-family: var(--rs-font-mono);
@@ -605,15 +605,17 @@
   text-align: center;
 }
 .autoAdvanceToggle {
-  display: flex;
-  align-items: center;
-  gap: var(--rs-space-2);
   font-size: 12px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
   cursor: pointer;
   user-select: none;
 }
-.autoAdvanceToggle .pi {
+.autoAdvanceLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+}
+.autoAdvanceLabel .pi {
   color: var(--rs-brand-500);
 }
 
@@ -798,7 +800,7 @@
 }
 .attemptTimestamp {
   font-size: 11px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
   font-variant-numeric: tabular-nums;
 }
 .latestBadge {
@@ -876,7 +878,7 @@
   gap: 8px;
   align-items: center;
   font-size: 11px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
   margin-bottom: 4px;
 }
 .historyAnswer {
@@ -1079,15 +1081,21 @@
   margin: 0 6px;
   color: var(--rs-text-muted);
 }
-.shortcutTable {
+.shortcutList {
   width: 100%;
-  border-collapse: collapse;
+  margin: 0;
 }
 .shortcutRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--rs-space-2);
   border-top: 1px solid var(--rs-neutral-100);
-}
-.shortcutRow td {
   padding: 0.4rem 0.2rem;
+}
+.shortcutRow dt,
+.shortcutRow dd {
+  margin: 0;
 }
 .shortcutDesc {
   color: var(--rs-text-muted);

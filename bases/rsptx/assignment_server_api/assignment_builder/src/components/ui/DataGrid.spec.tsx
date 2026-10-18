@@ -355,6 +355,19 @@ describe("DataGrid column filters", () => {
     expect(screen.getByRole("textbox", { name: "Filter by Score" })).toBeInTheDocument();
   });
 
+  it("does not expose filter cells as empty column headers", () => {
+    renderWithMantine(
+      <DataGrid<Row>
+        data={ROWS}
+        columns={FILTER_COLUMNS}
+        getRowId={(r) => r.id}
+        enableColumnFilters
+      />
+    );
+
+    expect(screen.getAllByRole("columnheader")).toHaveLength(FILTER_COLUMNS.length);
+  });
+
   it("renders a custom filter element", () => {
     const columns: ColumnDef<Row, unknown>[] = [
       {

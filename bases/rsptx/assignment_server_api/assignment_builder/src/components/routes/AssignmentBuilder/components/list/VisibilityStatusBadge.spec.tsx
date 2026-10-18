@@ -128,7 +128,7 @@ describe("getVisibilityStatus", () => {
 });
 
 describe("VisibilityStatusBadge", () => {
-  it("makes the scheduled chip focusable so the tooltip opens without a mouse", () => {
+  it("renders the scheduled chip as a focusable tooltip button", () => {
     const future = new Date();
 
     future.setFullYear(future.getFullYear() + 1);
@@ -139,7 +139,10 @@ describe("VisibilityStatusBadge", () => {
       />
     );
 
-    expect(screen.getByText(/^From /)).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("button", { name: /Will become visible on/ })).toHaveProperty(
+      "tabIndex",
+      0
+    );
   });
 
   it("renders an unfocusable plain chip when there is no schedule tooltip", () => {

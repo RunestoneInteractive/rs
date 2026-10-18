@@ -46,7 +46,7 @@ export const ExercisesToolbar = ({
   };
 
   return (
-    <TabToolbar title="Exercises" count={totalCount} scrolled={scrolled}>
+    <TabToolbar title="Exercises" count={totalCount} headingLevel={2} scrolled={scrolled}>
       <SearchInput
         value={globalFilter}
         onChange={setGlobalFilter}

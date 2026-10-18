@@ -32,11 +32,13 @@ Your app is ready to be deployed!
 ### Accessibility checks
 
 Run `npm run lint:a11y` to report static JSX accessibility warnings. The command is
-currently non-blocking so existing warnings can be addressed incrementally.
+currently non-blocking so warnings can be addressed incrementally. The Assignment
+Builder CI workflow runs it for visibility.
 
 Run `npm run test:e2e:a11y` to scan the assignment builder and grader with axe. Axe
-violations are attached to the Playwright report and annotated, but do not fail the
-test yet. Navigation and page-loading assertions still fail normally.
+violations fail the test and are attached to the Playwright report as JSON. CI runs
+the screens supported by its fresh database; the full local command additionally
+checks seeded grader question and split views.
 
 ### Production
 
