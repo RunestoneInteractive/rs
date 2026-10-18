@@ -77,7 +77,12 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
     <div className={styles.gradePane} data-tour="grader-grade-panel">
       <div className={styles.gradePaneHeader}>
         <Icon name="user" size={18} className={styles.gradePaneAvatar} />
-        <div className={styles.gradePaneIdentity}>
+        <div
+          className={styles.gradePaneIdentity}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <div className={styles.gradePaneName}>{studentName}</div>
           <div className={styles.gradePaneMeta}>
             {student ? (

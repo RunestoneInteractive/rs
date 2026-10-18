@@ -308,8 +308,12 @@ export const AssignmentExercisesTable = ({
         width: "20rem",
         render: (row) => (
           <div>
-            <div className={styles.name}>{row.name || row.title}</div>
-            <div className={styles.sub}>{row.qnumber}</div>
+            <div className={styles.name} title={row.name || row.title}>
+              {row.name || row.title}
+            </div>
+            <div className={styles.sub} title={row.qnumber}>
+              {row.qnumber}
+            </div>
           </div>
         )
       },
