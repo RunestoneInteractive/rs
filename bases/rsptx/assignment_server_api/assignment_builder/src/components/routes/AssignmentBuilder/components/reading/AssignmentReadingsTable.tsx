@@ -95,9 +95,7 @@ export const AssignmentReadingsTable = ({
             <div className={styles.sectionTitle}>
               {formatNumberedLabel(row.chapter_name || row.chapter, [row.chapter_num])}
             </div>
-            <div className={styles.sectionPath}>
-              {row.chapter}
-            </div>
+            <div className={styles.sectionPath}>{row.chapter}</div>
           </div>
         )
       },
@@ -113,9 +111,7 @@ export const AssignmentReadingsTable = ({
                 [row.chapter_num, row.sub_chapter_num]
               )}
             </div>
-            <div className={styles.sectionPath}>
-              {row.subchapter}
-            </div>
+            <div className={styles.sectionPath}>{row.subchapter}</div>
           </div>
         )
       },

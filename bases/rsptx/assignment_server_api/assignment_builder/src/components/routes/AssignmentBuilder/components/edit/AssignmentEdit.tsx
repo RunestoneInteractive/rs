@@ -433,9 +433,7 @@ export const AssignmentEdit = ({
               >
                 <Icon name="arrow-left" />
               </ActionIcon>
-              <h1 className={styles.assignmentName}>
-                {selectedAssignment?.name}
-              </h1>
+              <h1 className={styles.assignmentName}>{selectedAssignment?.name}</h1>
             </Group>
             <Tooltip label="Preview as student" position="bottom">
               <ActionIcon

@@ -1,149 +1,149 @@
 .verticalLayout {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    height: 100%;
-    overflow: visible;
-    max-width: 100vw;
-    box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: 100%;
+  overflow: visible;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .statementSection {
-    flex-shrink: 0;
-    background: var(--rs-surface);
-    border-radius: var(--rs-radius-sm);
-    border: 1px solid var(--rs-border-solid);
-    overflow: visible;
-    box-sizing: border-box;
+  flex-shrink: 0;
+  background: var(--rs-surface);
+  border-radius: var(--rs-radius-sm);
+  border: 1px solid var(--rs-border-solid);
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .optionsSection {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--rs-surface);
-    border-radius: var(--rs-radius-sm);
-    border: 1px solid var(--rs-border-solid);
-    overflow: visible;
-    box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--rs-surface);
+  border-radius: var(--rs-radius-sm);
+  border: 1px solid var(--rs-border-solid);
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .statementPreview {
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
 }
 
 .statementHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 0;
-    padding: 1rem 1.5rem;
-    background: var(--rs-neutral-50);
-    flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  background: var(--rs-neutral-50);
+  flex-shrink: 0;
 }
 
 .statementHeader h4 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--rs-neutral-700);
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--rs-neutral-700);
 }
 
 .statementContent {
-    padding: 1.5rem;
-    background: var(--rs-surface);
-    overflow: visible;
-    line-height: 1.6;
-    box-sizing: border-box;
+  padding: 1.5rem;
+  background: var(--rs-surface);
+  overflow: visible;
+  line-height: 1.6;
+  box-sizing: border-box;
 }
 
 .statementContent :global(.prose) {
-    margin: 0;
-    line-height: 1.6;
+  margin: 0;
+  line-height: 1.6;
 }
 
 .statementContent :global(.prose p) {
-    margin: 0 0 0.75rem 0;
+  margin: 0 0 0.75rem 0;
 }
 
 .statementContent :global(.prose p:last-child) {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .statementContent :global(.prose pre) {
-    background: var(--rs-neutral-100);
-    padding: 1rem;
-    border-radius: var(--rs-radius-sm);
-    overflow-x: auto;
-    margin: 0.75rem 0;
+  background: var(--rs-neutral-100);
+  padding: 1rem;
+  border-radius: var(--rs-radius-sm);
+  overflow-x: auto;
+  margin: 0.75rem 0;
 }
 
 .statementContent :global(.prose code) {
-    background: var(--rs-neutral-100);
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-size: 0.875em;
+  background: var(--rs-neutral-100);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
 }
 
 .statementBody {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .statementBody :global(img) {
-    max-width: 100%;
-    height: auto;
-    border-radius: var(--rs-radius-sm);
-    margin: 0.5rem 0;
-    display: block;
-    object-fit: contain;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--rs-radius-sm);
+  margin: 0.5rem 0;
+  display: block;
+  object-fit: contain;
 }
 
 .statementBody :global(table) {
-    max-width: 100%;
-    overflow-x: auto;
-    display: block;
-    white-space: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
 }
 
 .statementBody :global(pre) {
-    overflow-x: auto;
-    max-width: 100%;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .statementBody :global(video),
 .statementBody :global(iframe) {
-    max-width: 100%;
-    height: auto;
+  max-width: 100%;
+  height: auto;
 }
 
 @media (max-width: 768px) {
-    .verticalLayout {
-        gap: 0.75rem;
-        padding: 0.5rem;
-        overflow: visible;
-    }
+  .verticalLayout {
+    gap: 0.75rem;
+    padding: 0.5rem;
+    overflow: visible;
+  }
 
-    .statementSection {
-        overflow: visible;
-    }
+  .statementSection {
+    overflow: visible;
+  }
 
-    .optionsSection {
-        overflow: visible;
-    }
+  .optionsSection {
+    overflow: visible;
+  }
 
-    .statementHeader {
-        padding: 0.75rem 1rem;
-    }
+  .statementHeader {
+    padding: 0.75rem 1rem;
+  }
 
-    .statementHeader h4 {
-        font-size: 1rem;
-    }
+  .statementHeader h4 {
+    font-size: 1rem;
+  }
 
-    .statementContent {
-        padding: 1rem;
-        overflow: visible;
-    }
+  .statementContent {
+    padding: 1rem;
+    overflow: visible;
+  }
 }

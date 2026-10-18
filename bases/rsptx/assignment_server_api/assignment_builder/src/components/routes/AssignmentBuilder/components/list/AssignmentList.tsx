@@ -291,9 +291,7 @@ export const AssignmentList = ({
               <Switch
                 size="sm"
                 label={
-                  <VisuallyHidden>
-                    Allow late submissions for {row.original.name}
-                  </VisuallyHidden>
+                  <VisuallyHidden>Allow late submissions for {row.original.name}</VisuallyHidden>
                 }
                 checked={!row.original.enforce_due}
                 onChange={(e) => onEnforceDueChange(row.original, !e.currentTarget.checked)}
