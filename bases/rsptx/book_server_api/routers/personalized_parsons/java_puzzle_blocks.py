@@ -123,10 +123,29 @@ def restructure_java_puzzle(puzzle):
             solution.append(lines)
     split_units = []
     for idx, lines in enumerate(solution):
-        if idx in distractors:
-            split_units.append((lines, idx))
-        else:
+        if idx not in distractors:
             split_units.extend(([ln], None) for ln in lines)
+            continue
+        # Lines the block shares with all its distractors at either end (CodeTailor
+        # often pairs "}" / header / "{" with "}" / wrong header / "{") are not
+        # what the distractor is about, so they regroup like any other line.
+        variants = [lines] + distractors[idx]
+        pre = 0
+        while (
+            pre < min(map(len, variants)) - 1
+            and len({v[pre].strip() for v in variants}) == 1
+        ):
+            pre += 1
+        suf = 0
+        while (
+            suf < min(map(len, variants)) - pre - 1
+            and len({v[len(v) - 1 - suf].strip() for v in variants}) == 1
+        ):
+            suf += 1
+        distractors[idx] = [d[pre : len(d) - suf] for d in distractors[idx]]
+        split_units.extend(([ln], None) for ln in lines[:pre])
+        split_units.append((lines[pre : len(lines) - suf], idx))
+        split_units.extend(([ln], None) for ln in lines[len(lines) - suf :])
 
     flat = [ln for lines, _ in split_units for ln in lines]
     labels = _brace_labels(flat)

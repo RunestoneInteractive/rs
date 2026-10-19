@@ -105,6 +105,41 @@ public class A
     assert "    } // end f" in blocks
 
 
+def test_lines_shared_with_a_distractor_regroup_normally():
+    # CodeTailor paired the constructor's closing brace and the next method's
+    # header and brace with a distractor that differs only in the header.
+    puzzle = """\
+public class PizzaOrder
+---
+{
+---
+    public PizzaOrder(int slices)
+---
+    {
+---
+        this.slices = slices;
+---
+    }
+    public static void setPrice(double price)
+    {
+---
+    }
+    public void setPrice(double price)
+    { #paired
+---
+        pricePerSlice = price;
+---
+    }
+---
+}
+"""
+    blocks = _blocks(restructure_java_puzzle(puzzle))
+    assert "    } // end constructor" in blocks
+    i = blocks.index("    public static void setPrice(double price)\n    {")
+    assert blocks[i + 1] == "    public void setPrice(double price)\n    { #paired"
+    assert "    } // end setPrice" in blocks
+
+
 def test_control_structures_are_labeled():
     puzzle = """\
 public class T
