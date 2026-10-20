@@ -18,6 +18,7 @@ from datetime import timezone
 import json
 import os
 import re
+import shutil
 import sys
 import subprocess
 
@@ -60,6 +61,7 @@ from rsptx.db.crud import (
     fetch_group,
     fetch_instructor_courses,
     fetch_library_book,
+    fetch_unused_library_books,
     fetch_users_for_course,
     fetch_membership,
     fetch_user,
@@ -1947,6 +1949,107 @@ async def library_postbuild(ctx, book, command, remove):
     print(f"Setting the postbuild_hook to {command} for {book} in the library")
     bookrec = await fetch_library_book(book)
     await update_library_book(bookrec.id, dict(postbuild_hook=command))
+
+
+def _book_folder(bookrec):
+    """The book's source folder under BOOK_PATH, or None if it can't be resolved safely.
+
+    repo_path is the path inside the containers (/books/<dir>), so only its last
+    component is used.  Books without one live in BOOK_PATH/<basecourse>.
+    """
+    name = os.path.basename((bookrec.repo_path or "").rstrip("/")) or bookrec.basecourse
+    root = os.path.realpath(settings.book_path)
+    folder = os.path.realpath(os.path.join(root, name))
+    # never delete BOOK_PATH itself or anything outside it
+    if os.path.dirname(folder) != root:
+        return None
+    return folder
+
+
+@library.command("retire")
+@click.argument("books", nargs=-1)
+@click.option(
+    "--unused-since",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=None,
+    help="Retire every book with no custom course starting on or after this date",
+)
+@click.option(
+    "--dry-run", is_flag=True, help="List the books without changing anything"
+)
+@click.pass_context
+async def library_retire(ctx, books, unused_since, dry_run):
+    """
+    Take books out of service: hide them from the library and the course
+    creation page, set removed_on, and delete their folder from $BOOK_PATH.
+    A book that was never used for a custom course is hidden, but you are
+    asked before its folder is deleted and removed_on is set.
+
+    \b
+        rsmanage library retire --unused-since 2024-08-01 --dry-run
+        rsmanage library retire oldbook1 oldbook2
+    """
+    if not books and not unused_since:
+        raise click.UsageError("Give one or more BOOKS or --unused-since")
+    if books and unused_since:
+        raise click.UsageError("Give BOOKS or --unused-since, not both")
+
+    if unused_since:
+        candidates = await fetch_unused_library_books(unused_since.date())
+    else:
+        # named books are checked against "unused since tomorrow", which
+        # matches every book and still reports its usage
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        usage = {r.basecourse: r for r in await fetch_unused_library_books(tomorrow)}
+        candidates = []
+        for book in books:
+            if book not in usage:
+                click.echo(
+                    click.style(
+                        f"{book}: not in the library, or already retired", fg="yellow"
+                    )
+                )
+            else:
+                candidates.append(usage[book])
+
+    for row in candidates:
+        bookrec = await fetch_library_book(row.basecourse)
+        folder = _book_folder(bookrec)
+        click.echo(
+            f"{row.basecourse} ({row.title}): {row.custom_courses_ever} custom "
+            f"course(s), last started {row.last_custom_course_start or 'never'}; "
+            f"folder {folder or '(unresolved)'}"
+        )
+        if dry_run:
+            continue
+
+        await update_library_book(bookrec.id, dict(is_visible=False, for_classes=False))
+        if row.custom_courses_ever == 0 and not click.confirm(
+            f"  {row.basecourse} was never used for a custom course. "
+            "Delete its folder and mark it removed?",
+            default=False,
+        ):
+            click.echo("  hidden; folder and removed_on left alone")
+            continue
+
+        if folder is None:
+            click.echo(
+                click.style(
+                    f"  could not resolve a folder under {settings.book_path}; "
+                    "not deleting anything",
+                    fg="yellow",
+                )
+            )
+        elif os.path.isdir(folder):
+            shutil.rmtree(folder)
+            click.echo(f"  deleted {folder}")
+        else:
+            click.echo(f"  {folder} does not exist")
+        await update_library_book(bookrec.id, dict(removed_on=datetime.date.today()))
+        click.echo("  retired")
+
+    if dry_run:
+        click.echo(f"Dry run -- {len(candidates)} book(s), nothing was changed.")
 
 
 @cli.command()

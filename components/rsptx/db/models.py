@@ -1246,6 +1246,8 @@ class Library(Base, IdMixin):
     repo_path = Column(String(512))  # path to the repository on disk
     prebuild_hook = Column(String(512))  # command to run before building the book
     postbuild_hook = Column(String(512))  # command to run after a successful build
+    # set by `rsmanage library retire` when the book is taken out of service
+    removed_on = Column(Date)
 
 
 LibraryValidator: TypeAlias = sqlalchemy_to_pydantic(Library)  # type: ignore
