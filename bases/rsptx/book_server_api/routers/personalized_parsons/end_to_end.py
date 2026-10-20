@@ -8,6 +8,7 @@ from .evaluate_fixed_code import (
 from .generate_parsons_blocks import generate_Parsons_block
 from .get_parsons_code_distractors import generate_code_with_distrator
 from .get_personalized_solution import get_example_solution, get_fixed_code
+from .java_puzzle_blocks import restructure_java_puzzle
 from .personalize_parsons import compare_code, personalize_Parsons_block
 from .subgoal_labels import (
     attach_labels_to_code,
@@ -102,6 +103,11 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
         final_Parsons_block = attach_labels_to_puzzle(
             final_Parsons_block, final_fixed_code, language
         )
+
+    # One-line Java blocks leave the puzzle full of identical braces and of
+    # statements the line grader accepts in only one order, so regroup them.
+    if final_Parsons_block != "Correct_Code" and language == "java":
+        final_Parsons_block = restructure_java_puzzle(final_Parsons_block)
 
     return (
         final_fixed_code,
