@@ -21,6 +21,7 @@ const FOCUSABLE_SELECTOR = [
 const getFocusableElements = (container: ParentNode) =>
   Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
     (element) =>
+      element.tabIndex >= 0 &&
       !element.hasAttribute("hidden") &&
       element.getAttribute("aria-hidden") !== "true" &&
       !element.closest("[hidden], [aria-hidden='true']")

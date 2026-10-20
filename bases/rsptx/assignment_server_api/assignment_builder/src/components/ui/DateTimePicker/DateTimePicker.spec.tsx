@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { DateTimePicker } from "./DateTimePicker";
 
@@ -14,7 +15,7 @@ const getCalendarFocusables = (root: HTMLElement) =>
     root.querySelectorAll<HTMLElement>(
       "a[href], button:not([disabled]), input:not([disabled]):not([type='hidden']), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
     )
-  );
+  ).filter((element) => element.tabIndex >= 0);
 
 describe("DateTimePicker", () => {
   let root: HTMLElement;
@@ -102,45 +103,76 @@ describe("DateTimePicker", () => {
   });
 
   it("moves focus to the next form control after tabbing past the calendar", async () => {
+    const user = userEvent.setup();
+
     render(
       <>
-        <DateTimePicker value={null} onChange={() => {}} />
+        <DateTimePicker value={null} onChange={() => {}} withinPortal={false} />
         <button type="button">After picker</button>
       </>
     );
 
     openCalendar();
-    const calendarFocusables = getCalendarFocusables(root);
-    const lastCalendarControl = calendarFocusables.at(-1);
+    const calendar = document.querySelector<HTMLElement>(".react-datepicker");
 
-    expect(lastCalendarControl).toBeDefined();
-    lastCalendarControl?.focus();
-    fireEvent.keyDown(lastCalendarControl!, { key: "Tab" });
+    calendar
+      ?.querySelectorAll<HTMLElement>(".react-datepicker__navigation")
+      .forEach((button) => (button.tabIndex = -1));
+    const calendarFocusables = getCalendarFocusables(calendar!);
+
+    expect(calendar).toBeInTheDocument();
+    expect(calendarFocusables.length).toBeGreaterThan(0);
+    await user.tab();
+    expect(calendar).toContainElement(document.activeElement as HTMLElement);
+    for (
+      let index = 0;
+      index <= calendarFocusables.length && calendar?.contains(document.activeElement);
+      index += 1
+    ) {
+      await user.tab();
+    }
 
     await waitFor(() => {
-      expect(root.querySelector(".react-datepicker")).not.toBeInTheDocument();
+      expect(document.querySelector(".react-datepicker")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "After picker" })).toHaveFocus();
     });
   });
 
   it("moves focus to the previous form control after shift-tabbing past the calendar", async () => {
+    const user = userEvent.setup();
+
     render(
       <>
         <button type="button">Before picker</button>
-        <DateTimePicker value={null} onChange={() => {}} />
+        <DateTimePicker value={null} onChange={() => {}} withinPortal={false} />
       </>
     );
 
     openCalendar();
-    const calendarFocusables = getCalendarFocusables(root);
+    const calendar = document.querySelector<HTMLElement>(".react-datepicker");
+
+    calendar
+      ?.querySelectorAll<HTMLElement>(".react-datepicker__navigation")
+      .forEach((button) => (button.tabIndex = -1));
+    const calendarFocusables = getCalendarFocusables(calendar!);
     const firstCalendarControl = calendarFocusables.at(0);
 
+    expect(calendar).toBeInTheDocument();
     expect(firstCalendarControl).toBeDefined();
-    firstCalendarControl?.focus();
-    fireEvent.keyDown(firstCalendarControl!, { key: "Tab", shiftKey: true });
+    await user.tab();
+    expect(calendar).toContainElement(document.activeElement as HTMLElement);
+    for (
+      let index = 0;
+      index <= calendarFocusables.length && document.activeElement !== firstCalendarControl;
+      index += 1
+    ) {
+      await user.tab({ shift: true });
+    }
+    expect(firstCalendarControl).toHaveFocus();
+    await user.tab({ shift: true });
 
     await waitFor(() => {
-      expect(root.querySelector(".react-datepicker")).not.toBeInTheDocument();
+      expect(document.querySelector(".react-datepicker")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Before picker" })).toHaveFocus();
     });
   });

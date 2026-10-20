@@ -372,9 +372,7 @@
 .cellName {
   display: inline-block;
   max-width: 360px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-weight: var(--rs-font-weight-semibold);
   color: var(--rs-text-strong);
   vertical-align: middle;
@@ -394,9 +392,7 @@
   font-size: 13px;
   display: inline-block;
   max-width: 420px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   vertical-align: middle;
 }
 .cellDash {

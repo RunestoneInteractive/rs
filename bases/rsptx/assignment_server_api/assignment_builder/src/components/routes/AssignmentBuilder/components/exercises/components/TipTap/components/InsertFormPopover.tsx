@@ -102,7 +102,13 @@ export const InsertFormPopover: FC<InsertFormPopoverProps> = ({ editor, request,
     if (!request) return;
 
     const handleEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (
+        event.key !== "Escape" ||
+        !(event.target instanceof Node) ||
+        !inputRef.current?.closest("form")?.contains(event.target)
+      ) {
+        return;
+      }
 
       event.preventDefault();
       event.stopPropagation();
