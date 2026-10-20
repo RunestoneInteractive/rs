@@ -8,6 +8,7 @@ from .evaluate_fixed_code import (
 from .generate_parsons_blocks import generate_Parsons_block
 from .get_parsons_code_distractors import generate_code_with_distrator
 from .get_personalized_solution import get_example_solution, get_fixed_code
+from .java_puzzle_blocks import restructure_java_puzzle
 from .personalize_parsons import compare_code, personalize_Parsons_block
 from .subgoal_labels import (
     attach_labels_to_code,
@@ -32,13 +33,17 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
         A tuple containing the final fixed code, the final Parsons block, the solution generation type, and the generation result type.
     """
     problem_description = dict_buggy_code["Problem Description"].replace("\\n", "\n")
-    buggy_code = dict_buggy_code["CF (Code)"].replace("\\n", "\n")
+    # The code fields arrive as real text, so they are used as is: turning
+    # \n escapes into newlines would break every string literal that has one
+    # (e.g. a Java test's String expect = "5\n10\n"), and the broken test
+    # then fails every fix.
+    buggy_code = dict_buggy_code["CF (Code)"]
     # can use a function to extract them in the future
     default_start_code = ""
     default_test_code = ""
-    unittest_code = dict_buggy_code["Unittest_Code"].replace("\\n", "\n")
+    unittest_code = dict_buggy_code["Unittest_Code"]
     # This can be "LLM-example" or a predefined example code
-    predefined_example = dict_buggy_code["Example"].replace("\\n", "\n")
+    predefined_example = dict_buggy_code["Example"]
     # files the program opens (e.g. datafiles) -- shipped with every test run
     data_files = dict_buggy_code.get("Data_Files")
     # check if language is java, keep it as it is, otherwise, assign it to "python" as default
@@ -102,6 +107,11 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
         final_Parsons_block = attach_labels_to_puzzle(
             final_Parsons_block, final_fixed_code, language
         )
+
+    # One-line Java blocks leave the puzzle full of identical braces and of
+    # statements the line grader accepts in only one order, so regroup them.
+    if final_Parsons_block != "Correct_Code" and language == "java":
+        final_Parsons_block = restructure_java_puzzle(final_Parsons_block)
 
     return (
         final_fixed_code,
