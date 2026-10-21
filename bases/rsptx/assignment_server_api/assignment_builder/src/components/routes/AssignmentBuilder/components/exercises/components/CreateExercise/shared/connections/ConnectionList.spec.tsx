@@ -16,14 +16,13 @@ describe("ConnectionList", () => {
     expect(screen.getByText(/No connections yet/)).toBeInTheDocument();
   });
 
-  it("renders each connection as a focusable row with both labels", () => {
+  it("renders each connection as a list row with both labels", () => {
     renderWithMantine(
       <ConnectionList connections={[["l1", "r1"]]} resolveLabel={resolveLabel} onRemove={vi.fn()} />
     );
 
     const row = screen.getByRole("listitem");
 
-    expect(row).toHaveAttribute("tabindex", "0");
     expect(row).toHaveTextContent("Apple");
     expect(row).toHaveTextContent("Red fruit");
     expect(screen.getByText("Connections (1)")).toBeInTheDocument();

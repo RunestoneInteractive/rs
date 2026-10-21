@@ -13,7 +13,7 @@ export const FitbAnswerView: React.FC<AnswerRendererProps> = (props) => {
   return (
     <div>
       <QuestionPreviewHeader {...props} />
-      <h4 className={styles.sectionTitle}>Blanks</h4>
+      <h3 className={styles.sectionTitle}>Blanks</h3>
       <ol className={styles.blankList}>
         {values.length === 0 && <li className={styles.mutedNote}>(empty)</li>}
         {values.map((v, i) => (

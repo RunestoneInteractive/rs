@@ -72,8 +72,8 @@ export const QuestionPreviewHeader: React.FC<
   Pick<AnswerRendererProps, "htmlsrc" | "questionName">
 > = ({ questionName }) => (
   <section className={styles.previewTitleSection}>
-    <h4 className={styles.previewTitle}>
+    <h2 className={styles.previewTitle}>
       Question: <span className={styles.questionName}>{questionName}</span>
-    </h4>
+    </h2>
   </section>
 );

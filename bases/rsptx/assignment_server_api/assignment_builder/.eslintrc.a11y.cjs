@@ -9,5 +9,9 @@ const warningRules = Object.fromEntries(
 
 module.exports = {
   extends: ["./.eslintrc.cjs", "plugin:jsx-a11y/recommended"],
-  rules: warningRules
+  rules: {
+    ...warningRules,
+    // Deprecated duplicate of label-has-associated-control.
+    "jsx-a11y/label-has-for": "off"
+  }
 };

@@ -99,7 +99,7 @@ export const AssignmentEdit = ({
 
   const renderDetailsSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Details</h3>
+      <h2 className={styles.sectionTitle}>Details</h2>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="edit-assignment-name">Assignment name</label>
@@ -127,15 +127,14 @@ export const AssignmentEdit = ({
                 {...field}
                 id="edit-assignment-description"
                 value={field.value || ""}
-                autosize
-                minRows={4}
+                rows={4}
                 placeholder="What is this assignment about?"
               />
             )}
           />
         </div>
         <div className={styles.field}>
-          <label>Assignment type</label>
+          <span className={styles.controlLabel}>Assignment type</span>
           <Controller
             name="kind"
             control={control}
@@ -158,7 +157,7 @@ export const AssignmentEdit = ({
 
   const renderScheduleSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Schedule</h3>
+      <h2 className={styles.sectionTitle}>Schedule</h2>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="edit-due-date">Due date</label>
@@ -215,7 +214,7 @@ export const AssignmentEdit = ({
 
   const renderScoringSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Scoring</h3>
+      <h2 className={styles.sectionTitle}>Scoring</h2>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="edit-points">Points</label>
@@ -241,10 +240,10 @@ export const AssignmentEdit = ({
 
   const renderBehaviorSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Behavior</h3>
+      <h2 className={styles.sectionTitle}>Behavior</h2>
       <div className={styles.fields}>
         <div className={styles.settingRow}>
-          <label>Allow pause</label>
+          <span className={styles.controlLabel}>Allow pause</span>
           <Controller
             name="nopause"
             control={control}
@@ -260,7 +259,7 @@ export const AssignmentEdit = ({
           />
         </div>
         <div className={styles.settingRow}>
-          <label>Allow feedback</label>
+          <span className={styles.controlLabel}>Allow feedback</span>
           <Controller
             name="nofeedback"
             control={control}
@@ -281,10 +280,10 @@ export const AssignmentEdit = ({
 
   const renderPeerSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Peer settings</h3>
+      <h2 className={styles.sectionTitle}>Peer settings</h2>
       <div className={styles.fields}>
         <div className={styles.settingRow}>
-          <label>Show async peer</label>
+          <span className={styles.controlLabel}>Show async peer</span>
           <Controller
             name="peer_async_visible"
             control={control}
@@ -301,7 +300,7 @@ export const AssignmentEdit = ({
         </div>
         {asyncConditionsEnabled && (
           <div className={styles.settingRow}>
-            <label>Randomize study conditions</label>
+            <span className={styles.controlLabel}>Randomize study conditions</span>
             <Controller
               name="async_study"
               control={control}
@@ -323,7 +322,7 @@ export const AssignmentEdit = ({
 
   const renderVisibilitySection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Visibility</h3>
+      <h2 className={styles.sectionTitle}>Visibility</h2>
       <VisibilityControl control={control} watch={watch} setValue={setValue} />
     </Paper>
   );
@@ -337,7 +336,7 @@ export const AssignmentEdit = ({
 
     return (
       <Paper className={styles.section}>
-        <h3 className={styles.sectionTitle}>LTI 1.1 link</h3>
+        <h2 className={styles.sectionTitle}>LTI 1.1 link</h2>
         <div className={styles.fields}>
           <div className={styles.field}>
             <label htmlFor="lti-link">
@@ -434,9 +433,7 @@ export const AssignmentEdit = ({
               >
                 <Icon name="arrow-left" />
               </ActionIcon>
-              <h1 className={styles.assignmentName} title={selectedAssignment?.name}>
-                {selectedAssignment?.name}
-              </h1>
+              <h1 className={styles.assignmentName}>{selectedAssignment?.name}</h1>
             </Group>
             <Tooltip label="Preview as student" position="bottom">
               <ActionIcon

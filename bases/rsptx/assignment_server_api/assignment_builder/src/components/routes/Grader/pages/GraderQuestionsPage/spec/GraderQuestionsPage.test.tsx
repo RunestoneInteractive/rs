@@ -78,6 +78,14 @@ describe("GraderQuestionsPage table pagination", () => {
     expect(screen.getByRole("textbox", { name: "Rows per page" })).toHaveValue("10");
   });
 
+  it("names the question selection column", () => {
+    renderWithMantine(<GraderQuestionsPage />);
+
+    expect(
+      screen.getByRole("columnheader", { name: /select all questions.*select questions/i })
+    ).toBeInTheDocument();
+  });
+
   it("persists the page and page size when they change", () => {
     renderWithMantine(<GraderQuestionsPage />);
 

@@ -60,30 +60,29 @@ export const ShortcutsHelpDialog: React.FC<Props> = ({ visible, onHide }) => {
       }
       size="min(560px, 95vw)"
       centered
+      closeButtonProps={{ "aria-label": "Close keyboard shortcuts" }}
     >
       <div className={styles.dialogStack}>
         {SECTIONS.map((s) => (
           <div key={s.title}>
-            <h4 className={styles.sectionLabel}>{s.title}</h4>
-            <table className={styles.shortcutTable}>
-              <tbody>
-                {s.rows.map((r, i) => (
-                  <tr key={i} className={styles.shortcutRow}>
-                    <td>
-                      {r.keys.map((k, j) => (
-                        <React.Fragment key={j}>
-                          {k === "–" ? <span className={styles.kbdSep}>–</span> : <Kbd>{k}</Kbd>}
-                          {j < r.keys.length - 1 && k !== "–" && r.keys[j + 1] !== "–" && (
-                            <span className={styles.kbdSep}>+</span>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </td>
-                    <td className={styles.shortcutDesc}>{r.label}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h3 className={styles.sectionLabel}>{s.title}</h3>
+            <dl className={styles.shortcutList}>
+              {s.rows.map((r, i) => (
+                <div key={i} className={styles.shortcutRow}>
+                  <dt>
+                    {r.keys.map((k, j) => (
+                      <React.Fragment key={j}>
+                        {k === "–" ? <span className={styles.kbdSep}>–</span> : <Kbd>{k}</Kbd>}
+                        {j < r.keys.length - 1 && k !== "–" && r.keys[j + 1] !== "–" && (
+                          <span className={styles.kbdSep}>+</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </dt>
+                  <dd className={styles.shortcutDesc}>{r.label}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         ))}
         <div className={styles.dialogFootnote}>

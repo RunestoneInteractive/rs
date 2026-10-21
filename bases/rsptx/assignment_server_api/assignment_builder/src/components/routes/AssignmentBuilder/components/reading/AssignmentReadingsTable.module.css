@@ -15,17 +15,13 @@
 .sectionTitle {
   font-weight: var(--rs-font-weight-medium);
   color: var(--rs-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .sectionPath {
   font-size: var(--rs-font-size-xs);
   color: var(--rs-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .empty {

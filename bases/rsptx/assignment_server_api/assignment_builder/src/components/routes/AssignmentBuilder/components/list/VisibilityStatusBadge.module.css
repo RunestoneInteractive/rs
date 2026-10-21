@@ -13,6 +13,11 @@
   white-space: nowrap;
 }
 
+button.chip {
+  font-family: inherit;
+  cursor: help;
+}
+
 .chip[data-variant="success"] {
   background: var(--rs-success-bg);
   border-color: var(--rs-success-border);

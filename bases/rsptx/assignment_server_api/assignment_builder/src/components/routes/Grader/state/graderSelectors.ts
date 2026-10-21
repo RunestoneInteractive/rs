@@ -127,11 +127,11 @@ export const effectiveViewMode = <TMode extends string>(
 ): TMode => (isDemo ? demoMode : storedMode);
 
 export const statusColor: Record<StudentGradingStatus, string> = {
-  graded: "var(--rs-status-graded)",
-  autograded: "var(--rs-status-autograded)",
-  in_progress: "var(--rs-status-in-progress)",
-  pending: "var(--rs-status-pending)",
-  no_submission: "var(--rs-status-no-submission)"
+  graded: "var(--rs-success-text)",
+  autograded: "var(--rs-info-text)",
+  in_progress: "var(--rs-warning-text)",
+  pending: "var(--rs-neutral-600)",
+  no_submission: "var(--rs-neutral-600)"
 };
 
 export type { GraderQuestionStats };

@@ -86,12 +86,13 @@ describe("TreeTable", () => {
       "chapter-1": { checked: false, partialChecked: true },
       "ex-3": { checked: true, partialChecked: false }
     });
-    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
-    const chapter = checkboxes.find((c) => c.getAttribute("aria-label") === "Select chapter-1");
-    const ex3 = checkboxes.find((c) => c.getAttribute("aria-label") === "Select ex-3");
+    const chapter = screen.getByRole("checkbox", {
+      name: "Select chapter-1"
+    }) as HTMLInputElement;
+    const ex3 = screen.getByRole("checkbox", { name: "Select ex-3" }) as HTMLInputElement;
 
-    expect(chapter?.indeterminate).toBe(true);
-    expect(ex3?.checked).toBe(true);
+    expect(chapter.indeterminate).toBe(true);
+    expect(ex3.checked).toBe(true);
   });
 
   it("calls onSelect when toggling an unchecked node", async () => {

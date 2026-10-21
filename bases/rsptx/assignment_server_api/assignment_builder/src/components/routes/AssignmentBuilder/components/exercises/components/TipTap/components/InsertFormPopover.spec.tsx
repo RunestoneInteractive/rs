@@ -212,4 +212,23 @@ describe("InsertFormPopover", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(editor.commands.focus).toHaveBeenCalled();
   });
+
+  it("ignores Escape pressed outside the form", () => {
+    const { editor } = makeEditor();
+    const onClose = vi.fn();
+
+    renderWithMantine(
+      <>
+        <button type="button">Outside control</button>
+        <InsertFormPopover editor={editor} request={request("math")} onClose={onClose} />
+      </>
+    );
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Outside control" }), {
+      key: "Escape"
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(editor.commands.focus).not.toHaveBeenCalled();
+  });
 });

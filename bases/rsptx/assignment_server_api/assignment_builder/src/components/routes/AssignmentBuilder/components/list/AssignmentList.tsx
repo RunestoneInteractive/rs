@@ -9,7 +9,8 @@ import {
   Skeleton,
   Switch,
   Text,
-  Tooltip
+  Tooltip,
+  VisuallyHidden
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { ColumnDef, OnChangeFn, RowSelectionState, SortingState } from "@tanstack/react-table";
@@ -191,7 +192,8 @@ export const AssignmentList = ({
       enableSorting: false,
       meta: {
         headerStyle: { width: 40 },
-        align: "center"
+        align: "center",
+        hiddenHeaderLabel: "Select assignments"
       },
       header: ({ table }) => (
         <Checkbox
@@ -288,7 +290,9 @@ export const AssignmentList = ({
             >
               <Switch
                 size="sm"
-                aria-label={`Allow late submissions for ${row.original.name}`}
+                label={
+                  <VisuallyHidden>Allow late submissions for {row.original.name}</VisuallyHidden>
+                }
                 checked={!row.original.enforce_due}
                 onChange={(e) => onEnforceDueChange(row.original, !e.currentTarget.checked)}
               />

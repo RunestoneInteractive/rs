@@ -30,7 +30,6 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
   const [timeMultiplier, setTimeMultiplier] = useState<number | null>(1);
   const [visibleFlag, setVisibleFlag] = useState(false);
   const [allowLink, setAllowLink] = useState(false);
-
   const [upsert, { isLoading }] = useUpsertAccommodationMutation();
 
   useEffect(() => {
@@ -66,6 +65,7 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
       onClose={close}
       size="560px"
       centered
+      closeButtonProps={{ "aria-label": "Close deadline exception dialog" }}
     >
       <div className={styles.dialogStack}>
         <p className={styles.dialogIntro}>
@@ -77,7 +77,11 @@ export const DeadlineExceptionDialog: React.FC<DeadlineExceptionDialogProps> = (
           label="Students"
           height={180}
         />
-        <Radio.Group value={scope} onChange={(v) => setScope(v as "assignment" | "all")}>
+        <Radio.Group
+          label="Apply accommodation to"
+          value={scope}
+          onChange={(v) => setScope(v as "assignment" | "all")}
+        >
           <Group gap="lg">
             <Radio value="assignment" label="This assignment" />
             <Radio value="all" label="All of the student's assignments" />
