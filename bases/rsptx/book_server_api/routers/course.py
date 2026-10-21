@@ -19,6 +19,7 @@ from fastapi import APIRouter, Request, Depends, status
 
 from rsptx.auth.session import auth_manager
 from rsptx.templates import get_jinja_templates, get_shared_templates
+from rsptx.templates.ebook_config import ebook_config_override
 from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
@@ -152,35 +153,42 @@ async def index(request: Request, user=Depends(auth_manager)):
     else:
         templates = get_shared_templates()
 
-    return templates.TemplateResponse(
-        "book/course/current_course.html",
-        {
-            "assignment_list": assignments,
-            "stats": stats,
-            "course": course,
-            "is_old_course": course.term_start_date
-            < (datetime.datetime.now() - datetime.timedelta(weeks=52)).date(),
-            "user": user,
-            "request": request,
-            "institution": course.institution,
-            "instructor_list": instructors,
-            "base_course": course.base_course,
-            "origin": course_markup_system,
-            "book": book,
-            "lastPageUrl": last_page_url,
-            "student_page": True,
-            "course_list": course_list,
-            "is_instructor": "true" if user_is_instructor else "false",
-            "has_discussion_group": book.social_url if book else None,
-            "lti1p1": is_lti1p1_course,
-            "now": now,
-            "visibility_map": visibility_map,
-            "course_attrs": attrs,
-            "course_name": course.course_name,
-            "base_url": construct_course_url(course),
-            "settings": settings,
-        },
-    )
+    context = {
+        "assignment_list": assignments,
+        "stats": stats,
+        "course": course,
+        "is_old_course": course.term_start_date
+        < (datetime.datetime.now() - datetime.timedelta(weeks=52)).date(),
+        "user": user,
+        "request": request,
+        "institution": course.institution,
+        "instructor_list": instructors,
+        "base_course": course.base_course,
+        "origin": course_markup_system,
+        "book": book,
+        "lastPageUrl": last_page_url,
+        "student_page": True,
+        "course_list": course_list,
+        "is_instructor": "true" if user_is_instructor else "false",
+        "has_discussion_group": book.social_url if book else None,
+        "lti1p1": is_lti1p1_course,
+        "now": now,
+        "visibility_map": visibility_map,
+        "course_attrs": attrs,
+        "course_name": course.course_name,
+        "base_url": construct_course_url(course),
+        "settings": settings,
+    }
+    if use_pretext_student_pages:
+        context["ebook_config_override"] = await ebook_config_override(
+            course=course,
+            user=user,
+            user_is_instructor=user_is_instructor,
+            course_attrs=attrs,
+            readings=[],
+            activities={},
+        )
+    return templates.TemplateResponse("book/course/current_course.html", context)
 
 
 @router.api_route("/changeCourse/{course_name:str}", methods=["GET", "POST"])
