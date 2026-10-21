@@ -71,6 +71,7 @@ from rsptx.db.crud import (
 from rsptx.db.models import UseinfoValidation
 from rsptx.auth.session import is_instructor
 from rsptx.templates import template_folder
+from rsptx.templates.ebook_config import ebook_config_override
 from rsptx.response_helpers import safe_join
 from rsptx.response_helpers.core import canonical_utcnow
 from typing_extensions import Annotated
@@ -677,6 +678,15 @@ async def serve_page(
         worker_name=worker_name,
         appname="runestone",  # for peer+ links
         course_attrs=course_attrs,
+        ebook_config_override=await ebook_config_override(
+            course=course_row,
+            user=user,
+            user_is_instructor=user_is_instructor,
+            course_attrs=course_attrs,
+            readings=reading_list,
+            activities=activity_info,
+            use_services=use_services,
+        ),
         **course_attrs,
     )
     # See `templates <https://fastapi.tiangolo.com/advanced/templates/>`_.
