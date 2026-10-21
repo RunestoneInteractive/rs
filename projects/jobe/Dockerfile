@@ -94,6 +94,12 @@ RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas 
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Stopgap for PHP2Shell (CVE-2026-109618, CVE-2026-109619): the reported attack
+# path is session.upload_progress, which Jobe's REST API never uses.
+RUN for d in /etc/php/*/apache2/conf.d /etc/php/*/cli/conf.d; do \
+        echo "session.upload_progress.enabled = Off" > "$d/99-no-upload-progress.ini"; \
+    done
+
 # Prefer gcc-14 and g++-14
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 60 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 60
