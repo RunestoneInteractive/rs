@@ -185,7 +185,9 @@ async def index(request: Request, user=Depends(auth_manager)):
             user=user,
             user_is_instructor=user_is_instructor,
             course_attrs=attrs,
-            readings=[],
+            # null, not []: an empty array is truthy in JS, so bookfuncs
+            # would draw a stale assignment's reading tracker here.
+            readings=None,
             activities={},
         )
     return templates.TemplateResponse("book/course/current_course.html", context)
