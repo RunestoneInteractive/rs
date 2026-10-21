@@ -134,8 +134,7 @@ export const AssignmentWizard = ({
                 {...field}
                 id="wizard-assignment-description"
                 value={field.value || ""}
-                autosize
-                minRows={4}
+                rows={4}
                 placeholder="What is this assignment about?"
               />
             )}
@@ -207,14 +206,14 @@ export const AssignmentWizard = ({
         <div className={styles.typeSettings}>
           {watch("kind") === "Regular" && (
             <>
-              <h3 className={styles.settingsTitle}>Regular assignment settings</h3>
+              <h2 className={styles.settingsTitle}>Regular assignment settings</h2>
               <div className={styles.settingsNote}>No additional options</div>
             </>
           )}
 
           {watch("kind") === "Timed" && (
             <>
-              <h3 className={styles.settingsTitle}>Quiz/Exam settings</h3>
+              <h2 className={styles.settingsTitle}>Quiz/Exam settings</h2>
               <div className={styles.settingRows}>
                 <div className={styles.settingRow}>
                   <Checkbox
@@ -246,7 +245,7 @@ export const AssignmentWizard = ({
                   />
                 </div>
                 <div className={styles.settingRow}>
-                  <label>Allow pause</label>
+                  <span className={styles.controlLabel}>Allow pause</span>
                   <Controller
                     name="nopause"
                     control={control}
@@ -262,7 +261,7 @@ export const AssignmentWizard = ({
                   />
                 </div>
                 <div className={styles.settingRow}>
-                  <label>Allow feedback</label>
+                  <span className={styles.controlLabel}>Allow feedback</span>
                   <Controller
                     name="nofeedback"
                     control={control}
@@ -283,10 +282,10 @@ export const AssignmentWizard = ({
 
           {watch("kind") === "Peer" && (
             <>
-              <h3 className={styles.settingsTitle}>Peer instruction settings</h3>
+              <h2 className={styles.settingsTitle}>Peer instruction settings</h2>
               <div className={styles.settingRows}>
                 <div className={styles.settingRow}>
-                  <label>Show async peer</label>
+                  <span className={styles.controlLabel}>Show async peer</span>
                   <Controller
                     name="peer_async_visible"
                     control={control}

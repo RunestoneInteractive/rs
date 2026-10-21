@@ -98,7 +98,7 @@ export const getCourseTimezoneMismatch = (
 /** Render an instant as wall clock time in a specific timezone. */
 export const formatInTimezone = (date: Date, timeZone: string): string => {
   try {
-    return date.toLocaleString(undefined, {
+    return date.toLocaleString("en-US", {
       timeZone,
       year: "numeric",
       month: "short",

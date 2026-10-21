@@ -355,12 +355,12 @@ describe("statusIcon glyph mapping", () => {
 });
 
 describe("statusColor", () => {
-  it("points every StudentGradingStatus at its --rs-status-* token", () => {
-    expect(statusColor.graded).toBe("var(--rs-status-graded)");
-    expect(statusColor.autograded).toBe("var(--rs-status-autograded)");
-    expect(statusColor.in_progress).toBe("var(--rs-status-in-progress)");
-    expect(statusColor.pending).toBe("var(--rs-status-pending)");
-    expect(statusColor.no_submission).toBe("var(--rs-status-no-submission)");
+  it("points every StudentGradingStatus at an accessible semantic text token", () => {
+    expect(statusColor.graded).toBe("var(--rs-success-text)");
+    expect(statusColor.autograded).toBe("var(--rs-info-text)");
+    expect(statusColor.in_progress).toBe("var(--rs-warning-text)");
+    expect(statusColor.pending).toBe("var(--rs-neutral-600)");
+    expect(statusColor.no_submission).toBe("var(--rs-neutral-600)");
   });
 
   it("contains no hardcoded hex colors", () => {

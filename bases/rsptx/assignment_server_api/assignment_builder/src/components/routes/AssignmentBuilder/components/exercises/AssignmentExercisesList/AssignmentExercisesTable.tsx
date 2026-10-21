@@ -113,7 +113,7 @@ const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
               allowDeselect={false}
               comboboxProps={{ withinPortal: false }}
             />
-            <Text size="xs" c="dimmed">
+            <Text size="xs" c="var(--rs-text)">
               {rowCount === 1 ? "Applies to 1 exercise" : `Applies to ${rowCount} exercises`}
             </Text>
             <Group justify="space-between">
@@ -311,7 +311,7 @@ export const AssignmentExercisesTable = ({
             <div className={styles.name} title={row.name || row.title}>
               {row.name || row.title}
             </div>
-            <div className={styles.sub} title={row.qnumber || undefined}>
+            <div className={styles.sub} title={row.qnumber}>
               {row.qnumber}
             </div>
           </div>

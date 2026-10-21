@@ -64,6 +64,7 @@ export const ReadingsToolbar = ({
     <TabToolbar
       title={TITLE}
       count={totalCount}
+      headingLevel={2}
       scrolled={scrolled}
       titleExtra={
         <ActionIcon

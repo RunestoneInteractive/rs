@@ -30,7 +30,7 @@
   font-size: var(--rs-font-size-sm);
   font-weight: var(--rs-font-weight-semibold);
   font-variant-numeric: tabular-nums;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
   background: var(--rs-neutral-100);
   border: 1px solid var(--rs-border-solid);
   border-radius: var(--rs-radius-pill);

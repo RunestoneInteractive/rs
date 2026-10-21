@@ -22,16 +22,16 @@ describe("ConnectTargetButton", () => {
     const onBlockClick = vi.fn();
 
     renderWithMantine(
-      <div onClick={onBlockClick}>
-        <ConnectTargetButton
-          blockId="r1"
-          ariaLabel="Connect to target match 1"
-          onComplete={onComplete}
-        />
-      </div>
+      <ConnectTargetButton
+        blockId="r1"
+        ariaLabel="Connect to target match 1"
+        onComplete={onComplete}
+      />
     );
 
+    document.body.addEventListener("click", onBlockClick);
     fireEvent.click(screen.getByRole("button", { name: "Connect to target match 1" }));
+    document.body.removeEventListener("click", onBlockClick);
 
     expect(onComplete).toHaveBeenCalledWith("r1");
     expect(onBlockClick).not.toHaveBeenCalled();

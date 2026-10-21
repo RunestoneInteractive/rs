@@ -96,15 +96,15 @@ export const FilterMultiSelect = ({
               <span className={styles.empty}>No matches</span>
             ) : (
               visibleOptions.map((option) => (
-                <label key={option.value} className={styles.option}>
-                  <Checkbox
-                    size="sm"
-                    checked={selected.has(option.value)}
-                    onChange={() => toggle(option.value)}
-                    aria-label={option.label}
-                  />
-                  <span className={styles.optionLabel}>{option.label}</span>
-                </label>
+                <Checkbox
+                  key={option.value}
+                  className={styles.option}
+                  classNames={{ label: styles.optionLabel }}
+                  size="sm"
+                  checked={selected.has(option.value)}
+                  onChange={() => toggle(option.value)}
+                  label={option.label}
+                />
               ))
             )}
           </div>

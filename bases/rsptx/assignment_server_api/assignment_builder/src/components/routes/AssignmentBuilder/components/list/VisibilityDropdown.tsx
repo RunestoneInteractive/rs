@@ -1,6 +1,6 @@
 import { Icon, PrimeIconName } from "@components/ui/Icon";
 import { Group, Popover, Radio, Stack, Text, UnstyledButton } from "@mantine/core";
-import { useState } from "react";
+import { KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 
 import { Assignment } from "@/types/assignment";
 import { convertDateToISO, parseUTCDate } from "@/utils/date";
@@ -62,20 +62,65 @@ const radioLabel = (option: RadioOption) => (
 );
 
 export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownProps) => {
+  const periodInputId = useId();
   const [opened, setOpened] = useState(false);
   const [mode, setMode] = useState<VisibilityMode>(() => modeOf(assignment));
   const [visibleOn, setVisibleOn] = useState<string | null>(assignment.visible_on);
   const [hiddenOn, setHiddenOn] = useState<string | null>(assignment.hidden_on);
+  const [calendarOpened, setCalendarOpened] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const firstRadioRef = useRef<HTMLInputElement>(null);
+  const focusFirstRadioOnOpen = useRef(false);
 
   const status = getVisibilityStatus(assignment);
+
+  useEffect(() => {
+    if (opened && focusFirstRadioOnOpen.current) {
+      firstRadioRef.current?.focus();
+      focusFirstRadioOnOpen.current = false;
+    }
+  }, [opened]);
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
       setMode(modeOf(assignment));
       setVisibleOn(assignment.visible_on);
       setHiddenOn(assignment.hidden_on);
+    } else {
+      setCalendarOpened(false);
     }
     setOpened(next);
+  };
+
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (opened || !["Enter", " ", "ArrowDown"].includes(event.key)) {
+      return;
+    }
+
+    event.preventDefault();
+    focusFirstRadioOnOpen.current = true;
+    handleOpenChange(true);
+  };
+
+  const handleDropdownKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      window.setTimeout(() => triggerRef.current?.focus(), 0);
+    }
+  };
+
+  const focusPeriodDateInput = (
+    event: KeyboardEvent<HTMLElement>,
+    targetId: string,
+    backwards = false
+  ) => {
+    if (
+      event.currentTarget.tagName === "INPUT" &&
+      event.key === "Tab" &&
+      event.shiftKey === backwards
+    ) {
+      event.preventDefault();
+      document.getElementById(targetId)?.focus();
+    }
   };
 
   const handleModeChange = (newMode: VisibilityMode) => {
@@ -138,16 +183,18 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
       width={300}
       position="bottom"
       withArrow
-      trapFocus
       returnFocus
+      closeOnClickOutside={!calendarOpened}
       opened={opened}
       onChange={handleOpenChange}
     >
       <Popover.Target>
         <UnstyledButton
+          ref={triggerRef}
           className={styles.trigger}
           data-expanded={opened || undefined}
           onClick={() => handleOpenChange(!opened)}
+          onKeyDown={handleTriggerKeyDown}
           aria-label={`${status.label}. Change visibility`}
           title={status.tooltip || "Click to change visibility"}
         >
@@ -157,14 +204,14 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
           </span>
         </UnstyledButton>
       </Popover.Target>
-      <Popover.Dropdown>
+      <Popover.Dropdown onKeyDownCapture={handleDropdownKeyDownCapture}>
         <Radio.Group value={mode} onChange={(value) => handleModeChange(value as VisibilityMode)}>
           <Stack gap="sm">
             <Text fw={600} size="sm">
               Visibility status
             </Text>
 
-            <Radio value="hidden" label={radioLabel(RADIO_OPTIONS[0])} />
+            <Radio ref={firstRadioRef} value="hidden" label={radioLabel(RADIO_OPTIONS[0])} />
             <Radio value="visible" label={radioLabel(RADIO_OPTIONS[1])} />
 
             <Radio value="scheduled_visible" label={radioLabel(RADIO_OPTIONS[2])} />
@@ -173,8 +220,9 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                 <DateTimePicker
                   value={visibleOn}
                   onChange={handleVisibleOnChange}
-                  withinPortal={false}
                   ariaLabel="Visible on date"
+                  onCalendarOpen={() => setCalendarOpened(true)}
+                  onCalendarClose={() => setCalendarOpened(false)}
                 />
               </Stack>
             )}
@@ -185,8 +233,9 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                 <DateTimePicker
                   value={hiddenOn}
                   onChange={handleHiddenOnChange}
-                  withinPortal={false}
                   ariaLabel="Hidden on date"
+                  onCalendarOpen={() => setCalendarOpened(true)}
+                  onCalendarClose={() => setCalendarOpened(false)}
                 />
               </Stack>
             )}
@@ -199,10 +248,13 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                     From:
                   </Text>
                   <DateTimePicker
+                    id={`${periodInputId}-start`}
                     value={visibleOn}
                     onChange={handleVisibleOnChange}
-                    withinPortal={false}
                     ariaLabel="Visible from date"
+                    onCalendarOpen={() => setCalendarOpened(true)}
+                    onCalendarClose={() => setCalendarOpened(false)}
+                    onKeyDown={(event) => focusPeriodDateInput(event, `${periodInputId}-end`)}
                   />
                 </div>
                 <div>
@@ -210,10 +262,15 @@ export const VisibilityDropdown = ({ assignment, onChange }: VisibilityDropdownP
                     Until:
                   </Text>
                   <DateTimePicker
+                    id={`${periodInputId}-end`}
                     value={hiddenOn}
                     onChange={handleHiddenOnChange}
-                    withinPortal={false}
                     ariaLabel="Hidden after date"
+                    onCalendarOpen={() => setCalendarOpened(true)}
+                    onCalendarClose={() => setCalendarOpened(false)}
+                    onKeyDown={(event) =>
+                      focusPeriodDateInput(event, `${periodInputId}-start`, true)
+                    }
                   />
                 </div>
               </Stack>

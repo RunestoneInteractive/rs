@@ -52,6 +52,9 @@ export const ReleaseGradesControl: React.FC<ReleaseGradesControlProps> = ({
   const confirm = (next: boolean) => {
     modals.openConfirmModal({
       title: next ? "Release grades" : "Hide grades",
+      closeButtonProps: {
+        "aria-label": next ? "Close release grades dialog" : "Close hide grades dialog"
+      },
       children: (
         <Text size="sm">
           {next ? (

@@ -4,6 +4,8 @@ import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }: { mode: string }) => {
   let basedir = "/";
+  const assignmentProxy = process.env.ASSIGNMENT_PROXY_URL;
+  const adminProxy = process.env.ADMIN_PROXY_URL;
 
   if (mode === "production") {
     basedir = "/assignment/instructor/";
@@ -30,7 +32,18 @@ export default defineConfig(({ mode }: { mode: string }) => {
     server: {
       proxy: {
         "/ns": "http://localhost",
-        "/assignment": "http://localhost"
+        "/admin": adminProxy
+          ? {
+              target: adminProxy,
+              rewrite: (requestPath) => requestPath.replace(/^\/admin/, "")
+            }
+          : "http://localhost",
+        "/assignment": assignmentProxy
+          ? {
+              target: assignmentProxy,
+              rewrite: (requestPath) => requestPath.replace(/^\/assignment/, "")
+            }
+          : "http://localhost"
       }
     },
     base: basedir,

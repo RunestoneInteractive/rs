@@ -92,12 +92,10 @@ export const AssignmentReadingsTable = ({
         width: "16rem",
         render: (row) => (
           <div className={styles.chapterCell}>
-            <div className={styles.sectionTitle} title={row.chapter_name || row.chapter}>
+            <div className={styles.sectionTitle}>
               {formatNumberedLabel(row.chapter_name || row.chapter, [row.chapter_num])}
             </div>
-            <div className={styles.sectionPath} title={row.chapter || undefined}>
-              {row.chapter}
-            </div>
+            <div className={styles.sectionPath}>{row.chapter}</div>
           </div>
         )
       },
@@ -107,18 +105,13 @@ export const AssignmentReadingsTable = ({
         width: "20rem",
         render: (row) => (
           <div className={styles.sectionCell}>
-            <div
-              className={styles.sectionTitle}
-              title={row.sub_chapter_name || row.title || row.name || row.subchapter}
-            >
+            <div className={styles.sectionTitle}>
               {formatNumberedLabel(
                 row.sub_chapter_name || row.title || row.name || row.subchapter,
                 [row.chapter_num, row.sub_chapter_num]
               )}
             </div>
-            <div className={styles.sectionPath} title={row.subchapter || undefined}>
-              {row.subchapter}
-            </div>
+            <div className={styles.sectionPath}>{row.subchapter}</div>
           </div>
         )
       },

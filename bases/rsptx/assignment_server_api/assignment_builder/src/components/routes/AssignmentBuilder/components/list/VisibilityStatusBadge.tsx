@@ -122,10 +122,15 @@ export const VisibilityStatusBadge = ({ assignment }: VisibilityStatusBadgeProps
       withArrow
       events={{ hover: true, focus: true, touch: true }}
     >
-      <span className={styles.chip} data-variant={status.variant} tabIndex={0}>
+      <button
+        type="button"
+        className={styles.chip}
+        data-variant={status.variant}
+        aria-label={`${status.label}. ${status.tooltip}`}
+      >
         <span className={styles.dot} />
         {status.label}
-      </span>
+      </button>
     </Tooltip>
   );
 };

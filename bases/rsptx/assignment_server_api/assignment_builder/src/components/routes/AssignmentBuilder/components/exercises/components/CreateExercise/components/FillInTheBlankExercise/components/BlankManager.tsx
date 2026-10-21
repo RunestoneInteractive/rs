@@ -196,9 +196,7 @@ export const BlankManager: FC<BlankManagerProps> = ({ blanks, onChange, question
 
                   {blank.graderType === GraderType.REGEX && (
                     <div>
-                      <label htmlFor={`regex-${index}`} className={local.headerSummary}>
-                        Regular expression
-                      </label>
+                      <div className={local.headerSummary}>Regular expression</div>
                       <RegexEditor
                         value={getRegexDisplayValue(blank)}
                         onChange={(value) => handleRegexInputChange(index, value)}

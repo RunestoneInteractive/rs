@@ -41,7 +41,9 @@ export const ScaleSettings = ({ value, onChange }: ScaleSettingsProps) => {
 
       <div className={styles.controls}>
         <div className={styles.inputContainer}>
-          <label className={styles.label}>Maximum Scale Value:</label>
+          <label className={styles.label} htmlFor="scaleValue">
+            Maximum Scale Value:
+          </label>
           <div className={styles.inputWrapper}>
             <NumberInput
               id="scaleValue"

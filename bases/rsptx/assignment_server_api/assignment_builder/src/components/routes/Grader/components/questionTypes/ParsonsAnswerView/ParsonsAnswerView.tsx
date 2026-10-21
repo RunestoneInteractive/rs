@@ -14,7 +14,7 @@ export const ParsonsAnswerView: React.FC<AnswerRendererProps> = (props) => {
   return (
     <div>
       <QuestionPreviewHeader {...props} />
-      <h4 className={styles.sectionTitle}>Submitted source</h4>
+      <h3 className={styles.sectionTitle}>Submitted source</h3>
       <pre className={styles.codeBlock}>{displayedSource || "(empty)"}</pre>
     </div>
   );

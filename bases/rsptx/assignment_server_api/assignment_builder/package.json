@@ -87,6 +87,7 @@
     "lint:a11y": "eslint src --config .eslintrc.a11y.cjs",
     "test:e2e": "playwright test",
     "test:e2e:a11y": "playwright test consolidation/a11y-scan.spec.ts --grep @a11y",
+    "test:e2e:a11y:ci": "playwright test consolidation/a11y-scan.spec.ts --grep @a11y --grep-invert @seeded",
     "test:e2e:smoke": "playwright test --grep @p0",
     "test:e2e:p1": "playwright test --grep \"@p0|@p1\"",
     "test:e2e:docker": "E2E_TARGET=docker playwright test e2e/grader",

@@ -318,12 +318,12 @@ export function DataGrid<T>({
                 const meta = header.column.columnDef.meta;
 
                 return (
-                  <Table.Th
+                  <Table.Td
                     key={header.id}
                     style={{ ...meta?.headerStyle, padding: "4px 8px", fontWeight: 400 }}
                   >
                     {meta?.filter ? <ColumnFilterControl column={header.column} /> : null}
-                  </Table.Th>
+                  </Table.Td>
                 );
               })}
             </Table.Tr>
