@@ -75,6 +75,7 @@ from rsptx.templates import (
     get_jinja_templates,
     get_shared_templates,
 )
+from rsptx.templates.ebook_config import ebook_config_override
 from rsptx.response_helpers import construct_course_url, safe_join
 from rsptx.response_helpers.core import (
     make_json_response,
@@ -214,6 +215,15 @@ async def get_assignments(
         origin=course_markup_system,
         **course_attrs,
     )
+    if use_pretext_student_pages:
+        context["ebook_config_override"] = await ebook_config_override(
+            course=course,
+            user=user,
+            user_is_instructor=user_is_instructor,
+            course_attrs=course_attrs,
+            readings=None,  # force bookfuncs to not render assignment tracker
+            activities={},
+        )
     return templates.TemplateResponse(
         "assignment/student/chooseAssignment.html", context
     )
@@ -1096,6 +1106,15 @@ async def doAssignment(
         allow_pairs="true" if course.allow_pairs else "false",
         **course_attrs,
     )
+    if use_pretext_student_pages:
+        context["ebook_config_override"] = await ebook_config_override(
+            course=course,
+            user=user,
+            user_is_instructor=user_is_instructor,
+            course_attrs=course_attrs,
+            readings=None,  # force bookfuncs to not render assignment tracker
+            activities={},
+        )
     response = templates.TemplateResponse(
         "assignment/student/doAssignment.html", context
     )

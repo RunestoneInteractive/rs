@@ -32,6 +32,23 @@
 import RunestoneBase from "./runestonebase.js";
 import { marked } from "marked";
 
+// ---------------------------------------------------------------------------
+// Server-supplied eBookConfig values (issue #1392)
+//
+// A PreTeXt page served by a Runestone server sets ``ebook_config_override``
+// right after the book template's own eBookConfig assignments.  The server is
+// the authority for those values (course, user, activities, ...), so they win
+// over whatever the template wrote.  This runs when the module is evaluated,
+// before anything else reads eBookConfig.
+// ---------------------------------------------------------------------------
+export function applyEbookConfigOverride() {
+    const override = window.ebook_config_override;
+    if (override && typeof override === "object") {
+        window.eBookConfig = Object.assign(window.eBookConfig || {}, override);
+    }
+}
+applyEbookConfigOverride();
+
 var rb = new RunestoneBase();
 
 // ---------------------------------------------------------------------------
@@ -1701,6 +1718,9 @@ window.addEventListener("DOMContentLoaded", function (event) {
         let authorUrl =
             (eBookConfig.authorServerUrl ||
                 "https://author.runestone.academy/author") + "/";
+        let editorUrl =
+            eBookConfig.editorServerUrl || "/admin/editor/manage_exercises";
+
         if (eBookConfig.isAuthor) {
             menuContentArea.appendChild(
                 makeLink(authorUrl, "Author Dashboard"),
@@ -1708,7 +1728,7 @@ window.addEventListener("DOMContentLoaded", function (event) {
         }
         if (eBookConfig.isEditor) {
             menuContentArea.appendChild(
-                makeLink(authorUrl, "Editor Dashboard"),
+                makeLink(editorUrl, "Editor Dashboard"),
             );
         }
         menuContentArea.appendChild(
