@@ -21,6 +21,7 @@ import classNames from "classnames";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
+import { useRouteHeadingFocus } from "@/hooks/useRouteHeadingFocus";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
@@ -70,6 +71,9 @@ export const AssignmentEdit = ({
   setValue
 }: AssignmentEditProps) => {
   const { isExercisesError, isExercisesLoading } = useExercisesSelector();
+  const headingRef = useRouteHeadingFocus(
+    `${window.location.pathname}:${isExercisesLoading ? "loading" : "ready"}`
+  );
   // The study setting is meaningless outside a course set up to run one, so it should not confuse instructors
   const { data: { asyncConditionsEnabled = false } = {} } = useHasApiKeyQuery();
 
@@ -433,7 +437,9 @@ export const AssignmentEdit = ({
               >
                 <Icon name="arrow-left" />
               </ActionIcon>
-              <h1 className={styles.assignmentName}>{selectedAssignment?.name}</h1>
+              <h1 ref={headingRef} className={styles.assignmentName} tabIndex={-1}>
+                {selectedAssignment?.name}
+              </h1>
             </Group>
             <Tooltip label="Preview as student" position="bottom">
               <ActionIcon

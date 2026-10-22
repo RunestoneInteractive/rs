@@ -99,7 +99,7 @@ describe("AssignmentEdit", () => {
   it("renders the assignment name and the section papers for a Regular assignment", () => {
     renderWithMantine(<Harness kind="Regular" />);
 
-    expect(screen.getByRole("heading", { name: "Homework 3" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Homework 3" })).toHaveFocus();
     expect(screen.getByRole("heading", { name: "Details" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Schedule" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scoring" })).toBeInTheDocument();
