@@ -245,21 +245,23 @@ export const GraderAssignmentsPage: React.FC = () => {
     return (
       <>
         {viewToggle}
-        <div className={styles.tableWrap} data-tour="grader-assignment-picker">
-          <DataGrid<AssignmentRow>
-            data={rows}
-            columns={columns}
-            getRowId={(r) => String(r.id)}
-            onRowClick={(row) => navigate(`/grader/${row.id}`)}
-            enableColumnFilters
-            enableSortingRemoval={false}
-            initialSorting={[{ id: "duedate", desc: false }]}
-            pagination={pagination}
-            onPaginationChange={setPagination}
-            ariaLabel="Assignments"
-            emptyMessage="No assignments match the current filters."
-          />
-        </div>
+        <DataGrid<AssignmentRow>
+          data={rows}
+          columns={columns}
+          getRowId={(r) => String(r.id)}
+          onRowClick={(row) => navigate(`/grader/${row.id}`)}
+          enableColumnFilters
+          filterResultsLabel="assignments"
+          filterResultsTotal={allRows.length}
+          tableFrameClassName={styles.tableWrap}
+          enableSortingRemoval={false}
+          initialSorting={[{ id: "duedate", desc: false }]}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          ariaLabel="Assignments"
+          emptyMessage="No assignments match the current filters."
+          data-tour="grader-assignment-picker"
+        />
       </>
     );
   }

@@ -84,6 +84,9 @@ export interface DataGridProps<T> {
   initialSorting?: SortingState;
   loading?: boolean;
   emptyMessage?: React.ReactNode;
+  filterResultsLabel?: string;
+  filterResultsTotal?: number;
+  tableFrameClassName?: string;
   ariaLabel?: string;
   minWidth?: number;
   fillHeight?: boolean;
@@ -187,6 +190,9 @@ export function DataGrid<T>({
   initialSorting = [],
   loading = false,
   emptyMessage = "Nothing here yet",
+  filterResultsLabel = "results",
+  filterResultsTotal = data.length,
+  tableFrameClassName,
   ariaLabel,
   minWidth = 0,
   fillHeight = false,
@@ -244,6 +250,8 @@ export function DataGrid<T>({
 
   const resolvedPageCount = table.getPageCount();
   const rows = table.getRowModel().rows;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const announcesFilterResults = enableGlobalFilter || enableColumnFilters;
   const tabbableRowId = rows.some((row) => row.id === keyboardRowId) ? keyboardRowId : rows[0]?.id;
 
   // Column filters shrink the table from the inside, so a page index that came
@@ -422,25 +430,8 @@ export function DataGrid<T>({
     </Table>
   );
 
-  return (
-    <div
-      data-tour={rest["data-tour"]}
-      className={fillHeight ? styles.rootFill : undefined}
-      aria-busy={loading || undefined}
-    >
-      {enableGlobalFilter && (
-        <Group justify="flex-end" mb="sm">
-          <TextInput
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.currentTarget.value)}
-            placeholder={globalFilterPlaceholder}
-            aria-label={globalFilterPlaceholder}
-            leftSection={<Icon name="search" />}
-            size="sm"
-          />
-        </Group>
-      )}
-
+  const tableContent = (
+    <>
       {fillHeight ? (
         <div className={styles.scrollFill}>
           {scrollSentinelRef && (
@@ -489,6 +480,39 @@ export function DataGrid<T>({
           />
         )}
       </Group>
+    </>
+  );
+
+  return (
+    <div
+      data-tour={rest["data-tour"]}
+      className={fillHeight ? styles.rootFill : undefined}
+      aria-busy={loading || undefined}
+    >
+      {enableGlobalFilter && (
+        <Group justify="flex-end" mb="sm">
+          <TextInput
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.currentTarget.value)}
+            placeholder={globalFilterPlaceholder}
+            aria-label={globalFilterPlaceholder}
+            leftSection={<Icon name="search" />}
+            size="sm"
+          />
+        </Group>
+      )}
+
+      {announcesFilterResults && !loading && (
+        <Text size="sm" c="dimmed" mb="xs" role="status" aria-live="polite" aria-atomic="true">
+          {filteredRowCount} of {filterResultsTotal} {filterResultsLabel} shown.
+        </Text>
+      )}
+
+      {tableFrameClassName ? (
+        <div className={tableFrameClassName}>{tableContent}</div>
+      ) : (
+        tableContent
+      )}
     </div>
   );
 }
