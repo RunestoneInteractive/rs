@@ -54,7 +54,6 @@ const renderTopItem = (item: NavItem, index: number, activePath: string) => {
             className={styles.navButton}
             leftSection={leftSection}
             rightSection={<Icon name="chevron-down" />}
-            title={item.label}
           >
             {item.label}
           </Button>
@@ -77,7 +76,6 @@ const renderTopItem = (item: NavItem, index: number, activePath: string) => {
       aria-current={active ? "page" : undefined}
       leftSection={leftSection}
       onClick={item.command}
-      title={item.label}
     >
       {item.label}
     </Button>

@@ -10,7 +10,7 @@ export const ShortAnswerView: React.FC<AnswerRendererProps> = (props) => {
   return (
     <div>
       <QuestionPreviewHeader {...props} />
-      <h4 className={styles.sectionTitle}>Student response</h4>
+      <h3 className={styles.sectionTitle}>Student response</h3>
       <div className={styles.responseBox}>
         {answer || <em className={styles.emptyResponse}>(empty response)</em>}
       </div>

@@ -93,4 +93,24 @@ describe("GraderAssignmentsPage table pagination", () => {
 
     expect(status).toHaveTextContent("1 of 30 assignments shown.");
   });
+
+  it("does not duplicate visible descriptions in title attributes", () => {
+    const assignments = makeAssignments(1);
+
+    assignments[0].description = "Visible assignment description";
+    mockUseGetAssignmentsQuery.mockReturnValue({
+      data: assignments,
+      isLoading: false
+    });
+
+    renderWithMantine(<GraderAssignmentsPage />);
+
+    expect(screen.getByText("Visible assignment description")).not.toHaveAttribute("title");
+  });
+
+  it("gives the due date filter an accessible name", () => {
+    renderWithMantine(<GraderAssignmentsPage />);
+
+    expect(screen.getByRole("textbox", { name: "Filter by Due date" })).toBeInTheDocument();
+  });
 });

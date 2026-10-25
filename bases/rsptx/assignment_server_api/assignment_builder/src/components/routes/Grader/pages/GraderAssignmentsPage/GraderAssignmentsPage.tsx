@@ -115,9 +115,7 @@ export const GraderAssignmentsPage: React.FC = () => {
         meta: { filter: { variant: "text", placeholder: "Search description" } },
         cell: ({ row }) =>
           row.original.description ? (
-            <span className={styles.cellMuted} title={row.original.description}>
-              {row.original.description}
-            </span>
+            <span className={styles.cellMuted}>{row.original.description}</span>
           ) : (
             <span className={styles.cellDash}>—</span>
           )
@@ -146,6 +144,7 @@ export const GraderAssignmentsPage: React.FC = () => {
                 isClearable
                 dateFormat="MMM d, yyyy"
                 placeholderText="Pick range"
+                customInput={<input aria-label="Filter by Due date" />}
                 className={styles.dateFilterInput}
                 wrapperClassName={styles.dateFilterWrapper}
                 popperClassName={styles.dateFilterPopper}

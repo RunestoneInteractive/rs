@@ -15,7 +15,7 @@ export const AssociationAnswerView: React.FC<AssociationAnswerViewProps> = (prop
   return (
     <div>
       {showQuestionHeader && <QuestionPreviewHeader {...props} />}
-      <h4 className={styles.sectionTitle}>{title}</h4>
+      <h3 className={styles.sectionTitle}>{title}</h3>
       <div className={styles.blockList}>
         {associations.length === 0 ? (
           <span className={styles.mutedNote}>

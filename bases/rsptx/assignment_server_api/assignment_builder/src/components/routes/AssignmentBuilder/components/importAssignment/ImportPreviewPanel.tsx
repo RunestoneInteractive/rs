@@ -34,6 +34,7 @@ export const ImportPreviewPanel = ({ assignmentId, onClose }: ImportPreviewPanel
       opened={assignmentId !== null}
       onClose={onClose}
       title={preview ? preview.name : "Loading assignment…"}
+      closeButtonProps={{ "aria-label": "Close assignment preview dialog" }}
       size="42rem"
     >
       {isFetching || !preview ? (

@@ -49,6 +49,7 @@ export const MultiChoiceExerciseSettings: FC<MultiChoiceExerciseSettingsProps> =
           onChange={(e) => handleForceCheckboxChange(e.currentTarget.checked)}
           label="Always show checkboxes (instead of radio buttons for single answer)"
           description="By default, questions with one correct answer show radio buttons and questions with multiple correct answers show checkboxes. Enable this option to always show checkboxes regardless of the number of correct answers."
+          styles={{ description: { color: "var(--rs-text)" } }}
         />
 
         <Checkbox
@@ -58,6 +59,7 @@ export const MultiChoiceExerciseSettings: FC<MultiChoiceExerciseSettingsProps> =
           onChange={(e) => handleRandomChange(e.currentTarget.checked)}
           label="Randomize the order of the answers"
           description="Each student sees the answers in a different order."
+          styles={{ description: { color: "var(--rs-text)" } }}
         />
       </Paper>
     </>

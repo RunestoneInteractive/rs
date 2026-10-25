@@ -98,7 +98,7 @@ const EditableRow = <T extends RowEntity>({
           size="sm"
           checked={selected}
           onChange={() => onToggle(row)}
-          aria-label={`Select ${rowLabel}`}
+          label={<VisuallyHidden>{`Select ${rowLabel}`}</VisuallyHidden>}
         />
       </Table.Td>
       {columns.map((col) => (
@@ -195,7 +195,12 @@ export const EditableDataTable = <T extends RowEntity>({
         modifiers={[restrictToVerticalAxis]}
         onDragEnd={handleDragEnd}
       >
-        <Table stickyHeader verticalSpacing="xs" aria-label={ariaLabel}>
+        <Table stickyHeader verticalSpacing="xs">
+          {ariaLabel && (
+            <Table.Caption>
+              <VisuallyHidden>{ariaLabel}</VisuallyHidden>
+            </Table.Caption>
+          )}
           <Table.Thead>
             <Table.Tr>
               <Table.Th className={styles.controlCell}>
@@ -204,8 +209,9 @@ export const EditableDataTable = <T extends RowEntity>({
                   checked={allSelected}
                   indeterminate={someSelected && !allSelected}
                   onChange={toggleAll}
-                  aria-label="Select all rows"
+                  label={<VisuallyHidden>Select all rows</VisuallyHidden>}
                 />
+                <VisuallyHidden>Select rows</VisuallyHidden>
               </Table.Th>
               {columns.map((col) => (
                 <Table.Th

@@ -1,6 +1,6 @@
 import { Center, Checkbox, Loader, TextInput } from "@mantine/core";
 import { RosterStudent, useGetCourseRosterQuery } from "@store/grader/grader.logic.api";
-import React, { useMemo, useState } from "react";
+import React, { useId, useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 
@@ -27,6 +27,7 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
 }) => {
   const { data: roster, isLoading, isError } = useGetCourseRosterQuery();
   const [search, setSearch] = useState("");
+  const searchInputId = useId();
 
   const students = useMemo(() => {
     const list = roster ?? [];
@@ -70,21 +71,21 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
   return (
     <div className={styles.multiSelectRoot}>
       <div className={`${styles.sectionCardHead} ${styles.multiSelectHead}`}>
-        <div className={styles.fieldHint}>
+        <label className={styles.fieldHint} htmlFor={searchInputId}>
           {label}
           {selected.length > 0 && (
             <span className={styles.textSubtle}> &middot; {selected.length} selected</span>
           )}
-        </div>
+        </label>
         <button type="button" onClick={toggleAllFiltered} className={styles.linkButton}>
           {allFilteredSelected ? "Clear all" : "Select all"}
         </button>
       </div>
       <TextInput
+        id={searchInputId}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
         placeholder="Search students…"
-        aria-label="Search students"
         leftSection={<Icon name="search" />}
         size="sm"
       />

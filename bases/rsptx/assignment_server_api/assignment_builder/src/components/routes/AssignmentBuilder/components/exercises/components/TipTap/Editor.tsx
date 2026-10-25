@@ -57,6 +57,7 @@ interface PollEditorProps {
   onChange: (content: string) => void;
   onFocus?: () => void;
   enableBlankOption?: boolean;
+  ariaLabel?: string;
 }
 
 interface BubbleMenuButtonProps {
@@ -83,7 +84,8 @@ export const Editor = ({
   content,
   onChange,
   onFocus,
-  enableBlankOption = false
+  enableBlankOption = false,
+  ariaLabel = "Rich text editor"
 }: PollEditorProps) => {
   const { visible, showModal, hideModal } = useTipTapDocModal();
 
@@ -223,6 +225,11 @@ export const Editor = ({
       InsertFormBridge
     ],
     content,
+    editorProps: {
+      attributes: {
+        "aria-label": ariaLabel
+      }
+    },
     onUpdate: ({ editor: uEditor }) => {
       onChange(uEditor.getHTML());
     },

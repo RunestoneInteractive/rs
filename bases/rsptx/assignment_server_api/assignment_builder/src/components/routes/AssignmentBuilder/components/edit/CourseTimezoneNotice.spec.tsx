@@ -89,7 +89,7 @@ describe("CourseTimezoneNotice", () => {
     const notice = screen.getByTestId("course-timezone-notice");
 
     expect(notice).toHaveTextContent("in course time");
-    expect(notice).toHaveTextContent("09:59");
+    expect(notice).toHaveTextContent("09:59 PM");
   });
 
   it("still warns with no due date chosen yet, omitting the course time line", () => {

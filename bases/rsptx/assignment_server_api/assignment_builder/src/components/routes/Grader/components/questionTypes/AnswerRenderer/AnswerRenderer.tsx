@@ -29,9 +29,9 @@ export const AnswerRenderer: React.FC<AnswerRendererProps & { questionType: stri
   const interactive =
     htmlsrc && RUNESTONE_GRADER_TYPES.has(questionType) ? (
       <section className={styles.interactiveSection}>
-        <h4 className={styles.rendererTitle}>
+        <h2 className={styles.rendererTitle}>
           Question: <span className={styles.questionName}>{questionName}</span>
-        </h4>
+        </h2>
         <RunestoneGraderPreview
           key={`${sid}-${attempt?.id ?? "latest"}`}
           htmlsrc={htmlsrc}

@@ -145,7 +145,7 @@ test(
     );
     await page.keyboard.press("Enter");
 
-    const form = page.getByRole("form", { name: "Insert code block" });
+    const form = page.getByRole("dialog", { name: "Insert code block" });
 
     await expect(form).toBeVisible();
     await form.getByLabel("Language (optional)").fill("python");
@@ -245,7 +245,7 @@ test(
     await arrowToOption(page, /Math expression/);
     await page.keyboard.press("Enter");
 
-    const form = page.getByRole("form", { name: "Insert math" });
+    const form = page.getByRole("dialog", { name: "Insert math" });
 
     await expect(form).toBeVisible();
     await form.getByRole("button", { name: "Insert" }).click();

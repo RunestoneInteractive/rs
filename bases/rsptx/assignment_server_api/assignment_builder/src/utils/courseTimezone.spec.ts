@@ -78,7 +78,7 @@ describe("formatInTimezone", () => {
 
     expect(result).toContain("Sep");
     expect(result).toContain("01");
-    expect(result).toContain("09:59");
+    expect(result).toContain("09:59 PM");
     expect(result).toMatch(/PDT|GMT-7/);
   });
 

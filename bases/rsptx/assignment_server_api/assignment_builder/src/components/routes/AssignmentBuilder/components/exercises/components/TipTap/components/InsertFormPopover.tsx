@@ -4,7 +4,7 @@ import {
 } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/extensions/InsertFormBridge";
 import { Button, Group, TextInput } from "@mantine/core";
 import { Editor } from "@tiptap/core";
-import { FC, FormEvent, KeyboardEvent, useEffect, useState } from "react";
+import { FC, FormEvent, useEffect, useRef, useState } from "react";
 
 import styles from "./InsertFormPopover.module.css";
 
@@ -90,11 +90,35 @@ interface InsertFormPopoverProps {
 export const InsertFormPopover: FC<InsertFormPopoverProps> = ({ editor, request, onClose }) => {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setValue("");
     setError(null);
+    inputRef.current?.focus();
   }, [request]);
+
+  useEffect(() => {
+    if (!request) return;
+
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.key !== "Escape" ||
+        !(event.target instanceof Node) ||
+        !inputRef.current?.closest("form")?.contains(event.target)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      editor.commands.focus();
+    };
+
+    document.addEventListener("keydown", handleEscape, true);
+    return () => document.removeEventListener("keydown", handleEscape, true);
+  }, [editor, onClose, request]);
 
   if (!request) {
     return null;
@@ -119,31 +143,23 @@ export const InsertFormPopover: FC<InsertFormPopoverProps> = ({ editor, request,
     applyInsertForm(editor, request.kind, value);
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      cancel();
-    }
-  };
-
   const left = Math.max(8, Math.min(request.position.x, window.innerWidth - FORM_WIDTH - 8));
 
   return (
     <form
       className={styles.insertForm}
       style={{ left, top: request.position.y }}
+      role="dialog"
       aria-label={copy.formLabel}
       onSubmit={handleSubmit}
-      onKeyDown={handleKeyDown}
     >
       <TextInput
+        ref={inputRef}
         label={copy.label}
         placeholder={copy.placeholder}
         value={value}
         error={error}
         size="xs"
-        autoFocus
         onChange={(event) => {
           setValue(event.currentTarget.value);
           setError(null);

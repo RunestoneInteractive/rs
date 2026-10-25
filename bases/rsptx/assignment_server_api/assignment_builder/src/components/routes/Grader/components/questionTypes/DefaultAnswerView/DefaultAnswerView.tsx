@@ -6,7 +6,7 @@ import { AnswerRendererProps } from "../types";
 export const DefaultAnswerView: React.FC<AnswerRendererProps> = ({ answer }) => {
   return (
     <div>
-      <h4 className={styles.rendererTitle}>Student answer</h4>
+      <h2 className={styles.rendererTitle}>Student answer</h2>
       <pre className={styles.codeBlock}>{answer || "(empty)"}</pre>
     </div>
   );

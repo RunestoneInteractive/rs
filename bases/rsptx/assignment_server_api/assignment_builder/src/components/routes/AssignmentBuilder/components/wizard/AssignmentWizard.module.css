@@ -194,7 +194,8 @@
   gap: var(--rs-space-4);
 }
 
-.settingRow > label {
+.settingRow > label,
+.settingRow > .controlLabel {
   font-size: var(--rs-font-size-sm);
   font-weight: var(--rs-font-weight-medium);
   color: var(--rs-text);

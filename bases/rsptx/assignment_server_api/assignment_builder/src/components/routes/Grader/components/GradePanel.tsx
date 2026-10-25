@@ -103,23 +103,20 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       {onAutoAdvanceChange && (
-        <div
+        <Switch
           data-tour="grader-auto-advance"
           className={styles.autoAdvanceToggle}
           title="When on, jumps to the next ungraded student a moment after saving. You can always undo from the toast."
-        >
-          <Switch
-            checked={!!autoAdvance}
-            onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
-            size="xs"
-            label={
-              <>
-                <Icon name="forward" />
-                <span>Auto-advance after save</span>
-              </>
-            }
-          />
-        </div>
+          checked={!!autoAdvance}
+          onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
+          size="xs"
+          label={
+            <span className={styles.autoAdvanceLabel}>
+              <Icon name="forward" />
+              <span>Auto-advance after save</span>
+            </span>
+          }
+        />
       )}
 
       <div className={styles.gradePaneNav}>
@@ -151,11 +148,13 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       <div>
+        <label className={styles.fieldLabel} htmlFor="grader-points-input">
+          Points (max {maxPoints})
+        </label>
         <div data-tour="grader-points-input" className={styles.scoreRow}>
           <NumberInput
+            id="grader-points-input"
             ref={scoreInputRef}
-            label={`Points (max ${maxPoints})`}
-            classNames={{ label: styles.fieldLabel, input: styles.scoreInput }}
             value={score}
             onChange={(v) => onScoreChange(typeof v === "number" ? v : 0)}
             onBlur={onScoreBlur}
@@ -163,21 +162,23 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
             max={maxPoints}
             clampBehavior="strict"
             disabled={isDisabled}
+            classNames={{ input: styles.scoreInput }}
           />
         </div>
       </div>
 
       <div>
+        <label className={styles.fieldLabel} htmlFor="grader-comment-input">
+          Comment
+        </label>
         <Textarea
+          id="grader-comment-input"
           ref={commentRef}
-          label="Comment"
-          classNames={{ label: styles.fieldLabel }}
           data-tour="grader-comment-input"
           value={comment}
           onChange={(e) => onCommentChange(e.currentTarget.value)}
           onBlur={onCommentBlur}
-          autosize
-          minRows={4}
+          rows={4}
           disabled={isDisabled}
           placeholder={
             isDisabled
