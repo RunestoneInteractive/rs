@@ -45,10 +45,17 @@ from .assessment import get_question_source, SelectQRequest
 
 # Import function for fetching api - comment out for DEV purposes
 from rsptx.auth.session import get_optional_user
-from rsptx.db.crud.crud import fetch_api_token
 from rsptx.db.crud.course import fetch_course
-from rsptx.db.crud.question import fetch_question
-from rsptx.db.crud import fetch_source_code
+
+from ..activecode_questions import (
+    clean_python_testcase,
+    data_file_candidates,
+    fetch_data_files,
+    find_question,
+    question_test_code,
+    starter_code_from_question,
+)
+from ..openai_token import DEV_API_KEY, fetch_openai_token, uses_dev_api_key
 
 # .. _APIRouter config:
 #
@@ -108,35 +115,6 @@ async def python_check(request: Request):
 
 
 # Starting here -- Added code for CodeTailor ---
-DEV_API_KEY = ""
-# for dev/test -- replace with your own key for local testing
-
-
-def clean_python_testcase(raw_test_code: str) -> str:
-    """
-    Transform Runestone browser-style test code to standard unittest format.
-    Mirrors the cleanTestcase() transformation in activecode.js so that
-    suffix_code from the DB can be run by JOBE (which has no unittest.gui).
-    """
-    result = re.sub(
-        r"from unittest\.gui import TestCaseGui\s*\n",
-        "import unittest\n",
-        raw_test_code,
-    )
-    result = result.replace(
-        "class myTests(TestCaseGui):", "class myTests(unittest.TestCase):"
-    )
-    # A test file's own runner call (myTests().main() or unittest.main(...))
-    # exits before JOBE's PASS line prints, which reads as a failed test.
-    result = re.sub(
-        r"^\s*(?:myTests\(\)|unittest)\.main\(.*\)\s*$",
-        "",
-        result,
-        flags=re.MULTILINE,
-    )
-    return result
-
-
 def extract_parsons_code(html_block):
     """
     Given the full HTML for a Parsons question fetched from the DB, return only
@@ -226,121 +204,6 @@ def _escape_parsons_block_markup(block_markup):
     return html.escape(block_markup, quote=False)
 
 
-# Activecode source markers, matched the way activecode.js matches them: the
-# first occurrence anywhere, newline or not. The invisible (test) suffix is
-# four or more "=" -- activecode.js accepts "=====" and longer from older
-# books -- and the invisible prefix four or more "^". "===!" and "^^^!" mark
-# visible suffixes and prefixes, which stay in the editor.
-_INVISIBLE_SUFFIX_RE = re.compile(r"={4,}")
-_INVISIBLE_PREFIX_RE = re.compile(r"\^{4,}")
-_VISIBLE_SUFFIX = "===!"
-_VISIBLE_PREFIX = "^^^!"
-
-
-def _drop_marker(text, marker):
-    """Remove the first ``marker`` and the newline right after it, if any."""
-    start = text.find(marker)
-    if start == -1:
-        return text
-    end = start + len(marker)
-    if text[end : end + 1] == "\n":
-        end += 1
-    return text[:start] + text[end:]
-
-
-def _extract_suffix_code_from_htmlsrc(htmlsrc):
-    """
-    Book-authored activecode questions never get question_json.suffix_code
-    populated by the build pipeline (only instructor-authored custom
-    exercises do) -- their test code instead lives in the raw <textarea>
-    source, after a "====" (or longer) or "===!" delimiter line, same
-    convention used by build_tools/core.py::_determine_autograde.
-    """
-    if not htmlsrc:
-        return ""
-    match = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
-    text = html.unescape(match.group(1) if match else htmlsrc)
-    marker = _INVISIBLE_SUFFIX_RE.search(text)
-    if marker:
-        return text[marker.end() :].strip()
-    if _VISIBLE_SUFFIX in text:
-        return text.partition(_VISIBLE_SUFFIX)[2].strip()
-    return ""
-
-
-# A quoted name with a file extension, e.g. open("scores.csv") or
-# new File("words.txt") -- a possible data file to look up in source_code.
-# Single spaces inside the name are allowed, since uploaded datafiles keep
-# theirs (open("my data.csv")).
-_FILENAME_LITERAL_RE = re.compile(
-    r"""["']([\w\-./]+(?: [\w\-./]+)*\.[A-Za-z0-9]{1,8})["']"""
-)
-# Bounds the source_code lookups that guessed filename literals can trigger.
-# Names the question declares in data-datafile are always kept.
-_MAX_DATA_FILE_CANDIDATES = 20
-
-
-def _data_file_candidates(htmlsrc, *code_sources):
-    """
-    Filenames the question's program may open. Livecode (JOBE) questions list
-    them in data-datafile, but Python questions don't declare them anywhere --
-    Skulpt resolves open() at runtime -- so also take every quoted
-    filename-like literal from the question's code, its tests and the
-    student's code. Names that turn out not to be data files simply miss in
-    the source_code lookup.
-    """
-    declared = []
-    htmlsrc = htmlsrc or ""
-    match = re.search(r'data-datafile\s*=\s*"([^"]*)"', htmlsrc)
-    if match:
-        declared.extend(name.strip() for name in match.group(1).split(","))
-    declared = list(dict.fromkeys(name for name in declared if name))
-    textarea = re.search(r"<textarea[^>]*>(.*?)</textarea>", htmlsrc, flags=re.DOTALL)
-    question_code = html.unescape(textarea.group(1)) if textarea else ""
-    inferred = []
-    for text in (question_code, *code_sources):
-        inferred.extend(_FILENAME_LITERAL_RE.findall(text or ""))
-    inferred = [name for name in dict.fromkeys(inferred) if name not in declared]
-    return declared + inferred[:_MAX_DATA_FILE_CANDIDATES]
-
-
-async def _fetch_data_files(candidates, course_scopes):
-    """
-    Resolve candidate filenames against source_code -- the same store
-    Skulpt's file reader and livecode.js fall back to -- so the files can be
-    shipped to JOBE with every CodeTailor test run.
-
-    course_scopes is a list of (base_course, course_name) pairs tried in
-    order: the requesting course first, then the book the question came from
-    (which differs for cloned courses and cross-book selectquestions).
-    Returns dicts in the shape evaluate_fixed_code._push_data_files expects.
-    """
-    data_files = []
-    for name in candidates:
-        for base_course, course_name in course_scopes:
-            try:
-                row = await fetch_source_code(
-                    base_course=base_course, course_name=course_name, filename=name
-                )
-            except Exception:
-                # fetch_source_code raises when nothing matches
-                row = None
-            if row and row.main_code is not None:
-                filename = row.filename or name
-                # data-datafile names the acid while the code names the file,
-                # so the same file can be resolved twice -- ship it once
-                if filename not in {data_file["filename"] for data_file in data_files}:
-                    data_files.append(
-                        {
-                            "filename": filename,
-                            "content": row.main_code,
-                            "is_binary": bool(row.is_binary),
-                        }
-                    )
-                break
-    return data_files
-
-
 def _build_static_parsons_response(
     parsonsexample_code, parsons_attrs, personalization_level
 ):
@@ -361,33 +224,6 @@ def _build_static_parsons_response(
     )
 
 
-def _starter_code_from_question(question):
-    """
-    The code a student sees in the editor before changing anything: a custom
-    exercise's question_json.starter_code, or for a book-authored question the
-    activecode <textarea> source split the way activecode.js splits it -- the
-    invisible "^^^^" prefix and "====" test suffix removed, and the "^^^!" and
-    "===!" markers dropped while their visible code stays.
-    """
-    starter = (question.question_json or {}).get("starter_code")
-    if starter is not None:
-        return starter
-    match = re.search(
-        r"<textarea[^>]*>(.*?)</textarea>", question.htmlsrc or "", flags=re.DOTALL
-    )
-    if not match:
-        return ""
-    text = html.unescape(match.group(1))
-    prefix = _INVISIBLE_PREFIX_RE.search(text)
-    if prefix:
-        text = _drop_marker(text[prefix.start() :], prefix.group(0))
-    text = _drop_marker(text, _VISIBLE_PREFIX)
-    suffix = _INVISIBLE_SUFFIX_RE.search(text)
-    if suffix:
-        text = text[: suffix.start()]
-    return _drop_marker(text, _VISIBLE_SUFFIX)
-
-
 async def _fetch_starter_code(problem_id, course_name):
     """
     Starter code for ``problem_id``, or "" if the question can't be found.
@@ -399,23 +235,19 @@ async def _fetch_starter_code(problem_id, course_name):
     if not problem_id:
         return ""
     try:
-        question = None
+        course = None
         if course_name:
             try:
                 course = await fetch_course(course_name)
             except AttributeError:
                 course = None
-            basecourse = getattr(course, "base_course", None)
-            if basecourse:
-                question = await fetch_question(problem_id, basecourse=basecourse)
-        if not question:
-            question = await fetch_question(problem_id)
+        question = await find_question(problem_id, getattr(course, "base_course", None))
     except Exception as e:
         rslogger.error(
             f"CodeTailor: could not fetch starter code for '{problem_id}': {e}"
         )
         return ""
-    return _starter_code_from_question(question) if question else ""
+    return starter_code_from_question(question) if question else ""
 
 
 def _adds_no_code(student_code, starter_code, language):
@@ -609,9 +441,7 @@ async def parsons_scaffolding(
     # Fetch API token
     api_token = None
     try:
-        if (
-            course_name is None or course_name == "personalized_parsons"
-        ):  # the test course for development
+        if uses_dev_api_key(course_name):
             # Dev/Test mode testing
             rslogger.warning("CodeTailor: Using predefined dev API key")
             api_token = DEV_API_KEY
@@ -628,15 +458,8 @@ async def parsons_scaffolding(
             rslogger.warning(
                 f"[CodeTailor] Fetching course: {course_name}, id: {course.id}"
             )
-            # this does not return a token, it returns an APITokenValidator object
-
-            token_record = await fetch_api_token(  # handles decryption already
-                course_id=course.id,
-                provider="openai",  # from add_token.html <option value="openai">
-                # hardcoded as openai for now, prompt structures are different for different providers
-                # if we find instructors tend to use other platforms, we need to handle this later
-            )
-            if token_record is None:
+            api_token = await fetch_openai_token(course)
+            if api_token is None:
                 rslogger.error(
                     f"CodeTailor: No API token found for course '{course_name}'."
                 )
@@ -651,7 +474,6 @@ async def parsons_scaffolding(
                     content={"error": "CodeTailor: No API token found for this course"},
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
-            api_token = token_record.token
             rslogger.warning(
                 f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: openai, api_token: {api_token[:4]}****"
             )
@@ -692,19 +514,7 @@ async def parsons_scaffolding(
     # Fetch the test code from the database using the problem_id.
     try:
         basecourse = getattr(course, "base_course", None)
-        question = await fetch_question(problem_id, basecourse=basecourse)
-        if not question:
-            # A cloned course keeps the original book's base_course on its
-            # question rows, and selectquestion can pull an exercise from
-            # another book, so the base-course-scoped lookup misses even
-            # though the question exists. Fall back to a global name match --
-            # the same resolution get_question_source and /htmlsrc use.
-            question = await fetch_question(problem_id)
-            if question:
-                rslogger.warning(
-                    f"CodeTailor: '{problem_id}' not in base course '{basecourse}' "
-                    f"(likely a cloned course); resolved via global name match"
-                )
+        question = await find_question(problem_id, basecourse)
         if not question:
             rslogger.error(
                 f"CodeTailor: no question found for problem_id '{problem_id}'"
@@ -713,14 +523,7 @@ async def parsons_scaffolding(
                 content={"error": f"CodeTailor: question '{problem_id}' not found"},
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        internal_test_case = ""
-        if question.question_json:
-            internal_test_case = question.question_json.get("suffix_code", "") or ""
-        if not internal_test_case:
-            # Book-authored questions (as opposed to instructor-authored
-            # custom exercises) don't populate question_json -- fall back to
-            # parsing the test code out of the raw textarea source instead.
-            internal_test_case = _extract_suffix_code_from_htmlsrc(question.htmlsrc)
+        internal_test_case = question_test_code(question)
     except Exception as e:
         rslogger.error(f"CodeTailor: could not fetch test code for '{problem_id}': {e}")
         return JSONResponse(
@@ -747,8 +550,8 @@ async def parsons_scaffolding(
 
     # Files the program opens (datafiles) must travel with each JOBE test run,
     # or every generated solution fails with a missing-file error.
-    data_files = await _fetch_data_files(
-        _data_file_candidates(question.htmlsrc, internal_test_case, student_code),
+    data_files = await fetch_data_files(
+        data_file_candidates(question.htmlsrc, internal_test_case, student_code),
         list(
             dict.fromkeys(
                 [
@@ -768,7 +571,7 @@ async def parsons_scaffolding(
     # the student's subgoal labels, so CodeTailor should not keep them.
     student_code = _drop_starter_comments(
         student_code or "",
-        _starter_code_from_question(question),
+        starter_code_from_question(question),
         "java" if (language or "").lower() == "java" else "python",
     )
 

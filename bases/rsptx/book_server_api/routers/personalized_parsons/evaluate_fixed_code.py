@@ -5,25 +5,11 @@ import hashlib
 import base64
 import json
 from ..rsproxy import settings
-
-
-def _runestone_file_id(filename: str, content: str) -> str:
-    # Exactly: "runestone" + MD5(fileName + fileContent)
-    md5 = hashlib.md5((filename + content).encode("utf-8")).hexdigest()
-    return "runestone" + md5
-
-
-def _b64_text_utf8(s: str) -> str:
-    return base64.b64encode(s.encode("utf-8")).decode("ascii")
-
-
-def _jobe_session():
-    s = rq.Session()
-    s.headers["Content-type"] = "application/json; charset=utf-8"
-    s.headers["Accept"] = "application/json"
-    if getattr(settings, "jobe_key", None):
-        s.headers["X-API-KEY"] = settings.jobe_key
-    return s
+from ...jobe import (
+    b64_text_utf8,
+    load_and_run_tests,
+    push_data_files,
+)
 
 
 def _ensure_file_on_jobe(
@@ -49,7 +35,7 @@ def _ensure_file_on_jobe(
         )
 
     put_url = base_host + PUSH_PROXY + file_id
-    payload = {"file_contents": _b64_text_utf8(content)}
+    payload = {"file_contents": b64_text_utf8(content)}
     pr = sess.put(
         put_url,
         data=json.dumps(payload),
@@ -67,36 +53,6 @@ PUSH_PROXY = "/ns/rsproxy/jobePushFile/"
 CHECK_PROXY = "/ns/rsproxy/jobeCheckFile/"
 
 
-def _push_data_files(sess, data_files):
-    """
-    Upload the question's data files to JOBE so the program under test can
-    open() them, mirroring how livecode.js ships datafiles with a run.
-    Inputs:
-        sess: requests session with the JOBE headers set
-        data_files (list): dicts with "filename", "content" and "is_binary";
-                           binary contents are already base64 (as stored in source_code)
-    Output: list: [file_id, filename] pairs for the run_spec file_list
-    """
-    file_list = []
-    for data_file in data_files or []:
-        filename = data_file["filename"]
-        content = data_file["content"]
-        if data_file.get("is_binary"):
-            b64 = content
-        else:
-            b64 = _b64_text_utf8(content)
-        file_id = _runestone_file_id(filename, content)
-        file_url = settings.jobe_server + "/jobe/index.php/restapi/files/" + file_id
-        if sess.head(file_url, timeout=10).status_code != 204:
-            put = sess.put(file_url, json={"file_contents": b64}, timeout=10)
-            if put.status_code != 204:
-                raise RuntimeError(
-                    f"Failed to push data file {filename} to JOBE: {put.status_code}"
-                )
-        file_list.append([file_id, filename])
-    return file_list
-
-
 # modified from rsproxy.py and livecode.js logic
 def load_and_run_java_tests(java_code, test_code, data_files=None):
     """
@@ -106,7 +62,7 @@ def load_and_run_java_tests(java_code, test_code, data_files=None):
         test_code (str): The Java test cases -- a JUnit test class (extends CodeTestHelper,
                          methods annotated with @Test, no main()), matching the standard
                          Runestone suffix_code convention used for regular activecode runs.
-        data_files (list): the question's data files to place beside the program (see _push_data_files)
+        data_files (list): the question's data files to place beside the program (see jobe.push_data_files)
     Output: bool: True if all tests pass, False otherwise.
     """
 
@@ -173,7 +129,7 @@ def load_and_run_java_tests(java_code, test_code, data_files=None):
                     "body": put.text[:500],
                 }
 
-        data_file_list = _push_data_files(sess, data_files)
+        data_file_list = push_data_files(sess, data_files)
 
         # Mirrors livecode.js: run the JUnit test class via JUnitCore rather than
         # calling a main() the test class doesn't have.
@@ -221,68 +177,6 @@ def load_and_run_java_tests(java_code, test_code, data_files=None):
 
     except Exception:
         return False
-
-
-class _JobeTestResult:
-    """Minimal stand-in for unittest.TestResult returned by load_and_run_tests."""
-
-    def __init__(self, passed: bool):
-        self._passed = passed
-
-    def wasSuccessful(self) -> bool:
-        return self._passed
-
-
-def load_and_run_tests(unittest_case, code_to_test, time_limit=6, data_files=None):
-    """
-    Run Python test cases against the provided code via JOBE.
-
-    Inputs:
-        unittest_case (str): unittest source (class myTests(unittest.TestCase): ...)
-        code_to_test (str): the Python solution code to validate
-        time_limit (int): JOBE wall-clock time limit in seconds
-        data_files (list): the question's data files to place beside the program (see _push_data_files)
-    Output: _JobeTestResult with wasSuccessful() method
-    """
-    # Suppress __main__ guards in student code — JOBE runs as top-level script
-    combined = (
-        '__name__ = "__runestone__"\n'
-        + code_to_test
-        + "\n\n"
-        + unittest_case
-        + "\n\nimport unittest as _ut\n"
-        + "_result = _ut.main(verbosity=0, exit=False)\n"
-        + 'print("PASS" if _result.result.wasSuccessful() else "FAIL")\n'
-    )
-
-    sess = _jobe_session()
-    runs_url = settings.jobe_server + "/jobe/index.php/restapi/runs/"
-
-    try:
-        runspec = {
-            "language_id": "python3",
-            "sourcecode": combined,
-            "sourcefilename": "solution.py",
-            "parameters": {"timelimitsecs": time_limit},
-        }
-        if data_files:
-            runspec["file_list"] = _push_data_files(sess, data_files)
-        resp = sess.post(runs_url, json={"run_spec": runspec}, timeout=time_limit + 10)
-        try:
-            result = resp.json()
-        except Exception:
-            return _JobeTestResult(False)
-
-        out = (result.get("stdout") or "").strip()
-        # Check the last line so student debug prints don't cause false failures.
-        # Trust stdout over outcome code: JOBE/Python3 may return outcome 12
-        # even when tests pass.
-        last_line = out.splitlines()[-1].strip() if out else ""
-        passed = last_line == "PASS"
-        return _JobeTestResult(passed)
-
-    except Exception:
-        return _JobeTestResult(False)
 
 
 def fix_indentation(text):
@@ -458,7 +352,7 @@ def python_unittest_evaluation(
         starting_code (str): The default starting code provided to the student. Now it's ""
         default_test_code (str): The default test code provided to the student. Now it's "".
         unittest_case (str): The Python test cases. The test code is automatically reformatted based on the unittest_code provided by instructors in the RST file.
-        data_files (list): The question's data files the code may open (see _push_data_files).
+        data_files (list): The question's data files the code may open (see jobe.push_data_files).
     Output:
         bool: True if all tests pass, False otherwise.
         str: The cleaned fixed code after removing comments and empty lines.
@@ -509,7 +403,7 @@ def code_distractor_unittest_evaluation(
         starting_code (str): The default starting code provided to the student. Now it's ""
         default_test_code (str): The default test code provided to the student. Now it's "".
         unittest_case (str): The Python/Java test cases. The test code is automatically reformatted based on the unittest_code provided by instructors in the RST file.
-        data_files (list): The question's data files the code may open (see _push_data_files).
+        data_files (list): The question's data files the code may open (see jobe.push_data_files).
     Output:
         bool: True if all tests pass, False otherwise.
         str: The cleaned code with distractors after removing comments and empty lines.
