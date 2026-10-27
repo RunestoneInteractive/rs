@@ -5,7 +5,7 @@
  *  1. Instructor selects an assignment, clicks "Generate Report"
  *  2. POST /analytics/assignmentoverview/generate → receives task_id + assignment_id
  *  3. Poll GET /analytics/assignmentoverview/result/{task_id} every 2s
- *  4. On complete: render Handsontable; student column headers link to drilldown
+ *  4. On complete: render the table; student column headers link to drilldown
  *  5. On error: show error message
  */
 
@@ -21,7 +21,6 @@
         "First", "Last", "# Correct", "# Incorrect", "# Never Tried", "Avg Score",
     ]);
 
-    let hotInstance   = null;
     let currentTaskId = null;
     let currentAssignmentId = null;
     let pollTimer     = null;
@@ -97,7 +96,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // Table rendering (Handsontable)
+    // Table rendering
     // -------------------------------------------------------------------------
     function renderTable(data) {
         hideStatus();
@@ -109,64 +108,29 @@
         }
 
         const resultsArea = document.getElementById("results-area");
-        const container   = document.getElementById("hot-container");
+        const container   = document.getElementById("report-table");
 
         resultsArea.style.display = "block";
         document.getElementById("row-count").textContent =
             `${data.length} question${data.length !== 1 ? "s" : ""}`;
 
-        if (hotInstance) {
-            hotInstance.destroy();
-            hotInstance = null;
-        }
-
-        const keys    = Object.keys(data[0]);
-        const columns = keys.map((k) => ({ data: k, renderer: scoreRenderer(k) }));
-        const colHeaders = keys.map((k, i) => {
-            if (i === 0) return `<b>${escapeHtml(k)}</b>`;
-            if (FIXED_COLS.has(k)) return `<b>${escapeHtml(k)}</b>`;
-            // Student column: "Last, First (username)" — extract username for link
-            const match = k.match(/\(([^)]+)\)$/);
-            const sid   = match ? match[1] : k;
-            const label = escapeHtml(k);
-            const url   = `/admin/analytics/assignmentoverview/student?sid=${encodeURIComponent(sid)}&assignment_id=${encodeURIComponent(currentAssignmentId)}`;
-            return `<b><a href="${url}" target="_blank" style="color:inherit;">${label}</a></b>`;
-        });
-
-        hotInstance = new Handsontable(container, {
-            data: data,
-            columns: columns,
-            colHeaders: colHeaders,
-            licenseKey: "non-commercial-and-evaluation",
-            fixedColumnsLeft: 1,
-            readOnly: true,
-            stretchH: "none",
-            width: "100%",
-            height: 560,
-            rowHeaders: false,
-            afterGetColHeader(col, TH) {
-                TH.innerHTML = this.getSettings().colHeaders[col];
+        renderReportTable(container, data, {
+            caption: "Assignment summary: one row per question, one column per student",
+            headerHref(k) {
+                if (FIXED_COLS.has(k)) return null;
+                // Student column: "Last, First (username)" — extract username for link
+                const match = k.match(/\(([^)]+)\)$/);
+                const sid   = match ? match[1] : k;
+                return `/admin/analytics/assignmentoverview/student?sid=${encodeURIComponent(sid)}&assignment_id=${encodeURIComponent(currentAssignmentId)}`;
+            },
+            // Student score cells: green if > 0, red if 0 (blank stays plain)
+            cellClass(k, value) {
+                if (FIXED_COLS.has(k) || value === null || value === "" || value === undefined) {
+                    return null;
+                }
+                return parseFloat(value) > 0 ? "score-good" : "score-bad";
             },
         });
-    }
-
-    // Renderer: colour student score cells green (>0) or red (=0, not empty)
-    function scoreRenderer(colKey) {
-        return function (hotInstance, TD, row, col, prop, value) {
-            Handsontable.renderers.HtmlRenderer.apply(this, arguments);
-            if (!FIXED_COLS.has(colKey) && colKey !== "Question") {
-                TD.style.color = "";
-                TD.style.fontWeight = "";
-                if (value !== null && value !== "" && value !== undefined) {
-                    if (parseFloat(value) > 0) {
-                        TD.style.color = "#2e7d32";
-                        TD.style.fontWeight = "600";
-                    } else {
-                        TD.style.color = "#c62828";
-                    }
-                }
-            }
-        };
     }
 
     // -------------------------------------------------------------------------
@@ -177,10 +141,7 @@
         document.getElementById("generate-btn").disabled = true;
         document.getElementById("results-area").style.display = "none";
         document.getElementById("error-area").style.display = "none";
-        if (hotInstance) {
-            hotInstance.destroy();
-            hotInstance = null;
-        }
+        document.getElementById("report-table").replaceChildren();
         currentTaskId = null;
         currentAssignmentId = null;
     }
@@ -209,14 +170,6 @@
             });
         }
         return response;
-    }
-
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
     }
 })();
 

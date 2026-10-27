@@ -172,16 +172,8 @@
     color: var(--rs-color-text-muted);
 }
 
-/* Handsontable container */
-#hot-container {
-    width: 100%;
-    overflow: hidden;
-    border: 1px solid var(--rs-color-border);
-    border-radius: 6px;
-}
-
-/* Chapter summary table: scrolls inside the box, with the header row and
-   the subchapter column pinned (the corner cell is pinned both ways). */
+/* Report tables (report_table.js): scroll inside the box, with the header row and
+   the first column pinned (the corner cell is pinned both ways). */
 .report-table {
     max-height: 560px;
     overflow: auto;
@@ -206,11 +198,20 @@
 }
 
 .report-table td {
+    text-align: left;
+}
+
+.report-table td.num {
     text-align: right;
 }
 
-.report-table td.label-cell {
-    text-align: left;
+.report-table td.score-good {
+    color: var(--rs-color-success-text);
+    font-weight: 600;
+}
+
+.report-table td.score-bad {
+    color: var(--rs-color-danger-dark);
 }
 
 .report-table thead th {

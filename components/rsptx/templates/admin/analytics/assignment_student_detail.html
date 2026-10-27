@@ -5,9 +5,6 @@
 {% block css %}
 <link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/student_detail.css" rel="stylesheet" media="screen" />
-<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css"
-      rel="stylesheet" media="screen" />
 {% endblock %}
 
 {% block content %}
@@ -40,7 +37,7 @@
       Download CSV
     </button>
   </div>
-  <div id="detail-container" class="hot-section"></div>
+  <div id="detail-container" class="report-section"></div>
 
 </div>
 {% endblock %}
@@ -54,5 +51,6 @@
     courseName:     "{{ course.course_name }}"
   };
 </script>
+<script src="/staticAssets/js/report_table.js"></script>
 <script src="/staticAssets/js/assignment_student_detail.js"></script>
 {% endblock %}

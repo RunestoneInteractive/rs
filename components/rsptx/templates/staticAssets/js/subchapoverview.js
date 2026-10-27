@@ -104,52 +104,17 @@
         document.getElementById("row-count").textContent =
             `${data.length} row${data.length !== 1 ? "s" : ""}`;
 
-        const keys = Object.keys(data[0]);
-        const table = document.createElement("table");
-        const caption = table.createCaption();
-        caption.className = "sr-only";
-        caption.textContent = "Chapter summary: one row per subchapter, one column per student";
-
-        const headRow = table.createTHead().insertRow();
-        keys.forEach((k) => {
-            const th = document.createElement("th");
-            th.scope = "col";
-            if (LABEL_COLUMNS.has(k)) {
-                th.textContent = k;
-            } else {
+        renderReportTable(container, data, {
+            caption: "Chapter summary: one row per subchapter, one column per student",
+            headerHref(k) {
+                if (LABEL_COLUMNS.has(k)) return null;
                 // Student labels are formatted as "Last, First (username)".
                 // Extract the username from the trailing parentheses for the link.
                 const match = k.match(/\(([^)]+)\)$/);
                 const sid = match ? match[1] : k;
-                const link = document.createElement("a");
-                link.href = `/admin/analytics/student_detail?sid=${encodeURIComponent(sid)}`;
-                link.target = "_blank";
-                link.textContent = k;
-                th.appendChild(link);
-            }
-            headRow.appendChild(th);
+                return `/admin/analytics/student_detail?sid=${encodeURIComponent(sid)}`;
+            },
         });
-
-        const body = table.createTBody();
-        for (const record of data) {
-            const row = body.insertRow();
-            keys.forEach((k, i) => {
-                const value = record[k];
-                const text = value === null || value === undefined ? "" : String(value);
-                if (i === 0) {
-                    const th = document.createElement("th");
-                    th.scope = "row";
-                    th.textContent = text;
-                    row.appendChild(th);
-                } else {
-                    const td = row.insertCell();
-                    td.textContent = text;
-                    if (LABEL_COLUMNS.has(k)) td.className = "label-cell";
-                }
-            });
-        }
-
-        container.replaceChildren(table);
     }
 
     // -------------------------------------------------------------------------
