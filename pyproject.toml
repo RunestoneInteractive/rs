@@ -93,7 +93,7 @@ tbm = "rsptx.build_tools.traceback_monitor:main"
 
 [dependency-groups]
 dev = [
-    "black~= 25.0",
+    "black>=26.10.1,<27",
     "CodeChat>=1.9.3,<2",
     "contextlib2>=0.6.0,<0.7",
     "coverage>=6.0.0,<7",
@@ -104,12 +104,12 @@ dev = [
     "mock>=4.0.0,<5",
     "mypy>=1,<2",
     "polling2>=0.5.0,<0.6",
-    "pytest>=8.0.0,<9",
+    "pytest>=9.0.3,<10",
     "pyvirtualdisplay>=3.0.0,<4",
     "pywin32>= 301 ; sys_platform == 'win32'",
     "selenium>=3.0.0,<4",
     "json2xml>=8.0.0,<9",
-    "pytest-asyncio>=0.24.0,<0.25",
+    "pytest-asyncio>=1.4.1,<2",
     "openai>=1.59.3,<2",
     "javalang>=0.13.0,<0.14",
     "pre-commit>=4.5.1,<5",
