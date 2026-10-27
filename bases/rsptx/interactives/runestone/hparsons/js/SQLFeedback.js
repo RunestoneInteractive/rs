@@ -28,7 +28,7 @@ export default class SQLFeedback extends HParsonsFeedback {
             this.output.textContent = this.testResult;
             this.output.style.visibility = "visible";
         }
-        this.outDiv.style.display = "";
+        this.outDiv.style.display = "block"; // hparsons.css hides .hp_output
     }
 
     clearFeedback() {
@@ -144,7 +144,7 @@ export default class SQLFeedback extends HParsonsFeedback {
         respDiv.id = divid;
         this.outDiv.appendChild(respDiv);
         // show the output div
-        this.outDiv.style.display = "";
+        this.outDiv.style.display = "block"; // hparsons.css hides .hp_output
 
         // Run this query
         let query = await this.buildProg();
