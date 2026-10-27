@@ -28,9 +28,10 @@ assignment server's pages. Repo-wide setup and traps are in the root `AGENTS.md`
   in the component's `*-i18n.<lang>.js` catalog. `t()` substitutes `$1`, `$2`
   arguments itself. The old `$.i18n` library is gone; see `I18N.md`.
 - **No new jQuery.** Every component except codelens is jQuery-free. Codelens still
-  needs it because the vendored `pytutor-embed.bundle.js` requires page jQuery and
-  jQuery UI, which is why `jquery` is still a webpack external. Use `domutil.js` or
-  plain DOM APIs.
+  uses the page's jQuery in `codelens.js`, which is why `jquery` is still a webpack
+  external. The vendored `pytutor-embed.bundle.js` carries its own jQuery and jQuery
+  UI, so the bundle no longer loads jQuery UI globally. Use `domutil.js` or plain
+  DOM APIs.
 
 ## Traps
 
