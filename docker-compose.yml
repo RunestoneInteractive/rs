@@ -513,6 +513,7 @@ services:
       FORWARDED_ALLOW_IPS: "*"
       CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS}
       CERTBOT_EMAIL: ${CERTBOT_EMAIL}
+      LANDING_PAGE_URL: ${LANDING_PAGE_URL:-https://landing.runestone.academy}
 
     depends_on:
       <<: *needs-preflight
