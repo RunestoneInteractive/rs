@@ -122,7 +122,9 @@ async def manage_exercises(
         "webwork_js_version": course_attrs.get("webwork_js_version", "2.20"),
         "settings": settings,
     }
-    return templates.TemplateResponse("admin/editor/manage_exercises.html", context)
+    return templates.TemplateResponse(
+        request, "admin/editor/manage_exercises.html", context
+    )
 
 
 class QuestionRequest(BaseModel):
@@ -216,7 +218,7 @@ async def edit_question_page(
         "settings": settings,
     }
     return get_shared_templates().TemplateResponse(
-        "admin/editor/edit_question.html", context
+        request, "admin/editor/edit_question.html", context
     )
 
 

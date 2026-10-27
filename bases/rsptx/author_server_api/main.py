@@ -171,6 +171,7 @@ async def home(request: Request, user=Depends(auth_manager)):
         # redirect them back somewhere....
 
     return templates.TemplateResponse(
+        request,
         "author/home.html",
         context={
             "request": request,
@@ -207,6 +208,7 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
             host = ""
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
+            request,
             "author/logfiles.html",
             context=dict(
                 request=request,
@@ -282,6 +284,7 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
     chapterHM = get_pv_heatmap(book)
 
     return templates.TemplateResponse(
+        request,
         "author/impact.html",
         context={
             "request": request,
@@ -308,6 +311,7 @@ async def subchapmap(
     info = await fetch_library_book(book)
     chapterHM = get_subchap_heatmap(chapter, book)
     return templates.TemplateResponse(
+        request,
         "author/subchapmap.html",
         context={"request": request, "subchapData": chapterHM, "title": info.title},
     )
@@ -366,6 +370,7 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
         await update_library_book(book_data.id, form.data)
         return RedirectResponse(url="/author/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
+        request,
         "author/editlibrary.html",
         context=dict(
             request=request,
@@ -429,6 +434,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
         print(f"FORM data = {form.data}")
         # return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
+        request,
         "author/anonymize_data.html",
         context=dict(
             request=request,
@@ -446,7 +452,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
 @app.get("/author/notauthorized")
 def not_authorized(request: Request):
     return templates.TemplateResponse(
-        "author/notauthorized.html", context={"request": request}
+        request, "author/notauthorized.html", context={"request": request}
     )
 
 

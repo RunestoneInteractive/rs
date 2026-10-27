@@ -167,6 +167,7 @@ async def login_page(request: Request, next: str = "/ns/course/index"):
         return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/login.html",
         {"request": request, "next": _safe_next(next), "error": None},
     )
@@ -208,6 +209,7 @@ async def login_required_page(
         browse_url = await _browse_url(course, next[len(prefix) :])
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/login_required.html",
         {
             "request": request,
@@ -229,6 +231,7 @@ async def login_post(
     if not _user_exists(user) or not _verify_password(user.password, password):
         rslogger.info(f"LOGIN FAILED: {username} Exists: {_user_exists(user)}")
         return templates.TemplateResponse(
+            request,
             "admin/auth/login.html",
             {
                 "request": request,
@@ -272,6 +275,7 @@ async def logout():
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "admin/auth/register.html",
         {"request": request, "errors": []},
     )
@@ -334,6 +338,7 @@ async def register_post(
 
     if errors:
         return templates.TemplateResponse(
+            request,
             "admin/auth/register.html",
             {
                 "request": request,
@@ -372,6 +377,7 @@ async def register_post(
     except Exception as exc:
         rslogger.error("REGISTER ERROR: %s", exc)
         return templates.TemplateResponse(
+            request,
             "admin/auth/register.html",
             {
                 "request": request,
@@ -389,6 +395,7 @@ async def register_post(
 
     if not _user_exists(created):
         return templates.TemplateResponse(
+            request,
             "admin/auth/register.html",
             {
                 "request": request,
@@ -442,6 +449,7 @@ async def courses_page(request: Request, institution: str = ""):
         institution_courses = await fetch_courses_by_institution(institution)
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/courses.html",
         {
             "request": request,
@@ -483,6 +491,7 @@ async def courses_post(
             await fetch_courses_by_institution(institution) if institution else []
         )
         return templates.TemplateResponse(
+            request,
             "admin/auth/courses.html",
             {
                 "request": request,
@@ -578,7 +587,7 @@ async def donate_page(request: Request, next: str = "", ad: str = ""):
     if _user_exists(user):
         context["user"] = user
         context.update(await _navbar_context(user))
-    return templates.TemplateResponse("admin/auth/donate.html", context)
+    return templates.TemplateResponse(request, "admin/auth/donate.html", context)
 
 
 @router.post("/donate/mark")
@@ -713,6 +722,7 @@ async def my_courses_page(
     )
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/my_courses.html",
         {
             "request": request,
@@ -750,6 +760,7 @@ async def my_courses_switch(
     if not course or not course.id:
         ctx = await _build_my_courses_context(user)
         return templates.TemplateResponse(
+            request,
             "admin/auth/my_courses.html",
             {
                 "request": request,
@@ -775,6 +786,7 @@ async def my_courses_drop(request: Request, course_name: str = Form(...)):
     if course_name == user.course_name:
         ctx = await _build_my_courses_context(user)
         return templates.TemplateResponse(
+            request,
             "admin/auth/my_courses.html",
             {
                 "request": request,
@@ -805,6 +817,7 @@ async def profile_page(request: Request):
         )
     has_lti1p3_association = await has_lti1p3_user_association(user.id)
     return templates.TemplateResponse(
+        request,
         "admin/auth/profile.html",
         {
             "request": request,
@@ -841,6 +854,7 @@ async def profile_post(
 
     if errors:
         return templates.TemplateResponse(
+            request,
             "admin/auth/profile.html",
             {
                 "request": request,
@@ -859,6 +873,7 @@ async def profile_post(
     updated = await fetch_user(user.username)
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/profile.html",
         {
             "request": request,
@@ -880,6 +895,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
 
     if confirm != user.username:
         return templates.TemplateResponse(
+            request,
             "admin/auth/profile.html",
             {
                 "request": request,
@@ -906,6 +922,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
 @router.get("/forgot-username", response_class=HTMLResponse)
 async def forgot_username_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_username.html",
         {"request": request, "sent": False, "error": None},
     )
@@ -921,6 +938,7 @@ async def forgot_username_post(request: Request, email: str = Form(...)):
             text=f"Your Runestone Academy username is: {user.username}\n\nIf you did not request this, you can ignore this email.",
         )
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_username.html",
         {"request": request, "sent": True, "error": None},
     )
@@ -934,6 +952,7 @@ async def forgot_username_post(request: Request, email: str = Form(...)):
 @router.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_password.html",
         {"request": request, "sent": False, "error": None},
     )
@@ -955,6 +974,7 @@ async def forgot_password_post(request: Request, email: str = Form(...)):
             ),
         )
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_password.html",
         {"request": request, "sent": True, "error": None},
     )
@@ -971,6 +991,7 @@ async def reset_password_page(request: Request, token: str):
         valid = False
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/reset_password.html",
         {"request": request, "token": token, "expired": not valid, "error": None},
     )
@@ -985,6 +1006,7 @@ async def reset_password_post(
 ):
     if password != password2:
         return templates.TemplateResponse(
+            request,
             "admin/auth/reset_password.html",
             {
                 "request": request,
@@ -995,6 +1017,7 @@ async def reset_password_post(
         )
     if len(password) < 6:
         return templates.TemplateResponse(
+            request,
             "admin/auth/reset_password.html",
             {
                 "request": request,
@@ -1007,6 +1030,7 @@ async def reset_password_post(
     user = await consume_reset_token(token)
     if not user:
         return templates.TemplateResponse(
+            request,
             "admin/auth/reset_password.html",
             {"request": request, "token": token, "expired": True, "error": None},
         )

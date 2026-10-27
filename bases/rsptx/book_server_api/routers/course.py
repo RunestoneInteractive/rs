@@ -190,7 +190,9 @@ async def index(request: Request, user=Depends(auth_manager)):
             readings=None,
             activities={},
         )
-    return templates.TemplateResponse("book/course/current_course.html", context)
+    return templates.TemplateResponse(
+        request, "book/course/current_course.html", context
+    )
 
 
 @router.api_route("/changeCourse/{course_name:str}", methods=["GET", "POST"])

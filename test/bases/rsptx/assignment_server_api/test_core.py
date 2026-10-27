@@ -21,12 +21,13 @@ def client():
 # App-level
 # ---------------------------------------------------------------------------
 
+
 def test_app_exists():
     assert app is not None
 
 
 def test_routes_registered():
-    paths = {r.path for r in app.routes}
+    paths = set(app.openapi()["paths"])
     assert any("/student" in p for p in paths)
     assert any("/instructor" in p for p in paths)
     assert any("/peer" in p for p in paths)
@@ -35,6 +36,7 @@ def test_routes_registered():
 # ---------------------------------------------------------------------------
 # /student — all routes require auth
 # ---------------------------------------------------------------------------
+
 
 def test_choose_assignment_unauthenticated(client):
     resp = client.get("/student/chooseAssignment")
@@ -59,6 +61,7 @@ def test_studyclues_query_unauthenticated(client):
 # ---------------------------------------------------------------------------
 # /instructor — all routes require auth + instructor role
 # ---------------------------------------------------------------------------
+
 
 def test_assignments_list_unauthenticated(client):
     resp = client.get("/instructor/assignments")
@@ -113,6 +116,7 @@ def test_course_roster_unauthenticated(client):
 # ---------------------------------------------------------------------------
 # /peer — all routes require auth
 # ---------------------------------------------------------------------------
+
 
 def test_peer_student_unauthenticated(client):
     resp = client.get("/peer/student")

@@ -691,7 +691,7 @@ async def serve_page(
     )
     # See `templates <https://fastapi.tiangolo.com/advanced/templates/>`_.
     try:
-        return templates.TemplateResponse(pagepath, context, headers=headers)
+        return templates.TemplateResponse(request, pagepath, context, headers=headers)
     except TemplateNotFound:
         # The course is fine; this page is not part of it. Distinct from
         # `bad_course`, which means the course itself does not exist.
@@ -791,6 +791,7 @@ async def library(request: Request, response_class=HTMLResponse):
     except Exception as e:
         rslogger.error(f"Error sorting sections: {e}")
     return templates.TemplateResponse(
+        request,
         "book/index.html",
         {
             "request": request,

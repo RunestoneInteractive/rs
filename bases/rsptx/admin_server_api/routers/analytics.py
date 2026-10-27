@@ -767,7 +767,9 @@ async def get_subchapoverview(
         "student_page": False,
         "settings": settings,
     }
-    return templates.TemplateResponse("admin/analytics/subchapoverview.html", context)
+    return templates.TemplateResponse(
+        request, "admin/analytics/subchapoverview.html", context
+    )
 
 
 @router.post("/subchapoverview/generate")
@@ -1385,7 +1387,7 @@ async def get_assignmentoverview(
         "settings": settings,
     }
     return templates.TemplateResponse(
-        "admin/analytics/assignmentoverview.html", context
+        request, "admin/analytics/assignmentoverview.html", context
     )
 
 
@@ -1585,7 +1587,7 @@ async def get_assignment_student_detail(
         "settings": settings,
     }
     return templates.TemplateResponse(
-        "admin/analytics/assignment_student_detail.html", context
+        request, "admin/analytics/assignment_student_detail.html", context
     )
 
 
@@ -1671,4 +1673,6 @@ async def get_student_detail(
         "student_page": False,
         "settings": settings,
     }
-    return templates.TemplateResponse("admin/analytics/student_detail.html", context)
+    return templates.TemplateResponse(
+        request, "admin/analytics/student_detail.html", context
+    )

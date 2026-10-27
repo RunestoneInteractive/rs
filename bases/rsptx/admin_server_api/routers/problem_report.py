@@ -387,7 +387,7 @@ async def _render_form(
         ),
     )
     ctx.update(extra)
-    return templates.TemplateResponse("admin/problem_report.html", ctx)
+    return templates.TemplateResponse(request, "admin/problem_report.html", ctx)
 
 
 def _describe_or_error(description: str) -> list[str]:

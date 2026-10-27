@@ -649,8 +649,8 @@ async def register(
 
     templates = get_shared_templates()
     return templates.TemplateResponse(
+        request,
         "admin/lti1p3/registration_confirm.html",
-        request=request,
         context={
             "message": "LTI 1.3 configuration set",
             "request": request,
@@ -885,7 +885,7 @@ async def deep_link_login(request: Request):
         "lti_storage_target": fapi_request.get_param("lti_storage_target"),
     }
     resp = templates.TemplateResponse(
-        name="admin/lti1p3/rs_login.html", context=tpl_kwargs
+        request=request, name="admin/lti1p3/rs_login.html", context=tpl_kwargs
     )
     return resp
 
@@ -1025,7 +1025,7 @@ async def dynamic_link_entry(request: Request):
 
     templates = get_shared_templates()
     resp = templates.TemplateResponse(
-        name="admin/lti1p3/pick_links.html", context=tpl_kwargs
+        request=request, name="admin/lti1p3/pick_links.html", context=tpl_kwargs
     )
     return resp
 

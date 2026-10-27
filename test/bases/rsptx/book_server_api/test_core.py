@@ -27,7 +27,7 @@ def test_app_exists():
 
 
 def test_routes_registered():
-    paths = {r.path for r in app.routes}
+    paths = set(app.openapi()["paths"])
     assert any("/logger" in p for p in paths)
     assert any("/assessment" in p for p in paths)
     assert any("/books" in p for p in paths)

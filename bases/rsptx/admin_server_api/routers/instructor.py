@@ -142,7 +142,7 @@ async def get_instructor_menu(
         "settings": settings,
     }
 
-    return templates.TemplateResponse("admin/instructor/menu.html", context)
+    return templates.TemplateResponse(request, "admin/instructor/menu.html", context)
 
 
 @router.get("/manage_students")
@@ -173,7 +173,9 @@ async def get_manage_students(
         "settings": settings,
     }
 
-    return templates.TemplateResponse("admin/instructor/manage_students.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/manage_students.html", context
+    )
 
 
 # A course with more assignments than this gets its list truncated rather than
@@ -215,7 +217,9 @@ async def get_copy_assignments(
         "settings": settings,
     }
 
-    return templates.TemplateResponse("admin/instructor/copy_assignments.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/copy_assignments.html", context
+    )
 
 
 @router.get("/shareable_courses")
@@ -519,7 +523,9 @@ async def get_course_settings(
         "share_assignments": course_attrs.get("share_assignments", "false"),
     }
 
-    return templates.TemplateResponse("admin/instructor/course_settings.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/course_settings.html", context
+    )
 
 
 @router.get("/lti_config")
@@ -555,7 +561,9 @@ async def get_lti_config(
         == "true",
     }
 
-    return templates.TemplateResponse("admin/instructor/lti_config.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/lti_config.html", context
+    )
 
 
 @router.post("/create_lti_keys")
@@ -643,7 +651,9 @@ async def get_assessment_reset(
         "settings": settings,
     }
 
-    return templates.TemplateResponse("admin/instructor/assessment_reset.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/assessment_reset.html", context
+    )
 
 
 @router.post("/reset_assessment")
@@ -726,7 +736,7 @@ async def get_course_delete(
         }
 
         return templates.TemplateResponse(
-            "admin/instructor/course_delete.html", context
+            request, "admin/instructor/course_delete.html", context
         )
 
     except Exception as e:
@@ -832,7 +842,9 @@ async def get_add_instructor(
         "student_page": False,
         "settings": settings,
     }
-    return templates.TemplateResponse("admin/instructor/add_instructor.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/add_instructor.html", context
+    )
 
 
 @router.get("/available_students")
@@ -940,7 +952,7 @@ async def remove_student(
                 "settings": settings,
             }
             return templates.TemplateResponse(
-                "admin/instructor/remove_students_results.html", context
+                request, "admin/instructor/remove_students_results.html", context
             )
 
         bc = await fetch_course(course.base_course)
@@ -963,7 +975,7 @@ async def remove_student(
             "settings": settings,
         }
         return templates.TemplateResponse(
-            "admin/instructor/remove_students_results.html", context
+            request, "admin/instructor/remove_students_results.html", context
         )
 
     except Exception as e:
@@ -978,7 +990,7 @@ async def remove_student(
             "settings": settings,
         }
         return templates.TemplateResponse(
-            "admin/instructor/remove_students_results.html", context
+            request, "admin/instructor/remove_students_results.html", context
         )
 
 
@@ -1180,6 +1192,7 @@ async def enroll_students(
         mess = f"All {enrolled} students enrolled successfully."
     templates = get_shared_templates()
     return templates.TemplateResponse(
+        request,
         "admin/instructor/enroll_results.html",
         {
             "request": request,
@@ -1493,7 +1506,9 @@ async def get_create_course_page(request: Request, user=Depends(auth_manager)):
         "course": course,
         "user": user,
     }
-    return templates.TemplateResponse("admin/instructor/create_course.html", context)
+    return templates.TemplateResponse(
+        request, "admin/instructor/create_course.html", context
+    )
 
 
 def _parse_start_date(startdate: str) -> datetime.date:
@@ -1627,7 +1642,9 @@ async def post_create_course_page(
             "coursename": projectname,
             "social_url": social_url or None,
         }
-        return templates.TemplateResponse("admin/instructor/build.html", context)
+        return templates.TemplateResponse(
+            request, "admin/instructor/build.html", context
+        )
     except Exception as e:
         # On error, show designer page with error message
         course_list = await fetch_library_books()
@@ -1658,5 +1675,5 @@ async def post_create_course_page(
             },
         }
         return templates.TemplateResponse(
-            "admin/instructor/create_course.html", context
+            request, "admin/instructor/create_course.html", context
         )
