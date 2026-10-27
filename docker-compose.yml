@@ -433,6 +433,8 @@ services:
       - $HOME/downloads:/usr/src/app/downloads
     environment:
       <<: [*db-env, *celery-env]
+      # Not *container-env: its BOOK_PATH is wrong for the /books mount here.
+      REDIS_URI: redis://${REDIS_HOST}:6379/0
       SERVER_CONFIG: ${SERVER_CONFIG}
       LOAD_BALANCER_HOST: ${LOAD_BALANCER_HOST}
       RUNESTONE_PATH: /usr/src/app
@@ -466,6 +468,7 @@ services:
       - $HOME/downloads:/usr/src/app/downloads
     environment:
       <<: [*db-env, *celery-env]
+      REDIS_URI: redis://${REDIS_HOST}:6379/0
       SERVER_CONFIG: ${SERVER_CONFIG}
       RUNESTONE_PATH: /usr/src/app
       JWT_SECRET: ${JWT_SECRET}
