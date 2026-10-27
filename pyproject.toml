@@ -108,7 +108,7 @@ dev = [
     "pyvirtualdisplay>=3.0.0,<4",
     "pywin32>= 301 ; sys_platform == 'win32'",
     "selenium>=3.0.0,<4",
-    "json2xml>=3.21.0,<4",
+    "json2xml>=8.0.0,<9",
     "pytest-asyncio>=0.24.0,<0.25",
     "openai>=1.59.3,<2",
     "javalang>=0.13.0,<0.14",

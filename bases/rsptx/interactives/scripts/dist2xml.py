@@ -35,7 +35,7 @@ else:
 data["version"] = sys.argv[1]
 
 with open(os.path.join(data_path, "webpack_static_imports.xml"), "w") as f:
-    f.write(json2xml.Json2xml(data).to_xml())
+    f.write(json2xml.Json2xml(data, pretty=True).to_xml())
 
 with tarfile.open(f"dist-{sys.argv[1]}.tgz", "w:gz") as tar:
     for fn in os.listdir(data_path):

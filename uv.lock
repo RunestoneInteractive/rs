@@ -1854,15 +1854,15 @@ wheels = [
 
 [[package]]
 name = "json2xml"
-version = "3.21.0"
+version = "8.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/fd/b28681315a101fb29a02aaab4741c9cae8e07976a04ce22e5c1895da5347/json2xml-3.21.0.tar.gz", hash = "sha256:db92ec08ae418d27587c36d76e4eadec2f4f268a21aad6aae667d7fc60ee5c36", size = 27512, upload-time = "2023-01-18T15:39:36.879Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/13/7515e63bf3c43615b5f4d19140b8ee4854db17677b57b4fb763d5cc7ecec/json2xml-8.0.0.tar.gz", hash = "sha256:f183968d3752c3c3afb2389621eee359acb8ee08dd6199e74963e945dae68ac7", size = 106962, upload-time = "2026-10-12T06:16:53.836Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/61/dc7d78d89d2991dd4097a986b51d227b58d8b0a621d81dfd53c9e32dfc3d/json2xml-3.21.0-py3-none-any.whl", hash = "sha256:be8aa05ad79050a64692687c64983fbbe5d7612fe04667e65058983f34908954", size = 13842, upload-time = "2023-01-18T15:39:33.959Z" },
+    { url = "https://files.pythonhosted.org/packages/29/4e/40d7119bb2198923ec5d8f06934e12ef4a43924ff2ee8cf2c9dfa393164a/json2xml-8.0.0-py3-none-any.whl", hash = "sha256:c7a826835c33751fa4e489d7abf6ddc5c4e581cefe003aeb2bd11206bd0ab7e3", size = 36495, upload-time = "2026-10-12T06:16:52.597Z" },
 ]
 
 [[package]]
@@ -4554,7 +4554,7 @@ dev = [
     { name = "html5validator", specifier = ">=0.3.0,<0.4" },
     { name = "isort", specifier = ">=5,<6" },
     { name = "javalang", specifier = ">=0.13.0,<0.14" },
-    { name = "json2xml", specifier = ">=3.21.0,<4" },
+    { name = "json2xml", specifier = ">=8.0.0,<9" },
     { name = "mock", specifier = ">=4.0.0,<5" },
     { name = "mypy", specifier = ">=1,<2" },
     { name = "openai", specifier = ">=1.59.3,<2" },
@@ -5457,11 +5457,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "1.26.13"
+version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c2/51/32da03cf19d17d46cce5c731967bf58de9bd71db3a379932f53b094deda4/urllib3-1.26.13.tar.gz", hash = "sha256:c083dd0dce68dbfbe1129d5271cb90f9447dea7d52097c6e0126120c521ddea8", size = 300476, upload-time = "2022-11-23T22:34:32.145Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909b5e40b1b90a496d987258916dbbf88e842c729f510e/urllib3-2.8.0.tar.gz", hash = "sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63", size = 458972, upload-time = "2026-09-15T19:29:36.253Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/0c/cc6644eaa594585e5875f46f3c83ee8762b647b51fc5b0fb253a242df2dc/urllib3-1.26.13-py2.py3-none-any.whl", hash = "sha256:47cc05d99aaa09c9e72ed5809b60e7ba354e64b59c9c173ac3018642d8bb41fc", size = 140572, upload-time = "2022-11-23T22:34:29.785Z" },
+    { url = "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl", hash = "sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3", size = 135717, upload-time = "2026-09-15T19:29:34.577Z" },
 ]
 
 [[package]]

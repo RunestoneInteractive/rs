@@ -46,7 +46,7 @@ with pushd("../../bases/rsptx/interactives"):
             with open(
                 os.path.join(static_path, "webpack_static_imports.xml"), "w"
             ) as f:
-                f.write(json2xml.Json2xml(data).to_xml())
+                f.write(json2xml.Json2xml(data, pretty=True).to_xml())
         else:
             subprocess.run(["npm", "run", "build"], check=True)
             subprocess.run(
