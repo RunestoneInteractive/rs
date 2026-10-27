@@ -982,11 +982,6 @@ div.flash {
     cursor: pointer;
 }
 
-.ui-sortable-helper {
-    height: auto !important;
-    width: auto !important;
-}
-
 .navLink {
     z-index: 2;
     display: inline;
