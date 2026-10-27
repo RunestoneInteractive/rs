@@ -54,9 +54,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "black~= 22.0",
+    "black>=26.10.1,<27",
     "console-ctrl>=0.1.0,<0.2",
-    "pytest>=7.0.0,<8",
+    "pytest>=9.0.3,<10",
     "flake8>=6.0.0,<7",
     "sphinx-rtd-theme>=1.0.0,<2",
     "mypy> 0.910",
@@ -65,7 +65,7 @@ dev = [
     "selenium>=3.0.0,<4",
     "PyVirtualDisplay>=3.0,<4",
     "polling2>=0.5.0,<0.6",
-    "pytest-asyncio>=0.17.0,<0.18",
+    "pytest-asyncio>=1.4.1,<2",
     "pytest-env>=0.6.0,<0.7",
     "psycopg2-binary>=2.0.0,<3",
     "rope>=0.21.0,<0.22",
