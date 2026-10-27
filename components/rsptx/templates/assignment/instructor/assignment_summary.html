@@ -5,13 +5,12 @@ Assignment Summary
 {% block css %}
 
 <link href="/staticAssets/index.css" rel="stylesheet" media="screen" />
-<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet"
-    media="screen">
+<link href="/staticAssets/css/report_table.css" rel="stylesheet" media="screen" />
+<script src="/staticAssets/js/report_table.js"></script>
   <style>
     .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #3498db;
+      border: 4px solid var(--rs-color-border-subtle);
+      border-top: 4px solid var(--rs-color-primary);
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -30,35 +29,43 @@ Assignment Summary
       align-items: center;
       height: 100px;
     }
+
+    #summary-table {
+      margin-bottom: 1rem;
+    }
   </style>
 
 {% endblock %}
 {% block content %}
 <h1>Assignment Summary</h1>
 
-<p>The table below shows you the students scores on each question in the assignment. 
-It also shows you the number of attempts each student has made on each question the format of 
+<p>The table below shows you the students scores on each question in the assignment.
+It also shows you the number of attempts each student has made on each question the format of
 the table cells is <code>score (attempts)</code>
 </p>
 
-<!-- todo:  format the div_id headings to do: http://localhost/runestone/dashboard/exercisemetrics?id=fill1512&chapter=Assessments -->
-
-<div id="container">
 <div class="loading-container">
     <p>Building Report</p>
     <div class="spinner"></div>
 </div>
+<div id="error-area" class="alert alert-danger" style="display:none;"></div>
+<div id="summary-table"></div>
 <div>
-<a role="button" class="btn btn-info" href='/assignment/instructor/download_assignment/{{assignment_id}}'">
+<a role="button" class="btn btn-info" href="/assignment/instructor/download_assignment/{{assignment_id}}">
         Download Submissions</a>
 </div>
 <script>
-    assignment_id = {{ assignment_id }};
-    course_name = "{{ course_name }}";
-    course_id = {{ course_id }};
-    base_course = "{{ base_course }}";
+    const assignment_id = {{ assignment_id }};
+    // Student ID, First Name and Last Name stay in view while scrolling.
+    const NAME_COLUMNS = 3;
 
-    // use fetch to call /assignment/instructor/assignment_summary_data
+    function showError(message) {
+        document.querySelector(".loading-container").style.display = "none";
+        const area = document.getElementById("error-area");
+        area.textContent = message;
+        area.style.display = "block";
+    }
+
     fetch(`/assignment/instructor/assignment_summary_data/${assignment_id}`, {
         method: "GET",
         headers: {
@@ -69,41 +76,31 @@ the table cells is <code>score (attempts)</code>
             if (response.ok) {
                 return response.json();
             } else {
-                throw new Error("Network response was not ok");
+                throw new Error(`Server error ${response.status}`);
             }
         })
         .then((data) => {
-            console.log(data.detail)
-            container = document.getElementById('container');
-            retdata = data.detail.assignment_summary;
-            let metaData = data.detail.question_metadata;
-            let columns = [];
-            let headers = [];
-            if (retdata && retdata.length > 0) {
-                for (let k of Object.keys(retdata[0])) {
-                    columns.push({ data: k, renderer: "html" });
-                    if (k in metaData) {
-                        headers.push(`<a href="/runestone/dashboard/exercisemetrics?id=${k}&chapter=${metaData[k].chapter}">${k} (${metaData[k].points})</a>`)
-                    } else {
-                        headers.push(`<b>${k}</b>`)
-                    }
-                }
-
-                var hot = new Handsontable(container, {
-                    data: retdata,
-                    colHeaders: headers,
-                    licenseKey: "non-commercial-and-evaluation",
-                    columns: columns,
-                    fixedColumnsLeft: 3,
-                    readOnly: true,
-                    afterGetColHeader(col, TH) {
-                        TH.innerHTML = this.getSettings().colHeaders[col];
-                    }
-                });
-                let loading = document.querySelector('.loading-container');
-                loading.style.display = 'none';
+            const retdata = data.detail.assignment_summary;
+            const metaData = data.detail.question_metadata;
+            if (!retdata || retdata.length === 0) {
+                showError("There is no data for this assignment yet.");
+                return;
             }
+            const keys = Object.keys(retdata[0]);
+            renderReportTable(document.getElementById("summary-table"), retdata, {
+                caption: "Assignment summary: one row per student, one column per question",
+                pinnedColumns: NAME_COLUMNS,
+                headerLabel: (k) => (k in metaData ? `${k} (${metaData[k].points})` : k),
+                headerHref: (k) =>
+                    k in metaData
+                        ? `/runestone/dashboard/exercisemetrics?id=${encodeURIComponent(k)}&chapter=${encodeURIComponent(metaData[k].chapter)}`
+                        : null,
+                // Question and total columns hold scores; right-align them.
+                cellClass: (k) => (keys.indexOf(k) >= NAME_COLUMNS ? "num" : null),
+            });
+            document.querySelector(".loading-container").style.display = "none";
         })
+        .catch((err) => showError(`Could not build the report. ${err.message}`));
 </script>
 {% endblock %}
 

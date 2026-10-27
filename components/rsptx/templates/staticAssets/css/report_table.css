@@ -1,0 +1,86 @@
+/* ============================================================
+   report_table.css — tables drawn by js/report_table.js
+   They scroll inside the box, with the header row and the first
+   column(s) pinned (the corner cells are pinned both ways).
+   ============================================================ */
+.report-table {
+    max-height: 560px;
+    overflow: auto;
+    border: 1px solid var(--rs-color-border);
+    border-radius: 6px;
+    background: var(--rs-color-white);
+}
+
+.report-table table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    color: var(--rs-color-text);
+}
+
+.report-table th,
+.report-table td {
+    padding: 4px 8px;
+    border-right: 1px solid var(--rs-color-border-subtle);
+    border-bottom: 1px solid var(--rs-color-border-subtle);
+    white-space: nowrap;
+}
+
+.report-table td {
+    text-align: left;
+}
+
+.report-table td.num {
+    text-align: right;
+}
+
+.report-table td.score-good {
+    color: var(--rs-color-success-text);
+    font-weight: 600;
+}
+
+.report-table td.score-bad {
+    color: var(--rs-color-danger-dark);
+}
+
+.report-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--rs-color-surface-subtle);
+    font-weight: 600;
+    text-align: left;
+}
+
+.report-table thead th a {
+    color: inherit;
+}
+
+.report-table tbody th {
+    position: sticky;
+    left: 0;
+    background: var(--rs-color-white);
+    font-weight: 600;
+    text-align: left;
+}
+
+.report-table thead th:first-child {
+    left: 0;
+    z-index: 2;
+}
+
+/* Extra pinned columns; report_table.js sets their left offsets. */
+.report-table .pinned {
+    position: sticky;
+    background: var(--rs-color-white);
+}
+
+.report-table thead th.pinned {
+    background: var(--rs-color-surface-subtle);
+    z-index: 2;
+}
+
+.report-table tbody tr:hover td,
+.report-table tbody tr:hover th {
+    background: var(--rs-color-primary-background);
+}
