@@ -12,9 +12,9 @@ running Runestone instance the app is reached at:
 * ``/assignment/instructor/grader`` -- the grader
 
 Both URLs load the same bundle; client-side routing selects the view.  The
-app replaces the old web2py instructor pages, and a couple of the very first
-React screens it replaced are themselves still around as legacy routes
-(``/builderV2`` and ``/graderOld``) -- see `Two generations of code`_ below.
+app replaces the old web2py instructor pages.  A little of the first React
+generation it grew out of is still in use -- see `Two generations of code`_
+below.
 
 .. figure:: ../images/AssignmentBuilderArch.svg
    :width: 100%
@@ -143,7 +143,6 @@ The route table in ``App.tsx`` is the map of the application::
     /grader/:assignmentId                -> question list for an assignment
     /grader/:assignmentId/questions/:questionId[/students/:sid]
                                          -> grade one question / one student
-    /builderV2, /graderOld               -> legacy first-generation screens
     /except                              -> deadline-exception scheduler
 
 The two big route components are loaded lazily so the builder does not pay
@@ -188,19 +187,20 @@ and it is important to know which is which:
 
 * ``src/store`` + ``src/components/routes`` -- the current generation:
   TypeScript, RTK Query, Mantine.  This is where new work goes.
-* ``src/state`` + ``src/renderers`` -- the first generation: plain ``.jsx``
-  renderers and hand-written slices (``acSlice``, ``assignSlice``,
-  ``ePickerSlice``, ...).  These power the legacy ``/builderV2`` and
-  ``/graderOld`` routes and a few shared selectors (for example
-  ``selectIsAuthorized``, which gates the whole app).
+* ``src/state`` + ``src/renderers`` -- what is left of the first
+  generation: hand-written slices (``assignSlice``, ``ePickerSlice``,
+  ``studentSlice``) and the ``.jsx`` exception scheduler at ``/except``.
+  ``assignSlice`` also provides ``selectIsAuthorized``, which gates the
+  whole app.  The first-generation builder and grader screens
+  (``/builderV2`` and ``/graderOld``) have been removed.
 
 The store that actually runs is ``src/state/store.ts``; it combines *both*
 generations' reducers.  Watch out for one naming trap: the key
 ``assignment`` in the live store belongs to the **legacy** ``assignSlice``,
 while the new ``assignmentSlice`` is registered as ``assignmentTemp``.
 (``src/store/store.ts`` builds a store from only the new reducers and is
-used by tests.)  When the legacy routes die, the intent is for
-``src/store/rootReducer.ts`` to become the real root.
+used by tests.)  Once the remaining legacy slices are gone, the intent is
+for ``src/store/rootReducer.ts`` to become the real root.
 
 The assignment builder
 ~~~~~~~~~~~~~~~~~~~~~~

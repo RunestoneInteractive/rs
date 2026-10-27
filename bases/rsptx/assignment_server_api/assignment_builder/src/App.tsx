@@ -26,57 +26,10 @@ import {
   syncCourseHistoryEntry
 } from "./courseHistory";
 import { buildNavBar, getCourseSwitchDestination } from "./navUtils.js";
-import AssignmentEditor, { AddQuestionTabGroup, MoreOptions } from "./renderers/assignment.jsx";
-import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
-import {
-  AssignmentQuestion,
-  problemColumnSpec,
-  problemColumns,
-  readingColumnSpec,
-  readingColumns
-} from "./renderers/assignmentQuestion.jsx";
-import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
 import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
 import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 
 import "katex/dist/katex.min.css";
-
-function OldAssignmentBuilder() {
-  return (
-    <>
-      {" "}
-      <div className="App card flex justify-content-center">
-        <h1 className="App" style={{ marginBottom: "1rem" }}>
-          Assignment Builder
-        </h1>
-      </div>
-      <AssignmentEditor />
-      <MoreOptions />
-      <AssignmentQuestion
-        headerTitle="Sections to read"
-        columns={readingColumns}
-        columnSpecs={readingColumnSpec}
-        isReading={true}
-      />
-      <AssignmentQuestion
-        headerTitle="Graded exercises"
-        columns={problemColumns}
-        columnSpecs={problemColumnSpec}
-      />
-      <AddQuestionTabGroup />
-    </>
-  );
-}
-
-function AssignmentGraderOld() {
-  return (
-    <div className="App">
-      <h1>Assignment grader (legacy)</h1>
-      <AssignmentPicker />
-      <AssignmentSummary />
-    </div>
-  );
-}
 
 const FULL_BLEED_ROUTE = /^\/(grader|gradebook|builder)(\/|$)/;
 
@@ -249,10 +202,6 @@ function App() {
               ]
             },
             {
-              path: "builderV2",
-              element: <OldAssignmentBuilder />
-            },
-            {
               path: "grader",
               async lazy() {
                 const { Grader } = await import("@components/routes/Grader");
@@ -323,10 +272,6 @@ function App() {
                   }
                 }
               ]
-            },
-            {
-              path: "graderOld",
-              element: <AssignmentGraderOld />
             },
             {
               path: "admin",
