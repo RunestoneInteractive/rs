@@ -1,6 +1,7 @@
 """
 Tests for rslogging CRUD operations (useinfo, answer tables).
 """
+
 import datetime
 import pytest
 
@@ -14,7 +15,9 @@ COURSE = "test_course_1"
 USER = "testuser1"
 
 
-def _useinfo(div_id: str, event: str = "mChoice", act: str = "answer:1") -> UseinfoValidation:
+def _useinfo(
+    div_id: str, event: str = "mChoice", act: str = "answer:1"
+) -> UseinfoValidation:
     return UseinfoValidation(
         timestamp=canonical_utcnow(),
         sid=USER,

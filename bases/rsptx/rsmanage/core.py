@@ -30,7 +30,6 @@ from psycopg2.errors import UniqueViolation
 import psycopg2
 from psycopg2.sql import Identifier, SQL
 
-
 # our own package imports
 
 from rsptx.db.crud import (
@@ -1509,17 +1508,13 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
             has_readings = True
             qlist.append(q.question_id)
 
-    res = conn.execute(
-        text(
-            f"""
+    res = conn.execute(text(f"""
     select useinfo.timestamp as ts,name,sid,event,act from assignment_questions
         join questions ON questions.id = assignment_questions.question_id
         join useinfo on questions.name = useinfo.div_id
         where assignment_id = {current_assignment.id} {sid if sid else ""}
         order by sid, useinfo.timestamp
-                   """
-        )
-    )
+                   """))
     click.echo(
         f"Assignment ({current_assignment.id}) Due: {current_assignment.duedate}"
     )
@@ -1540,35 +1535,23 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
 
     if has_readings:
         click.echo("\n\nReading Assignment Questions")
-        qres = conn.execute(
-            text(
-                f"""
+        qres = conn.execute(text(f"""
         select chapter, subchapter from questions where id in ({','.join([str(q) for q in qlist])})
-        """
-            )
-        )
+        """))
         div_ids = []
         for row in qres:
-            alist = conn.execute(
-                text(
-                    f"""
+            alist = conn.execute(text(f"""
                 select name from questions where chapter = '{row.chapter}' and subchapter = '{row.subchapter}' and base_course = '{course.base_course}' and id not in ({','.join([str(q) for q in qlist])})
-                """
-                )
-            )
+                """))
             for a in alist:
                 div_ids.append(a.name)
         if div_ids:
-            res = conn.execute(
-                text(
-                    f"""
+            res = conn.execute(text(f"""
     select useinfo.timestamp as ts,div_id,sid,event,act
     from useinfo
     where div_id in ({','.join([f"'{d}'" for d in div_ids])}) {sid} and course_id = '{course.course_name}'
     order by sid, useinfo.timestamp
-                """
-                )
-            )
+                """))
         for row in res:
             if (row.ts + dd) > current_assignment.duedate:
                 click.echo(

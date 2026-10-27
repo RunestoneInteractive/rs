@@ -31,7 +31,6 @@ from .common_builder import (
     check_sim_out,
 )
 
-
 # Celery
 # ======
 # Provide the `Celery configuration <https://docs.celeryproject.org/en/latest/userguide/application.html#configuration>`_.

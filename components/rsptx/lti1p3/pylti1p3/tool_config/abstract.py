@@ -5,7 +5,6 @@ from ..deployment import Deployment
 from ..registration import Registration
 from ..request import Request
 
-
 REQ = t.TypeVar("REQ", bound=Request)
 
 

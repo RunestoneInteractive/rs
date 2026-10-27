@@ -21,7 +21,6 @@ from sqlalchemy.orm import sessionmaker
 # -------------------------
 from rsptx.configuration.core import settings, BookServerConfig, DatabaseType
 
-
 if settings.database_type == DatabaseType.SQLite:
     connect_args = {"check_same_thread": False}
 else:

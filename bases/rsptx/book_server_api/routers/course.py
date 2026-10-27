@@ -42,7 +42,6 @@ from rsptx.auth.session import is_instructor
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.grading_helpers.core import adjust_deadlines
 
-
 # .. _APIRouter config:
 #
 # Routing

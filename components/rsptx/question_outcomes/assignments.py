@@ -51,13 +51,11 @@ class ReadingRef:
 def fetch_assignments(conn: Connection, course_id: int) -> List[dict]:
     """A course's assignments as ``[{label, value}]`` dropdown options, by due date."""
     rows = conn.execute(
-        text(
-            """
+        text("""
             select id, name from assignments
             where course = :course_id
             order by duedate, name
-            """
-        ),
+            """),
         {"course_id": course_id},
     )
     return [{"label": r.name, "value": r.id} for r in rows]
@@ -72,12 +70,10 @@ def fetch_assignment(
     instructor from reading another course's assignment by id.
     """
     row = conn.execute(
-        text(
-            """
+        text("""
             select id, name, duedate, enforce_due from assignments
             where id = :assignment_id and course = :course_id
-            """
-        ),
+            """),
         {"assignment_id": assignment_id, "course_id": course_id},
     ).first()
     if row is None:
@@ -100,8 +96,7 @@ def fetch_assignment_parts(
     are left out rather than shown as never tried.
     """
     rows = conn.execute(
-        text(
-            """
+        text("""
             select q.name, q.question_type, q.qnumber, q.autograde, q.chapter,
                 q.subchapter, q.base_course, aq.reading_assignment,
                 aq.activities_required, sc.sub_chapter_name
@@ -113,8 +108,7 @@ def fetch_assignment_parts(
                     on sc.chapter_id = c.id and sc.sub_chapter_label = q.subchapter
             where aq.assignment_id = :assignment_id
             order by aq.sorting_priority, aq.id
-            """
-        ),
+            """),
         {"assignment_id": assignment_id},
     ).all()
     types = reportable_types()
@@ -164,15 +158,13 @@ def assignment_cutoffs(
     if not assignment.enforce_due or assignment.duedate is None:
         return None, 0
     rows = conn.execute(
-        text(
-            """
+        text("""
             select sid, assignment_id, duedate from deadline_exceptions
             where course_id = :course_id
                 and (assignment_id = :assignment_id or assignment_id is null)
                 and duedate is not null
             order by id
-            """
-        ),
+            """),
         {"course_id": course_id, "assignment_id": assignment.id},
     ).all()
     everything: Dict[str, int] = {}

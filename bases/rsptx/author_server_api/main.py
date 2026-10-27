@@ -243,8 +243,7 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
     eng = create_engine(os.environ["DEV_DBURL"])
 
     all_aq_pairs = pd.read_sql_query(
-        text(
-            """
+        text("""
     SELECT assignments.name aname,
            questions.name question,
            assignments.visible,
@@ -255,8 +254,7 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
     JOIN questions ON questions.id = assignment_questions.question_id
     JOIN courses ON assignments.course = courses.id
     WHERE courses.course_name = :course
-    """
-        ),
+    """),
         eng,
         params={"course": course},
     )
