@@ -83,7 +83,6 @@ dependencies = [
 ]
 
 [project.scripts]
-buildptx = "rsptx.interactives.scripts.buildptx:build_book"
 build = "rsptx.build_tools.build:cli"
 build_books = "rsptx.build_tools.build_books:build_books"
 build_mon = "rsptx.build_tools.build_mon:main"
@@ -136,9 +135,9 @@ docs = [
 # into a deployed wheel (each service under projects/ builds its own isolated
 # wheel). `uv sync` installs it editable; dev-mode-dirs puts the Polylith brick
 # source directories on the path so every `rsptx.*` brick (plus the top-level
-# `runestone` and `development` packages) is importable and live-editable.
+# `development` package) is importable and live-editable.
 [tool.hatch.build]
-dev-mode-dirs = ["components", "bases", "bases/rsptx/interactives", "development", "."]
+dev-mode-dirs = ["components", "bases", "development", "."]
 
 # bypass-selection: the importable code lives in the dev-mode-dirs above rather
 # than in a package directory named after this project, which is intentional.
@@ -151,8 +150,8 @@ build-backend = "hatchling.build"
 
 # Poetry installed every dependency group by default; uv installs only `dev` by
 # default. Replicate the old behavior so the dev environment is complete (e.g.
-# the build/rsmanage CLIs pull in the runestone interactives, which needs sphinx
-# from the docs group). `uv sync` now installs main + dev + docs.
+# building these docs needs sphinx from the docs group). `uv sync` now installs
+# main + dev + docs.
 [tool.uv]
 default-groups = ["dev", "docs"]
 

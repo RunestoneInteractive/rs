@@ -80,3 +80,7 @@ cd projects/interactives
 Then load a page of that book through the local server. If you build a standalone
 test page instead, wrap components in `<div class="runestone-sphinx">`. Without it
 the scoped CSS doesn't apply and the page renders plausible-looking browser defaults.
+
+The release version is the `version` in this directory's `package.json`;
+`projects/interactives/build.py` reads it from there (there is no pyproject). The
+release steps are in `projects/interactives/README.rst`.

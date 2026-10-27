@@ -651,7 +651,7 @@ async def serve_page(
         term_start_date=course_row.term_start_date.isoformat(),
         base_course=course_row.base_course,
         user_id=user.username if user else "",
-        # _`root_path`: The server is mounted in a different location depending on how it's run (directly from gunicorn/uvicorn or under the ``/ns`` prefix using nginx). Tell the JS what prefix to use for Ajax requests. See also `setting root_path <setting root_path>` and the `FastAPI docs <https://fastapi.tiangolo.com/advanced/behind-a-proxy/>`_. This is then used in the ``eBookConfig`` of :doc:`runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/layout.html`.
+        # _`root_path`: The server is mounted in a different location depending on how it's run (directly from gunicorn/uvicorn or under the ``/ns`` prefix using nginx). Tell the JS what prefix to use for Ajax requests. See also `setting root_path <setting root_path>` and the `FastAPI docs <https://fastapi.tiangolo.com/advanced/behind-a-proxy/>`_. This is then used in the book's ``eBookConfig``.
         # new_server_prefix=request.scope.get("root_path"),
         # todo: the above doesn't work in the new configuration because we strip off the /ns
         # when we are using docker compose... We need a way to know when we are running in docker compose and when we are not... an environment variable probably
