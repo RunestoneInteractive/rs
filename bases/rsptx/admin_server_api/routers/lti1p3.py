@@ -361,9 +361,18 @@ async def launch(request: Request):
         rslogger.debug(f"LTI1p3 - launch lineitem: {assign_lineitem.__dict__}")
 
         assign_resource_id = assign_lineitem.get_resource_id()
-        lineitem_course_id, lineitem_assign_id = parse_assignment_score_resource_id(
-            assign_resource_id
-        )
+        try:
+            lineitem_course_id, lineitem_assign_id = parse_assignment_score_resource_id(
+                assign_resource_id
+            )
+        except ValueError:
+            rslogger.error(
+                f"Invalid resource ID format for the assignment line item: {assign_resource_id}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid resource ID format for the assignment line item: {assign_resource_id}",
+            )
 
     # identify the course
     lti_context_dict = message_launch.get_context()
