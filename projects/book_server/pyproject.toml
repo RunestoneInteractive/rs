@@ -70,13 +70,7 @@ dev = [
     "pytest-asyncio>=1.4.1,<2",
     "pytest-env>=0.6.0,<0.7.0",
     "rope>=0.21.0,<0.22.0",
-    "runestone",
 ]
-
-# The editable path dependency on the interactives (poetry's
-# `runestone = { path = "../interactives", develop = true }`).
-[tool.uv.sources]
-runestone = { path = "../interactives", editable = true }
 
 [build-system]
 requires = ["hatchling", "hatch-polylith-bricks"]
