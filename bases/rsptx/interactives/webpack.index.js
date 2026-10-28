@@ -16,11 +16,9 @@
 //
 // These are static imports; code in `dynamically loaded components`_ deals with dynamic imports.
 //
-// jQuery-related imports. jQuery UI is still needed by the vendored pytutor
-// bundle (codelens); the jquery.idle-timer plugin was dead code and has been
-// removed.
-import "jquery-ui/jquery-ui.js";
-import "jquery-ui/themes/base/jquery.ui.all.css";
+// jQuery UI is no longer loaded globally: the vendored pytutor bundle
+// (codelens) carries its own jQuery, jQuery UI, and jQuery UI CSS, and no
+// other component uses it.
 // i18n is now handled by the dependency-free runestone/common/js/rsi18n.js;
 // the vendored Wikimedia jquery.i18n plugin has been removed.
 
@@ -29,7 +27,6 @@ import "./ptxrs-bootstrap.less";
 // Self-hosted icon font for the ``material-symbols-outlined`` spans that
 // components render; without it the icon names show up as literal text.
 import "./runestone/common/css/material-symbols.css";
-//import "./runestone/common/project_template/_templates/plugin_layouts/sphinx_bootstrap/static/bootstrap-sphinx.js";
 
 // Misc
 import "./runestone/common/js/bookfuncs.js";

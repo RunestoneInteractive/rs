@@ -32,7 +32,6 @@ from PIL import Image
 from rsptx.book_server_api.main import app
 from rsptx.book_server_api.routers import rsproxy
 
-
 # Run every test in this module on the *session* event loop.
 #
 # This is not optional.  ``asyncio_default_fixture_loop_scope`` is "session", so

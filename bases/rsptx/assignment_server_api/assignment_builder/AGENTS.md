@@ -41,8 +41,8 @@ npm run test:e2e:smoke         # Playwright, @p0 tests only; see e2e/ below
 | `src/components/routes/AssignmentBuilder/`, `src/components/routes/Grader/` | The two main screens, each with its own `components/`, `hooks/` |
 | `src/components/ui/` | Shared UI pieces (DataGrid, notify, pickers, ...) |
 | `src/store/<feature>/` | Current Redux code: `<feature>.logic.ts` (slice) and `<feature>.logic.api.ts` (RTK Query `createApi` using `store/baseQuery.ts`) |
-| `src/state/` | Older per-component slices (activecode, multiple choice, preview, ...); still live |
-| `src/renderers/` | Older JSX components for the question editors and preview |
+| `src/state/` | Older slices still in use: `assignSlice` (incl. `selectIsAuthorized`), `ePickerSlice`, `studentSlice` |
+| `src/renderers/` | Older JSX: only the exception scheduler (`/except`) is left |
 | `src/utils/`, `src/types/` | Helpers and shared types |
 
 - **The live store is `src/state/store.ts`** (imported by `src/index.tsx`). It

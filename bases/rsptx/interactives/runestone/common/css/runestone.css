@@ -982,11 +982,6 @@ div.flash {
     cursor: pointer;
 }
 
-.ui-sortable-helper {
-    height: auto !important;
-    width: auto !important;
-}
-
 .navLink {
     z-index: 2;
     display: inline;
@@ -1416,9 +1411,39 @@ details.ptx-footnote {
 }
 /* ---------------------------------------------------------- */
 
-.handsontable td, .handsontable th {
-    background-color: var(--content-background, #fff);
-    color: var(--bodyFont, #000);
+/* SQL query results (common/js/resultTable.js), used by activecode and hparsons */
+.sql_result_table {
+    overflow: auto;
+    margin-bottom: 0.5em;
+}
+
+.sql_result_table table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.9em;
+    color: var(--bodyFont);
+    background-color: var(--background);
+}
+
+.sql_result_table th,
+.sql_result_table td {
+    padding: 0.2em 0.6em;
+    border-right: 1px solid color-mix(in srgb, var(--bodyFont) 30%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--bodyFont) 30%, transparent);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.sql_result_table tr > :first-child {
+    border-left: 1px solid color-mix(in srgb, var(--bodyFont) 30%, transparent);
+}
+
+/* The header stays in view while the rows scroll beneath it. */
+.sql_result_table th {
+    position: sticky;
+    top: 0;
+    background-color: var(--outerBackground);
+    border-top: 1px solid color-mix(in srgb, var(--bodyFont) 30%, transparent);
 }
 
 

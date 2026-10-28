@@ -9,25 +9,25 @@ dependencies = [
     "aiohttp>=3.11.11,<4",
     "async-timeout>=4.0.0,<5",
     "celery[redis]>=5.0.0,<6",
-    "fastapi>=0.115.0,<0.116.0",
+    "fastapi>=0.162.0,<0.163",
     # Per the uvicorn docs, install the standard (not minimal) extras.
-    "uvicorn[standard]>=0.17.0,<0.18.0",
+    "uvicorn[standard]>=0.27.0,<0.28",
     "greenlet>=3.2.2,<4",
-    "gunicorn>=20.0.0,<21 ; sys_platform != 'win32'",
+    "gunicorn>=23.0.0,<24 ; sys_platform != 'win32'",
     "Jinja2>=3.1.0,<4",
     "aiofiles>=0.8.0,<0.9.0",
     "alembic>=1.0.0,<2",
     "python-dateutil>=2.0.0,<3",
     "fastapi-login>=1.10.0,<2",
-    "cryptography>=46.0.0,<47",
+    "cryptography>=50.0.0,<51",
     "pydal>=20210215.1",
-    "python-multipart>=0.0.5,<0.0.6",
+    "python-multipart>=0.0.31,<0.1",
     "asyncpg>=0.30.0,<0.31.0",
     "SQLAlchemy>=2.0.0,<3",
     "aiosqlite>=0.18.0,<0.19.0",
     "redis>=4.3.0,<5",
     "pyhumps>=3.0.0,<4",
-    "bleach>=4.0.0,<5",
+    "bleach>=6.0.0,<7",
     "boto3>=1.0.0,<2",
     "multi-await>=1.0.0,<2",
     "botocore>=1.29.87,<2",
@@ -40,6 +40,8 @@ dependencies = [
     # Required by the rsptx/lti1p1 brick (OAuth1-signed grade passback).
     "lxml>=6.0,<7",
     "oauth2>=1.9",
+    # oauth2 imports distutils, which Python 3.12+ only has via setuptools.
+    "setuptools>=84.1.0",
     "jwcrypto>=1.5.6,<2",
     "psycopg[binary]>=3.2.0,<4",
     "psycopg2-binary>=2.9.7,<3",
@@ -54,9 +56,9 @@ bookserver = "rsptx.book_server_api.__main__:run"
 # Not included in the built wheel; installed via `uv sync`.
 [dependency-groups]
 dev = [
-    "black~=22.0",
+    "black>=26.10.1,<27",
     "console-ctrl>=0.1.0,<0.2.0",
-    "pytest>=7.0.0,<8",
+    "pytest>=9.0.3,<10",
     "flake8>=6.0.0,<7",
     "sphinx-rtd-theme>=1.0.0,<2",
     "mypy>0.910",
@@ -65,16 +67,10 @@ dev = [
     "selenium>=3.0.0,<4",
     "PyVirtualDisplay>=3.0,<4",
     "polling2>=0.5.0,<0.6.0",
-    "pytest-asyncio>=0.17.0,<0.18.0",
+    "pytest-asyncio>=1.4.1,<2",
     "pytest-env>=0.6.0,<0.7.0",
     "rope>=0.21.0,<0.22.0",
-    "runestone",
 ]
-
-# The editable path dependency on the interactives (poetry's
-# `runestone = { path = "../interactives", develop = true }`).
-[tool.uv.sources]
-runestone = { path = "../interactives", editable = true }
 
 [build-system]
 requires = ["hatchling", "hatch-polylith-bricks"]

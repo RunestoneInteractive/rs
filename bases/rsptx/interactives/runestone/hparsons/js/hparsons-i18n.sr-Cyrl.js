@@ -23,5 +23,6 @@ load({
         msg_hparsons_check_me: "Провери",
         msg_hparsons_blocks_reset: "Блокови су ресетовани.",
         msg_hparsons_run: "Покрени",
+        msg_hparsons_query_results: "Резултати упита",
     },
 });

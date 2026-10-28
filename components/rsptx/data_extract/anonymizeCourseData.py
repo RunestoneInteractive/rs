@@ -10,7 +10,6 @@ import pathlib
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
-
 tqdm.pandas(desc="Progress...")
 
 

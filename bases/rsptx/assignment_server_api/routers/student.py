@@ -225,7 +225,7 @@ async def get_assignments(
             activities={},
         )
     return templates.TemplateResponse(
-        "assignment/student/chooseAssignment.html", context
+        request, "assignment/student/chooseAssignment.html", context
     )
 
 
@@ -445,7 +445,9 @@ async def studentreport(
         activity=activity,
         target_id=id if (id and user_is_instructor) else None,
     )
-    return templates.TemplateResponse("assignment/student/studentreport.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/studentreport.html", context
+    )
 
 
 class UpdateStatusRequest(BaseModel):
@@ -1116,7 +1118,7 @@ async def doAssignment(
             activities={},
         )
     response = templates.TemplateResponse(
-        "assignment/student/doAssignment.html", context
+        request, "assignment/student/doAssignment.html", context
     )
     response.set_cookie(key="RS_info", value=str(json.dumps(parsed_js)))
     return response

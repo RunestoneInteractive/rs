@@ -21,12 +21,12 @@ dependencies = [
     "alembic>=1.13.1,<2",
     "marshmallow-sqlalchemy>=1.4.1,<2",
     "psycopg2-binary>=2.9.10,<3",
-    "anyio>=3.6.2,<4",
+    "anyio>=4.14.2,<5",
     "pydantic>=2.0.0,<3",
     "asyncpg>=0.31",
     "greenlet>=3.2.0,<4",
     "pyhumps>=3.8.0,<4",
-    "fastapi>=0.115.0,<0.116",
+    "fastapi>=0.162.0,<0.163",
     # 20260520.0+ drops the urllib FancyURLopener import removed in Python 3.14;
     # older pydal (e.g. the 20241204 series) crashes on import under 3.14.
     "pydal>=20260520.0",
@@ -47,7 +47,7 @@ dependencies = [
     "rich>=13.3.5,<14",
     "textual>=0.86.0",
     "CodeChat==1.9.3",
-    "cryptography>=46.0.0,<47",
+    "cryptography>=50.0.0,<51",
     "standard-imghdr>=3.13.0,<4",
 ]
 

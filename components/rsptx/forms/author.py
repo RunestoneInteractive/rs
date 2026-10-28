@@ -9,7 +9,6 @@ from wtforms import (
     IntegerRangeField,
 )
 
-
 # Make a form for the library table
 # Note: this could be easier -- we could automtically create a form from a sqlalchemy
 # model, butthe bookserver owns the library model definition

@@ -5,7 +5,7 @@
  *  1. Instructor selects chapter + report type, clicks "Generate Report"
  *  2. POST /analytics/subchapoverview/generate → receives task_id
  *  3. Poll GET /analytics/subchapoverview/result/{task_id} every 2s
- *  4. On complete: render Handsontable, show CSV download button
+ *  4. On complete: render the table, show CSV download button
  *  5. On error: show error message
  */
 
@@ -13,8 +13,9 @@
     "use strict";
 
     const POLL_INTERVAL_MS = 2000;
+    // Every other column is a student.
+    const LABEL_COLUMNS = new Set(["chapter_label", "div_id"]);
 
-    let hotInstance = null;   // Handsontable instance
     let currentTaskId = null; // task_id currently being polled
     let pollTimer = null;     // setInterval handle
 
@@ -85,7 +86,7 @@
     }
 
     // -------------------------------------------------------------------------
-    // Table rendering (Handsontable)
+    // Table rendering
     // -------------------------------------------------------------------------
     function renderTable(data) {
         hideStatus();
@@ -97,44 +98,21 @@
         }
 
         const resultsArea = document.getElementById("results-area");
-        const container = document.getElementById("hot-container");
+        const container = document.getElementById("report-table");
 
         resultsArea.style.display = "block";
         document.getElementById("row-count").textContent =
             `${data.length} row${data.length !== 1 ? "s" : ""}`;
 
-        // Destroy previous instance if re-generating
-        if (hotInstance) {
-            hotInstance.destroy();
-            hotInstance = null;
-        }
-
-        const keys = Object.keys(data[0]);
-        const columns = keys.map((k) => ({ data: k, renderer: "html" }));
-        const colHeaders = keys.map((k, i) => {
-            if (i === 0) return `<b>${escapeHtml(k)}</b>`;
-            // Student labels are formatted as "Last, First (username)".
-            // Extract the username from the trailing parentheses for the link.
-            const match = k.match(/\(([^)]+)\)$/);
-            const sid = match ? match[1] : k;
-            const label = escapeHtml(k);
-            const url = `/admin/analytics/student_detail?sid=${encodeURIComponent(sid)}`;
-            return `<b><a href="${url}" target="_blank" style="color:inherit;">${label}</a></b>`;
-        });
-
-        hotInstance = new Handsontable(container, {
-            data: data,
-            columns: columns,
-            colHeaders: colHeaders,
-            licenseKey: "non-commercial-and-evaluation",
-            fixedColumnsLeft: 1,
-            readOnly: true,
-            stretchH: "none",
-            width: "100%",
-            height: 560,
-            rowHeaders: false,
-            afterGetColHeader(col, TH) {
-                TH.innerHTML = this.getSettings().colHeaders[col];
+        renderReportTable(container, data, {
+            caption: "Chapter summary: one row per subchapter, one column per student",
+            headerHref(k) {
+                if (LABEL_COLUMNS.has(k)) return null;
+                // Student labels are formatted as "Last, First (username)".
+                // Extract the username from the trailing parentheses for the link.
+                const match = k.match(/\(([^)]+)\)$/);
+                const sid = match ? match[1] : k;
+                return `/admin/analytics/student_detail?sid=${encodeURIComponent(sid)}`;
             },
         });
     }
@@ -147,10 +125,7 @@
         document.getElementById("generate-btn").disabled = true;
         document.getElementById("results-area").style.display = "none";
         document.getElementById("error-area").style.display = "none";
-        if (hotInstance) {
-            hotInstance.destroy();
-            hotInstance = null;
-        }
+        document.getElementById("report-table").replaceChildren();
         currentTaskId = null;
     }
 
@@ -178,13 +153,5 @@
             });
         }
         return response;
-    }
-
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
     }
 })();

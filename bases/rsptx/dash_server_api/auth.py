@@ -63,8 +63,7 @@ def _load_context(token: str) -> Optional[CourseContext]:
         return None
     with engine.connect() as conn:
         row = conn.execute(
-            text(
-                """
+            text("""
                 select courses.id, courses.course_name, courses.base_course
                 from auth_user
                     join courses on courses.id = auth_user.course_id
@@ -72,8 +71,7 @@ def _load_context(token: str) -> Optional[CourseContext]:
                         on course_instructor.course = courses.id
                         and course_instructor.instructor = auth_user.id
                 where auth_user.username = :username
-                """
-            ),
+                """),
             {"username": username},
         ).first()
     if row is None:

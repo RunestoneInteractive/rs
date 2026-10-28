@@ -4,10 +4,8 @@
 
 {% block css %}
 <link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
+<link href="/staticAssets/css/report_table.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/assignmentoverview.css" rel="stylesheet" media="screen" />
-<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css"
-      rel="stylesheet" media="screen" />
 {% endblock %}
 
 {% block content %}
@@ -64,7 +62,7 @@
         Download CSV
       </button>
     </div>
-    <div id="hot-container"></div>
+    <div id="report-table"></div>
   </div>
 
 </div>
@@ -74,5 +72,6 @@
 {% if auto_assignment_id %}
 <script>window.AUTO_ASSIGNMENT_ID = {{ auto_assignment_id }};</script>
 {% endif %}
+<script src="/staticAssets/js/report_table.js"></script>
 <script src="/staticAssets/js/assignmentoverview.js"></script>
 {% endblock %}

@@ -1,8 +1,7 @@
 import { ActiveCode } from "./activecode.js";
 import { t } from "../../common/js/rsi18n.js";
 import { getDataValue } from "../../common/js/domutil.js";
-import Handsontable from "handsontable";
-import "handsontable/dist/handsontable.full.css";
+import { createResultTable } from "../../common/js/resultTable.js";
 import initSqlJs from "sql.js/dist/sql-wasm.js";
 
 var allDburls = {};
@@ -212,7 +211,12 @@ export default class SQLActiveCode extends ActiveCode {
                     section.appendChild(tableDiv);
                     let maxHeight = 350;
                     if (resultArray.length > 1) maxHeight = 200; // max height smaller if lots of results
-                    createTable(r, tableDiv, maxHeight);
+                    createResultTable(
+                        r,
+                        tableDiv,
+                        maxHeight,
+                        t("msg_activecode_query_results"),
+                    );
                     let messageBox = document.createElement("pre");
                     let rmsg = r.rowcount !== 1 ? " rows " : " row ";
                     let msg = "" + r.rowcount + rmsg + "returned";
@@ -370,49 +374,4 @@ export default class SQLActiveCode extends ActiveCode {
         }
         return output;
     }
-}
-
-function createTable(tableData, container, maxHeight) {
-    let data = tableData.values;
-    let trimRows = undefined;
-    if (data.length === 0) {
-        // kludge: no column headers will show up unless we do this
-        data = [tableData.columns.map((e) => null)];
-        trimRows = [0];
-    }
-
-    var hot = new Handsontable(container, {
-        data: data,
-        trimRows: trimRows,
-        width: "100%",
-        height: maxHeight,
-        autoRowSize: true,
-        autoColumnSize: { useHeaders: true },
-        rowHeaders: false,
-        colHeaders: tableData.columns,
-        editor: false,
-        maxRows: 100,
-        filters: false,
-        dropdownMenu: false,
-        licenseKey: "non-commercial-and-evaluation",
-    });
-
-    // calculate actual height and resize
-    let actualHeight = 40; // header height + small margin
-    if (tableData.values.length > 0) {
-        for (let i = 0; i < data.length; i++) {
-            actualHeight = actualHeight + hot.getRowHeight(i);
-            if (actualHeight > maxHeight) break;
-        }
-    }
-
-    hot.updateSettings({ height: actualHeight });
-
-    // Handsontable creates overlay copies for headers. Name only its main
-    // data table, without changing the grid's measured height or layout.
-    const caption = hot.table.createCaption();
-    caption.classList.add("visuallyhidden");
-    caption.textContent = t("msg_activecode_query_results");
-
-    return hot;
 }

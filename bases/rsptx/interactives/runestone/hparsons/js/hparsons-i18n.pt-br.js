@@ -23,5 +23,6 @@ load({
         msg_hparsons_check_me: "Verificar",
         msg_hparsons_blocks_reset: "Blocos redefinidos.",
         msg_hparsons_run: "Executar",
+        msg_hparsons_query_results: "Resultados da consulta",
     },
 });

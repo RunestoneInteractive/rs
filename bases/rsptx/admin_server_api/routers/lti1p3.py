@@ -361,9 +361,18 @@ async def launch(request: Request):
         rslogger.debug(f"LTI1p3 - launch lineitem: {assign_lineitem.__dict__}")
 
         assign_resource_id = assign_lineitem.get_resource_id()
-        lineitem_course_id, lineitem_assign_id = parse_assignment_score_resource_id(
-            assign_resource_id
-        )
+        try:
+            lineitem_course_id, lineitem_assign_id = parse_assignment_score_resource_id(
+                assign_resource_id
+            )
+        except ValueError:
+            rslogger.error(
+                f"Invalid resource ID format for the assignment line item: {assign_resource_id}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid resource ID format for the assignment line item: {assign_resource_id}",
+            )
 
     # identify the course
     lti_context_dict = message_launch.get_context()
@@ -649,8 +658,8 @@ async def register(
 
     templates = get_shared_templates()
     return templates.TemplateResponse(
+        request,
         "admin/lti1p3/registration_confirm.html",
-        request=request,
         context={
             "message": "LTI 1.3 configuration set",
             "request": request,
@@ -885,7 +894,7 @@ async def deep_link_login(request: Request):
         "lti_storage_target": fapi_request.get_param("lti_storage_target"),
     }
     resp = templates.TemplateResponse(
-        name="admin/lti1p3/rs_login.html", context=tpl_kwargs
+        request=request, name="admin/lti1p3/rs_login.html", context=tpl_kwargs
     )
     return resp
 
@@ -1025,7 +1034,7 @@ async def dynamic_link_entry(request: Request):
 
     templates = get_shared_templates()
     resp = templates.TemplateResponse(
-        name="admin/lti1p3/pick_links.html", context=tpl_kwargs
+        request=request, name="admin/lti1p3/pick_links.html", context=tpl_kwargs
     )
     return resp
 

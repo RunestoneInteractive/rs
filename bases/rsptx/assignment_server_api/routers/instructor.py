@@ -322,7 +322,7 @@ async def review_peer_assignment(
 
     templates = get_shared_templates()
     response = templates.TemplateResponse(
-        "assignment/instructor/reviewPeerAssignment.html", context
+        request, "assignment/instructor/reviewPeerAssignment.html", context
     )
 
     return response
@@ -1064,6 +1064,7 @@ async def get_builder(
     course_attrs = await fetch_all_course_attributes(course.id)
 
     return templates.TemplateResponse(
+        request,
         "assignment/instructor/builder.html",
         {
             "course": course,
@@ -1166,7 +1167,9 @@ async def make_invoice_request(
         referer=referer,
     )
     templates = get_shared_templates()
-    response = templates.TemplateResponse("assignment/instructor/invoice.html", context)
+    response = templates.TemplateResponse(
+        request, "assignment/instructor/invoice.html", context
+    )
 
     return response
 
@@ -1403,7 +1406,7 @@ async def do_assignment_summary(
     }
     templates = get_shared_templates()
     response = templates.TemplateResponse(
-        "assignment/instructor/assignment_summary.html", context
+        request, "assignment/instructor/assignment_summary.html", context
     )
 
     return response
@@ -1596,7 +1599,9 @@ async def get_add_token_page(
         "token_list": token_list,
     }
 
-    return templates.TemplateResponse("assignment/instructor/add_token.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/instructor/add_token.html", context
+    )
 
 
 @router.delete("/delete_tokens")

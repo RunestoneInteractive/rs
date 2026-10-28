@@ -112,14 +112,12 @@ def _number_key(qnumber: Optional[str]) -> tuple:
 def fetch_chapters(conn: Connection, base_course: str) -> List[dict]:
     """Chapters of a book as ``[{label, value}]`` dropdown options, in book order."""
     rows = conn.execute(
-        text(
-            """
+        text("""
             select chapter_name, chapter_label
             from chapters
             where course_id = :base_course and chapter_num < 999
             order by chapter_num
-            """
-        ),
+            """),
         {"base_course": base_course},
     )
     return [{"label": r.chapter_name, "value": r.chapter_label} for r in rows]
@@ -128,16 +126,14 @@ def fetch_chapters(conn: Connection, base_course: str) -> List[dict]:
 def fetch_subchapters(conn: Connection, base_course: str, chapter: str) -> List[dict]:
     """Subchapters of one chapter as ``[{label, value}]`` dropdown options."""
     rows = conn.execute(
-        text(
-            """
+        text("""
             select sub_chapter_name, sub_chapter_label
             from sub_chapters
                 join chapters on chapters.id = sub_chapters.chapter_id
             where chapters.course_id = :base_course
                 and chapters.chapter_label = :chapter
             order by sub_chapter_num
-            """
-        ),
+            """),
         {"base_course": base_course, "chapter": chapter},
     )
     return [{"label": r.sub_chapter_name, "value": r.sub_chapter_label} for r in rows]
@@ -152,8 +148,7 @@ def fetch_subchapter_questions(
     written questions are filed under a chapter but do not appear on its pages.
     """
     rows = conn.execute(
-        text(
-            """
+        text("""
             select id, name, question_type, qnumber, autograde
             from questions
             where base_course = :base_course
@@ -161,8 +156,7 @@ def fetch_subchapter_questions(
                 and subchapter = :subchapter
                 and from_source = 'T'
                 and question_type = any(:types)
-            """
-        ),
+            """),
         {
             "base_course": base_course,
             "chapter": chapter,
@@ -188,8 +182,7 @@ def fetch_subchapter_questions(
 def fetch_roster(conn: Connection, course_name: str) -> List[str]:
     """Usernames of the students enrolled in a course; instructors are left out."""
     rows = conn.execute(
-        text(
-            """
+        text("""
             select auth_user.username
             from user_courses
                 join auth_user on auth_user.id = user_courses.user_id
@@ -200,8 +193,7 @@ def fetch_roster(conn: Connection, course_name: str) -> List[str]:
                     where course_instructor.course = courses.id
                         and course_instructor.instructor = auth_user.id
                 )
-            """
-        ),
+            """),
         {"course_name": course_name},
     )
     return sorted({r.username for r in rows})
@@ -314,13 +306,11 @@ def _resolve_select_questions(
     if not selectors or not sids:
         return {}
     selected = conn.execute(
-        text(
-            """
+        text("""
             select selector_id, sid, selected_id
             from selected_questions
             where selector_id = any(:names) and sid = any(:sids)
-            """
-        ),
+            """),
         {"names": [q.name for q in selectors], "sids": list(sids)},
     ).all()
     if not selected:
@@ -328,14 +318,12 @@ def _resolve_select_questions(
     # A div_id can exist in more than one book; prefer this course's own. The
     # dict below keeps the last row per name, so the preferred rows sort last.
     served_rows = conn.execute(
-        text(
-            """
+        text("""
             select name, question_type, autograde
             from questions
             where name = any(:names)
             order by (base_course = :base_course) asc
-            """
-        ),
+            """),
         {
             "names": sorted({s.selected_id for s in selected}),
             "base_course": base_course,

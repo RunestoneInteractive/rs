@@ -180,7 +180,7 @@ async def get_peer_instructor(
     }
 
     return templates.TemplateResponse(
-        "assignment/instructor/peer_instructor.html", context
+        request, "assignment/instructor/peer_instructor.html", context
     )
 
 
@@ -327,7 +327,7 @@ async def get_peer_dashboard(
     }
 
     return templates.TemplateResponse(
-        "assignment/instructor/peer_dashboard.html", context
+        request, "assignment/instructor/peer_dashboard.html", context
     )
 
 
@@ -373,7 +373,9 @@ async def get_peer_extra(
         "is_instructor": True,
     }
 
-    return templates.TemplateResponse("assignment/instructor/peer_extra.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/instructor/peer_extra.html", context
+    )
 
 
 @router.get("/instructor/review", response_class=HTMLResponse)
@@ -448,7 +450,9 @@ async def get_peer_student(
         "settings": settings,
     }
 
-    return templates.TemplateResponse("assignment/student/peer_student.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/peer_student.html", context
+    )
 
 
 @router.get("/student/question", response_class=HTMLResponse)
@@ -552,7 +556,9 @@ async def get_peer_question(
         "wp_imports": wp_assets,
     }
 
-    return templates.TemplateResponse("assignment/student/peer_question.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/peer_question.html", context
+    )
 
 
 async def _has_vote1_async(div_id: str, sid: str) -> bool:
@@ -830,7 +836,9 @@ async def get_peer_async(
         "wp_imports": wp_assets,
     }
 
-    return templates.TemplateResponse("assignment/student/peer_async.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/peer_async.html", context
+    )
 
 
 def parse_peergroup_members(act: str, sid: str) -> set[str]:

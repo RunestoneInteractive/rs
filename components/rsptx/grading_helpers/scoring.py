@@ -3,7 +3,6 @@ from typing import Any, Iterable, Optional, Tuple, Union
 from rsptx.grading_helpers.comments import is_hand_graded
 from rsptx.logging import rslogger
 
-
 PEER_SCORE_SENTINEL = "__peer_needs_useinfo__"
 
 
