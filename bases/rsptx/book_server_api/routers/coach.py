@@ -55,7 +55,7 @@ from ..activecode_questions import (
     question_test_code,
     starter_code_from_question,
 )
-from ..openai_token import DEV_API_KEY, fetch_openai_token, uses_dev_api_key
+from ..openai_token import dev_llm_token, fetch_llm_token, uses_dev_api_key
 
 # .. _APIRouter config:
 #
@@ -444,7 +444,7 @@ async def parsons_scaffolding(
         if uses_dev_api_key(course_name):
             # Dev/Test mode testing
             rslogger.warning("CodeTailor: Using predefined dev API key")
-            api_token = DEV_API_KEY
+            api_token = dev_llm_token()
         else:
             # obtain the CoursesValidator object - Brad's review
             try:
@@ -458,7 +458,7 @@ async def parsons_scaffolding(
             rslogger.warning(
                 f"[CodeTailor] Fetching course: {course_name}, id: {course.id}"
             )
-            api_token = await fetch_openai_token(course)
+            api_token = await fetch_llm_token(course)
             if api_token is None:
                 rslogger.error(
                     f"CodeTailor: No API token found for course '{course_name}'."
@@ -475,7 +475,7 @@ async def parsons_scaffolding(
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
             rslogger.warning(
-                f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: openai, api_token: {api_token[:4]}****"
+                f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: {api_token.provider}, api_token: {api_token.token[:4]}****"
             )
     except Exception as e:
         rslogger.error(f"CodeTailor: Error fetching API tokens: {e}")
@@ -486,7 +486,7 @@ async def parsons_scaffolding(
 
     if api_token is None:
         return JSONResponse(
-            content={"error": "CodeTailor: No openai API found"},
+            content={"error": "CodeTailor: No LLM API token found"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     rslogger.warning("CodeTailor: api_token obtained successfully")
