@@ -19,9 +19,9 @@ const handleNavClick = (item: NavItem) => (event: MouseEvent<HTMLElement>) => {
     return;
   }
 
-  if (item.command) {
+  if (item.onClick) {
     event.preventDefault();
-    item.command();
+    item.onClick();
   }
 };
 
@@ -38,7 +38,7 @@ const renderSubItem = (item: NavItem, index: number) => {
       component={item.href ? "a" : "button"}
       href={item.href}
       leftSection={leftSection}
-      disabled={item.disabled || (!item.command && !item.href)}
+      disabled={item.disabled || (!item.onClick && !item.href)}
       onClick={handleNavClick(item)}
     >
       {item.label}
@@ -119,7 +119,7 @@ const renderCompactItem = (item: NavItem, index: number, activePath: string) => 
       href={item.href}
       className={active ? styles.menuItemActive : undefined}
       leftSection={leftSection}
-      disabled={item.disabled || (!item.command && !item.href)}
+      disabled={item.disabled || (!item.onClick && !item.href)}
       onClick={handleNavClick(item)}
       aria-current={active ? "page" : undefined}
     >
