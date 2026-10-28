@@ -264,6 +264,24 @@ describe("buildNavBar", () => {
     });
   });
 
+  it("provides real destinations for navigation links", () => {
+    const items = buildNavBar(makeConfig());
+    const userItems = items.find((item) => item.label === "User")?.items;
+    const helpItems = items.find((item) => item.label === "Help")?.items;
+
+    expect(items.find((item) => item.label === "Grader")?.href).toBe(
+      "/assignment/instructor/grader"
+    );
+    expect(items.find((item) => item.label === "Assignment Builder")?.href).toBe(
+      "/assignment/instructor/builder"
+    );
+    expect(userItems?.find((item) => item.label === "Course home")?.href).toBe("/ns/course/index");
+    expect(helpItems?.find((item) => item.label === "Instructor's guide")?.href).toBe(
+      "https://guide.runestone.academy/"
+    );
+    expect(userItems?.find((item) => item.label === "Logout")?.href).toBeUndefined();
+  });
+
   describe("course switcher", () => {
     it("replaces Home with the current course and recent instructor courses", () => {
       const onSwitch = vi.fn();

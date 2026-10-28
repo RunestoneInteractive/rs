@@ -1,7 +1,7 @@
 import userEvent from "@testing-library/user-event";
 
 import { NavItem } from "@/navUtils";
-import { renderWithMantine, screen, waitFor, within } from "@/test/renderWithMantine";
+import { fireEvent, renderWithMantine, screen, waitFor, within } from "@/test/renderWithMantine";
 
 import { AppNavBar } from "./AppNavBar";
 
@@ -22,30 +22,65 @@ const makeItems = (overrides: Partial<NavItem>[] = []): NavItem[] => [
 ];
 
 describe("AppNavBar", () => {
-  it("renders top-level item labels as buttons", () => {
-    renderWithMantine(<AppNavBar items={makeItems()} />);
+  it("renders top-level navigation destinations as links", () => {
+    const items: NavItem[] = [
+      { label: "Grader", href: "/assignment/instructor/grader", command: vi.fn() },
+      { label: "Back to Course", href: "/ns/course/index", command: vi.fn() },
+      { label: "User", items: [{ label: "Logout", command: vi.fn() }] }
+    ];
 
-    const home = screen.getByRole("button", { name: /home/i });
-    const backToCourse = screen.getByRole("button", { name: /back to course/i });
+    renderWithMantine(<AppNavBar items={items} />);
+
+    const grader = screen.getByRole("link", { name: /grader/i });
+    const backToCourse = screen.getByRole("link", { name: /back to course/i });
     const user = screen.getByRole("button", { name: /user/i });
 
-    expect(home).toBeInTheDocument();
+    expect(grader).toHaveAttribute("href", "/assignment/instructor/grader");
     expect(backToCourse).toBeInTheDocument();
     expect(user).toBeInTheDocument();
-    expect(home).not.toHaveAttribute("title");
+    expect(grader).not.toHaveAttribute("title");
     expect(backToCourse).not.toHaveAttribute("title");
     expect(user).not.toHaveAttribute("title");
   });
 
   it("invokes the command when a top-level item is clicked", async () => {
     const command = vi.fn();
-    const items: NavItem[] = [{ label: "Grader", icon: "check-square", command }];
+    const items: NavItem[] = [
+      {
+        label: "Grader",
+        icon: "check-square",
+        href: "/assignment/instructor/grader",
+        command
+      }
+    ];
 
     renderWithMantine(<AppNavBar items={items} />);
-    await userEvent.click(screen.getByRole("button", { name: /grader/i }));
+    await userEvent.click(screen.getByRole("link", { name: /grader/i }));
 
     expect(command).toHaveBeenCalledTimes(1);
   });
+
+  it.each(["ctrlKey", "metaKey", "shiftKey"] as const)(
+    "leaves modified clicks to the browser when %s is held",
+    (modifier) => {
+      const command = vi.fn();
+      const items: NavItem[] = [
+        {
+          label: "Grader",
+          href: "/assignment/instructor/grader",
+          command
+        }
+      ];
+
+      renderWithMantine(<AppNavBar items={items} />);
+      const link = screen.getByRole("link", { name: /grader/i });
+
+      link.addEventListener("click", (event) => event.preventDefault());
+      fireEvent.click(link, { [modifier]: true });
+
+      expect(command).not.toHaveBeenCalled();
+    }
+  );
 
   it("opens a submenu and invokes a sub-item command", async () => {
     const logout = vi.fn();
@@ -65,6 +100,32 @@ describe("AppNavBar", () => {
     await userEvent.click(logoutItem);
 
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+  });
+
+  it("renders submenu destinations as links and preserves modified clicks", async () => {
+    const command = vi.fn();
+    const items: NavItem[] = [
+      {
+        label: "Help",
+        items: [
+          {
+            label: "Guide",
+            href: "https://guide.runestone.academy/",
+            command
+          }
+        ]
+      }
+    ];
+
+    renderWithMantine(<AppNavBar items={items} />);
+    await userEvent.click(screen.getByRole("button", { name: /help/i }));
+    const guide = await screen.findByRole("menuitem", { name: /guide/i });
+
+    expect(guide).toHaveAttribute("href", "https://guide.runestone.academy/");
+    guide.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(guide, { ctrlKey: true });
+
+    expect(command).not.toHaveBeenCalled();
   });
 
   it("supports arrow navigation and closes a submenu with Escape", async () => {
@@ -201,5 +262,26 @@ describe("AppNavBar", () => {
 
     await userEvent.click(within(menu).getByRole("menuitem", { name: /home/i }));
     await waitFor(() => expect(home).toHaveBeenCalledTimes(1));
+  });
+
+  it("renders compact navigation destinations as links", async () => {
+    const command = vi.fn();
+    const items: NavItem[] = [
+      {
+        label: "Grader",
+        href: "/assignment/instructor/grader",
+        command
+      }
+    ];
+
+    renderWithMantine(<AppNavBar items={items} />);
+    await userEvent.click(screen.getByRole("button", { name: /open navigation menu/i }));
+    const grader = await screen.findByRole("menuitem", { name: /grader/i });
+
+    expect(grader).toHaveAttribute("href", "/assignment/instructor/grader");
+    grader.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(grader, { metaKey: true });
+
+    expect(command).not.toHaveBeenCalled();
   });
 });

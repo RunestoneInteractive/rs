@@ -5,6 +5,7 @@ import { isEmptyObject } from "@/utils/object";
 export interface NavItem {
   label?: string;
   icon?: PrimeIconName;
+  href?: string;
   command?: () => void;
   items?: NavItem[];
   visible?: boolean;
@@ -98,22 +99,26 @@ export const buildNavBar = (
     },
     {
       label: `Back to ${course || "Course"}`,
+      href: `/ns/books/published/${course}/index.html`,
       command: () => navigateToPath("/ns/books/published/" + course + "/index.html")
     },
     {
       label: "Dashboard",
       icon: "cog",
+      href: "/admin/instructor/menu",
       command: () => navigateToPath("/admin/instructor/menu")
     },
     {
       label: "Grader",
       icon: "check-square",
+      href: "/assignment/instructor/grader",
       command: () => navigateToPath("grader"),
       activePrefixes: ["/grader"]
     },
     {
       label: "Assignment Builder",
       icon: "file-edit",
+      href: "/assignment/instructor/builder",
       command: () => navigateToPath("builder"),
       activePrefixes: ["/builder", "/"]
     },
@@ -128,25 +133,30 @@ export const buildNavBar = (
         {
           label: "Course home",
           icon: "home",
+          href: "/ns/course/index",
           command: () => navigateToPath("/ns/course/index")
         },
         {
           label: "Assignments",
           icon: "pencil",
+          href: "/assignment/student/chooseAssignment",
           command: () => navigateToPath("/assignment/student/chooseAssignment")
         },
         {
           label: "Practice",
           icon: "palette",
+          href: "/runestone/assignments/practice",
           command: () => navigateToPath("/runestone/assignments/practice")
         },
         {
           label: "Peer instruction (instructor)",
+          href: "/assignment/peer/instructor",
           command: () => navigateToPath("/assignment/peer/instructor"),
           visible: isInstructor
         },
         {
           label: "Peer instruction (student)",
+          href: "/assignment/peer/student",
           command: () => navigateToPath("/assignment/peer/student")
         },
         {
@@ -154,6 +164,7 @@ export const buildNavBar = (
         },
         {
           label: "Change course",
+          href: "/admin/auth/my_courses",
           command: () => navigateToPath("/admin/auth/my_courses")
         },
         {
@@ -161,15 +172,18 @@ export const buildNavBar = (
         },
         {
           label: "Instructor's dashboard",
+          href: "/admin/instructor/menu",
           command: () => navigateToPath("/admin/instructor/menu")
         },
         {
           label: "Accommodations",
           icon: "ban",
+          href: "/assignment/instructor/except",
           command: () => navigateToPath("except")
         },
         {
           label: "Progress page",
+          href: "/assignment/student/studentreport",
           command: () => navigateToPath("/assignment/student/studentreport")
         },
         {
@@ -177,10 +191,12 @@ export const buildNavBar = (
         },
         {
           label: "Edit profile",
+          href: "/admin/auth/profile",
           command: () => navigateToPath("/admin/auth/profile")
         },
         {
           label: "Change password",
+          href: "/runestone/default/user/change_password",
           command: () => navigateToPath("/runestone/default/user/change_password")
         },
         {
@@ -196,11 +212,13 @@ export const buildNavBar = (
         {
           label: "Instructor's guide",
           icon: "book",
+          href: "https://guide.runestone.academy/",
           command: () => navigateToPath("https://guide.runestone.academy/")
         },
         {
           label: "Video tutorials",
           icon: "video",
+          href: "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU",
           command: () =>
             navigateToPath(
               "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU"
@@ -209,11 +227,13 @@ export const buildNavBar = (
         {
           label: "Contact us",
           icon: "envelope",
+          href: "https://github.com/RunestoneInteractive/rs/issues",
           command: () => navigateToPath("https://github.com/RunestoneInteractive/rs/issues")
         },
         {
           label: "Join our Discord",
           icon: "discord",
+          href: "https://discord.gg/f3Qmbk9P3U",
           command: () => navigateToPath("https://discord.gg/f3Qmbk9P3U")
         }
       ]
