@@ -475,7 +475,7 @@ async def parsons_scaffolding(
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
             rslogger.warning(
-                f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: {api_token.provider}, api_token: {api_token.token[:4]}****"
+                f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: {api_token.provider}, api_token: {api_token.masked()}"
             )
     except Exception as e:
         rslogger.error(f"CodeTailor: Error fetching API tokens: {e}")

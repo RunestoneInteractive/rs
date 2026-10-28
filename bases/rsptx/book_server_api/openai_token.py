@@ -43,9 +43,13 @@ class LLMToken(NamedTuple):
             api_key=self.token, base_url=LLM_PROVIDERS[self.provider]["base_url"]
         )
 
+    def masked(self):
+        """The key with all but its first and last four characters hidden."""
+        return f"{self.token[:4]}****{self.token[-4:]}"
+
     def __repr__(self):
         # keep the key out of logs and tracebacks
-        return f"LLMToken(provider={self.provider!r}, token={self.token[:4]!r}****)"
+        return f"LLMToken(provider={self.provider!r}, token={self.masked()!r})"
 
 
 def uses_dev_api_key(course_name):
