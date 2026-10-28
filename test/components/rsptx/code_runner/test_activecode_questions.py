@@ -6,8 +6,8 @@ them to check generated code against a question's own unit tests.
 
 from types import SimpleNamespace
 
-from rsptx.book_server_api import jobe
-from rsptx.book_server_api.activecode_questions import (
+from rsptx.code_runner import jobe
+from rsptx.code_runner.activecode_questions import (
     data_file_candidates,
     extract_suffix_code_from_htmlsrc,
     question_test_code,

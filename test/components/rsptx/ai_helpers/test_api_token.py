@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from rsptx.book_server_api import openai_token
-from rsptx.book_server_api.openai_token import LLMToken, fetch_llm_token
+from rsptx.ai_helpers import api_token
+from rsptx.ai_helpers.api_token import LLMToken, fetch_llm_token
 
 # Session loop scope keeps later DB tests on the shared loop (see AGENTS.md)
 _asyncio = pytest.mark.asyncio(loop_scope="session")
@@ -23,7 +23,7 @@ def _fake_tokens(monkeypatch, tokens):
         token = tokens.get(provider)
         return SimpleNamespace(token=token) if token is not None else None
 
-    monkeypatch.setattr(openai_token, "fetch_api_token", fetch_api_token)
+    monkeypatch.setattr(api_token, "fetch_api_token", fetch_api_token)
 
 
 @_asyncio

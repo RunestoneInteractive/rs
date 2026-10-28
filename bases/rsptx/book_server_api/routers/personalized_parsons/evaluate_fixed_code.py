@@ -5,7 +5,7 @@ import hashlib
 import base64
 import json
 from ..rsproxy import settings
-from ...jobe import (
+from rsptx.code_runner.jobe import (
     b64_text_utf8,
     load_and_run_tests,
     push_data_files,

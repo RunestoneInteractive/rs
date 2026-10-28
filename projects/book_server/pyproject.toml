@@ -109,3 +109,5 @@ bypass-selection = true
 "../../components/rsptx/lti1p3" = "rsptx/lti1p3"
 "../../components/rsptx/lti1p1" = "rsptx/lti1p1"
 "../../components/rsptx/data_types" = "rsptx/data_types"
+"../../components/rsptx/ai_helpers" = "rsptx/ai_helpers"
+"../../components/rsptx/code_runner" = "rsptx/code_runner"

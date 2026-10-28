@@ -47,7 +47,7 @@ from .assessment import get_question_source, SelectQRequest
 from rsptx.auth.session import get_optional_user
 from rsptx.db.crud.course import fetch_course
 
-from ..activecode_questions import (
+from rsptx.code_runner.activecode_questions import (
     clean_python_testcase,
     data_file_candidates,
     fetch_data_files,
@@ -55,7 +55,11 @@ from ..activecode_questions import (
     question_test_code,
     starter_code_from_question,
 )
-from ..openai_token import dev_llm_token, fetch_llm_token, uses_dev_api_key
+from rsptx.ai_helpers.api_token import (
+    dev_llm_token,
+    fetch_llm_token,
+    uses_dev_api_key,
+)
 
 # .. _APIRouter config:
 #

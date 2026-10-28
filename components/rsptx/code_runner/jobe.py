@@ -1,4 +1,4 @@
-"""Run Python programs on JOBE from the book server.
+"""Run Python programs on JOBE.
 
 Used by CodeTailor to check the code it generates against a question's unit
 tests. Data files the program opens are pushed to JOBE first, the way
