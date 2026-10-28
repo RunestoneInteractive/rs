@@ -56,7 +56,8 @@ export default defineConfig(({ mode }: { mode: string }) => {
     },
     plugins: [react()],
     optimizeDeps: {
-      include: ["react", "react-dom"]
+      include: ["react", "react-dom", "tiptap-extension-code-block-prism"],
+      needsInterop: ["tiptap-extension-code-block-prism"]
     }
   };
 });
