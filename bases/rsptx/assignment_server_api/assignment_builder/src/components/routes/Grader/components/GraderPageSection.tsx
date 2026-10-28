@@ -1,4 +1,6 @@
-import React, { PropsWithChildren, useEffect, useRef } from "react";
+import React, { PropsWithChildren } from "react";
+
+import { useRouteHeadingFocus } from "@/hooks/useRouteHeadingFocus";
 
 import styles from "../Grader.module.css";
 
@@ -12,12 +14,8 @@ export const GraderPageSection: React.FC<GraderPageSectionProps> = ({
   heading,
   pathname
 }) => {
-  const headingRef = useRef<HTMLHeadingElement>(null);
   const pagePathname = pathname.replace(/\/students\/[^/]+\/?$/, "");
-
-  useEffect(() => {
-    headingRef.current?.focus();
-  }, [pagePathname]);
+  const headingRef = useRouteHeadingFocus(pagePathname);
 
   return (
     <section className={styles.body} aria-labelledby="grader-page-heading">
