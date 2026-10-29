@@ -645,11 +645,15 @@ async def fetch_assignments(
 
 
 # write a function that fetches all Assignment objects given a course name
-async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
+async def fetch_one_assignment(
+    assignment_id: int, read_only: bool = False
+) -> AssignmentValidator:
     """
     Fetch one Assignment object with calculated total points for related exercises.
 
     :param assignment_id: int, the assignment id
+    :param read_only: bool, when True the recalculated points are returned but
+        not saved to the database
 
     :return: AssignmentValidator
     """
@@ -673,14 +677,15 @@ async def fetch_one_assignment(assignment_id: int) -> AssignmentValidator:
         total_points = sum(exercise.points for exercise in exercises)
 
         assignment.points = total_points
-        session.add(assignment)
-        await session.commit()
+        if not read_only:
+            session.add(assignment)
+            await session.commit()
 
         return AssignmentValidator.from_orm(assignment)
 
 
 async def fetch_assignment_by_name(
-    name: str, course_id: int
+    name: str, course_id: int, read_only: bool = False
 ) -> Optional[AssignmentValidator]:
     """
     Fetch one Assignment (with calculated total points) by its name within a
@@ -688,6 +693,7 @@ async def fetch_assignment_by_name(
 
     :param name: str, the assignment name
     :param course_id: int, the course the assignment belongs to
+    :param read_only: bool, passed through to ``fetch_one_assignment``
     :return: Optional[AssignmentValidator]
     """
     async with async_session() as session:
@@ -699,7 +705,7 @@ async def fetch_assignment_by_name(
 
     if assignment_id is None:
         return None
-    return await fetch_one_assignment(assignment_id)
+    return await fetch_one_assignment(assignment_id, read_only=read_only)
 
 
 async def create_assignment(assignment: AssignmentValidator) -> AssignmentValidator:
