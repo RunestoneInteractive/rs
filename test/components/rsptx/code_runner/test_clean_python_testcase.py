@@ -10,7 +10,7 @@ example solution.
 
 import pytest
 
-from rsptx.book_server_api.routers.coach import clean_python_testcase
+from rsptx.code_runner.activecode_questions import clean_python_testcase
 
 _TESTS = """\
 import unittest
