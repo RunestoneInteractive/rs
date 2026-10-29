@@ -44,8 +44,15 @@ class LLMToken(NamedTuple):
         )
 
     def masked(self):
-        """The key with all but its first and last four characters hidden."""
-        return f"{self.token[:4]}****{self.token[-4:]}"
+        """
+        The key with only a few characters at each end shown, as a breadcrumb
+        for telling keys apart: four for real keys, fewer for short ones so
+        most of the key stays hidden.
+        """
+        shown = min(4, len(self.token) // 6)
+        if shown == 0:
+            return "****"
+        return f"{self.token[:shown]}****{self.token[-shown:]}"
 
     def __repr__(self):
         # keep the key out of logs and tracebacks

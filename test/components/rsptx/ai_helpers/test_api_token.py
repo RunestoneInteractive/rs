@@ -57,6 +57,13 @@ def test_client_and_model_follow_provider():
 
 
 def test_repr_masks_key():
-    token = LLMToken("sk-abSECRETxyz9", "openai")
+    token = LLMToken("sk-abSECRETSECRETSECRETxyz9", "openai")
     assert token.masked() == "sk-a****xyz9"
     assert "SECRET" not in repr(token)
+
+
+def test_short_key_shows_less():
+    token = LLMToken("abcd1234", "openai")
+    assert token.masked() == "a****4"
+    assert "abcd" not in repr(token) and "1234" not in repr(token)
+    assert LLMToken("abc").masked() == "****"

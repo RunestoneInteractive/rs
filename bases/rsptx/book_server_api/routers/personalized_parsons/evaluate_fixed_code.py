@@ -113,21 +113,13 @@ def load_and_run_java_tests(java_code, test_code, data_files=None):
                 student_file_url, json={"file_contents": student_b64}, timeout=10
             )
             if put.status_code != 204:
-                return False, {
-                    "error": "Failed to push student file",
-                    "status": put.status_code,
-                    "body": put.text[:500],
-                }
+                return False
 
         r = sess.head(test_file_url, timeout=10)
         if r.status_code != 204:
             put = sess.put(test_file_url, json={"file_contents": test_b64}, timeout=10)
             if put.status_code != 204:
-                return False, {
-                    "error": "Failed to push test file",
-                    "status": put.status_code,
-                    "body": put.text[:500],
-                }
+                return False
 
         data_file_list = push_data_files(sess, data_files)
 
@@ -165,11 +157,7 @@ def load_and_run_java_tests(java_code, test_code, data_files=None):
         try:
             result = resp.json()
         except Exception:
-            return False, {
-                "error": "Non-JSON JOBE response",
-                "status": resp.status_code,
-                "body": resp.text[:800],
-            }
+            return False
 
         out = (result.get("stdout") or "").strip()
         passed = (result.get("outcome") == 15) and out.startswith("PASS")

@@ -444,6 +444,7 @@ async def parsons_scaffolding(
 
     # Fetch API token
     api_token = None
+    course = None
     try:
         if uses_dev_api_key(course_name):
             # Dev/Test mode testing
