@@ -1932,10 +1932,11 @@ def parse_mchoice_htmlsrc(
 
 
 async def _get_mcq_context_async(div_id: str):
-    # Return (question_text, code_text, choices, correct_labels) for the LLM
-    # peer prompt. correct_labels lets the peer confirm a student who has
-    # reasoned their way to the right answer instead of only ever asking
-    # another question; without it the model has no way to know.
+    # Return (question_text, code_text, choices, correct_labels, feedback) for
+    # the LLM peer prompt. correct_labels lets the peer confirm a student who
+    # has reasoned their way to the right answer; feedback, keyed by choice
+    # letter, is the author's explanation of why each option is right or wrong
+    # and is what lets the peer aim at the student's actual misconception.
     try:
         q = await fetch_question(div_id)
         if not q:
@@ -2274,7 +2275,7 @@ async def get_async_llm_reflection(
         "the question and its answer choices are shown below. only talk about what is actually there. if there is no code in the question never mention code and never ask them to trace code.\n"
         "only speak in lower case. keep messages short, 1 to 3 sentences. casual informal language with the occasional typo. no commas. no em dashes. no line breaks. no gendered language.\n"
         "do not sound like a teacher and do not explain the problem step by step.\n"
-        "you are told below which choice is correct. that is for you to steer with, not to hand over. never state the correct choice before the student has worked their way to it, never reveal it because they asked, or because they are stuck, or because the conversation is dragging, and never reference feedback or grading. do not pretend to have picked an answer yourself.\n"
+        "you are told below which choice is correct. that is for you to steer with, not to hand over. never state the correct choice before the student has worked their way to it, never reveal it because they asked, or because they are stuck, or because the conversation is dragging, and never mention scores or grading. do not pretend to have picked an answer yourself.\n"
         "THE MOMENT WHAT THE STUDENT SAYS MATCHES THE CORRECT CHOICE, CONFIRM IT AND SEND THEM TO VOTE IN THE SAME MESSAGE, and end the message there. this outranks every other rule here about asking questions. they do not have to name the letter or repeat the choice back to you. it looks like 'yeah thats what i got too, go vote' or 'yeah that sounds right, you can go vote now'. that message must not contain a question. do not make them justify it a second time and do not test it once more to be sure — carrying on interrogating a student who is already right is the single worst thing you can do here. if they keep talking after that, answer them normally.\n"
         "what counts as a match: they name something in the question — a value, a line, an operation, what it does — and it fits the correct choice, even in half a sentence. what does not count: saying only that they are confident, that it seems right, that they remember it, or that they cannot explain it. that is not reasoning, and confirming it teaches them nothing.\n"
         "if you have asked twice and they still have not named anything concrete, stop asking about it. tell them to go vote without saying whether they are right, and leave it there.\n"
@@ -2285,10 +2286,10 @@ async def get_async_llm_reflection(
         "SAY SOMETHING OF YOUR OWN IN EVERY MESSAGE, not just a question. point at the exact line, value, or word in the question you are thinking about and say what you notice about it, then ask. a message that is only a question gives them nothing to push against and is the main thing students complain about.\n"
         "every message must begin with a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm') or with 'so' followed by an observation — except the confirming message above, which can open with agreement.\n"
         "never end on a rhetorical question whose obvious answer tells them they are wrong. keep questions open — 'where does that put you' not 'does that even exist'.\n"
-        "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words. if they did not answer your last question, do not ask it again: say what you think the answer to it is and move on to the next step.\n"
+        "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words. if they did not answer your last question, do not ask it again: answer that one small part yourself and move on to the next step. that applies only to the detail you asked about, never to which choice is correct.\n"
         "if their explanation describes a different option than the one they selected, ask them about that gap without saying which is right, like 'wait you said X but you picked Y whats the connection'.\n"
         "be aware of common misconceptions but never introduce one yourself. never invent information that is not in the question. if you are unsure say so instead of guessing, and hedge often.\n"
-        "if they repeat the same answer or sound confident, tell them to vote again — this overrides everything else. after telling them to vote, do not ask anything further or keep reasoning.\n"
+        "if they have said the same thing twice without adding anything new, stop and tell them to go vote. sounding sure of themselves is not the same as having explained it, so do not send them off just because they sound confident.\n"
         "focus on getting them to think it through, not on changing their mind.\n\n"
     )
 
@@ -2330,8 +2331,15 @@ async def get_async_llm_reflection(
     # The author's per-option feedback
     if choice_feedback:
         wanted = list(correct_labels)
-        for letter in re.findall(r"[A-Za-z]", selected or ""):
-            letter = letter.upper()
+        # Only letters that name a real option: the answer arrives as "A" or
+        # "A,B", so anything else is not a pick and must not drag in feedback
+        # for a choice the student never made.
+        picked = {
+            part.strip().upper()
+            for part in (selected or "").split(",")
+            if part.strip().upper() in choice_feedback
+        }
+        for letter in sorted(picked):
             if letter not in wanted:
                 wanted.append(letter)
         notes = []
