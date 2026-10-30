@@ -32,6 +32,7 @@ import "./runestone/common/css/material-symbols.css";
 import "./runestone/common/js/bookfuncs.js";
 import "./runestone/common/js/user-highlights.js";
 import "./runestone/common/js/pretext.js";
+import "./runestone/common/js/pretext-iframe-resize.js";
 
 // These are only needed for the Runestone book, but not in a library mode (such as pretext). I would prefer to dynamically load them. However, these scripts are so small I haven't bothered to do so.
 import { getSwitch, switchTheme } from "./runestone/common/js/theme.js";
