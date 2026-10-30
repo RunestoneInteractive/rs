@@ -61,6 +61,14 @@ JOBE_TIMEOUT = httpx.Timeout(connect=5.0, read=90.0, write=30.0, pool=10.0)
 # The tracer keeps the 30s budget the previous ``requests`` call used.
 TRACE_TIMEOUT = httpx.Timeout(connect=5.0, read=30.0, write=30.0, pool=10.0)
 IMAGE_TIMEOUT = httpx.Timeout(connect=5.0, read=10.0, write=10.0, pool=10.0)
+EXPERIMENT_TIMEOUT = httpx.Timeout(connect=5.0, read=10.0, write=5.0, pool=5.0)
+MAX_EXPERIMENT_RESPONSE_BYTES = 1024 * 1024
+
+# Only named, reviewed destinations can be reached through the book server.
+# Add new experiment APIs here rather than accepting a URL from the browser.
+EXPERIMENT_TARGETS = {
+    ("rdaas", "api/duck"): "https://rdaas.flypages.dev/api/duck",
+}
 
 # Shared clients, created on first use and reused thereafter: that is what keeps
 # connections pooled and TLS handshakes amortized across requests.  Building one
@@ -107,6 +115,11 @@ def image_client() -> httpx.AsyncClient:
     return _client("image", timeout=IMAGE_TIMEOUT, follow_redirects=False)
 
 
+def experiment_client() -> httpx.AsyncClient:
+    """Client for explicitly allowlisted experiment APIs."""
+    return _client("experiment", timeout=EXPERIMENT_TIMEOUT, follow_redirects=False)
+
+
 async def close_clients() -> None:
     """Close every shared client.  Called from the app's lifespan shutdown."""
     for name, client in list(_clients.items()):
@@ -115,6 +128,62 @@ async def close_clients() -> None:
         except Exception as e:  # pragma: no cover - shutdown best effort
             rslogger.warning(f"Error closing the {name} http client: {e}")
     _clients.clear()
+
+
+@router.get("/experiments/{service}/{path:path}")
+async def experiment_api(request: Request, service: str, path: str):
+    """Tunnel an allowlisted GET API through the book server's origin."""
+    target = EXPERIMENT_TARGETS.get((service, path))
+    if target is None:
+        return JSONResponse(
+            status_code=404, content={"error": "Unknown experiment API."}
+        )
+
+    try:
+        async with experiment_client().stream(
+            "GET", target, params=list(request.query_params.multi_items())
+        ) as upstream:
+            if 300 <= upstream.status_code < 400:
+                return JSONResponse(
+                    status_code=502, content={"error": "Experiment API redirected."}
+                )
+            declared = upstream.headers.get("Content-Length")
+            if (
+                declared
+                and declared.isdigit()
+                and int(declared) > MAX_EXPERIMENT_RESPONSE_BYTES
+            ):
+                return JSONResponse(
+                    status_code=502,
+                    content={"error": "Experiment API response is too large."},
+                )
+            chunks = []
+            size = 0
+            async for chunk in upstream.aiter_bytes():
+                size += len(chunk)
+                if size > MAX_EXPERIMENT_RESPONSE_BYTES:
+                    return JSONResponse(
+                        status_code=502,
+                        content={"error": "Experiment API response is too large."},
+                    )
+                chunks.append(chunk)
+            content_type = upstream.headers.get(
+                "Content-Type", "application/octet-stream"
+            )
+            return Response(
+                content=b"".join(chunks),
+                status_code=upstream.status_code,
+                headers={"Content-Type": content_type, "Cache-Control": "no-store"},
+            )
+    except httpx.TimeoutException:
+        return JSONResponse(
+            status_code=504, content={"error": "Experiment API timed out."}
+        )
+    except httpx.HTTPError as e:
+        rslogger.warning(f"Experiment API request failed: {e}")
+        return JSONResponse(
+            status_code=502, content={"error": "Experiment API is unavailable."}
+        )
 
 
 # SSRF protections for the image proxy
