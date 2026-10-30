@@ -33,6 +33,7 @@ from rsptx.data_types.answer_storage import CODE_TABLE_TYPES, QTYPE_TO_TABLE
 from rsptx.data_types.interactions import PAGE_KEY_PREFIX
 from rsptx.db.crud import fetch_all_course_attributes, fetch_deadline_exception
 from rsptx.endpoint_validators import instructor_role_required, with_course
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.logging import rslogger
 from rsptx.response_helpers import prepare_question_htmlsrc
 from rsptx.response_helpers.core import get_webpack_static_imports
@@ -1567,13 +1568,40 @@ def _load_assignment_student_detail(
 
     questions = _assignment_question_sources(assignment_id, course, sid)
     scores = {row["Question"]: row["Score"] for row in detail}
+    comments = _question_grade_comments(
+        course_name, sid, [q["name"] for q in questions]
+    )
     deadline = assignment["deadline"]
     for q in questions:
         q["score"] = scores.get(q["name"], "")
+        q["comment"] = comments.get(q["name"], "")
         last = _last_answer_time(course, sid, q) if deadline else None
         q["late"] = last is not None and last > deadline
 
     return student, assignment, detail, total_score, questions
+
+
+def _question_grade_comments(course_name: str, sid: str, div_ids: list) -> dict:
+    """The instructor's comment on each of ``sid``'s question grades, by div_id.
+
+    Bookkeeping words such as ``autograded`` are left out: they are not meant
+    for a reader, and the grade dialog would otherwise offer them for editing.
+    """
+    if not div_ids:
+        return {}
+    rows = pd.read_sql_query(
+        """
+        SELECT div_id, comment FROM question_grades
+        WHERE course_name = %(course_name)s AND sid = %(sid)s
+          AND div_id = ANY(%(div_ids)s)
+        """,
+        engine,
+        params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
+    )
+    return {
+        row.div_id: display_comment(row.comment) or ""
+        for row in rows.itertuples(index=False)
+    }
 
 
 def _assignment_question_sources(assignment_id: int, course, sid: str) -> list:

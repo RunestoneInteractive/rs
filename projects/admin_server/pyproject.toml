@@ -83,6 +83,7 @@ exclude = [
 "../../components/rsptx/db" = "rsptx/db"
 "../../components/rsptx/endpoint_validators" = "rsptx/endpoint_validators"
 "../../components/rsptx/exceptions" = "rsptx/exceptions"
+"../../components/rsptx/grading_helpers" = "rsptx/grading_helpers"
 "../../components/rsptx/logging" = "rsptx/logging"
 "../../components/rsptx/lti1p1" = "rsptx/lti1p1"
 "../../components/rsptx/lti1p3" = "rsptx/lti1p3"

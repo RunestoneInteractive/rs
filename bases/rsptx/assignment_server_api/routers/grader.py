@@ -984,15 +984,20 @@ async def upsert_grade(
             await session.commit()
 
     # Roll the new question grade up into the assignment total (and push the new
-    # total to the course's LMS). recompute_totals_for honors a pinned
+    # total to the course's LMS). recompute_totals_detail honors a pinned
     # manual_total and applies the assignment threshold.
     recomputed = []
+    # The student's new total for each assignment, so a page showing it can
+    # update without a reload.
+    totals = {}
     for assignment in await _assignments_to_recompute(course, payload):
         try:
-            await recompute_totals_for(
+            changes = await recompute_totals_detail(
                 course, assignment, [payload.sid], instructor_triggered=True
             )
             recomputed.append(assignment.id)
+            for change in changes:
+                totals[assignment.id] = change.new_score
         except Exception as e:  # pragma: no cover - defensive
             # A failed roll-up must not lose the grade the instructor just typed.
             rslogger.error(
@@ -1012,6 +1017,7 @@ async def upsert_grade(
             "sid": payload.sid,
             "div_id": payload.div_id,
             "recomputed_assignments": recomputed,
+            "totals": totals,
         },
     )
 

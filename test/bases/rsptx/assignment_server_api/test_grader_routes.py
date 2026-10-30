@@ -543,6 +543,8 @@ async def test_save_grade_updates_assignment_total(auth_instructor_client):
     )
     assert resp.status_code == 200
     assert resp.json()["detail"]["recomputed_assignments"] == [assignment_id]
+    # The new total comes back too, so a page showing it can update in place.
+    assert resp.json()["detail"]["totals"] == {str(assignment_id): 6}
 
     grade = await fetch_grade(student.id, assignment_id)
     assert grade is not None

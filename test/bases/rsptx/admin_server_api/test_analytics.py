@@ -4,7 +4,9 @@ Test the analytics report helpers used by the Chapter Activity report.
 
 import pandas as pd
 
+from rsptx.admin_server_api.routers import analytics
 from rsptx.admin_server_api.routers.analytics import (
+    _question_grade_comments,
     _chapter_clause,
     _format_duedate,
     _pad_with_enrolled,
@@ -128,3 +130,26 @@ def test_chapter_clause_for_all_adds_nothing():
 
     assert _chapter_clause("questions.chapter", "all", params) == ""
     assert "chapter" not in params
+
+
+def test_question_grade_comments_hide_bookkeeping_words(monkeypatch):
+    rows = pd.DataFrame(
+        {
+            "div_id": ["q1", "q2", "q3", "q4"],
+            "comment": ["Nice work", "autograded", "manually graded", None],
+        }
+    )
+    monkeypatch.setattr(analytics.pd, "read_sql_query", lambda *a, **k: rows)
+    comments = _question_grade_comments("c", "s", ["q1", "q2", "q3", "q4"])
+    assert comments["q1"] == "Nice work"
+    assert comments["q2"] == ""
+    assert comments["q3"] == ""
+    assert comments["q4"] == ""
+
+
+def test_question_grade_comments_without_questions_skips_the_query(monkeypatch):
+    def fail(*a, **k):
+        raise AssertionError("queried with no questions")
+
+    monkeypatch.setattr(analytics.pd, "read_sql_query", fail)
+    assert _question_grade_comments("c", "s", []) == {}

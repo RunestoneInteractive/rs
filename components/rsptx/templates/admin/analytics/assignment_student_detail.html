@@ -9,6 +9,7 @@ webpack bundles, which declare jQuery as an external. #}
 <link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/report_table.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/student_detail.css" rel="stylesheet" media="screen" />
+<link href="/staticAssets/css/grade_dialog.css" rel="stylesheet" media="screen" />
 {% include 'common/static_assets.html' %}
 <style>
   .student-answer {
@@ -75,6 +76,9 @@ webpack bundles, which declare jQuery as an external. #}
   .deadline-switch input:checked::before {
     transform: translateX(1rem);
   }
+  .student-answer .edit-grade {
+    margin-left: auto;
+  }
   /* Keep a wide component (activecode, parsons) inside its card. */
   .student-answer .ac_section > * {
     max-width: 100%;
@@ -99,9 +103,8 @@ webpack bundles, which declare jQuery as an external. #}
     <strong>Assignment:</strong> {{ assignment.name }} &nbsp;|&nbsp;
     <strong>Due:</strong> {{ assignment.duedate }} &nbsp;|&nbsp;
     <strong>Total Points:</strong> {{ assignment.points }}
-    {% if total_score is not none %}
-    &nbsp;|&nbsp; <strong>Grade:</strong> {{ total_score }}
-    {% endif %}
+    &nbsp;|&nbsp; <strong>Grade:</strong>
+    <span id="total-score">{{ total_score if total_score is not none else "—" }}</span>
     &nbsp;&nbsp;
     <a href="/admin/analytics/assignmentoverview" class="back-link">
       &larr; Back to Assignment Summary
@@ -143,7 +146,14 @@ webpack bundles, which declare jQuery as an external. #}
           <span class="visually-hidden">This answer was submitted after the deadline</span>
         </span>
         {% endif %}
-        <span>Score: <strong>{{ q.score if q.score != "" else "—" }}</strong>{% if q.points is not none %} / {{ q.points }}{% endif %}</span>
+        <span>Score: <strong class="question-score">{{ q.score if q.score != "" else "—" }}</strong>{% if q.points is not none %} / {{ q.points }}{% endif %}</span>
+        <button type="button" class="btn btn-outline-secondary btn-sm edit-grade"
+                data-div-id="{{ q.name }}" data-score="{{ q.score }}"
+                data-points="{{ q.points if q.points is not none else '' }}"
+                data-comment="{{ q.comment }}"
+                aria-label="Edit grade for question {{ loop.index }}">
+          <i class="ti ti-pencil" aria-hidden="true"></i> Edit grade
+        </button>
       </div>
       {% if q.htmlsrc %}
       {# Held in a <template> so the book's auto-render skips it; the page
@@ -173,10 +183,13 @@ webpack bundles, which declare jQuery as an external. #}
     assignmentName: "{{ assignment.name }}",
     courseName:     "{{ course.course_name }}",
     sid:            {{ student.username | tojson }},
+    studentFullName: {{ (student.first_name ~ " " ~ student.last_name) | tojson }},
+    assignmentId:   {{ assignment.id | int }},
     deadline:       {{ (assignment.deadline.strftime("%Y-%m-%dT%H:%M:%SZ") if assignment.deadline else none) | tojson }}
   };
 </script>
 {% include 'common/localize_times.html' %}
 <script src="/staticAssets/js/report_table.js"></script>
+<script src="/staticAssets/js/grade_dialog.js"></script>
 <script src="/staticAssets/js/assignment_student_detail.js"></script>
 {% endblock %}
