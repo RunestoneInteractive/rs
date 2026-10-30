@@ -4365,7 +4365,7 @@ wheels = [
 
 [[package]]
 name = "rs"
-version = "9.3.10"
+version = "9.4.0"
 source = { editable = "." }
 default-groups = ["dev", "docs"]
 dependencies = [
