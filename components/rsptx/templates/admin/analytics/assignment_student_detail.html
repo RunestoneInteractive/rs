@@ -1,4 +1,7 @@
 {% extends "_base.html" %}
+{# Rendering the questions as live Runestone components needs the book's
+webpack bundles, which declare jQuery as an external. #}
+{% set needs_jquery = true %}
 
 {% block title %}Assignment Detail — {{ student.first_name }} {{ student.last_name }}{% endblock %}
 
@@ -6,9 +9,84 @@
 <link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/report_table.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/student_detail.css" rel="stylesheet" media="screen" />
+{% include 'common/static_assets.html' %}
+<style>
+  .student-answer {
+    border: 1px solid var(--componentBorderColor, #ccc);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .student-answer .question-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    align-items: baseline;
+    font-size: 0.9rem;
+  }
+  .student-answer .question-meta h3 {
+    font-size: inherit;
+    font-weight: normal;
+    margin: 0;
+  }
+  .late-answer {
+    color: var(--rs-color-warning-text);
+    font-size: 1.1rem;
+    cursor: help;
+  }
+  /* The badge describes the latest answer, which is not what is shown once
+     answers are limited to the deadline. */
+  #student-answers.before-deadline .late-answer {
+    display: none;
+  }
+  .deadline-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .deadline-switch input {
+    appearance: none;
+    position: relative;
+    width: 2.25rem;
+    height: 1.25rem;
+    margin: 0;
+    border-radius: 1rem;
+    background: var(--rs-color-secondary);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .deadline-switch input::before {
+    content: "";
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--rs-color-white);
+    transition: transform 0.15s;
+  }
+  .deadline-switch input:checked {
+    background: var(--rs-color-primary);
+  }
+  .deadline-switch input:checked::before {
+    transform: translateX(1rem);
+  }
+  /* Keep a wide component (activecode, parsons) inside its card. */
+  .student-answer .ac_section > * {
+    max-width: 100%;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
+{% include 'common/ebook_config.html' %}
+<div class="hidden-content" style="display: none">
+  \( {{ latex_preamble }} \)
+</div>
 <div class="sco-page">
 
   <div class="page-header">
@@ -40,6 +118,50 @@
   </div>
   <div id="detail-container" class="report-section"></div>
 
+  <!-- Each question, showing this student's most recent answer -->
+  <div class="section-header">
+    <h2>Student Answers</h2>
+    {% if assignment.deadline %}
+    <label class="deadline-switch">
+      <input type="checkbox" role="switch" id="before-deadline-switch" />
+      <span>Only answers before the deadline
+      ({{ course_datetime_tag(assignment.deadline, course.timezone) }}{% if extension_days %}, includes a {{ extension_days }}-day extension{% endif %})</span>
+    </label>
+    {% endif %}
+  </div>
+  {% if questions %}
+  <div id="student-answers">
+    {% for q in questions %}
+    <section class="student-answer" aria-labelledby="answer-heading-{{ loop.index }}">
+      <div class="question-meta">
+        <h3 id="answer-heading-{{ loop.index }}">Question {{ loop.index }}: <code>{{ q.name }}</code></h3>
+        <span>Type: {{ q.question_type }}</span>
+        {% if q.selected %}<span>Shown: <code>{{ q.selected }}</code></span>{% endif %}
+        {% if q.late %}
+        <span class="late-answer" title="This answer was submitted after the deadline">
+          <i class="ti ti-clock-exclamation" aria-hidden="true"></i>
+          <span class="visually-hidden">This answer was submitted after the deadline</span>
+        </span>
+        {% endif %}
+        <span>Score: <strong>{{ q.score if q.score != "" else "—" }}</strong>{% if q.points is not none %} / {{ q.points }}{% endif %}</span>
+      </div>
+      {% if q.htmlsrc %}
+      {# Held in a <template> so the book's auto-render skips it; the page
+      script renders it with the student's sid so their answer is restored. #}
+      <template class="answer-src">{{ q.htmlsrc | safe }}</template>
+      <div class="answer-host oneq full-width runestone-sphinx{% if q.question_type == 'webwork' %} ptx-content{% endif %}"></div>
+      {% else %}
+      <p class="no-data">
+        {% if q.question_type == 'selectquestion' %}This student has not been shown a question here yet.{% else %}No preview is available for this question.{% endif %}
+      </p>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="no-data">This assignment has no questions.</p>
+  {% endif %}
+
 </div>
 {% endblock %}
 
@@ -49,9 +171,12 @@
     detailData:     {{ detail_json | safe }},
     studentName:    "{{ student.last_name }}_{{ student.first_name }}",
     assignmentName: "{{ assignment.name }}",
-    courseName:     "{{ course.course_name }}"
+    courseName:     "{{ course.course_name }}",
+    sid:            {{ student.username | tojson }},
+    deadline:       {{ (assignment.deadline.strftime("%Y-%m-%dT%H:%M:%SZ") if assignment.deadline else none) | tojson }}
   };
 </script>
+{% include 'common/localize_times.html' %}
 <script src="/staticAssets/js/report_table.js"></script>
 <script src="/staticAssets/js/assignment_student_detail.js"></script>
 {% endblock %}

@@ -98,7 +98,7 @@ from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.grading_helpers.comments import display_comment
 from rsptx.templates import format_course_datetime, get_shared_templates
 from rsptx.configuration import settings
-from rsptx.response_helpers import construct_course_url
+from rsptx.response_helpers import prepare_question_htmlsrc
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -241,36 +241,7 @@ async def review_peer_assignment(
     questions_list = []
 
     for q in questions:
-        # Gathering information about each question
-        if q.Question.htmlsrc:
-            # This replacement is to render images
-            bts = q.Question.htmlsrc
-            htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
-            )
-            htmlsrc = htmlsrc.replace(
-                "../_images", construct_course_url(course, "_images")
-            )
-
-            # Rewrite xref links and knowls in fillintheblank questions
-            if "fillintheblank" in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'href="', f'href="/ns/books/published/{course.base_course}/'
-                )
-
-            # Unescape contents of script tags in fitb questions.
-            if "application/json" in htmlsrc:
-                htmlsrc = htmlsrc.replace("&lt;", "<")
-                htmlsrc = htmlsrc.replace("&gt;", ">")
-                htmlsrc = htmlsrc.replace("&amp;", "&")
-
-            if 'data-knowl="./' in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'data-knowl="./',
-                    f'data-knowl="/ns/books/published/{course.base_course}/',
-                )
-        else:
-            htmlsrc = None
+        htmlsrc = prepare_question_htmlsrc(q.Question.htmlsrc, course)
 
         # Call the internal API to get the aggregate peer votes
         vote_1_results = await get_peer_votes(q.Question.name, course.course_name, 1)
