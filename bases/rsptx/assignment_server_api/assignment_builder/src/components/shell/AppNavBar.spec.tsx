@@ -1,59 +1,94 @@
 import userEvent from "@testing-library/user-event";
 
 import { NavItem } from "@/navUtils";
-import { renderWithMantine, screen, waitFor, within } from "@/test/renderWithMantine";
+import { fireEvent, renderWithMantine, screen, waitFor, within } from "@/test/renderWithMantine";
 
 import { AppNavBar } from "./AppNavBar";
 
 const makeItems = (overrides: Partial<NavItem>[] = []): NavItem[] => [
-  { label: "Home", icon: "home", command: vi.fn() },
-  { label: "Back to Course", command: vi.fn() },
+  { label: "Home", icon: "home", onClick: vi.fn() },
+  { label: "Back to Course", onClick: vi.fn() },
   {
     label: "User",
     icon: "user",
     items: [
       { label: "Welcome alice", icon: "bolt" },
       { separator: true },
-      { label: "Logout", command: vi.fn() },
-      { label: "Hidden", command: vi.fn(), visible: false }
+      { label: "Logout", onClick: vi.fn() },
+      { label: "Hidden", onClick: vi.fn(), visible: false }
     ]
   },
   ...(overrides as NavItem[])
 ];
 
 describe("AppNavBar", () => {
-  it("renders top-level item labels as buttons", () => {
-    renderWithMantine(<AppNavBar items={makeItems()} />);
+  it("renders top-level navigation destinations as links", () => {
+    const items: NavItem[] = [
+      { label: "Grader", href: "/assignment/instructor/grader", onClick: vi.fn() },
+      { label: "Back to Course", href: "/ns/course/index", onClick: vi.fn() },
+      { label: "User", items: [{ label: "Logout", onClick: vi.fn() }] }
+    ];
 
-    const home = screen.getByRole("button", { name: /home/i });
-    const backToCourse = screen.getByRole("button", { name: /back to course/i });
+    renderWithMantine(<AppNavBar items={items} />);
+
+    const grader = screen.getByRole("link", { name: /grader/i });
+    const backToCourse = screen.getByRole("link", { name: /back to course/i });
     const user = screen.getByRole("button", { name: /user/i });
 
-    expect(home).toBeInTheDocument();
+    expect(grader).toHaveAttribute("href", "/assignment/instructor/grader");
     expect(backToCourse).toBeInTheDocument();
     expect(user).toBeInTheDocument();
-    expect(home).not.toHaveAttribute("title");
+    expect(grader).not.toHaveAttribute("title");
     expect(backToCourse).not.toHaveAttribute("title");
     expect(user).not.toHaveAttribute("title");
   });
 
-  it("invokes the command when a top-level item is clicked", async () => {
-    const command = vi.fn();
-    const items: NavItem[] = [{ label: "Grader", icon: "check-square", command }];
+  it("invokes onClick when a top-level item is clicked", async () => {
+    const onClick = vi.fn();
+    const items: NavItem[] = [
+      {
+        label: "Grader",
+        icon: "check-square",
+        href: "/assignment/instructor/grader",
+        onClick
+      }
+    ];
 
     renderWithMantine(<AppNavBar items={items} />);
-    await userEvent.click(screen.getByRole("button", { name: /grader/i }));
+    await userEvent.click(screen.getByRole("link", { name: /grader/i }));
 
-    expect(command).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("opens a submenu and invokes a sub-item command", async () => {
+  it.each(["ctrlKey", "metaKey", "shiftKey"] as const)(
+    "leaves modified clicks to the browser when %s is held",
+    (modifier) => {
+      const onClick = vi.fn();
+      const items: NavItem[] = [
+        {
+          label: "Grader",
+          href: "/assignment/instructor/grader",
+          onClick
+        }
+      ];
+
+      renderWithMantine(<AppNavBar items={items} />);
+      const link = screen.getByRole("link", { name: /grader/i });
+
+      link.addEventListener("click", (event) => event.preventDefault());
+      fireEvent.click(link, { [modifier]: true });
+
+      expect(onClick).not.toHaveBeenCalled();
+    }
+  );
+
+  it("opens a submenu and invokes the sub-item onClick callback", async () => {
     const logout = vi.fn();
     const items: NavItem[] = [
       {
         label: "User",
         icon: "user",
-        items: [{ label: "Logout", command: logout }]
+        items: [{ label: "Logout", onClick: logout }]
       }
     ];
 
@@ -67,13 +102,39 @@ describe("AppNavBar", () => {
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
   });
 
+  it("renders submenu destinations as links and preserves modified clicks", async () => {
+    const onClick = vi.fn();
+    const items: NavItem[] = [
+      {
+        label: "Help",
+        items: [
+          {
+            label: "Guide",
+            href: "https://guide.runestone.academy/",
+            onClick
+          }
+        ]
+      }
+    ];
+
+    renderWithMantine(<AppNavBar items={items} />);
+    await userEvent.click(screen.getByRole("button", { name: /help/i }));
+    const guide = await screen.findByRole("menuitem", { name: /guide/i });
+
+    expect(guide).toHaveAttribute("href", "https://guide.runestone.academy/");
+    guide.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(guide, { ctrlKey: true });
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it("supports arrow navigation and closes a submenu with Escape", async () => {
     const items: NavItem[] = [
       {
         label: "Help",
         items: [
-          { label: "Guide", command: vi.fn() },
-          { label: "Contact", command: vi.fn() }
+          { label: "Guide", onClick: vi.fn() },
+          { label: "Contact", onClick: vi.fn() }
         ]
       }
     ];
@@ -107,8 +168,8 @@ describe("AppNavBar", () => {
 
   it("hides top-level items whose visible flag is false", () => {
     const items: NavItem[] = [
-      { label: "Shown", command: vi.fn() },
-      { label: "Gone", command: vi.fn(), visible: false }
+      { label: "Shown", onClick: vi.fn() },
+      { label: "Gone", onClick: vi.fn(), visible: false }
     ];
 
     renderWithMantine(<AppNavBar items={items} />);
@@ -118,11 +179,11 @@ describe("AppNavBar", () => {
   });
 
   it("does not invoke disabled course items", async () => {
-    const command = vi.fn();
+    const onClick = vi.fn();
     const items: NavItem[] = [
       {
         label: "Course: cs101",
-        items: [{ label: "cs102", command, disabled: true }]
+        items: [{ label: "cs102", onClick, disabled: true }]
       }
     ];
 
@@ -130,7 +191,7 @@ describe("AppNavBar", () => {
     await userEvent.click(screen.getByRole("button", { name: /course: cs101/i }));
     await userEvent.click(await screen.findByRole("menuitem", { name: /cs102/i }));
 
-    expect(command).not.toHaveBeenCalled();
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   it("renders the Runestone logo image alongside the wordmark", () => {
@@ -146,8 +207,8 @@ describe("AppNavBar", () => {
 
   it("marks the item matching the active path with aria-current", () => {
     const items: NavItem[] = [
-      { label: "Grader", command: vi.fn(), activePrefixes: ["/grader"] },
-      { label: "Builder", command: vi.fn(), activePrefixes: ["/builder", "/"] }
+      { label: "Grader", onClick: vi.fn(), activePrefixes: ["/grader"] },
+      { label: "Builder", onClick: vi.fn(), activePrefixes: ["/builder", "/"] }
     ];
 
     renderWithMantine(<AppNavBar items={items} activePath="/grader/12" />);
@@ -157,7 +218,7 @@ describe("AppNavBar", () => {
   });
 
   it("marks no item active when the path matches nothing", () => {
-    const items: NavItem[] = [{ label: "Grader", command: vi.fn(), activePrefixes: ["/grader"] }];
+    const items: NavItem[] = [{ label: "Grader", onClick: vi.fn(), activePrefixes: ["/grader"] }];
 
     renderWithMantine(<AppNavBar items={items} activePath="/graderOld" />);
 
@@ -179,13 +240,13 @@ describe("AppNavBar", () => {
     const home = vi.fn();
     const logout = vi.fn();
     const items: NavItem[] = [
-      { label: "Home", icon: "home", command: home },
+      { label: "Home", icon: "home", onClick: home },
       {
         label: "User",
         icon: "user",
         items: [
-          { label: "Logout", command: logout },
-          { label: "Hidden", command: vi.fn(), visible: false }
+          { label: "Logout", onClick: logout },
+          { label: "Hidden", onClick: vi.fn(), visible: false }
         ]
       }
     ];
@@ -201,5 +262,26 @@ describe("AppNavBar", () => {
 
     await userEvent.click(within(menu).getByRole("menuitem", { name: /home/i }));
     await waitFor(() => expect(home).toHaveBeenCalledTimes(1));
+  });
+
+  it("renders compact navigation destinations as links", async () => {
+    const onClick = vi.fn();
+    const items: NavItem[] = [
+      {
+        label: "Grader",
+        href: "/assignment/instructor/grader",
+        onClick
+      }
+    ];
+
+    renderWithMantine(<AppNavBar items={items} />);
+    await userEvent.click(screen.getByRole("button", { name: /open navigation menu/i }));
+    const grader = await screen.findByRole("menuitem", { name: /grader/i });
+
+    expect(grader).toHaveAttribute("href", "/assignment/instructor/grader");
+    grader.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(grader, { metaKey: true });
+
+    expect(onClick).not.toHaveBeenCalled();
   });
 });
