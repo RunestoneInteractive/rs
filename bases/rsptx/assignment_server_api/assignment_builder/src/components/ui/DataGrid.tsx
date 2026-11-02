@@ -84,6 +84,7 @@ export interface DataGridProps<T> {
   initialSorting?: SortingState;
   loading?: boolean;
   emptyMessage?: React.ReactNode;
+  filterResultsLabel?: string;
   showFilterResultsStatus?: boolean;
   filterResultsTotal?: number;
   tableFrameClassName?: string;
