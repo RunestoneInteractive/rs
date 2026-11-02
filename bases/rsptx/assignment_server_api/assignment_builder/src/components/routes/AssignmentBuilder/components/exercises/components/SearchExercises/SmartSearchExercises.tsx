@@ -16,8 +16,7 @@ import {
   Switch,
   TagsInput,
   Text,
-  Tooltip,
-  VisuallyHidden
+  Tooltip
 } from "@mantine/core";
 import { datasetSelectors } from "@store/dataset/dataset.logic";
 import {
@@ -53,11 +52,7 @@ type FilterMetaValue = { value: string | string[] | null };
 const MATCH_CONTAINS = "contains";
 const MATCH_IN = "in";
 
-const renderEllipsis = (text?: string | null) => (
-  <div className={styles.ellipsisText} title={text ?? ""}>
-    {text}
-  </div>
-);
+const renderEllipsis = (text?: string | null) => <div className={styles.ellipsisText}>{text}</div>;
 
 export const SmartSearchExercises = ({
   setCurrentEditExercise,
@@ -284,7 +279,7 @@ export const SmartSearchExercises = ({
           filter: { variant: "text", placeholder: "Search by name" }
         },
         cell: ({ row }) => (
-          <div className={styles.monoName} data-mono-name="" title={row.original.name ?? ""}>
+          <div className={styles.monoName} data-mono-name="">
             {row.original.name}
           </div>
         )
@@ -381,7 +376,7 @@ export const SmartSearchExercises = ({
       >
         <TagsInput
           className={styles.search}
-          label={<VisuallyHidden>Search exercises</VisuallyHidden>}
+          aria-label="Search exercises"
           value={globalTerms}
           onChange={(terms) => onGlobalFilterChange(terms.join(" "))}
           placeholder="Search terms…"
@@ -474,6 +469,7 @@ export const SmartSearchExercises = ({
             ariaLabel="Search exercises"
             fillHeight
             scrollSentinelRef={sentinelRef}
+            showFilterResultsStatus={false}
           />
         </div>
       )}
