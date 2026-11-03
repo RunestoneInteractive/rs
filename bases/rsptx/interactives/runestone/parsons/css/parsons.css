@@ -32,7 +32,9 @@
 .parsons .answer1,
 .parsons .answer2,
 .parsons .answer3,
-.parsons .answer4 {
+.parsons .answer4,
+.parsons .answer5,
+.parsons .answer6 {
     position: relative;
     font-size: 100%;
     list-style: none;

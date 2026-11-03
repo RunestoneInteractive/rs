@@ -290,6 +290,27 @@ describe("line initialization", () => {
         expect(p.lines.map((l) => l.indent)).toEqual([0, 1, 1]);
     });
 
+    // The answer area's lane guides come from .answerN classes in parsons.css,
+    // which define levels 1 through 6.
+    it.each([1, 4, 5, 6])(
+        "draws indentation lanes for a %i-level solution",
+        async (depth) => {
+            const blocks = Array.from(
+                { length: depth + 1 },
+                (_, i) => `${"    ".repeat(i)}line_${i} = ${i}`,
+            ).join("\n---\n");
+            const order = Array.from({ length: depth + 1 }, (_, i) => i);
+            const p = await makeParsons({
+                blocks,
+                attrs: `data-language="python" data-order="${order.join(",")}"`,
+            });
+            expect(p.indent).toBe(depth);
+            expect(p.answerArea.classList.contains(`answer${depth}`)).toBe(
+                true,
+            );
+        },
+    );
+
     it("flags distractors and stores their help text", async () => {
         const p = await makeParsons({
             blocks: INDENTED_BLOCKS,
