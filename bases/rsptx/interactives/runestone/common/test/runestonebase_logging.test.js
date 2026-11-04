@@ -109,6 +109,36 @@ describe("postLogMessage", () => {
         expect(document.getElementById("total_score")).toBeNull();
     });
 
+    it("uses each unrounded server total across repeated problem attempts", async () => {
+        assignmentMarkup("ch1_q1");
+        document.body.insertAdjacentHTML(
+            "beforeend",
+            `<div>Reading: 3 of 3 points earned</div>
+             <span id="total_score">3</span>
+             <span id="total_max">5</span>
+             <span id="total_percent">60.00</span>`,
+        );
+        let rb = makeComponent({ divid: "ch1_q1" });
+
+        reply({ assigned: true, score: 1.24, total_score: 4.24 });
+        await rb.postLogMessage({ event: "mChoice", act: "answer:A" });
+        expect(document.querySelector(".qscore").textContent).toBe("1.2");
+        expect(document.getElementById("total_score").textContent).toBe("4.2");
+        expect(document.getElementById("total_max").textContent).toBe("5");
+        expect(document.getElementById("total_percent").textContent).toBe("84.80");
+
+        reply({ assigned: true, score: 1.26, total_score: 4.26 });
+        await rb.postLogMessage({ event: "mChoice", act: "answer:B" });
+        expect(document.querySelector(".qscore").textContent).toBe("1.3");
+        expect(document.getElementById("total_score").textContent).toBe("4.3");
+        expect(document.getElementById("total_percent").textContent).toBe("85.20");
+
+        reply({ assigned: true, score: 1.24, total_score: 4.24 });
+        await rb.postLogMessage({ event: "mChoice", act: "answer:A" });
+        expect(document.getElementById("total_score").textContent).toBe("4.2");
+        expect(document.getElementById("total_percent").textContent).toBe("84.80");
+    });
+
     it("reports closed submissions without crashing when there is no message div", async () => {
         // A select question names its message div after the selector, not after
         // the rendered question, so the inner component's `${divid}_message`
