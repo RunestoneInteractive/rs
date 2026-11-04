@@ -3,6 +3,8 @@
 // Note: deliberately NO jquery-globals import here -- parsons must work
 // without jQuery.
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import Parsons from "../js/parsons.js";
 import "../js/timedparsons.js";
 import { setLocale } from "../../common/js/rsi18n.js";
@@ -310,6 +312,60 @@ describe("line initialization", () => {
             );
         },
     );
+
+    // jsdom doesn't apply stylesheets, so check the CSS text: each .answerN
+    // rule (plain, .incorrect, .correct) must stack N one-pixel lines, one per
+    // indentation level, or the deepest lanes silently go missing.
+    const parsonsCss = () =>
+        readFileSync(path.join(__dirname, "../css/parsons.css"), "utf-8");
+    // Split into {selectors, body} rules so a selector only matches a rule it
+    // fully names, never the tail of a shared selector list.
+    const cssRules = (css) =>
+        [
+            ...css
+                .replace(/\/\*[\s\S]*?\*\//g, "")
+                .matchAll(/([^{}]+)\{([^}]*)\}/g),
+        ].map(([, sel, body]) => ({
+            selectors: sel.split(",").map((s) => s.trim()),
+            body,
+        }));
+
+    it.each([1, 2, 3, 4, 5, 6])(
+        "styles .answer%i with one lane line per level",
+        (depth) => {
+            const rules = cssRules(parsonsCss());
+            for (const suffix of ["", ".incorrect", ".correct"]) {
+                const selector = `.parsons .answer${depth}${suffix}`;
+                const rule = rules.find(
+                    (r) =>
+                        r.selectors.length == 1 && r.selectors[0] == selector,
+                );
+                expect(rule, selector).toBeDefined();
+                const body = rule.body;
+                const count = (re) => (body.match(re) || []).length;
+                expect(count(/linear-gradient/g), selector).toBe(depth);
+                expect(count(/1px 100%/g), selector).toBe(depth);
+                expect(count(/\d+px 0/g), selector).toBe(depth);
+            }
+        },
+    );
+
+    // The source and answer areas share one base rule. Blocks are absolutely
+    // positioned inside them, so losing position: relative scatters the blocks.
+    it("keeps the shared base rule for the source and answer areas", () => {
+        const base = cssRules(parsonsCss()).find((r) =>
+            r.selectors.includes(".parsons .source"),
+        );
+        expect(base.selectors).toEqual(
+            expect.arrayContaining(
+                [".parsons .answer"].concat(
+                    [1, 2, 3, 4, 5, 6].map((n) => `.parsons .answer${n}`),
+                ),
+            ),
+        );
+        expect(base.body).toMatch(/position:\s*relative/);
+        expect(base.body).not.toMatch(/linear-gradient/);
+    });
 
     it("flags distractors and stores their help text", async () => {
         const p = await makeParsons({
