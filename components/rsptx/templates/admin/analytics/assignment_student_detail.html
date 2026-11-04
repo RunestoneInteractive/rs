@@ -159,7 +159,7 @@ webpack bundles, which declare jQuery as an external. #}
       {# Held in a <template> so the book's auto-render skips it; the page
       script renders it with the student's sid so their answer is restored. #}
       <template class="answer-src">{{ q.htmlsrc | safe }}</template>
-      <div class="answer-host oneq full-width runestone-sphinx{% if q.question_type == 'webwork' %} ptx-content{% endif %}"></div>
+      <div class="answer-host oneq full-width runestone-sphinx{% if q.question_type == 'webwork' %} ptx-content{% endif %}"{% if q.splice_state is defined %} data-splice-state="{{ q.splice_state | tojson | forceescape }}"{% endif %}></div>
       {% else %}
       <p class="no-data">
         {% if q.question_type == 'selectquestion' %}This student has not been shown a question here yet.{% else %}No preview is available for this question.{% endif %}

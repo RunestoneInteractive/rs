@@ -29,7 +29,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from rsptx.auth.session import auth_manager
 from rsptx.db.sync_session import engine
 from rsptx.configuration import settings
-from rsptx.data_types.answer_storage import CODE_TABLE_TYPES, QTYPE_TO_TABLE
+from rsptx.data_types.answer_storage import (
+    CODE_TABLE_TYPES,
+    IFRAME_QUESTION_TYPES,
+    QTYPE_TO_TABLE,
+)
 from rsptx.data_types.interactions import PAGE_KEY_PREFIX
 from rsptx.db.crud import fetch_all_course_attributes, fetch_deadline_exception
 from rsptx.endpoint_validators import instructor_role_required, with_course
@@ -1577,6 +1581,8 @@ def _load_assignment_student_detail(
         q["comment"] = comments.get(q["name"], "")
         last = _last_answer_time(course, sid, q) if deadline else None
         q["late"] = last is not None and last > deadline
+        if q["answer_type"] in IFRAME_QUESTION_TYPES:
+            q["splice_state"] = _splice_states(course, sid, q, deadline)
 
     return student, assignment, detail, total_score, questions
 
@@ -1659,6 +1665,43 @@ def _assignment_question_sources(assignment_id: int, course, sid: str) -> list:
             }
         )
     return questions
+
+
+def _splice_states(course, sid: str, question: dict, deadline) -> dict:
+    """``sid``'s saved state for an iframe (SPLICE) question.
+
+    Returns ``{"latest": ..., "beforeDeadline": ...}``, each the stored state
+    blob or None. The page hands it to the SPLICE wrapper so the activity
+    replays the *student's* work; left to itself the wrapper asks the server
+    for the logged-in user's state, which here is the instructor's.
+    """
+    params = {
+        "sid": sid,
+        "course_name": course.course_name,
+        "div_id": question["selected"] or question["name"],
+        "deadline": deadline,
+    }
+
+    def last_state(before_deadline: bool):
+        cutoff = "AND timestamp <= %(deadline)s" if before_deadline else ""
+        result = pd.read_sql_query(
+            f"""
+            SELECT answer::text FROM splice_answers
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s {cutoff}
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1
+            """,
+            engine,
+            params=params,
+        )
+        if result.empty or result.iat[0, 0] is None:
+            return None
+        return json.loads(result.iat[0, 0])
+
+    latest = last_state(False)
+    before = last_state(True) if deadline is not None else latest
+    return {"latest": latest, "beforeDeadline": before}
 
 
 def _last_answer_time(course, sid: str, question: dict) -> Optional[datetime.datetime]:

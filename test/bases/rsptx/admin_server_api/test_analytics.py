@@ -6,6 +6,7 @@ import pandas as pd
 
 from rsptx.admin_server_api.routers import analytics
 from rsptx.admin_server_api.routers.analytics import (
+    _splice_states,
     _question_grade_comments,
     _chapter_clause,
     _format_duedate,
@@ -153,3 +154,31 @@ def test_question_grade_comments_without_questions_skips_the_query(monkeypatch):
 
     monkeypatch.setattr(analytics.pd, "read_sql_query", fail)
     assert _question_grade_comments("c", "s", []) == {}
+
+
+class _Course:
+    course_name = "c"
+
+
+def test_splice_states_reads_the_students_latest_and_pre_deadline_state(monkeypatch):
+    calls = []
+
+    def fake_query(sql, engine, params):
+        calls.append((sql, params))
+        state = '{"n": 2}' if "deadline" in sql.split("WHERE")[1] else '{"n": 3}'
+        return pd.DataFrame({"answer": [state]})
+
+    monkeypatch.setattr(analytics.pd, "read_sql_query", fake_query)
+    q = {"name": "sel", "selected": "doenet1"}
+    states = _splice_states(_Course(), "stu", q, deadline=pd.Timestamp("2026-01-01"))
+    assert states == {"latest": {"n": 3}, "beforeDeadline": {"n": 2}}
+    assert all(p["sid"] == "stu" and p["div_id"] == "doenet1" for _, p in calls)
+
+
+def test_splice_states_without_answers_or_deadline(monkeypatch):
+    monkeypatch.setattr(
+        analytics.pd, "read_sql_query", lambda *a, **k: pd.DataFrame({"answer": []})
+    )
+    q = {"name": "doenet1", "selected": None}
+    states = _splice_states(_Course(), "stu", q, deadline=None)
+    assert states == {"latest": None, "beforeDeadline": None}

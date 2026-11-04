@@ -101,9 +101,58 @@
             // Start over from the stored source: a rendered component cannot
             // be told to reload a different answer.
             var host = tpl.nextElementSibling;
+            if (host.dataset.spliceState !== undefined) {
+                renderSpliceAnswer(host, tpl, beforeDeadline);
+                return;
+            }
             host.replaceChildren(tpl.content.cloneNode(true));
             renderAnswer(host, d.sid, deadline);
         });
+    }
+
+    // Iframe activities (splice, doenet, iframe) ask the page's SPLICE
+    // wrapper for their state, and it would answer with the *logged-in
+    // user's* -- the instructor's. Register each frame with the student's
+    // saved state before it loads, so the wrapper replays that instead and
+    // drops anything the activity reports back.
+    function renderSpliceAnswer(host, tpl, beforeDeadline) {
+        var wrapper = window.spliceWrapper;
+        host.querySelectorAll("iframe").forEach(function (f) {
+            if (wrapper) wrapper.unregisterGraderFrame(f);
+        });
+        var states = {};
+        try {
+            states = JSON.parse(host.dataset.spliceState) || {};
+        } catch (e) {
+            console.error("Bad saved state for " + host.id, e);
+        }
+        var state = beforeDeadline ? states.beforeDeadline : states.latest;
+        var frag = tpl.content.cloneNode(true);
+        // Hold back each src so nothing loads before it is registered.
+        var frames = Array.prototype.slice.call(frag.querySelectorAll("iframe"));
+        var srcs = frames.map(function (f) {
+            var src = f.getAttribute("src");
+            f.removeAttribute("src");
+            return src;
+        });
+        host.replaceChildren(frag);
+        if (!wrapper) {
+            var msg = document.createElement("p");
+            msg.className = "no-data";
+            msg.textContent = "This activity cannot show the student's work on this page.";
+            host.replaceChildren(msg);
+            return;
+        }
+        frames.forEach(function (f, i) {
+            wrapper.registerGraderFrame(f, state ?? null);
+            if (srcs[i]) f.src = srcs[i];
+        });
+        if (state == null) {
+            var note = document.createElement("p");
+            note.className = "no-data";
+            note.textContent = "No saved work for this student.";
+            host.prepend(note);
+        }
     }
 
     async function renderAnswer(host, sid, deadline) {
