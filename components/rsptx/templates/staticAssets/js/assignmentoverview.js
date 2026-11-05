@@ -63,6 +63,21 @@
     };
 
     // -------------------------------------------------------------------------
+    // Download Submissions link -- follows the assignment select
+    // -------------------------------------------------------------------------
+    window.updateDownloadSubmissions = function () {
+        const assignmentId = document.getElementById("assignment-select").value;
+        const link = document.getElementById("download-submissions-btn");
+        link.hidden = !assignmentId;
+        link.href = assignmentId
+            ? `/assignment/instructor/download_assignment/${encodeURIComponent(assignmentId)}`
+            : "#";
+    };
+    document
+        .getElementById("assignment-select")
+        .addEventListener("change", window.updateDownloadSubmissions);
+
+    // -------------------------------------------------------------------------
     // Polling
     // -------------------------------------------------------------------------
     function pollResult() {
@@ -182,6 +197,7 @@
 if (window.AUTO_ASSIGNMENT_ID) {
     const sel = document.getElementById("assignment-select");
     sel.value = String(window.AUTO_ASSIGNMENT_ID);
+    window.updateDownloadSubmissions();
     if (sel.value) {
         window.generateReport();
     }
