@@ -2,7 +2,7 @@ import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import sortBy from "lodash/sortBy";
 import { ActionType } from "typesafe-actions";
 
-import { RootState } from "@/state/store";
+import { RootState } from "@/store/rootReducer";
 import { Nullable } from "@/types/common";
 import { Exercise } from "@/types/exercises";
 import { getExercisesWithoutReadings } from "@/utils/exercise";
