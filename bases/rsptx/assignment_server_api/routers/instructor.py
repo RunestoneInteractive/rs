@@ -1,11 +1,9 @@
-import asyncio
 import csv
 import datetime
 import json
 import pathlib
 import io
 
-from .assignment_summary import create_assignment_summary
 
 from fastapi import (
     APIRouter,
@@ -1347,63 +1345,6 @@ async def do_download_assignment(
     )
 
     return response
-
-
-@router.get("/assignment_summary/{assignment_id}")
-@instructor_role_required()
-async def do_assignment_summary(
-    assignment_id: int,
-    request: Request,
-    user=Depends(auth_manager),
-    response_class=HTMLResponse,
-):
-    """
-    Download the specified assignment.
-    """
-
-    course_name = user.course_name
-
-    course = await fetch_course(course_name)
-    context = {
-        "course": course,
-        "course_name": course.course_name,
-        "base_course": course.base_course,
-        "assignment_id": assignment_id,
-        "course_id": course.id,
-        "user": user,
-        "request": request,
-        "is_instructor": True,
-        "student_page": False,
-    }
-    templates = get_shared_templates()
-    response = templates.TemplateResponse(
-        request, "assignment/instructor/assignment_summary.html", context
-    )
-
-    return response
-
-
-@router.get("/assignment_summary_data/{assignment_id}")
-@instructor_role_required()
-async def do_assignment_summary_data(
-    assignment_id: int,
-    request: Request,
-    user=Depends(auth_manager),
-    response_class=JSONResponse,
-):
-    course = await fetch_course(user.course_name)
-    # create_assignment_summary is blocking (pandas + psycopg2), so keep it off
-    # the event loop; a single call spans every *_answers table for the course.
-    summary_data, question_metadata = await asyncio.to_thread(
-        create_assignment_summary, assignment_id, course
-    )
-    return make_json_response(
-        status=status.HTTP_200_OK,
-        detail={
-            "assignment_summary": summary_data,
-            "question_metadata": question_metadata,
-        },
-    )
 
 
 @router.post("/question")

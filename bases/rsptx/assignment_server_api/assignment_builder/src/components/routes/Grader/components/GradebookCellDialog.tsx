@@ -50,6 +50,13 @@ const questionLabel = (q: StudentAssignmentQuestionScore): string =>
 const questionGradingPath = (assignmentId: number, questionId: number, sid: string): string =>
   `/grader/${assignmentId}/questions/${questionId}/students/${encodeURIComponent(sid)}`;
 
+/** The admin page showing every question of this assignment with this
+ * student's answers. A full URL path, outside this app's router basename. */
+const studentAnswersPath = (assignmentId: number, sid: string): string =>
+  `/admin/analytics/assignmentoverview/student?sid=${encodeURIComponent(
+    sid
+  )}&assignment_id=${assignmentId}`;
+
 const regradeSummary = (report: RegradeReport): string => {
   const parts = [
     `Regraded ${report.total} ${report.total === 1 ? "question" : "questions"}, ${
@@ -247,15 +254,30 @@ export const GradebookCellDialog: React.FC<GradebookCellDialogProps> = ({
           </Table>
         )}
 
-        <Anchor
-          href={`/assignment/student/studentreport?id=${encodeURIComponent(student.sid)}`}
-          size="sm"
-        >
-          <Group gap={4}>
-            <Icon name="external-link" size={14} />
-            See all work for {student.name}
-          </Group>
-        </Anchor>
+        <Group gap="lg">
+          {/* The admin drilldown renders each question with this student's
+              answer; a new tab keeps the gradebook (and this breakdown) put. */}
+          <Anchor
+            href={studentAnswersPath(assignment.id, student.sid)}
+            target="_blank"
+            rel="noopener"
+            size="sm"
+          >
+            <Group gap={4}>
+              <Icon name="external-link" size={14} />
+              See {student.name}&apos;s answers
+            </Group>
+          </Anchor>
+          <Anchor
+            href={`/assignment/student/studentreport?id=${encodeURIComponent(student.sid)}`}
+            size="sm"
+          >
+            <Group gap={4}>
+              <Icon name="external-link" size={14} />
+              See progress page for {student.name}
+            </Group>
+          </Anchor>
+        </Group>
 
         <Divider label="Override the total" labelPosition="left" />
         <ManualTotalForm
