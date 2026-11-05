@@ -69,26 +69,18 @@
     }
 
     // -------------------------------------------------------------------------
-    // Student answers
+    // Student answers (rendered by student_answers.js)
     // -------------------------------------------------------------------------
-    // Each question waits in a <template> until the book's components have
-    // auto-rendered the page, so none of them render it as the instructor.  It
-    // is then rendered in grader mode with the student's sid: the component
-    // fetches and shows that student's latest answer, and logs nothing.
-    //
     // With the deadline switch on, each component is also given the student's
     // deadline, and shows the last answer made before it instead.
-    document.addEventListener("runestone:login-complete", function () {
-        // Let the components' own login-complete listeners run first.
-        setTimeout(function () {
-            var toggle = document.getElementById("before-deadline-switch");
-            if (toggle) {
-                toggle.addEventListener("change", function () {
-                    renderStudentAnswers(toggle.checked);
-                });
-            }
-            renderStudentAnswers(false);
-        }, 0);
+    RSStudentAnswers.whenReady(function () {
+        var toggle = document.getElementById("before-deadline-switch");
+        if (toggle) {
+            toggle.addEventListener("change", function () {
+                renderStudentAnswers(toggle.checked);
+            });
+        }
+        renderStudentAnswers(false);
     });
 
     function renderStudentAnswers(beforeDeadline) {
@@ -98,101 +90,8 @@
         container.classList.toggle("before-deadline", beforeDeadline);
         var deadline = beforeDeadline && d.deadline ? new Date(d.deadline) : null;
         container.querySelectorAll("template.answer-src").forEach(function (tpl) {
-            // Start over from the stored source: a rendered component cannot
-            // be told to reload a different answer.
-            var host = tpl.nextElementSibling;
-            if (host.dataset.spliceState !== undefined) {
-                renderSpliceAnswer(host, tpl, beforeDeadline);
-                return;
-            }
-            host.replaceChildren(tpl.content.cloneNode(true));
-            renderAnswer(host, d.sid, deadline);
+            RSStudentAnswers.render(tpl, { sid: d.sid, deadline: deadline });
         });
-    }
-
-    // Iframe activities (splice, doenet, iframe) ask the page's SPLICE
-    // wrapper for their state, and it would answer with the *logged-in
-    // user's* -- the instructor's. Register each frame with the student's
-    // saved state before it loads, so the wrapper replays that instead and
-    // drops anything the activity reports back.
-    function renderSpliceAnswer(host, tpl, beforeDeadline) {
-        var wrapper = window.spliceWrapper;
-        host.querySelectorAll("iframe").forEach(function (f) {
-            if (wrapper) wrapper.unregisterGraderFrame(f);
-        });
-        var states = {};
-        try {
-            states = JSON.parse(host.dataset.spliceState) || {};
-        } catch (e) {
-            console.error("Bad saved state for " + host.id, e);
-        }
-        var state = beforeDeadline ? states.beforeDeadline : states.latest;
-        var frag = tpl.content.cloneNode(true);
-        // Hold back each src so nothing loads before it is registered.
-        var frames = Array.prototype.slice.call(frag.querySelectorAll("iframe"));
-        var srcs = frames.map(function (f) {
-            var src = f.getAttribute("src");
-            f.removeAttribute("src");
-            return src;
-        });
-        host.replaceChildren(frag);
-        if (!wrapper) {
-            var msg = document.createElement("p");
-            msg.className = "no-data";
-            msg.textContent = "This activity cannot show the student's work on this page.";
-            host.replaceChildren(msg);
-            return;
-        }
-        frames.forEach(function (f, i) {
-            wrapper.registerGraderFrame(f, state ?? null);
-            if (srcs[i]) f.src = srcs[i];
-        });
-        if (state == null) {
-            var note = document.createElement("p");
-            note.className = "no-data";
-            note.textContent = "No saved work for this student.";
-            host.prepend(note);
-        }
-    }
-
-    async function renderAnswer(host, sid, deadline) {
-        var orig = host.querySelector("[data-component]");
-        // Without a data-component (older WeBWorK markup) there is nothing to
-        // restore an answer into; leave the question text as it is.
-        if (!orig) return;
-        var kind = orig.dataset.component;
-        try {
-            await window.runestoneComponents.runestone_import(kind);
-        } catch (e) {
-            // Iframe-hosted kinds (splice, doenet, khanex) have no module;
-            // their markup is already the whole question.
-            return;
-        }
-        try {
-            var langEl = orig.dataset.lang ? orig : orig.querySelector("[data-lang]");
-            var opts = {
-                orig: orig,
-                lang: langEl ? langEl.dataset.lang : undefined,
-                useRunestoneServices: true,
-                graderactive: true,
-                sid: sid,
-                python3: true,
-            };
-            if (deadline) {
-                // Sent to the server, which returns the last answer before it;
-                // activecode moves its history scrubber to the deadline too.
-                opts.enforceDeadline = true;
-                opts.deadline = deadline;
-            }
-            var component = window.component_factory[kind](opts);
-            window.componentMap[orig.id] = component;
-        } catch (e) {
-            console.error("Could not render " + kind + " " + orig.id, e);
-            var msg = document.createElement("p");
-            msg.className = "no-data";
-            msg.textContent = "This " + kind + " question could not be rendered.";
-            host.appendChild(msg);
-        }
     }
 
     // Colour the Score column: green if > 0, red if 0 (but not blank)

@@ -7,6 +7,7 @@ import pandas as pd
 from rsptx.admin_server_api.routers import analytics
 from rsptx.admin_server_api.routers.analytics import (
     _splice_states,
+    _student_answer_groups,
     _question_grade_comments,
     _chapter_clause,
     _format_duedate,
@@ -182,3 +183,50 @@ def test_splice_states_without_answers_or_deadline(monkeypatch):
     q = {"name": "doenet1", "selected": None}
     states = _splice_states(_Course(), "stu", q, deadline=None)
     assert states == {"latest": None, "beforeDeadline": None}
+
+
+class _BookCourse:
+    course_name = "c"
+    base_course = "b"
+    course_id = 1
+
+
+def test_student_answer_groups_groups_by_subchapter_and_skips_listed_selections(
+    monkeypatch,
+):
+    def row(name, qtype, chapter, sub, selected=None, sel_type=None):
+        return {
+            "name": name,
+            "question_type": qtype,
+            "htmlsrc": f"<div>{name}</div>",
+            "chapter_name": chapter,
+            "subchapter_name": sub,
+            "selected_name": selected,
+            "selected_htmlsrc": f"<div>{selected}</div>" if selected else None,
+            "selected_type": sel_type,
+        }
+
+    rows = pd.DataFrame(
+        [
+            row("mc1", "mchoice", "Ch 1", "Intro"),
+            row("sel1", "selectquestion", "Ch 1", "Intro", "bank1", "mchoice"),
+            row("sel2", "selectquestion", "Ch 1", "Intro", "mc1", "mchoice"),
+            row("ac1", "activecode", "Ch 2", "Loops"),
+        ]
+    )
+    monkeypatch.setattr(analytics.pd, "read_sql_query", lambda *a, **k: rows)
+    detail = [{"Exercise": "mc1", "Attempts": 2, "Correct": "Yes"}]
+
+    groups = _student_answer_groups(_BookCourse(), "stu", detail)
+
+    assert [(g["chapter"], g["subchapter"]) for g in groups] == [
+        ("Ch 1", "Intro"),
+        ("Ch 2", "Loops"),
+    ]
+    intro = groups[0]["questions"]
+    # sel2 picked mc1, which the student worked on and is already listed.
+    assert [q["name"] for q in intro] == ["mc1", "sel1"]
+    assert intro[0]["attempts"] == 2 and intro[0]["correct"] == "Yes"
+    assert intro[1]["selected"] == "bank1"
+    assert intro[1]["htmlsrc"] == "<div>bank1</div>"
+    assert groups[1]["questions"][0]["attempts"] == 0

@@ -1810,14 +1810,12 @@ async def get_assignment_student_detail(
     )
 
 
-def _load_student_detail(
-    sid: str, course_name: str, base_course: str, tz_offset_hours: float
-) -> tuple:
+def _load_student_detail(sid: str, course, tz_offset_hours: float) -> tuple:
     """Gather everything the student drilldown page renders.
 
     Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
 
-    :return: ``(student, data)``
+    :return: ``(student, data, answer_groups)``
     :rtype: tuple
     :raises HTTPException: if the student does not exist.
     """
@@ -1841,12 +1839,98 @@ def _load_student_detail(
 
     data = _build_student_detail(
         engine,
-        course_name=course_name,
-        base_course=base_course,
+        course_name=course.course_name,
+        base_course=course.base_course,
         sid=sid,
         tz_offset_hours=tz_offset_hours,
     )
-    return student, data
+    answer_groups = _student_answer_groups(course, sid, data["exercise_detail"])
+    return student, data, answer_groups
+
+
+def _student_answer_groups(course, sid: str, exercise_detail: list) -> list:
+    """Every question ``sid`` has worked on in ``course``, with the HTML to
+    render it, grouped by subchapter in book order.
+
+    :return: ``[{"chapter", "subchapter", "questions": [...]}, ...]``, each
+        question shaped like those of ``_assignment_question_sources`` plus
+        the student's ``attempts`` and ``correct`` from ``exercise_detail``.
+    """
+    rows = pd.read_sql_query(
+        """
+        SELECT q.name, q.question_type, q.htmlsrc,
+               coalesce(ch.chapter_name, q.chapter) AS chapter_name,
+               coalesce(sc.sub_chapter_name, q.subchapter) AS subchapter_name,
+               sel.name AS selected_name, sel.htmlsrc AS selected_htmlsrc,
+               sel.question_type AS selected_type
+        FROM (
+            SELECT DISTINCT div_id FROM user_interactions
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+        ) ui
+        JOIN questions q
+          ON q.name = ui.div_id AND q.base_course = %(base_course)s
+        LEFT JOIN LATERAL (
+            SELECT id, chapter_name, chapter_num FROM chapters
+            WHERE course_id = q.base_course AND chapter_label = q.chapter
+            ORDER BY id LIMIT 1
+        ) ch ON true
+        LEFT JOIN LATERAL (
+            SELECT sub_chapter_name, sub_chapter_num FROM sub_chapters
+            WHERE chapter_id = ch.id AND sub_chapter_label = q.subchapter
+            ORDER BY id LIMIT 1
+        ) sc ON true
+        LEFT JOIN selected_questions sq
+          ON q.question_type = 'selectquestion'
+         AND sq.selector_id = q.name AND sq.sid = %(sid)s
+        LEFT JOIN LATERAL (
+            SELECT name, htmlsrc, question_type FROM questions
+            WHERE name = sq.selected_id
+            ORDER BY base_course = %(base_course)s DESC
+            LIMIT 1
+        ) sel ON true
+        WHERE q.question_type <> 'page'
+        ORDER BY ch.chapter_num NULLS LAST, q.chapter,
+                 sc.sub_chapter_num NULLS LAST, q.subchapter, q.id
+        """,
+        engine,
+        params={
+            "sid": sid,
+            "course_name": course.course_name,
+            "base_course": course.base_course,
+        },
+    )
+    stats = {row["Exercise"]: row for row in exercise_detail}
+    worked_on = set(rows["name"])
+    groups = []
+    for row in rows.itertuples(index=False):
+        htmlsrc = row.htmlsrc
+        selected = None
+        answer_type = row.question_type
+        if row.question_type == "selectquestion":
+            if row.selected_name in worked_on:
+                # Already listed under its own name and subchapter.
+                continue
+            # Not yet shown one: there is no answer to show.
+            selected = row.selected_name
+            htmlsrc = row.selected_htmlsrc
+            answer_type = row.selected_type
+        stat = stats.get(row.name, {})
+        q = {
+            "name": row.name,
+            "question_type": row.question_type,
+            "selected": selected,
+            "answer_type": answer_type,
+            "attempts": stat.get("Attempts", 0),
+            "correct": stat.get("Correct", ""),
+            "htmlsrc": prepare_question_htmlsrc(htmlsrc, course),
+        }
+        if answer_type in IFRAME_QUESTION_TYPES:
+            q["splice_state"] = _splice_states(course, sid, q, None)
+        key = (row.chapter_name, row.subchapter_name)
+        if not groups or (groups[-1]["chapter"], groups[-1]["subchapter"]) != key:
+            groups.append({"chapter": key[0], "subchapter": key[1], "questions": []})
+        groups[-1]["questions"].append(q)
+    return groups
 
 
 @router.get("/student_detail", response_class=HTMLResponse)
@@ -1873,13 +1957,10 @@ async def get_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    student, data = await asyncio.to_thread(
-        _load_student_detail,
-        sid,
-        course.course_name,
-        course.base_course,
-        tz_offset_hours,
+    student, data, answer_groups = await asyncio.to_thread(
+        _load_student_detail, sid, course, tz_offset_hours
     )
+    course_attrs = await fetch_all_course_attributes(course.id)
 
     context = {
         "request": request,
@@ -1888,6 +1969,9 @@ async def get_student_detail(
         "student": student,
         "subchapter_summary_json": json.dumps(data["subchapter_summary"]),
         "exercise_detail_json": json.dumps(data["exercise_detail"]),
+        "answer_groups": answer_groups,
+        "wp_imports": _safe_webpack_imports(course),
+        "latex_preamble": course_attrs.get("latex_macros", ""),
         "is_instructor": True,
         "student_page": False,
         "settings": settings,
