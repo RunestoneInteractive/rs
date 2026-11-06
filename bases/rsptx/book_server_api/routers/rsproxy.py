@@ -117,6 +117,7 @@ def image_client() -> httpx.AsyncClient:
 
 def experiment_client() -> httpx.AsyncClient:
     """Client for explicitly allowlisted experiment APIs."""
+
     async def strip_cookies(request: httpx.Request) -> None:
         request.headers.pop("cookie", None)
 
