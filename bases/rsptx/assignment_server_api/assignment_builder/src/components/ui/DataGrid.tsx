@@ -85,6 +85,7 @@ export interface DataGridProps<T> {
   loading?: boolean;
   emptyMessage?: React.ReactNode;
   filterResultsLabel?: string;
+  showFilterResultsStatus?: boolean;
   filterResultsTotal?: number;
   tableFrameClassName?: string;
   ariaLabel?: string;
@@ -190,6 +191,7 @@ export function DataGrid<T>({
   initialSorting = [],
   loading = false,
   emptyMessage = "Nothing here yet",
+  showFilterResultsStatus = true,
   filterResultsLabel = "results",
   filterResultsTotal = data.length,
   tableFrameClassName,
@@ -251,7 +253,8 @@ export function DataGrid<T>({
   const resolvedPageCount = table.getPageCount();
   const rows = table.getRowModel().rows;
   const filteredRowCount = table.getFilteredRowModel().rows.length;
-  const announcesFilterResults = enableGlobalFilter || enableColumnFilters;
+  const announcesFilterResults =
+    showFilterResultsStatus && (enableGlobalFilter || enableColumnFilters);
   const tabbableRowId = rows.some((row) => row.id === keyboardRowId) ? keyboardRowId : rows[0]?.id;
 
   // Column filters shrink the table from the inside, so a page index that came
