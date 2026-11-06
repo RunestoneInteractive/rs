@@ -195,6 +195,7 @@ describe("toggle questions (assignment page)", () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
         const preview = document.getElementById("component-preview");
         expect(preview.style.display).not.toBe("none");
+        expect(preview.querySelector(".rs-panel-resize-handle")).not.toBe(null);
         expect(
             document.querySelector("#toggle-preview [data-component=parsons]"),
         ).not.toBe(null);

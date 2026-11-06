@@ -10,6 +10,7 @@
 import RunestoneBase from "../../common/js/runestonebase.js";
 import { t } from "../../common/js/rsi18n.js";
 import { getDataValue, toggleDisplay } from "../../common/js/domutil.js";
+import { makeResizablePanel } from "../../common/js/resizablePanel.js";
 import AudioTour from "./audiotour.js";
 import "./activecode-i18n.en.js";
 import "./activecode-i18n.pt-br.js";
@@ -1303,6 +1304,7 @@ export class ActiveCode extends RunestoneBase {
             parsonsDiv.id = `parsons-scaffolding-${this.divid}`;
             parsonsDiv.classList.add("parsons-scaffolding");
             scaffoldingContainer.appendChild(parsonsDiv);
+            makeResizablePanel(scaffoldingContainer);
         } else {
             // if already exists: remove hidden
             document

@@ -9,6 +9,7 @@ import {
 } from "../../common/js/renderComponent.js";
 import RunestoneBase from "../../common/js/runestonebase.js";
 import { getDataValue } from "../../common/js/domutil.js";
+import { makeResizablePanel } from "../../common/js/resizablePanel.js";
 import "../css/selectquestion.css";
 
 export default class SelectOne extends RunestoneBase {
@@ -379,7 +380,9 @@ export default class SelectOne extends RunestoneBase {
             }
         }
 
-        showElement(document.getElementById("component-preview"));
+        const previewPanel = document.getElementById("component-preview");
+        makeResizablePanel(previewPanel);
+        showElement(previewPanel);
     }
 
     // on clicking "Select this Problem" button, close preview panel, replace current question in assignments page with selected question, and send request to update grading database
