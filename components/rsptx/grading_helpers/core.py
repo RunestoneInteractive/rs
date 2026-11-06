@@ -290,7 +290,7 @@ async def score_one_answer(
 
 async def compute_total_score(
     scoreSpec: ScoringSpecification, user: AuthUserValidator
-) -> int:
+) -> Union[int, float]:
     """
     Compute the total score for an assignment.
 
@@ -298,7 +298,7 @@ async def compute_total_score(
     :type scoreSpec: ScoringSpecification
     :param user: The user to compute the score for.
     :type user: AuthUserValidator
-    :rtype: int
+    :rtype: int or float
     """
 
     res = await fetch_assignment_scores_with_points(
