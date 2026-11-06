@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ActionType } from "typesafe-actions";
 
-import { RootState } from "@/state/store";
+import { RootState } from "@/store/rootReducer";
 import { Nullable } from "@/types/common";
 
 export interface AssignmentState {
@@ -26,6 +26,6 @@ export const assignmentActions = assignmentSlice.actions;
 
 export const assignmentSelectors = {
   getSelectedAssignmentId: (state: RootState): Nullable<number> =>
-    state.assignmentTemp.selectedAssignmentId
+    state.assignment.selectedAssignmentId
 };
 export type AssignmentActions = ActionType<typeof assignmentActions>;

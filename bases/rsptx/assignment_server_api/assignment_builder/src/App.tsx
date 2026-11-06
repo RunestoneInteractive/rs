@@ -4,6 +4,7 @@ import {
   useGetRecentInstructorCoursesQuery,
   useSwitchInstructorCourseMutation
 } from "@store/course/course.logic.api";
+import { userSelectors } from "@store/user/userLogic";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import {
@@ -26,8 +27,6 @@ import {
   syncCourseHistoryEntry
 } from "./courseHistory";
 import { buildNavBar, getCourseSwitchDestination } from "./navUtils.js";
-import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
-import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
 
 import "katex/dist/katex.min.css";
 
@@ -136,7 +135,7 @@ function AppContent() {
 }
 
 function App() {
-  if (useSelector(selectIsAuthorized) === false) {
+  if (useSelector(userSelectors.getIsAuthorized) === false) {
     return (
       <div>
         <h1 className="App">Assignment Builder</h1>
@@ -276,10 +275,6 @@ function App() {
             {
               path: "admin",
               element: <h1>Coming soon</h1>
-            },
-            {
-              path: "except",
-              element: <ExceptionScheduler />
             }
           ]
         }
