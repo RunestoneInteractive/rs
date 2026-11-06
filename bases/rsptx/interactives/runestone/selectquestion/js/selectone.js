@@ -138,6 +138,7 @@ export default class SelectOne extends RunestoneBase {
             self.containerDiv = res.question.containerDiv;
             self.realComponent.selectorId = selectorId;
         } else {
+            let previewCreated = false;
             if (data.toggleOptions) {
                 var toggleLabels = data.toggleLabels;
                 if (toggleLabels) {
@@ -152,7 +153,8 @@ export default class SelectOne extends RunestoneBase {
                 var toggleQuestions = this.questions.split(", ");
                 var toggleUI = "";
                 // check so that only the first toggle select question on the assignments page has a preview panel created, then all toggle select previews use this same panel
-                if (!document.getElementById("component-preview")) {
+                previewCreated = !document.getElementById("component-preview");
+                if (previewCreated) {
                     toggleUI +=
                         '<div id="component-preview" class="col-md-6 toggle-preview" style="z-index: 999;">' +
                         '<div id="toggle-buttons"></div>' +
@@ -239,7 +241,12 @@ export default class SelectOne extends RunestoneBase {
                 useRunestoneServices: true,
             });
             if (data.toggleOptions) {
-                hideElement(document.getElementById("component-preview"));
+                const previewPanel =
+                    document.getElementById("component-preview");
+                if (previewCreated) {
+                    makeResizablePanel(previewPanel);
+                }
+                hideElement(previewPanel);
                 var toggleQuestionSelect = document.getElementById(
                     selectorId + "-toggleQuestion",
                 );
@@ -380,9 +387,7 @@ export default class SelectOne extends RunestoneBase {
             }
         }
 
-        const previewPanel = document.getElementById("component-preview");
-        makeResizablePanel(previewPanel);
-        showElement(previewPanel);
+        showElement(document.getElementById("component-preview"));
     }
 
     // on clicking "Select this Problem" button, close preview panel, replace current question in assignments page with selected question, and send request to update grading database

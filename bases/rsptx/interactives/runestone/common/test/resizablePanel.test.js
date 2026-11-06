@@ -21,8 +21,10 @@ function makePanel(right = 1000, width = 400) {
     return panel;
 }
 
-function fire(target, type, clientX) {
-    target.dispatchEvent(new MouseEvent(type, { clientX, bubbles: true }));
+function fire(target, type, clientX, button = 0) {
+    target.dispatchEvent(
+        new MouseEvent(type, { clientX, button, bubbles: true }),
+    );
 }
 
 describe("makeResizablePanel", () => {
@@ -40,6 +42,77 @@ describe("makeResizablePanel", () => {
         expect(handles.length).toBe(1);
         expect(handles[0].getAttribute("role")).toBe("separator");
         expect(panel.style.width).toBe("");
+    });
+
+    it("moves the content into a scroller and leaves the handle on the panel", () => {
+        const panel = makePanel();
+        makeResizablePanel(panel);
+        const scroller = panel.querySelector(":scope > .rs-panel-scroll");
+        expect(scroller.querySelector("p").textContent).toBe("content");
+        expect(scroller.querySelector(".rs-panel-resize-handle")).toBe(null);
+        expect(panel.style.overflow).toBe("visible");
+    });
+
+    it("describes the width to screen readers before any resize", () => {
+        const panel = makePanel();
+        makeResizablePanel(panel);
+        const handle = panel.querySelector(".rs-panel-resize-handle");
+        expect(handle.getAttribute("aria-valuenow")).toBe("400");
+        expect(handle.getAttribute("aria-valuemin")).toBe("320");
+        expect(handle.getAttribute("aria-valuemax")).toBe("960");
+        // The width changes on its own, so it catches up on focus.
+        panel.getBoundingClientRect.mockReturnValue({
+            right: 1000,
+            width: 500,
+            left: 500,
+        });
+        handle.dispatchEvent(new FocusEvent("focus"));
+        expect(handle.getAttribute("aria-valuenow")).toBe("500");
+    });
+
+    it("treats a click on the tab as a click, not a resize", () => {
+        const panel = makePanel();
+        makeResizablePanel(panel);
+        const handle = panel.querySelector(".rs-panel-resize-handle");
+        fire(handle, "pointerdown", 600);
+        fire(handle, "pointermove", 601);
+        fire(handle, "pointerup", 601);
+        expect(panel.style.width).toBe("");
+        expect(localStorage.getItem(STORAGE_KEY)).toBe(null);
+    });
+
+    it("ignores other mouse buttons", () => {
+        const panel = makePanel();
+        makeResizablePanel(panel);
+        const handle = panel.querySelector(".rs-panel-resize-handle");
+        fire(handle, "pointerdown", 600, 2);
+        expect(handle.classList.contains("rs-dragging")).toBe(false);
+        fire(handle, "pointermove", 300);
+        expect(panel.style.width).toBe("");
+    });
+
+    it("ends the drag if the pointer capture is lost", () => {
+        const panel = makePanel();
+        makeResizablePanel(panel);
+        const handle = panel.querySelector(".rs-panel-resize-handle");
+        fire(handle, "pointerdown", 600);
+        fire(handle, "pointermove", 500);
+        handle.dispatchEvent(new Event("lostpointercapture"));
+        expect(handle.classList.contains("rs-dragging")).toBe(false);
+        fire(handle, "pointermove", 300);
+        expect(panel.style.width).toBe("500px");
+    });
+
+    it("lets the window win when it is narrower than the minimum", () => {
+        window.innerWidth = 340;
+        const panel = makePanel(340, 300);
+        makeResizablePanel(panel);
+        const handle = panel.querySelector(".rs-panel-resize-handle");
+        expect(handle.getAttribute("aria-valuemax")).toBe("300");
+        handle.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowLeft" }),
+        );
+        expect(panel.style.width).toBe("300px");
     });
 
     it("widens as the left edge is dragged left and remembers the width", () => {
@@ -66,8 +139,6 @@ describe("makeResizablePanel", () => {
         // Grabbed 10px left of the edge, which is at x=600.
         fire(handle, "pointerdown", 590);
         expect(handle.classList.contains("rs-dragging")).toBe(true);
-        fire(handle, "pointermove", 590);
-        expect(panel.style.width).toBe("400px");
         fire(handle, "pointermove", 490);
         expect(panel.style.width).toBe("500px");
         fire(handle, "pointerup", 490);

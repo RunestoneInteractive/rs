@@ -177,6 +177,7 @@ describe("toggle questions (assignment page)", () => {
         expect(select.value).toBe("q_a");
         const preview = document.getElementById("component-preview");
         expect(preview.style.display).toBe("none");
+        expect(preview.querySelector(".rs-panel-resize-handle")).not.toBe(null);
         expect(
             document.getElementById("test_selq_1-toggleSelectedQuestion"),
         ).not.toBe(null);
@@ -195,7 +196,9 @@ describe("toggle questions (assignment page)", () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
         const preview = document.getElementById("component-preview");
         expect(preview.style.display).not.toBe("none");
-        expect(preview.querySelector(".rs-panel-resize-handle")).not.toBe(null);
+        expect(preview.querySelectorAll(".rs-panel-resize-handle").length).toBe(
+            1,
+        );
         expect(
             document.querySelector("#toggle-preview [data-component=parsons]"),
         ).not.toBe(null);

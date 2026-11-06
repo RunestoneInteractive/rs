@@ -2,7 +2,7 @@
 // against the jQuery implementation and now guard the jQuery-free version.
 // Note: deliberately NO jquery-globals import here -- parsons must work
 // without jQuery.
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Parsons from "../js/parsons.js";
 import "../js/timedparsons.js";
 import { setLocale } from "../../common/js/rsi18n.js";
@@ -1203,5 +1203,85 @@ describe("page integration", () => {
         const p = window.componentMap["test_parsons_page"];
         expect(p).toBeInstanceOf(Parsons);
         await p.component_ready_promise;
+    });
+});
+
+describe("re-fitting text blocks when a popup is resized", () => {
+    const TEXT_BLOCKS = "first step\n---\nsecond step";
+    const TEXT_ATTRS = 'data-language="natural" data-order="0,1"';
+    let observed;
+
+    beforeEach(() => {
+        observed = [];
+        vi.stubGlobal(
+            "ResizeObserver",
+            class {
+                constructor(callback) {
+                    this.callback = callback;
+                    this.disconnect = vi.fn();
+                    observed.push(this);
+                }
+                observe() {}
+            },
+        );
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    async function resizeAndWait(parsons, width) {
+        Object.defineProperty(parsons.outerDiv, "offsetWidth", {
+            configurable: true,
+            get: () => width,
+        });
+        const layout = vi
+            .spyOn(parsons, "layoutTextBlocks")
+            .mockImplementation(() => {});
+        observed[0].callback();
+        await tick(200);
+        return layout;
+    }
+
+    function putInPanel(parsons, width) {
+        const panel = document.createElement("div");
+        panel.classList.add("rs-resizable-panel");
+        panel.style.width = width;
+        parsons.outerDiv.parentElement.append(panel);
+        panel.append(parsons.outerDiv);
+    }
+
+    it("re-fits once the student has resized the panel", async () => {
+        const parsons = await makeParsons({
+            blocks: TEXT_BLOCKS,
+            attrs: TEXT_ATTRS,
+        });
+        putInPanel(parsons, "900px");
+        const layout = await resizeAndWait(parsons, 880);
+        expect(layout).toHaveBeenCalledWith({ refit: true });
+    });
+
+    it("leaves a panel that is still sized by its content alone", async () => {
+        const parsons = await makeParsons({
+            blocks: TEXT_BLOCKS,
+            attrs: TEXT_ATTRS,
+        });
+        putInPanel(parsons, "");
+        const layout = await resizeAndWait(parsons, 880);
+        expect(layout).not.toHaveBeenCalled();
+    });
+
+    it("leaves problems outside a popup alone", async () => {
+        const parsons = await makeParsons({
+            blocks: TEXT_BLOCKS,
+            attrs: TEXT_ATTRS,
+        });
+        const layout = await resizeAndWait(parsons, 880);
+        expect(layout).not.toHaveBeenCalled();
+    });
+
+    it("doesn't watch code problems, whose blocks don't wrap", async () => {
+        await makeParsons({ blocks: FLAT_BLOCKS, attrs: FLAT_ATTRS });
+        expect(observed.length).toBe(0);
     });
 });

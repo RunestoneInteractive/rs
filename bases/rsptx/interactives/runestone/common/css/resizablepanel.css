@@ -1,16 +1,30 @@
 .rs-resizable-panel {
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Wider than the visible tab, so it's an easy target anywhere along the edge. */
+.rs-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Just the tab, plus a little inside the panel's edge so it's an easy target.
+   --rs-panel-border is the panel's left border, if it has one: offsets here are
+   measured from inside the border, but the tab belongs on its outer edge. */
 .rs-panel-resize-handle {
     --rs-grip-dots: color-mix(
         in srgb,
         var(--bodyFont, #000000) 55%,
         transparent
     );
-    position: fixed;
+    position: absolute;
+    top: 50%;
+    right: calc(100% + var(--rs-panel-border, 0px) - 6px);
     width: 24px;
+    height: 48px;
+    transform: translateY(-50%);
     z-index: 1;
     cursor: ew-resize;
     touch-action: none;
@@ -44,7 +58,7 @@
         radial-gradient(circle, var(--rs-grip-dots) 1px, transparent 1.5px) 0
             0 / 5px 5px content-box,
         var(--componentBgColor, #f0f8ff);
-    box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.15);
+    box-shadow: -1px 1px 3px var(--panelHandleShadow);
 }
 
 .rs-panel-resize-handle:focus-visible::after {
