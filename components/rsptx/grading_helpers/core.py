@@ -323,6 +323,7 @@ async def compute_total_score(
         )
     rslogger.debug(f"newGrade = {newGrade}")
     res = await upsert_grade(newGrade)
+    scoreSpec.total_score = total
     # And send the grade off to whichever LTI tools are listening.
     #
     # This runs on every scored student answer and every completed reading page
