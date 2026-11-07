@@ -126,13 +126,24 @@ describe("GradebookCellDialog", () => {
     );
   });
 
-  it("links to the student's full report", () => {
+  it("links to the student's answers on this assignment in a new tab", () => {
     renderDialog();
 
-    expect(screen.getByRole("link", { name: /See all work for Ada Lovelace/ })).toHaveAttribute(
+    const link = screen.getByRole("link", { name: /See Ada Lovelace's answers/ });
+
+    expect(link).toHaveAttribute(
       "href",
-      "/assignment/student/studentreport?id=ada%40example.com"
+      "/admin/analytics/assignmentoverview/student?sid=ada%40example.com&assignment_id=7"
     );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("links to the student's progress page", () => {
+    renderDialog();
+
+    expect(
+      screen.getByRole("link", { name: /See progress page for Ada Lovelace/ })
+    ).toHaveAttribute("href", "/assignment/student/studentreport?id=ada%40example.com");
   });
 
   it("warns and offers a regrade when the total disagrees with the questions", async () => {

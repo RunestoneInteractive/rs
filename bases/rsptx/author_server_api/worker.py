@@ -189,8 +189,22 @@ def git_pull(self, book, source_path=None):
             },
         )
         raise Ignore()
+    # Never clean build output, whatever the book repo's .gitignore says.
     res = subprocess.run(
-        ["git", "clean", "--force", "-d"], capture_output=True, cwd=work_dir
+        [
+            "git",
+            "clean",
+            "--force",
+            "-d",
+            "-e",
+            "/published/",
+            "-e",
+            "/output/",
+            "-e",
+            "/.cache/",
+        ],
+        capture_output=True,
+        cwd=work_dir,
     )
     if res.returncode != 0:
         outputlog = pathlib.Path(work_dir, "author_build.log")
@@ -405,7 +419,7 @@ def deploy_book(self, book):
     numServers = int(os.environ["NUM_SERVERS"].strip())
 
     for i in range(1, numServers + 1):
-        command = f"ssh -oStrictHostKeyChecking=no {user}@server{i} 'mkdir -p ~/books/{book}/published{book}'"
+        command = f"ssh -oStrictHostKeyChecking=no {user}@server{i} 'mkdir -p ~/books/{book}/published/{book}'"
         res = subprocess.run(
             command,
             shell=True,

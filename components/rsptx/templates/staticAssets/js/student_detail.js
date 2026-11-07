@@ -35,6 +35,46 @@
         }
     });
 
+    // -------------------------------------------------------------------------
+    // Student answers (rendered by student_answers.js)
+    // -------------------------------------------------------------------------
+    // A subchapter's questions are rendered the first time it is opened.
+    document.addEventListener("DOMContentLoaded", function () {
+        var groups = document.querySelectorAll("#student-answers details.answer-group");
+        groups.forEach(function (group) {
+            group.addEventListener("toggle", function () {
+                if (group.open) renderGroup(group);
+            });
+        });
+        var expand = document.getElementById("expand-all-answers");
+        var collapse = document.getElementById("collapse-all-answers");
+        if (expand) {
+            expand.addEventListener("click", function () {
+                groups.forEach(function (g) {
+                    g.open = true;
+                });
+            });
+        }
+        if (collapse) {
+            collapse.addEventListener("click", function () {
+                groups.forEach(function (g) {
+                    g.open = false;
+                });
+            });
+        }
+    });
+
+    function renderGroup(group) {
+        if (group.dataset.rendered) return;
+        group.dataset.rendered = "true";
+        RSStudentAnswers.whenReady(function () {
+            var sid = window.STUDENT_DATA.sid;
+            group.querySelectorAll("template.answer-src").forEach(function (tpl) {
+                RSStudentAnswers.render(tpl, { sid: sid });
+            });
+        });
+    }
+
     // Colours "Yes"/"No" cells in the "Correct" column green/red.
     function correctClass(colKey, value) {
         if (colKey !== "Correct") return null;
