@@ -24,6 +24,7 @@ import subprocess
 
 # third party imports
 import redis
+from fastapi import HTTPException
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
@@ -50,6 +51,8 @@ from rsptx.db.crud import (
     delete_user,
     fetch_all_course_attributes,
     fetch_assignments,
+    fetch_assignment_by_name,
+    fetch_assignment_questions,
     fetch_backfill_bounds,
     fetch_course,
     fetch_courses_by_start_date,
@@ -60,6 +63,7 @@ from rsptx.db.crud import (
     fetch_group,
     fetch_instructor_courses,
     fetch_library_book,
+    fetch_one_assignment,
     fetch_unused_library_books,
     fetch_users_for_course,
     fetch_membership,
@@ -1565,6 +1569,56 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
                     f"< {row.ts} {row.sid:<15} {row.div_id:<40} {row.event:<10} {row.act:<30}"
                 )
     conn.close()
+
+
+@cli.command()
+@click.argument("assignment_id", type=int, required=False)
+@pass_config
+async def showassignment(config, assignment_id):
+    """
+    Show the questions in an assignment, in assignment order
+
+    Give the numeric ASSIGNMENT_ID, or omit it to be prompted for the
+    course name and assignment name.
+    """
+    if assignment_id is None:
+        course_name = await click.prompt("Name of the course ")
+        course = await fetch_course(course_name)
+        if not course:
+            click.echo("Sorry, that course does not exist")
+            sys.exit(-1)
+        assignment_name = await click.prompt("Name of the assignment ")
+        assignment = await fetch_assignment_by_name(
+            assignment_name, course.id, read_only=True
+        )
+        if assignment is None:
+            click.echo("Sorry, that assignment does not exist")
+            click.echo("Here are the available assignments:")
+            for assign in await fetch_assignments(course.course_name):
+                click.echo(f"{assign.name}")
+            sys.exit(-1)
+    else:
+        try:
+            assignment = await fetch_one_assignment(assignment_id, read_only=True)
+        except HTTPException:
+            click.echo(f"Sorry, assignment {assignment_id} does not exist")
+            sys.exit(-1)
+
+    click.echo(
+        f"Assignment ({assignment.id}) {assignment.name}  Due: {assignment.duedate}  Points: {assignment.points}"
+    )
+    rows = (await fetch_assignment_questions(assignment.id)).all()
+    if not rows:
+        click.echo("This assignment has no questions")
+        return
+    click.echo(
+        f"{'ID':>8}  {'Name':<40} {'Chapter':<20} {'Subchapter':<25} {'Type':<15} {'Points':>6}"
+    )
+    for row in rows:
+        q = row.Question
+        click.echo(
+            f"{q.id:>8}  {q.name or '':<40} {q.chapter or '':<20} {q.subchapter or '':<25} {q.question_type or '':<15} {row.AssignmentQuestion.points:>6}"
+        )
 
 
 #

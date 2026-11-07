@@ -1900,49 +1900,61 @@ def _html_to_text(html: str) -> str:
     return text.strip()
 
 
-_ANSWER_LI_RE = re.compile(
-    r"<li\b([^>]*\bdata-component\s*=\s*[\"']answer[\"'][^>]*)>(.*?)</li>",
-    re.I | re.S,
-)
+_LI_RE = re.compile(r"<li\b([^>]*)>(.*?)</li>", re.I | re.S)
 _MCHOICE_LI_RE = re.compile(r"<li\b[^>]*>.*?</li>", re.I | re.S)
 _DATA_CORRECT_RE = re.compile(r"data-correct(?:\s*=\s*[\"']?(\w+))?", re.I)
+_COMPONENT_RE = re.compile(r"data-component\s*=\s*[\"'](\w+)[\"']", re.I)
 
 
-# returns stem, lettered choices, labels of the correct ones
-def parse_mchoice_htmlsrc(htmlsrc: str) -> tuple[str, list[str], list[str]]:
+# returns stem, lettered choices, labels of the correct ones, feedback by label
+def parse_mchoice_htmlsrc(
+    htmlsrc: str,
+) -> tuple[str, list[str], list[str], dict[str, str]]:
     if not htmlsrc:
-        return "", [], []
+        return "", [], [], {}
 
     choices: list[str] = []
     correct: list[str] = []
-    for i, match in enumerate(_ANSWER_LI_RE.finditer(htmlsrc)):
-        attrs, body = match.group(1), match.group(2)
-        label = chr(65 + i)
-        text = _html_to_text(body)
-        choices.append(f"{label}. {text}" if text else f"{label}.")
+    feedback: dict[str, str] = {}
+    label = ""
+    index = 0
 
-        marked = _DATA_CORRECT_RE.search(attrs)
-        if marked and (marked.group(1) or "yes").lower() not in ("no", "false"):
-            correct.append(label)
+    for match in _LI_RE.finditer(htmlsrc):
+        attrs, body = match.group(1), match.group(2)
+        component = _COMPONENT_RE.search(attrs)
+        kind = component.group(1).lower() if component else ""
+        text = _html_to_text(body)
+
+        if kind == "answer":
+            label = chr(65 + index)
+            index += 1
+            choices.append(f"{label}. {text}" if text else f"{label}.")
+            marked = _DATA_CORRECT_RE.search(attrs)
+            if marked and (marked.group(1) or "yes").lower() not in ("no", "false"):
+                correct.append(label)
+        elif kind == "feedback" and label and text:
+            feedback[label] = text
 
     stem = _html_to_text(_MCHOICE_LI_RE.sub("", htmlsrc))
-    return stem, choices, correct
+    return stem, choices, correct, feedback
 
 
 async def _get_mcq_context_async(div_id: str):
-    # Return (question_text, code_text, choices, correct_labels) for the LLM
-    # peer prompt. correct_labels lets the peer confirm a student who has
-    # reasoned their way to the right answer instead of only ever asking
-    # another question; without it the model has no way to know.
+    # Return (question_text, code_text, choices, correct_labels, feedback) for
+    # the LLM peer prompt. correct_labels lets the peer confirm a student who
+    # has reasoned their way to the right answer; feedback, keyed by choice
+    # letter, is the author's explanation of why each option is right or wrong
+    # and is what lets the peer aim at the student's actual misconception.
     try:
         q = await fetch_question(div_id)
         if not q:
             rslogger.error(f"_get_mcq_context_async: no question row for {div_id}")
-            return "", "", [], []
+            return "", "", [], [], {}
 
         question = ""
         choices: list[str] = []
         correct_labels: list[str] = []
+        feedback: dict[str, str] = {}
 
         qjson = getattr(q, "question_json", None)
         if qjson:
@@ -1957,16 +1969,20 @@ async def _get_mcq_context_async(div_id: str):
                         choices.append(f"{label}. {choice_text}")
                         if opt.get("correct"):
                             correct_labels.append(label)
+                        fb = _html_to_text(opt.get("feedback", "") or "")
+                        if fb:
+                            feedback[label] = fb
             except Exception as e:
                 rslogger.warning(f"Could not parse question_json for {div_id}: {e}")
 
         if not choices:
-            stem, html_choices, html_correct = parse_mchoice_htmlsrc(
+            stem, html_choices, html_correct, html_feedback = parse_mchoice_htmlsrc(
                 (getattr(q, "htmlsrc", "") or "").strip()
             )
             if html_choices:
                 choices = html_choices
                 correct_labels = html_correct
+                feedback = html_feedback
                 question = question or stem
 
         if not question:
@@ -1980,10 +1996,10 @@ async def _get_mcq_context_async(div_id: str):
         code = ""
         if not question:
             rslogger.warning(f"_get_mcq_context_async: no question text for {div_id}")
-        return question, code, choices, correct_labels
+        return question, code, choices, correct_labels, feedback
     except Exception:
         rslogger.exception(f"_get_mcq_context_async failed for {div_id}")
-        return "", "", [], []
+        return "", "", [], [], {}
 
 
 async def _call_openai_async(messages: list, course_id: int) -> str:
@@ -2198,7 +2214,9 @@ async def get_async_llm_reflection(
     except Exception:
         rslogger.exception("Failed to log LLM user message")
 
-    question, code, choices, correct_labels = await _get_mcq_context_async(div_id)
+    question, code, choices, correct_labels, choice_feedback = (
+        await _get_mcq_context_async(div_id)
+    )
 
     reflection_text = (data.get("reflection") or "").strip()
     if not reflection_text and messages:
@@ -2265,16 +2283,21 @@ async def get_async_llm_reflection(
         "the question and its answer choices are shown below. only talk about what is actually there. if there is no code in the question never mention code and never ask them to trace code.\n"
         "only speak in lower case. keep messages short, 1 to 3 sentences. casual informal language with the occasional typo. no commas. no em dashes. no line breaks. no gendered language.\n"
         "do not sound like a teacher and do not explain the problem step by step.\n"
-        "you are told below which choice is correct. that is for you to steer with, not to hand over. never state the correct choice before the student has worked their way to it, never reveal it because they asked, or because they are stuck, or because the conversation is dragging, and never reference feedback or grading. do not pretend to have picked an answer yourself.\n"
-        "THE MOMENT WHAT THE STUDENT SAYS MATCHES THE CORRECT CHOICE, CONFIRM IT AND STOP ASKING. this outranks every other rule here about asking questions. they do not have to name the letter or repeat the choice back to you — if the substance of what they just said is the correct choice, that counts, even if it is short, informal, or only half a sentence. say it plainly ('yeah thats what i got too', 'yeah that sounds right') and tell them to go vote. do not ask another question, do not make them justify it a second time, do not test it once more to be sure. carrying on interrogating a student who is already right is the single worst thing you can do here.\n"
+        "you are told below which choice is correct. that is for you to steer with, not to hand over. never state the correct choice before the student has worked their way to it, never reveal it because they asked, or because they are stuck, or because the conversation is dragging, and never mention scores or grading. do not pretend to have picked an answer yourself.\n"
+        "THE MOMENT WHAT THE STUDENT SAYS MATCHES THE CORRECT CHOICE, CONFIRM IT AND SEND THEM TO VOTE IN THE SAME MESSAGE, and end the message there. this outranks every other rule here about asking questions. they do not have to name the letter or repeat the choice back to you. it looks like 'yeah thats what i got too, go vote' or 'yeah that sounds right, you can go vote now'. that message must not contain a question. do not make them justify it a second time and do not test it once more to be sure — carrying on interrogating a student who is already right is the single worst thing you can do here. if they keep talking after that, answer them normally.\n"
+        "what counts as a match: they name something in the question — a value, a line, an operation, what it does — and it fits the correct choice, even in half a sentence. what does not count: saying only that they are confident, that it seems right, that they remember it, or that they cannot explain it. that is not reasoning, and confirming it teaches them nothing.\n"
+        "if you have asked twice and they still have not named anything concrete, stop asking about it. tell them to go vote without saying whether they are right, and leave it there.\n"
+        "IF THEY ALREADY PICKED THE CORRECT CHOICE, YOUR JOB IS TO HELP THEM SAY WHY, NOT TO TEST THEM. ask them to say a bit more about their thinking, once. the moment any part of what comes back is sound, confirm it and send them to vote. do not keep probing a correct answer and do not raise doubts about it — students who picked the right choice and could not explain it have been argued into a wrong one, and that is the worst outcome here. a thin justification is not a reason to interrogate.\n"
         "while they are still working, do not hand out verdicts or agreement markers ('exactly', 'right', 'yeah', 'true', 'good point', 'makes sense', 'perfect'). those belong only to the moment described above.\n"
-        "if their reasoning is heading somewhere wrong, do not validate it and do not announce that it is wrong either. name the specific thing in the question that their reasoning has to account for and ask what it does to their answer.\n"
+        "that cuts both ways: do not tell them they are wrong either, in any form. no 'not quite', 'close but', 'thats not it', 'you're mixing X up', and no correcting their arithmetic or restating their answer back at them as if to show it is off.\n"
+        "if their reasoning is heading somewhere wrong, name the specific thing in the question that their reasoning has to account for and ask what it does to their answer.\n"
+        "SAY SOMETHING OF YOUR OWN IN EVERY MESSAGE, not just a question. point at the exact line, value, or word in the question you are thinking about and say what you notice about it, then ask. a message that is only a question gives them nothing to push against and is the main thing students complain about.\n"
         "every message must begin with a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm') or with 'so' followed by an observation — except the confirming message above, which can open with agreement.\n"
         "never end on a rhetorical question whose obvious answer tells them they are wrong. keep questions open — 'where does that put you' not 'does that even exist'.\n"
-        "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words.\n"
+        "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words. if they did not answer your last question, do not ask it again: answer that one small part yourself and move on to the next step. that applies only to the detail you asked about, never to which choice is correct.\n"
         "if their explanation describes a different option than the one they selected, ask them about that gap without saying which is right, like 'wait you said X but you picked Y whats the connection'.\n"
         "be aware of common misconceptions but never introduce one yourself. never invent information that is not in the question. if you are unsure say so instead of guessing, and hedge often.\n"
-        "if they repeat the same answer or sound confident, tell them to vote again — this overrides everything else. after telling them to vote, do not ask anything further or keep reasoning.\n"
+        "if they have said the same thing twice without adding anything new, stop and tell them to go vote. sounding sure of themselves is not the same as having explained it, so do not send them off just because they sound confident.\n"
         "focus on getting them to think it through, not on changing their mind.\n\n"
     )
 
@@ -2312,6 +2335,35 @@ async def get_async_llm_reflection(
             + ", ".join(correct_labels)
             + " (for steering only — never state this before they reach it themselves)\n\n"
         )
+
+    # The author's per-option feedback
+    if choice_feedback:
+        wanted = list(correct_labels)
+        # Only letters that name a real option: the answer arrives as "A" or
+        # "A,B", so anything else is not a pick and must not drag in feedback
+        # for a choice the student never made.
+        picked = {
+            part.strip().upper()
+            for part in (selected or "").split(",")
+            if part.strip().upper() in choice_feedback
+        }
+        for letter in sorted(picked):
+            if letter not in wanted:
+                wanted.append(letter)
+        notes = []
+        for letter in wanted:
+            fb = choice_feedback.get(letter)
+            if fb:
+                role = "correct" if letter in correct_labels else "what they picked"
+                notes.append(f"{letter} ({role}): {fb}")
+        if notes:
+            context_suffix += (
+                "why each of those choices is right or wrong, written by the question "
+                "author. use this to work out what the student has actually "
+                "misunderstood and aim your questions at that. never quote or "
+                "paraphrase it back to them:\n" + "\n".join(notes) + "\n\n"
+            )
+
     if selected:
         context_suffix += f"the other student chose: {selected}\n\n"
 

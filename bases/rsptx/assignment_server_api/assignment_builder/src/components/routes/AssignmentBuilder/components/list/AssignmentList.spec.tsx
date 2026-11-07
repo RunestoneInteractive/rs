@@ -51,7 +51,7 @@ describe("AssignmentList", () => {
   it("renders the page title with the assignment count", () => {
     renderWithMantine(<AssignmentList {...baseProps()} />);
 
-    expect(screen.getByRole("heading", { name: "Assignments" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Assignments" })).toHaveFocus();
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 

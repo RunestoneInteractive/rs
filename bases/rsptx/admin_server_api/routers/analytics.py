@@ -7,6 +7,7 @@ so any server in the cluster can serve the polling responses.
 """
 
 import asyncio
+import datetime
 import json
 import uuid
 from typing import Optional
@@ -28,9 +29,18 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from rsptx.auth.session import auth_manager
 from rsptx.db.sync_session import engine
 from rsptx.configuration import settings
+from rsptx.data_types.answer_storage import (
+    CODE_TABLE_TYPES,
+    IFRAME_QUESTION_TYPES,
+    QTYPE_TO_TABLE,
+)
 from rsptx.data_types.interactions import PAGE_KEY_PREFIX
+from rsptx.db.crud import fetch_all_course_attributes, fetch_deadline_exception
 from rsptx.endpoint_validators import instructor_role_required, with_course
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.logging import rslogger
+from rsptx.response_helpers import prepare_question_htmlsrc
+from rsptx.response_helpers.core import get_webpack_static_imports
 from rsptx.templates import format_course_datetime, get_shared_templates
 
 # ---------------------------------------------------------------------------
@@ -1480,17 +1490,25 @@ async def download_assignmentoverview_csv(
 
 
 def _load_assignment_student_detail(
-    sid: str, assignment_id: int, course_name: str, tz_offset_hours: float
+    sid: str,
+    assignment_id: int,
+    course,
+    tz_offset_hours: float,
+    extension_days: Optional[int],
 ) -> tuple:
     """Gather everything the per-student assignment drilldown renders.
 
     Blocking (pandas + psycopg2); call via ``asyncio.to_thread``. ``duedate`` is
     returned raw -- the caller formats it, since that needs the course timezone.
+    ``assignment["deadline"]`` is this student's deadline: the due date plus
+    their extension, as naive UTC, or None when the assignment has no due date.
 
-    :return: ``(student, assignment, detail, total_score)``
+    :return: ``(student, assignment, detail, total_score, questions)``
     :rtype: tuple
-    :raises HTTPException: if the student or the assignment does not exist.
+    :raises HTTPException: if the student does not exist, or the assignment
+        does not exist in ``course``.
     """
+    course_name = course.course_name
     student_row = pd.read_sql_query(
         """
         SELECT username, first_name, last_name, email
@@ -1509,10 +1527,12 @@ def _load_assignment_student_detail(
     assignment_row = pd.read_sql_query(
         """
         SELECT id, name, duedate, points
-        FROM assignments WHERE id = %(assignment_id)s LIMIT 1
+        FROM assignments
+        WHERE id = %(assignment_id)s AND course = %(course_id)s
+        LIMIT 1
         """,
         engine,
-        params={"assignment_id": assignment_id},
+        params={"assignment_id": assignment_id, "course_id": course.id},
     )
     if assignment_row.empty:
         raise HTTPException(
@@ -1520,6 +1540,13 @@ def _load_assignment_student_detail(
             detail=f"Assignment {assignment_id} not found",
         )
     assignment = assignment_row.iloc[0].to_dict()
+    duedate = assignment.get("duedate")
+    if duedate is None or pd.isna(duedate):
+        assignment["deadline"] = None
+    else:
+        assignment["deadline"] = pd.Timestamp(duedate).to_pydatetime() + (
+            datetime.timedelta(days=extension_days or 0)
+        )
 
     detail = _build_assignment_student_detail(
         engine, assignment_id, course_name, sid, tz_offset_hours
@@ -1543,7 +1570,192 @@ def _load_assignment_student_detail(
         if raw is not None and pd.notna(raw):
             total_score = round(float(raw), 2)
 
-    return student, assignment, detail, total_score
+    questions = _assignment_question_sources(assignment_id, course, sid)
+    scores = {row["Question"]: row["Score"] for row in detail}
+    comments = _question_grade_comments(
+        course_name, sid, [q["name"] for q in questions]
+    )
+    deadline = assignment["deadline"]
+    for q in questions:
+        q["score"] = scores.get(q["name"], "")
+        q["comment"] = comments.get(q["name"], "")
+        last = _last_answer_time(course, sid, q) if deadline else None
+        q["late"] = last is not None and last > deadline
+        if q["answer_type"] in IFRAME_QUESTION_TYPES:
+            q["splice_state"] = _splice_states(course, sid, q, deadline)
+
+    return student, assignment, detail, total_score, questions
+
+
+def _question_grade_comments(course_name: str, sid: str, div_ids: list) -> dict:
+    """The instructor's comment on each of ``sid``'s question grades, by div_id.
+
+    Bookkeeping words such as ``autograded`` are left out: they are not meant
+    for a reader, and the grade dialog would otherwise offer them for editing.
+    """
+    if not div_ids:
+        return {}
+    rows = pd.read_sql_query(
+        """
+        SELECT div_id, comment FROM question_grades
+        WHERE course_name = %(course_name)s AND sid = %(sid)s
+          AND div_id = ANY(%(div_ids)s)
+        """,
+        engine,
+        params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
+    )
+    return {
+        row.div_id: display_comment(row.comment) or ""
+        for row in rows.itertuples(index=False)
+    }
+
+
+def _assignment_question_sources(assignment_id: int, course, sid: str) -> list:
+    """The assignment's questions, in order, with the HTML to render each one.
+
+    Readings are left out: they have no component to show an answer in. A
+    selectquestion asks the server for the *viewer's* question, so it is
+    replaced here by the question ``sid`` was actually shown.
+    """
+    rows = pd.read_sql_query(
+        """
+        SELECT q.name, q.question_type, q.htmlsrc, aq.points,
+               sel.name AS selected_name, sel.htmlsrc AS selected_htmlsrc,
+               sel.question_type AS selected_type
+        FROM assignment_questions aq
+        JOIN questions q ON q.id = aq.question_id
+        LEFT JOIN selected_questions sq
+          ON q.question_type = 'selectquestion'
+         AND sq.selector_id = q.name AND sq.sid = %(sid)s
+        LEFT JOIN LATERAL (
+            SELECT name, htmlsrc, question_type FROM questions
+            WHERE name = sq.selected_id
+            ORDER BY base_course = %(base_course)s DESC
+            LIMIT 1
+        ) sel ON true
+        WHERE aq.assignment_id = %(assignment_id)s
+          AND q.question_type <> 'page'
+        ORDER BY aq.sorting_priority
+        """,
+        engine,
+        params={
+            "assignment_id": assignment_id,
+            "sid": sid,
+            "base_course": course.base_course,
+        },
+    )
+    questions = []
+    for row in rows.itertuples(index=False):
+        htmlsrc = row.htmlsrc
+        selected = None
+        answer_type = row.question_type
+        if row.question_type == "selectquestion":
+            # Not yet shown one: there is no answer to show.
+            selected = row.selected_name
+            htmlsrc = row.selected_htmlsrc
+            answer_type = row.selected_type
+        questions.append(
+            {
+                "name": row.name,
+                "question_type": row.question_type,
+                "selected": selected,
+                "answer_type": answer_type,
+                "points": None if pd.isna(row.points) else int(row.points),
+                "htmlsrc": prepare_question_htmlsrc(htmlsrc, course),
+            }
+        )
+    return questions
+
+
+def _splice_states(course, sid: str, question: dict, deadline) -> dict:
+    """``sid``'s saved state for an iframe (SPLICE) question.
+
+    Returns ``{"latest": ..., "beforeDeadline": ...}``, each the stored state
+    blob or None. The page hands it to the SPLICE wrapper so the activity
+    replays the *student's* work; left to itself the wrapper asks the server
+    for the logged-in user's state, which here is the instructor's.
+    """
+    params = {
+        "sid": sid,
+        "course_name": course.course_name,
+        "div_id": question["selected"] or question["name"],
+        "deadline": deadline,
+    }
+
+    def last_state(before_deadline: bool):
+        cutoff = "AND timestamp <= %(deadline)s" if before_deadline else ""
+        result = pd.read_sql_query(
+            f"""
+            SELECT answer::text FROM splice_answers
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s {cutoff}
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1
+            """,
+            engine,
+            params=params,
+        )
+        if result.empty or result.iat[0, 0] is None:
+            return None
+        return json.loads(result.iat[0, 0])
+
+    latest = last_state(False)
+    before = last_state(True) if deadline is not None else latest
+    return {"latest": latest, "beforeDeadline": before}
+
+
+def _last_answer_time(course, sid: str, question: dict) -> Optional[datetime.datetime]:
+    """When ``sid`` last submitted an answer to ``question``, as naive UTC.
+
+    Read from the answer table, plus the code table for code questions, since
+    ``user_interactions`` also counts activity that is not an answer. A type
+    with no answer table (khanex, video, ...) falls back to it.
+    """
+    div_id = question["selected"] or question["name"]
+    qtype = question["answer_type"]
+    params = {
+        "sid": sid,
+        "course_name": course.course_name,
+        "course_id": course.id,
+        "div_id": div_id,
+    }
+    queries = []
+    if qtype in QTYPE_TO_TABLE:
+        # Table names come from a fixed map, never from the request.
+        queries.append(f"""
+            SELECT max(timestamp) FROM {QTYPE_TO_TABLE[qtype]}
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s
+            """)
+    if qtype in CODE_TABLE_TYPES:
+        queries.append("""
+            SELECT max(timestamp) FROM code
+            WHERE sid = %(sid)s AND course_id = %(course_id)s
+              AND acid = %(div_id)s
+            """)
+    if not queries:
+        queries.append("""
+            SELECT last_interaction FROM user_interactions
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s
+            """)
+    times = []
+    for query in queries:
+        result = pd.read_sql_query(query, engine, params=params)
+        if not result.empty and pd.notna(result.iat[0, 0]):
+            times.append(pd.Timestamp(result.iat[0, 0]).to_pydatetime())
+    return max(times) if times else None
+
+
+def _safe_webpack_imports(course) -> dict:
+    """The book's webpack assets, which turn each question's HTML into a live
+    component; a missing build degrades to unrendered questions, not an error.
+    """
+    try:
+        return get_webpack_static_imports(course)
+    except Exception as e:
+        rslogger.warning(f"No webpack assets for {course.base_course}: {e}")
+        return {"css": [], "js": []}
 
 
 @router.get("/assignmentoverview/student", response_class=HTMLResponse)
@@ -1565,13 +1777,16 @@ async def get_assignment_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    student, assignment, detail, total_score = await asyncio.to_thread(
+    exception = await fetch_deadline_exception(course.id, sid, assignment_id)
+    student, assignment, detail, total_score, questions = await asyncio.to_thread(
         _load_assignment_student_detail,
         sid,
         assignment_id,
-        course.course_name,
+        course,
         tz_offset_hours,
+        exception.duedate,
     )
+    course_attrs = await fetch_all_course_attributes(course.id)
     assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
 
     context = {
@@ -1582,6 +1797,10 @@ async def get_assignment_student_detail(
         "assignment": assignment,
         "detail_json": json.dumps(detail),
         "total_score": total_score,
+        "questions": questions,
+        "extension_days": exception.duedate or 0,
+        "wp_imports": _safe_webpack_imports(course),
+        "latex_preamble": course_attrs.get("latex_macros", ""),
         "is_instructor": True,
         "student_page": False,
         "settings": settings,
@@ -1591,14 +1810,12 @@ async def get_assignment_student_detail(
     )
 
 
-def _load_student_detail(
-    sid: str, course_name: str, base_course: str, tz_offset_hours: float
-) -> tuple:
+def _load_student_detail(sid: str, course, tz_offset_hours: float) -> tuple:
     """Gather everything the student drilldown page renders.
 
     Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
 
-    :return: ``(student, data)``
+    :return: ``(student, data, answer_groups)``
     :rtype: tuple
     :raises HTTPException: if the student does not exist.
     """
@@ -1622,12 +1839,98 @@ def _load_student_detail(
 
     data = _build_student_detail(
         engine,
-        course_name=course_name,
-        base_course=base_course,
+        course_name=course.course_name,
+        base_course=course.base_course,
         sid=sid,
         tz_offset_hours=tz_offset_hours,
     )
-    return student, data
+    answer_groups = _student_answer_groups(course, sid, data["exercise_detail"])
+    return student, data, answer_groups
+
+
+def _student_answer_groups(course, sid: str, exercise_detail: list) -> list:
+    """Every question ``sid`` has worked on in ``course``, with the HTML to
+    render it, grouped by subchapter in book order.
+
+    :return: ``[{"chapter", "subchapter", "questions": [...]}, ...]``, each
+        question shaped like those of ``_assignment_question_sources`` plus
+        the student's ``attempts`` and ``correct`` from ``exercise_detail``.
+    """
+    rows = pd.read_sql_query(
+        """
+        SELECT q.name, q.question_type, q.htmlsrc,
+               coalesce(ch.chapter_name, q.chapter) AS chapter_name,
+               coalesce(sc.sub_chapter_name, q.subchapter) AS subchapter_name,
+               sel.name AS selected_name, sel.htmlsrc AS selected_htmlsrc,
+               sel.question_type AS selected_type
+        FROM (
+            SELECT DISTINCT div_id FROM user_interactions
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+        ) ui
+        JOIN questions q
+          ON q.name = ui.div_id AND q.base_course = %(base_course)s
+        LEFT JOIN LATERAL (
+            SELECT id, chapter_name, chapter_num FROM chapters
+            WHERE course_id = q.base_course AND chapter_label = q.chapter
+            ORDER BY id LIMIT 1
+        ) ch ON true
+        LEFT JOIN LATERAL (
+            SELECT sub_chapter_name, sub_chapter_num FROM sub_chapters
+            WHERE chapter_id = ch.id AND sub_chapter_label = q.subchapter
+            ORDER BY id LIMIT 1
+        ) sc ON true
+        LEFT JOIN selected_questions sq
+          ON q.question_type = 'selectquestion'
+         AND sq.selector_id = q.name AND sq.sid = %(sid)s
+        LEFT JOIN LATERAL (
+            SELECT name, htmlsrc, question_type FROM questions
+            WHERE name = sq.selected_id
+            ORDER BY base_course = %(base_course)s DESC
+            LIMIT 1
+        ) sel ON true
+        WHERE q.question_type <> 'page'
+        ORDER BY ch.chapter_num NULLS LAST, q.chapter,
+                 sc.sub_chapter_num NULLS LAST, q.subchapter, q.id
+        """,
+        engine,
+        params={
+            "sid": sid,
+            "course_name": course.course_name,
+            "base_course": course.base_course,
+        },
+    )
+    stats = {row["Exercise"]: row for row in exercise_detail}
+    worked_on = set(rows["name"])
+    groups = []
+    for row in rows.itertuples(index=False):
+        htmlsrc = row.htmlsrc
+        selected = None
+        answer_type = row.question_type
+        if row.question_type == "selectquestion":
+            if row.selected_name in worked_on:
+                # Already listed under its own name and subchapter.
+                continue
+            # Not yet shown one: there is no answer to show.
+            selected = row.selected_name
+            htmlsrc = row.selected_htmlsrc
+            answer_type = row.selected_type
+        stat = stats.get(row.name, {})
+        q = {
+            "name": row.name,
+            "question_type": row.question_type,
+            "selected": selected,
+            "answer_type": answer_type,
+            "attempts": stat.get("Attempts", 0),
+            "correct": stat.get("Correct", ""),
+            "htmlsrc": prepare_question_htmlsrc(htmlsrc, course),
+        }
+        if answer_type in IFRAME_QUESTION_TYPES:
+            q["splice_state"] = _splice_states(course, sid, q, None)
+        key = (row.chapter_name, row.subchapter_name)
+        if not groups or (groups[-1]["chapter"], groups[-1]["subchapter"]) != key:
+            groups.append({"chapter": key[0], "subchapter": key[1], "questions": []})
+        groups[-1]["questions"].append(q)
+    return groups
 
 
 @router.get("/student_detail", response_class=HTMLResponse)
@@ -1654,13 +1957,10 @@ async def get_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    student, data = await asyncio.to_thread(
-        _load_student_detail,
-        sid,
-        course.course_name,
-        course.base_course,
-        tz_offset_hours,
+    student, data, answer_groups = await asyncio.to_thread(
+        _load_student_detail, sid, course, tz_offset_hours
     )
+    course_attrs = await fetch_all_course_attributes(course.id)
 
     context = {
         "request": request,
@@ -1669,6 +1969,9 @@ async def get_student_detail(
         "student": student,
         "subchapter_summary_json": json.dumps(data["subchapter_summary"]),
         "exercise_detail_json": json.dumps(data["exercise_detail"]),
+        "answer_groups": answer_groups,
+        "wp_imports": _safe_webpack_imports(course),
+        "latex_preamble": course_attrs.get("latex_macros", ""),
         "is_instructor": True,
         "student_page": False,
         "settings": settings,

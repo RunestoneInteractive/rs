@@ -13,6 +13,7 @@ import classNames from "classnames";
 import { Control, Controller, UseFormSetValue, UseFormWatch } from "react-hook-form";
 
 import stepperStyles from "@/components/ui/WizardStepper.module.css";
+import { useRouteHeadingFocus } from "@/hooks/useRouteHeadingFocus";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
@@ -96,9 +97,13 @@ export const AssignmentWizard = ({
   watch,
   setValue
 }: AssignmentWizardProps) => {
+  const headingRef = useRouteHeadingFocus(window.location.pathname);
+
   const renderBasicInfo = () => (
     <>
-      <h1 className={styles.stepTitle}>Basic information</h1>
+      <h1 ref={headingRef} className={styles.stepTitle} tabIndex={-1}>
+        Basic information
+      </h1>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="wizard-assignment-name">Assignment name</label>
@@ -172,7 +177,9 @@ export const AssignmentWizard = ({
 
   const renderTypeSelection = () => (
     <>
-      <h1 className={styles.stepTitle}>Select assignment type</h1>
+      <h1 ref={headingRef} className={styles.stepTitle} tabIndex={-1}>
+        Select assignment type
+      </h1>
       <div className={styles.typeCards}>
         {assignmentTypeCards.map((card) => {
           const isSelected = watch("kind") === card.type;
@@ -318,7 +325,9 @@ export const AssignmentWizard = ({
 
   const renderVisibility = () => (
     <>
-      <h1 className={styles.stepTitle}>Visibility</h1>
+      <h1 ref={headingRef} className={styles.stepTitle} tabIndex={-1}>
+        Visibility
+      </h1>
       <p className={styles.visibilityIntro}>
         Control when this assignment becomes visible to students. You can make it visible
         immediately, schedule it for a future date, or set it to hide automatically.

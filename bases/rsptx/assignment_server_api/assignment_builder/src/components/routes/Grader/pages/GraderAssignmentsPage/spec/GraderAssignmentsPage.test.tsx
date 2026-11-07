@@ -79,6 +79,21 @@ describe("GraderAssignmentsPage table pagination", () => {
     expect(screen.getByText("Assignment 01")).toBeInTheDocument();
   });
 
+  it("announces the number of assignments shown after filtering", () => {
+    renderWithMantine(<GraderAssignmentsPage />);
+
+    const status = screen.getByRole("status");
+
+    expect(status).toBeVisible();
+    expect(status).toHaveTextContent("30 of 30 assignments shown.");
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Filter by Name" }), {
+      target: { value: "Assignment 01" }
+    });
+
+    expect(status).toHaveTextContent("1 of 30 assignments shown.");
+  });
+
   it("does not duplicate visible descriptions in title attributes", () => {
     const assignments = makeAssignments(1);
 

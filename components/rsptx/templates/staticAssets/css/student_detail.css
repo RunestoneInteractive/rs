@@ -45,3 +45,68 @@
     text-align: center;
     margin: 0;
 }
+
+/* ------------------------------------------------------------
+   Student answers: each question rendered with the student's answer
+   ------------------------------------------------------------ */
+.student-answer {
+    border: 1px solid var(--componentBorderColor, #ccc);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.student-answer .question-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    align-items: baseline;
+    font-size: 0.9rem;
+}
+
+.student-answer .question-meta h3,
+.student-answer .question-meta h4 {
+    font-size: inherit;
+    font-weight: normal;
+    margin: 0;
+}
+
+/* Keep a wide component (activecode, parsons) inside its card. */
+.student-answer .ac_section > * {
+    max-width: 100%;
+}
+
+/* One collapsible group per subchapter on the course-wide drilldown. */
+.answer-group {
+    border-bottom: 1px solid var(--rs-color-border);
+}
+
+.answer-group > summary {
+    cursor: pointer;
+    padding: 10px 4px;
+    font-weight: 600;
+    color: var(--rs-color-text-strong);
+}
+
+.answer-group > summary h3 {
+    display: inline;
+    font-size: 16px;
+    font-weight: inherit;
+    margin: 0;
+}
+
+.answer-group > summary .group-count {
+    font-weight: normal;
+    color: var(--rs-color-text-muted, #666);
+    margin-left: 0.5rem;
+}
+
+.answer-group[open] > summary {
+    margin-bottom: 0.75rem;
+}
+
+.group-actions {
+    display: flex;
+    gap: 0.5rem;
+}

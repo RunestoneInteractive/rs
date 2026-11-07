@@ -162,6 +162,42 @@ def construct_course_url(course: Any, *args: str) -> str:
     return f"/ns/books/published/{course.course_name}/{rest}"
 
 
+def prepare_question_htmlsrc(htmlsrc: Optional[str], course: Any) -> Optional[str]:
+    """Rewrite a question's stored ``htmlsrc`` so it renders outside the book.
+
+    The stored source uses paths relative to the book page it came from; point
+    them at the published book and undo the escaping fitb's JSON picks up.
+    """
+    if not htmlsrc:
+        return None
+    htmlsrc = htmlsrc.replace(
+        'src="../_static/', 'src="' + construct_course_url(course, "_static/")
+    )
+    htmlsrc = htmlsrc.replace("../_images", construct_course_url(course, "_images"))
+    htmlsrc = htmlsrc.replace(
+        'src=\\"external', 'src=\\"' + construct_course_url(course, "external")
+    )
+    # rewrite xref links and knowls in fillintheblank questions
+    if "fillintheblank" in htmlsrc:
+        htmlsrc = htmlsrc.replace(
+            'href="', f'href="/ns/books/published/{course.base_course}/'
+        )
+    # Unescape contents of script tags in fitb questions.
+    if "application/json" in htmlsrc:
+        htmlsrc = htmlsrc.replace("&lt;", "<")
+        htmlsrc = htmlsrc.replace("&gt;", ">")
+        htmlsrc = htmlsrc.replace("&amp;", "&")
+    if 'data-knowl="./' in htmlsrc:
+        htmlsrc = htmlsrc.replace(
+            'data-knowl="./',
+            f'data-knowl="/ns/books/published/{course.base_course}/',
+        )
+    # A self-closing iframe swallows the markup after it.
+    if re.search(r"<iframe[^>]*?\/>", htmlsrc):
+        htmlsrc = re.sub(r"<iframe([^>]*?)\/>", r"<iframe\1>  </iframe>", htmlsrc)
+    return htmlsrc
+
+
 # This is copied verbatim from
 # https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L30.
 _os_alt_seps = [sep for sep in [os.path.sep, os.path.altsep] if sep not in (None, "/")]

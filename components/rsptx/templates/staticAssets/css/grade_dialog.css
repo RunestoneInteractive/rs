@@ -1,0 +1,81 @@
+/* grade_dialog.css — the modal built by /staticAssets/js/grade_dialog.js */
+
+.rs-grade-dialog {
+    width: min(32rem, calc(100vw - 2rem));
+    padding: 0;
+    border: 1px solid var(--rs-color-border-strong);
+    border-radius: 6px;
+    color: var(--rs-color-text);
+    background: var(--rs-color-white);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.25);
+}
+
+.rs-grade-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/* The form fills the dialog, so a click on the dialog element itself is a
+   click on the backdrop. */
+.rs-grade-dialog form {
+    padding: 1.25rem 1.5rem;
+}
+
+.rs-grade-dialog h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.25rem;
+}
+
+.rs-grade-dialog-subtitle {
+    margin: 0 0 1rem;
+    color: var(--rs-color-text-muted);
+    font-size: 0.9rem;
+}
+
+.rs-grade-dialog-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+}
+
+.rs-grade-dialog-field label {
+    font-weight: 600;
+}
+
+.rs-grade-dialog-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rs-grade-dialog-score input {
+    width: 7rem;
+}
+
+.rs-grade-dialog input,
+.rs-grade-dialog textarea {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--rs-color-border-strong);
+    border-radius: 4px;
+    color: var(--rs-color-form-text);
+    background: var(--rs-color-white);
+    font: inherit;
+}
+
+.rs-grade-dialog textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.rs-grade-dialog-error {
+    min-height: 1.25rem;
+    margin: 0 0 0.75rem;
+    color: var(--rs-color-danger-text);
+}
+
+.rs-grade-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}

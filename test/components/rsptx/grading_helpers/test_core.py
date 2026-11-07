@@ -177,6 +177,33 @@ async def test_autograded_rows_are_still_rescored():
     tot.assert_awaited()
 
 
+async def test_total_score_response_includes_reading_points_without_rounding():
+    from rsptx.validation.schemas import ScoringSpecification
+
+    spec = ScoringSpecification(assigned=True, assignment_id=42)
+    rows = [
+        (SimpleNamespace(score=3, comment="autograded"), 3),
+        (SimpleNamespace(score=1.24, comment="autograded"), 2),
+    ]
+    grade = SimpleNamespace(score=0)
+    with (
+        patch.object(
+            core, "fetch_assignment_scores_with_points", AsyncMock(return_value=rows)
+        ) as fetch,
+        patch.object(core, "fetch_grade", AsyncMock(return_value=grade)),
+        patch.object(core, "upsert_grade", AsyncMock()) as upsert,
+        patch.object(core, "attempt_lti1p3_score_update", AsyncMock()),
+        patch.object(core, "schedule_lti1p1_score_push", AsyncMock()),
+    ):
+        total = await core.compute_total_score(spec, _student())
+
+    assert fetch.await_args.args == (42, "course1", "student1")
+    assert total == 4.24
+    assert grade.score == 4.24
+    assert upsert.await_args.args[0] is grade
+    assert spec.model_dump()["total_score"] == 4.24
+
+
 async def test_last_answer_selectquestion_grade_is_stored_under_the_selector():
     # The grade is looked up by the selector_id, so it must be created under the
     # selector_id too. Creating it under the chosen question's div_id meant the
