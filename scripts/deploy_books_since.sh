@@ -45,7 +45,17 @@ since=$2
 [[ -d $BOOK_PATH ]] || { echo "BOOK_PATH $BOOK_PATH is not a directory" >&2; exit 1; }
 
 # Collect the books first so a bad DATE fails before anything is copied.
-if ! markers=$(find "$BOOK_PATH" -mindepth 2 -maxdepth 2 -name build_success -newermt "$since" 2>&1); then
+# Glob the markers and use find -H rather than letting find walk $BOOK_PATH:
+# find does not descend into a symlinked start directory or follow symlinked
+# book directories, so a symlinked BOOK_PATH would silently match nothing.
+shopt -s nullglob
+candidates=("$BOOK_PATH"/*/build_success)
+shopt -u nullglob
+if [[ ${#candidates[@]} -eq 0 ]]; then
+    echo "No $BOOK_PATH/*/build_success markers found" >&2
+    exit 1
+fi
+if ! markers=$(find -H "${candidates[@]}" -maxdepth 0 -newermt "$since" 2>&1); then
     echo "find failed (is '$since' a valid date?): $markers" >&2
     exit 1
 fi
