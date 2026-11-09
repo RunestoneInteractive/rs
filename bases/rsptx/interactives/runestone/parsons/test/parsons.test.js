@@ -293,9 +293,10 @@ describe("line initialization", () => {
     });
 
     // The answer area's lane guides come from .answerN classes in parsons.css,
-    // which define levels 1 through 6.
-    it.each([1, 4, 5, 6])(
-        "draws indentation lanes for a %i-level solution",
+    // which define levels 1 through 6. Anything deeper has no matching style
+    // and falls back to the plain answer area.
+    it.each([1, 2, 3, 4, 5, 6, 7])(
+        "picks the answer area class for a %i-level solution",
         async (depth) => {
             const blocks = Array.from(
                 { length: depth + 1 },
@@ -307,9 +308,15 @@ describe("line initialization", () => {
                 attrs: `data-language="python" data-order="${order.join(",")}"`,
             });
             expect(p.indent).toBe(depth);
-            expect(p.answerArea.classList.contains(`answer${depth}`)).toBe(
-                true,
+            const laneClasses = [...p.answerArea.classList].filter((c) =>
+                /^answer\d+$/.test(c),
             );
+            if (depth <= 6) {
+                expect(laneClasses).toEqual([`answer${depth}`]);
+            } else {
+                expect(p.answerArea.classList.contains("answer")).toBe(true);
+                expect(laneClasses).toEqual([]);
+            }
         },
     );
 
