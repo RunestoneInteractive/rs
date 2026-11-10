@@ -1,6 +1,6 @@
 import { Icon } from "@components/ui/Icon";
 import { Button, Menu } from "@mantine/core";
-import { Fragment } from "react";
+import { Fragment, MouseEvent } from "react";
 
 import { isNavItemActive, NavItem } from "@/navUtils";
 
@@ -14,6 +14,17 @@ interface AppNavBarProps {
 
 const menuTransitionProps = { transition: "pop", duration: 180 } as const;
 
+const handleNavClick = (item: NavItem) => (event: MouseEvent<HTMLElement>) => {
+  if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) {
+    return;
+  }
+
+  if (item.onClick) {
+    event.preventDefault();
+    item.onClick();
+  }
+};
+
 const renderSubItem = (item: NavItem, index: number) => {
   if (item.separator) {
     return <Menu.Divider key={`divider-${index}`} />;
@@ -24,9 +35,11 @@ const renderSubItem = (item: NavItem, index: number) => {
   return (
     <Menu.Item
       key={item.label ?? index}
+      component={item.href ? "a" : "button"}
+      href={item.href}
       leftSection={leftSection}
-      disabled={item.disabled || !item.command}
-      onClick={item.command}
+      disabled={item.disabled || (!item.onClick && !item.href)}
+      onClick={handleNavClick(item)}
     >
       {item.label}
     </Menu.Item>
@@ -68,6 +81,8 @@ const renderTopItem = (item: NavItem, index: number, activePath: string) => {
   return (
     <Button
       key={item.label ?? index}
+      component={item.href ? "a" : "button"}
+      href={item.href}
       variant="subtle"
       color="gray"
       size="sm"
@@ -75,7 +90,7 @@ const renderTopItem = (item: NavItem, index: number, activePath: string) => {
       data-active={active || undefined}
       aria-current={active ? "page" : undefined}
       leftSection={leftSection}
-      onClick={item.command}
+      onClick={handleNavClick(item)}
     >
       {item.label}
     </Button>
@@ -100,10 +115,12 @@ const renderCompactItem = (item: NavItem, index: number, activePath: string) => 
   return (
     <Menu.Item
       key={item.label ?? index}
+      component={item.href ? "a" : "button"}
+      href={item.href}
       className={active ? styles.menuItemActive : undefined}
       leftSection={leftSection}
-      disabled={item.disabled || !item.command}
-      onClick={item.command}
+      disabled={item.disabled || (!item.onClick && !item.href)}
+      onClick={handleNavClick(item)}
       aria-current={active ? "page" : undefined}
     >
       {item.label}
