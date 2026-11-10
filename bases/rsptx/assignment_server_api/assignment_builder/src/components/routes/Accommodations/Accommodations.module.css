@@ -1,0 +1,48 @@
+.page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.heading {
+  margin: 0;
+}
+
+.intro {
+  margin: 0.35rem 0 0;
+  color: var(--mantine-color-dimmed);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(16rem, 1fr);
+  gap: 1.25rem;
+}
+
+.settings {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.numberFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--mantine-color-dimmed);
+}
+
+@media (max-width: 52rem) {
+  .formGrid,
+  .numberFields {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { assignmentActions } from "@store/assignment/assignment.logic";
 import { ActionType } from "typesafe-actions";
 
-import { RootState } from "@/state/store";
+import { RootState } from "@/store/rootReducer";
 import { Nullable } from "@/types/common";
 import { Exercise } from "@/types/exercises";
 import { TreeNode } from "@/types/treeNode";

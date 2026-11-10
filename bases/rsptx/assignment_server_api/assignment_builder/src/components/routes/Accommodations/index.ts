@@ -1,0 +1,1 @@
+export { Accommodations } from "./Accommodations";

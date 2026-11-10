@@ -383,6 +383,7 @@ export const SmartSearchExercises = ({
           leftSection={<Icon name="search" />}
           clearable
         />
+
         <Switch
           size="sm"
           label={searchParams.use_base_course ? "Book exercises" : "All exercises"}

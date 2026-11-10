@@ -37,14 +37,14 @@ const mockRefetchExercises = vi.fn();
 const mockRemoveExercisesPost = vi.fn();
 
 function buildStore(preloaded?: {
-  assignmentTemp?: { selectedAssignmentId: number | null };
+  assignment?: { selectedAssignmentId: number | null };
   assignmentExercise?: { assignmentExercises: Exercise[] };
   exercises?: { selectedExercises: Exercise[]; availableExercises: any[] };
   readings?: { selectedReadings: Exercise[]; availableReadings: any[] };
 }) {
   return configureStore({
     reducer: {
-      assignmentTemp: assignmentSlice.reducer,
+      assignment: assignmentSlice.reducer,
       assignmentExercise: assignmentExerciseSlice.reducer,
       exercises: exercisesSlice.reducer,
       readings: readingsSlice.reducer
@@ -122,7 +122,7 @@ describe("useExercisesSelector — loading state", () => {
     });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -147,7 +147,7 @@ describe("useExercisesSelector — error state", () => {
     });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -169,7 +169,7 @@ describe("useExercisesSelector — error state", () => {
     });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -187,7 +187,7 @@ describe("useExercisesSelector — error state", () => {
 describe("useExercisesSelector — success state", () => {
   it("returns assignmentExercises filtered to non-reading, non-page exercises", () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise, readingExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -211,7 +211,7 @@ describe("useExercisesSelector — success state", () => {
     ];
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings }
@@ -230,7 +230,7 @@ describe("useExercisesSelector — success state", () => {
 
   it("returns empty chapters when availableReadings is empty", () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -245,7 +245,7 @@ describe("useExercisesSelector — success state", () => {
 
   it("exposes isExercisesError as true when no selectedAssignmentId", () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: null },
+      assignment: { selectedAssignmentId: null },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -266,7 +266,7 @@ describe("useExercisesSelector — success state", () => {
 
   it("returns refetchExercises function in success state", () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -285,7 +285,7 @@ describe("useExercisesSelector — success state", () => {
     const ex3 = { ...baseExercise, id: 3, sorting_priority: 2 };
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [ex1, ex2, ex3] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -304,7 +304,7 @@ describe("useExercisesSelector — success state", () => {
 describe("useExercisesSelector — removeExercises", () => {
   it("does nothing when toRemove array is empty", async () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [baseExercise], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -326,7 +326,7 @@ describe("useExercisesSelector — removeExercises", () => {
     mockRemoveExercisesPost.mockResolvedValue({ error: undefined });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [baseExercise], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -347,7 +347,7 @@ describe("useExercisesSelector — removeExercises", () => {
     mockRemoveExercisesPost.mockResolvedValue({ error: undefined });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [baseExercise], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -368,7 +368,7 @@ describe("useExercisesSelector — removeExercises", () => {
     mockRemoveExercisesPost.mockResolvedValue({ error: new Error("Network error") });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [baseExercise], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -390,7 +390,7 @@ describe("useExercisesSelector — removeExercises", () => {
 
     const ex2 = { ...baseExercise, id: 2, name: "q2" };
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise, ex2] },
       exercises: { selectedExercises: [baseExercise, ex2], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -417,7 +417,7 @@ describe("useExercisesSelector — refetch", () => {
     });
 
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -438,7 +438,7 @@ describe("useExercisesSelector — refetch", () => {
 describe("useExercisesSelector — useGetExercisesQuery skip behavior", () => {
   it("calls useGetExercisesQuery with skip:true when no selectedAssignmentId", () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: null },
+      assignment: { selectedAssignmentId: null },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
@@ -451,7 +451,7 @@ describe("useExercisesSelector — useGetExercisesQuery skip behavior", () => {
 
   it("calls useGetExercisesQuery with skip:false when selectedAssignmentId is set", () => {
     const store = buildStore({
-      assignmentTemp: { selectedAssignmentId: 10 },
+      assignment: { selectedAssignmentId: 10 },
       assignmentExercise: { assignmentExercises: [baseExercise] },
       exercises: { selectedExercises: [], availableExercises: [] },
       readings: { selectedReadings: [], availableReadings: [] }
