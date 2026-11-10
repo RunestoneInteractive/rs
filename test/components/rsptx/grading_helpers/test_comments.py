@@ -53,3 +53,12 @@ def test_only_real_feedback_is_shown_to_a_reader():
     assert is_displayable_comment("manual") is False
     assert display_comment(MANUAL_COMMENT) is None
     assert display_comment("check your loop bounds") == "check your loop bounds"
+
+
+def test_autograder_comments_match_the_grading_policy():
+    # The crud layer can't import grading_helpers (circular), so it keeps its
+    # own copy of the words that mean "the autograder set this".
+    from rsptx.db.crud.question import AUTOGRADER_COMMENTS
+    from rsptx.grading_helpers.comments import _AUTOGRADER_COMMENTS
+
+    assert set(AUTOGRADER_COMMENTS) == _AUTOGRADER_COMMENTS
