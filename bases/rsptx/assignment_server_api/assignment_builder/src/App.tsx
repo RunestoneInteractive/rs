@@ -273,6 +273,14 @@ function App() {
               ]
             },
             {
+              path: "except",
+              async lazy() {
+                const { Accommodations } = await import("@components/routes/Accommodations");
+
+                return { Component: Accommodations };
+              }
+            },
+            {
               path: "admin",
               element: <h1>Coming soon</h1>
             }
