@@ -11,7 +11,6 @@ from rsptx.auth.grader_permissions import (
 from rsptx.auth.session import auth_manager
 from rsptx.db.models import AuthUserValidator
 
-
 router = APIRouter(
     prefix="/grader",
     tags=["delegated-grader"],
