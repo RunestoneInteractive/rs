@@ -24,6 +24,7 @@ from .routers import student
 from .routers import instructor
 from .routers import peer
 from .routers import grader
+from .routers import delegated_grader
 from .routers import echoform
 from rsptx.auth.csrf import add_csrf_protection
 from rsptx.exceptions.core import add_exception_handlers
@@ -75,6 +76,7 @@ auth_manager.attach_middleware(app)
 
 app.include_router(student.router)
 app.include_router(grader.router)
+app.include_router(delegated_grader.router)
 app.include_router(instructor.router)
 app.include_router(peer.router)
 app.include_router(echoform.router)
