@@ -64,16 +64,14 @@ def _page_activities(
         {f"{r.base_course}\x1f{r.chapter}\x1f{r.subchapter}" for r in readings}
     )
     rows = conn.execute(
-        text(
-            """
+        text("""
             select name, base_course, chapter, subchapter from questions
             where base_course || chr(31) || chapter || chr(31) || subchapter
                     = any(:keys)
                 and from_source = 'T'
                 and (optional = 'F' or optional is null)
                 and question_type <> 'page'
-            """
-        ),
+            """),
         {"keys": keys},
     ).all()
     by_page = {(r.base_course, r.chapter, r.subchapter): r.name for r in readings}

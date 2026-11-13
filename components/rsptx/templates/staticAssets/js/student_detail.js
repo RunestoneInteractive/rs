@@ -2,15 +2,11 @@
  * student_detail.js — Student drilldown page logic
  *
  * Data is pre-loaded into window.STUDENT_DATA by the template, so no
- * AJAX calls are needed. We just render two Handsontable instances on
- * page load.
+ * AJAX calls are needed. We just render two tables on page load.
  */
 
 (function () {
     "use strict";
-
-    var summaryHot = null;
-    var detailHot = null;
 
     // -------------------------------------------------------------------------
     // Render on DOM ready
@@ -20,15 +16,18 @@
         if (!d) return;
 
         if (d.summaryData && d.summaryData.length > 0) {
-            summaryHot = renderTable("summary-container", d.summaryData);
+            renderReportTable(document.getElementById("summary-container"), d.summaryData, {
+                caption: "Subchapter summary",
+            });
         } else {
             document.getElementById("summary-container").innerHTML =
                 '<p class="no-data">No activity recorded for this student.</p>';
         }
 
         if (d.detailData && d.detailData.length > 0) {
-            detailHot = renderTable("detail-container", d.detailData, {
-                colorCorrect: true,
+            renderReportTable(document.getElementById("detail-container"), d.detailData, {
+                caption: "Exercise detail",
+                cellClass: correctClass,
             });
         } else {
             document.getElementById("detail-container").innerHTML =
@@ -37,91 +36,65 @@
     });
 
     // -------------------------------------------------------------------------
-    // Table rendering
+    // Student answers (rendered by student_answers.js)
     // -------------------------------------------------------------------------
-    function renderTable(containerId, data, opts) {
-        opts = opts || {};
-        var container = document.getElementById(containerId);
-        var keys = Object.keys(data[0]);
-
-        var columns = keys.map(function (k) {
-            return { data: k, renderer: opts.colorCorrect ? colorRenderer(k) : "html" };
+    // A subchapter's questions are rendered the first time it is opened.
+    document.addEventListener("DOMContentLoaded", function () {
+        var groups = document.querySelectorAll("#student-answers details.answer-group");
+        groups.forEach(function (group) {
+            group.addEventListener("toggle", function () {
+                if (group.open) renderGroup(group);
+            });
         });
+        var expand = document.getElementById("expand-all-answers");
+        var collapse = document.getElementById("collapse-all-answers");
+        if (expand) {
+            expand.addEventListener("click", function () {
+                groups.forEach(function (g) {
+                    g.open = true;
+                });
+            });
+        }
+        if (collapse) {
+            collapse.addEventListener("click", function () {
+                groups.forEach(function (g) {
+                    g.open = false;
+                });
+            });
+        }
+    });
 
-        var colHeaders = keys.map(function (k) {
-            return "<b>" + escapeHtml(k) + "</b>";
+    function renderGroup(group) {
+        if (group.dataset.rendered) return;
+        group.dataset.rendered = "true";
+        RSStudentAnswers.whenReady(function () {
+            var sid = window.STUDENT_DATA.sid;
+            group.querySelectorAll("template.answer-src").forEach(function (tpl) {
+                RSStudentAnswers.render(tpl, { sid: sid });
+            });
         });
-
-        var hot = new Handsontable(container, {
-            data: data,
-            columns: columns,
-            colHeaders: colHeaders,
-            licenseKey: "non-commercial-and-evaluation",
-            fixedColumnsLeft: 1,
-            readOnly: true,
-            stretchH: "none",
-            width: "100%",
-            height: Math.min(560, data.length * 24 + 60),
-            rowHeaders: false,
-            afterGetColHeader: function (col, TH) {
-                TH.innerHTML = this.getSettings().colHeaders[col];
-            },
-        });
-
-        return hot;
     }
 
-    // Renderer factory: colours "Yes"/"No" cells in the "Correct" column green/red.
-    function colorRenderer(colKey) {
-        return function (hotInstance, TD, row, col, prop, value) {
-            Handsontable.renderers.HtmlRenderer.apply(this, arguments);
-            if (colKey === "Correct") {
-                TD.style.color = "";
-                TD.style.fontWeight = "";
-                if (value === "Yes") {
-                    TD.style.color = "#2e7d32";
-                    TD.style.fontWeight = "600";
-                } else if (value === "No") {
-                    TD.style.color = "#c62828";
-                }
-            }
-        };
+    // Colours "Yes"/"No" cells in the "Correct" column green/red.
+    function correctClass(colKey, value) {
+        if (colKey !== "Correct") return null;
+        if (value === "Yes") return "score-good";
+        if (value === "No") return "score-bad";
+        return null;
     }
 
     // -------------------------------------------------------------------------
     // CSV download
     // -------------------------------------------------------------------------
     window.downloadCSV = function (which) {
-        var hot = which === "summary" ? summaryHot : detailHot;
-        if (!hot) return;
-
-        var data = hot.getData();
-        var headers = hot.getColHeader();
-        // Strip HTML tags from headers
-        var cleanHeaders = headers.map(function (h) {
-            return h.replace(/<[^>]*>/g, "");
-        });
-
-        var rows = [cleanHeaders].concat(data);
-        var csv = rows
-            .map(function (row) {
-                return row
-                    .map(function (cell) {
-                        var s = cell == null ? "" : String(cell);
-                        if (s.indexOf(",") !== -1 || s.indexOf('"') !== -1 || s.indexOf("\n") !== -1) {
-                            return '"' + s.replace(/"/g, '""') + '"';
-                        }
-                        return s;
-                    })
-                    .join(",");
-            })
-            .join("\n");
-
         var d = window.STUDENT_DATA;
+        var data = which === "summary" ? d.summaryData : d.detailData;
+        if (!data || data.length === 0) return;
+
         var filename =
             which + "_" + d.studentName + "_" + d.courseName + ".csv";
 
-        var blob = new Blob([csv], { type: "text/csv" });
+        var blob = new Blob([reportTableCSV(data)], { type: "text/csv" });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
@@ -131,15 +104,4 @@
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
-    }
 })();

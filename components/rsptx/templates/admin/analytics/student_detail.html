@@ -1,16 +1,22 @@
 {% extends "_base.html" %}
+{# Rendering the questions as live Runestone components needs the book's
+webpack bundles, which declare jQuery as an external. #}
+{% set needs_jquery = true %}
 
 {% block title %}Student Detail — {{ student.first_name }} {{ student.last_name }}{% endblock %}
 
 {% block css %}
 <link href="/staticAssets/css/subchapoverview.css" rel="stylesheet" media="screen" />
+<link href="/staticAssets/css/report_table.css" rel="stylesheet" media="screen" />
 <link href="/staticAssets/css/student_detail.css" rel="stylesheet" media="screen" />
-<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css"
-      rel="stylesheet" media="screen" />
+{% include 'common/static_assets.html' %}
 {% endblock %}
 
 {% block content %}
+{% include 'common/ebook_config.html' %}
+<div class="hidden-content" style="display: none">
+  \( {{ latex_preamble }} \)
+</div>
 <div class="sco-page">
 
   <div class="page-header">
@@ -36,7 +42,7 @@
       Download CSV
     </button>
   </div>
-  <div id="summary-container" class="hot-section"></div>
+  <div id="summary-container" class="report-section"></div>
 
   <!-- Exercise detail -->
   <div class="section-header" style="margin-top: 32px;">
@@ -46,7 +52,56 @@
       Download CSV
     </button>
   </div>
-  <div id="detail-container" class="hot-section"></div>
+  <div id="detail-container" class="report-section"></div>
+
+  <!-- Each question the student worked on, showing their most recent answer.
+  A subchapter's questions render only when it is opened: a whole course of
+  live components would be slow, and each one fetches its own answer. -->
+  <div class="section-header" style="margin-top: 32px;">
+    <h2>Student Answers</h2>
+    {% if answer_groups %}
+    <div class="group-actions">
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="expand-all-answers">Expand all</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="collapse-all-answers">Collapse all</button>
+    </div>
+    {% endif %}
+  </div>
+  {% if answer_groups %}
+  <div id="student-answers">
+    {% for g in answer_groups %}
+    {% set gi = loop.index %}
+    <details class="answer-group">
+      <summary>
+        <h3>{{ g.chapter }} &mdash; {{ g.subchapter }}</h3>
+        <span class="group-count">{{ g.questions | length }} question{{ "s" if g.questions | length != 1 }}</span>
+      </summary>
+      {% for q in g.questions %}
+      <section class="student-answer" aria-labelledby="answer-heading-{{ gi }}-{{ loop.index }}">
+        <div class="question-meta">
+          <h4 id="answer-heading-{{ gi }}-{{ loop.index }}"><code>{{ q.name }}</code></h4>
+          <span>Type: {{ q.question_type }}</span>
+          {% if q.selected %}<span>Shown: <code>{{ q.selected }}</code></span>{% endif %}
+          <span>Attempts: <strong>{{ q.attempts }}</strong></span>
+          {% if q.correct %}<span>Correct: <strong>{{ q.correct }}</strong></span>{% endif %}
+        </div>
+        {% if q.htmlsrc %}
+        {# Held in a <template> so the book's auto-render skips it; the page
+        script renders it with the student's sid so their answer is restored. #}
+        <template class="answer-src">{{ q.htmlsrc | safe }}</template>
+        <div class="answer-host oneq full-width runestone-sphinx{% if q.answer_type == 'webwork' %} ptx-content{% endif %}"{% if q.splice_state is defined %} data-splice-state="{{ q.splice_state | tojson | forceescape }}"{% endif %}></div>
+        {% else %}
+        <p class="no-data">
+          {% if q.question_type == 'selectquestion' %}This student has not been shown a question here yet.{% else %}No preview is available for this question.{% endif %}
+        </p>
+        {% endif %}
+      </section>
+      {% endfor %}
+    </details>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="no-data">This student has not worked on any questions yet.</p>
+  {% endif %}
 
 </div>
 {% endblock %}
@@ -57,8 +112,11 @@
     summaryData: {{ subchapter_summary_json | safe }},
     detailData:  {{ exercise_detail_json | safe }},
     studentName: "{{ student.last_name }}_{{ student.first_name }}",
-    courseName:  "{{ course.course_name }}"
+    courseName:  "{{ course.course_name }}",
+    sid:         {{ student.username | tojson }}
   };
 </script>
+<script src="/staticAssets/js/report_table.js"></script>
+<script src="/staticAssets/js/student_answers.js"></script>
 <script src="/staticAssets/js/student_detail.js"></script>
 {% endblock %}

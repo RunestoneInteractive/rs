@@ -276,6 +276,42 @@ describe("DataGrid", () => {
     expect(screen.getByRole("textbox", { name: "Search assignments" })).toBeInTheDocument();
   });
 
+  it("announces the number of results after global filtering", async () => {
+    renderGrid({
+      enableGlobalFilter: true,
+      globalFilterPlaceholder: "Search assignments",
+      filterResultsLabel: "assignments",
+      filterResultsTotal: 5
+    });
+
+    const status = screen.getByRole("status");
+
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(status).toHaveAttribute("aria-atomic", "true");
+    expect(status).toBeVisible();
+    expect(status).toHaveTextContent("3 of 5 assignments shown.");
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Search assignments" }), "Alp");
+
+    expect(status).toHaveTextContent("1 of 5 assignments shown.");
+  });
+
+  it("can render the filter status outside the framed table content", () => {
+    renderGrid({
+      enableGlobalFilter: true,
+      filterResultsLabel: "assignments",
+      tableFrameClassName: "table-frame"
+    });
+
+    const status = screen.getByRole("status");
+    const frame = document.querySelector(".table-frame");
+
+    expect(frame).toBeInTheDocument();
+    expect(frame).toContainElement(screen.getByRole("table"));
+    expect(frame).toContainElement(screen.getByText("Rows per page"));
+    expect(frame).not.toContainElement(status);
+  });
+
   it("renders its own scroll area with a sentinel in fillHeight mode", () => {
     const sentinelRef = vi.fn();
     const { container } = renderGrid({ fillHeight: true, scrollSentinelRef: sentinelRef });
@@ -339,6 +375,23 @@ describe("DataGrid column filters", () => {
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.queryByText("Bravo")).not.toBeInTheDocument();
     expect(screen.queryByText("Charlie")).not.toBeInTheDocument();
+  });
+
+  it("announces the number of results after column filtering", () => {
+    renderWithMantine(
+      <DataGrid<Row>
+        data={ROWS}
+        columns={FILTER_COLUMNS}
+        getRowId={(r) => r.id}
+        enableColumnFilters
+      />
+    );
+
+    const status = screen.getByRole("status");
+
+    fireEvent.change(screen.getByPlaceholderText("filter-name"), { target: { value: "Alp" } });
+
+    expect(status).toHaveTextContent("1 of 3 results shown.");
   });
 
   it("labels filter controls after their column header", () => {

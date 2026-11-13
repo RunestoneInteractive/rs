@@ -3,7 +3,6 @@ import typing as t
 import typing_extensions as te
 from jwcrypto.jwk import JWK  # type: ignore
 
-
 TKey = te.TypedDict("TKey", {"kid": str, "alg": str}, total=True)
 TKeySet = te.TypedDict("TKeySet", {"keys": t.List[TKey]}, total=True)
 

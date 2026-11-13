@@ -172,14 +172,6 @@
     color: var(--rs-color-text-muted);
 }
 
-/* Handsontable container */
-#hot-container {
-    width: 100%;
-    overflow: hidden;
-    border: 1px solid var(--rs-color-border);
-    border-radius: 6px;
-}
-
 /* Tabler icons inside buttons (e.g. the Download CSV button) */
 .btn .ti {
     font-size: 16px;

@@ -17,7 +17,7 @@ def test_app_creation():
 def test_instructor_router_included():
     """Test that the instructor router is included in the app."""
     # Check that instructor routes are in the app
-    routes = [route.path for route in app.routes]
+    routes = list(app.openapi()["paths"])
     assert any("/instructor" in path for path in routes)
 
 

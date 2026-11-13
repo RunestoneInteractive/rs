@@ -32,7 +32,6 @@ from PIL import Image
 from rsptx.book_server_api.main import app
 from rsptx.book_server_api.routers import rsproxy
 
-
 # Run every test in this module on the *session* event loop.
 #
 # This is not optional.  ``asyncio_default_fixture_loop_scope`` is "session", so
@@ -234,6 +233,75 @@ async def test_imageproxy_relays_upstream_404():
         resp = await client.get(f"/rsproxy/imageproxy/{PUBLIC_URL}")
     assert resp.status_code == 404
     assert "not found" in resp.text.lower()
+
+
+# ---------------------------------------------------------------------------
+# Allowlisted experiment API tunnel
+# ---------------------------------------------------------------------------
+
+
+async def test_experiment_api_fetches_only_allowlisted_target():
+    def handler(request):
+        assert str(request.url) == "https://rdaas.flypages.dev/api/duck?color=green"
+        assert "cookie" not in request.headers
+        assert "authorization" not in request.headers
+        assert "x-api-key" not in request.headers
+        return httpx.Response(
+            200, json={"duck": "quack"}, headers={"Content-Type": "application/json"}
+        )
+
+    install_mock("experiment", handler)
+    async with book_client() as client:
+        resp = await client.get(
+            "/rsproxy/experiments/rdaas/api/duck?color=green",
+            headers={"Cookie": "student_session=private", "X-API-KEY": "private"},
+        )
+    assert resp.status_code == 200
+    assert resp.json() == {"duck": "quack"}
+    assert resp.headers["cache-control"] == "no-store"
+
+
+async def test_experiment_api_rejects_unknown_target():
+    async with book_client() as client:
+        resp = await client.get("/rsproxy/experiments/rdaas/api/other")
+    assert resp.status_code == 404
+
+
+async def test_experiment_api_relays_upstream_error():
+    install_mock("experiment", lambda request: httpx.Response(503, text="Unavailable"))
+    async with book_client() as client:
+        resp = await client.get("/rsproxy/experiments/rdaas/api/duck")
+    assert resp.status_code == 503
+    assert resp.text == "Unavailable"
+
+
+async def test_experiment_api_refuses_redirect():
+    install_mock(
+        "experiment",
+        lambda request: httpx.Response(302, headers={"Location": "http://127.0.0.1/"}),
+        follow_redirects=False,
+    )
+    async with book_client() as client:
+        resp = await client.get("/rsproxy/experiments/rdaas/api/duck")
+    assert resp.status_code == 502
+
+
+async def test_experiment_api_caps_response(monkeypatch):
+    monkeypatch.setattr(rsproxy, "MAX_EXPERIMENT_RESPONSE_BYTES", 10)
+    install_mock("experiment", lambda request: httpx.Response(200, content=b"x" * 11))
+    async with book_client() as client:
+        resp = await client.get("/rsproxy/experiments/rdaas/api/duck")
+    assert resp.status_code == 502
+
+
+async def test_experiment_api_maps_timeout():
+    def handler(request):
+        raise httpx.ReadTimeout("too slow", request=request)
+
+    install_mock("experiment", handler)
+    async with book_client() as client:
+        resp = await client.get("/rsproxy/experiments/rdaas/api/duck")
+    assert resp.status_code == 504
 
 
 # ---------------------------------------------------------------------------

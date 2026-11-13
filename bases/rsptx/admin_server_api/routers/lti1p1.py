@@ -101,7 +101,7 @@ def _render_error(request: Request, errors: list) -> HTMLResponse:
     templates = get_shared_templates()
     context = {"request": request, "lti_errors": errors}
     return templates.TemplateResponse(
-        "admin/lti1p1/launch_error.html", context, status_code=400
+        request, "admin/lti1p1/launch_error.html", context, status_code=400
     )
 
 
@@ -115,6 +115,7 @@ def _render_retired(request: Request, feature: str, detail: str) -> HTMLResponse
     """
     templates = get_shared_templates()
     return templates.TemplateResponse(
+        request,
         "admin/lti1p1/retired.html",
         {"request": request, "feature": feature, "detail": detail},
     )

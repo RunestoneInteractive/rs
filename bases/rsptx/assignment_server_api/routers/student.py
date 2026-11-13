@@ -76,7 +76,11 @@ from rsptx.templates import (
     get_shared_templates,
 )
 from rsptx.templates.ebook_config import ebook_config_override
-from rsptx.response_helpers import construct_course_url, safe_join
+from rsptx.response_helpers import (
+    construct_course_url,
+    prepare_question_htmlsrc,
+    safe_join,
+)
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -225,7 +229,7 @@ async def get_assignments(
             activities={},
         )
     return templates.TemplateResponse(
-        "assignment/student/chooseAssignment.html", context
+        request, "assignment/student/chooseAssignment.html", context
     )
 
 
@@ -445,7 +449,9 @@ async def studentreport(
         activity=activity,
         target_id=id if (id and user_is_instructor) else None,
     )
-    return templates.TemplateResponse("assignment/student/studentreport.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/studentreport.html", context
+    )
 
 
 class UpdateStatusRequest(BaseModel):
@@ -815,46 +821,7 @@ async def doAssignment(
 
     preambles = {course.base_course: course_attrs.get("latex_macros", "")}
     for q in questions:
-        if q.Question.htmlsrc:
-            # This replacement is to render images
-            bts = q.Question.htmlsrc
-            htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
-            )
-            htmlsrc = htmlsrc.replace(
-                "../_images", construct_course_url(course, "_images")
-            )
-            htmlsrc = htmlsrc.replace(
-                'src=\\"external', 'src=\\"' + construct_course_url(course, "external")
-            )
-            # htmlsrc = htmlsrc.replace(
-            #     "generated/webwork", get_course_url(course, "generated/webwork")
-            # )
-            # rewrite xref links and knowls in fillintheblank questions
-            if "fillintheblank" in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'href="', f'href="/ns/books/published/{course.base_course}/'
-                )
-
-            # Unescape contents of script tags in fitb questions.
-            if "application/json" in htmlsrc:
-                htmlsrc = htmlsrc.replace("&lt;", "<")
-                htmlsrc = htmlsrc.replace("&gt;", ">")
-                htmlsrc = htmlsrc.replace("&amp;", "&")
-
-            if 'data-knowl="./' in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'data-knowl="./',
-                    f'data-knowl="/ns/books/published/{course.base_course}/',
-                )
-            # check if the htmlsrc contains a self closing iframe tag (using a regex) and if so, replace it with a regular iframe tag
-            if re.search(r"<iframe[^>]*?\/>", htmlsrc):
-                htmlsrc = re.sub(
-                    r"<iframe([^>]*?)\/>", r"<iframe\1>  </iframe>", htmlsrc
-                )
-
-        else:
-            htmlsrc = None
+        htmlsrc = prepare_question_htmlsrc(q.Question.htmlsrc, course)
 
         # get score and comment
         grade = question_grades.get(q.Question.name)
@@ -1116,7 +1083,7 @@ async def doAssignment(
             activities={},
         )
     response = templates.TemplateResponse(
-        "assignment/student/doAssignment.html", context
+        request, "assignment/student/doAssignment.html", context
     )
     response.set_cookie(key="RS_info", value=str(json.dumps(parsed_js)))
     return response

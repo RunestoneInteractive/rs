@@ -41,7 +41,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
 
   const [settings, setSettings] = useState<T>({
     ...initialData,
-    name: initialData?.name ?? createExerciseId(),
+    name: initialData?.name?.trim() ?? createExerciseId(),
     author: initialData?.author ?? "",
     topic: initialData?.topic ?? "",
     chapter: initialData?.chapter || chapters?.[0]?.value || "",
@@ -144,7 +144,8 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             styles={REQUIRED_LABEL_STYLES}
             value={settings.name}
             error={nameValidationError || undefined}
-            onChange={(e) => updateSetting("name", e.target.value)}
+            // The name becomes the question's id; drop surrounding whitespace (often pasted in).
+            onChange={(e) => updateSetting("name", e.target.value.trim())}
           />
         </div>
 

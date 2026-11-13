@@ -27,7 +27,6 @@ from typing import TypeAlias
 from rsptx.configuration.core import settings, BookServerConfig, DatabaseType
 from rsptx.logging import rslogger
 
-
 if settings.database_type == DatabaseType.SQLite:
     connect_args = {"check_same_thread": False}
 else:

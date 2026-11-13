@@ -23,5 +23,6 @@ load({
         msg_hparsons_check_me: "Check Me",
         msg_hparsons_blocks_reset: "Blocks reset.",
         msg_hparsons_run: "Run",
+        msg_hparsons_query_results: "Query results",
     },
 });

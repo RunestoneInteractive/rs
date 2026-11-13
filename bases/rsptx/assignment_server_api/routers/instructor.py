@@ -1,11 +1,9 @@
-import asyncio
 import csv
 import datetime
 import json
 import pathlib
 import io
 
-from .assignment_summary import create_assignment_summary
 
 from fastapi import (
     APIRouter,
@@ -98,7 +96,7 @@ from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.grading_helpers.comments import display_comment
 from rsptx.templates import format_course_datetime, get_shared_templates
 from rsptx.configuration import settings
-from rsptx.response_helpers import construct_course_url
+from rsptx.response_helpers import prepare_question_htmlsrc
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -241,36 +239,7 @@ async def review_peer_assignment(
     questions_list = []
 
     for q in questions:
-        # Gathering information about each question
-        if q.Question.htmlsrc:
-            # This replacement is to render images
-            bts = q.Question.htmlsrc
-            htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
-            )
-            htmlsrc = htmlsrc.replace(
-                "../_images", construct_course_url(course, "_images")
-            )
-
-            # Rewrite xref links and knowls in fillintheblank questions
-            if "fillintheblank" in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'href="', f'href="/ns/books/published/{course.base_course}/'
-                )
-
-            # Unescape contents of script tags in fitb questions.
-            if "application/json" in htmlsrc:
-                htmlsrc = htmlsrc.replace("&lt;", "<")
-                htmlsrc = htmlsrc.replace("&gt;", ">")
-                htmlsrc = htmlsrc.replace("&amp;", "&")
-
-            if 'data-knowl="./' in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'data-knowl="./',
-                    f'data-knowl="/ns/books/published/{course.base_course}/',
-                )
-        else:
-            htmlsrc = None
+        htmlsrc = prepare_question_htmlsrc(q.Question.htmlsrc, course)
 
         # Call the internal API to get the aggregate peer votes
         vote_1_results = await get_peer_votes(q.Question.name, course.course_name, 1)
@@ -322,7 +291,7 @@ async def review_peer_assignment(
 
     templates = get_shared_templates()
     response = templates.TemplateResponse(
-        "assignment/instructor/reviewPeerAssignment.html", context
+        request, "assignment/instructor/reviewPeerAssignment.html", context
     )
 
     return response
@@ -1064,6 +1033,7 @@ async def get_builder(
     course_attrs = await fetch_all_course_attributes(course.id)
 
     return templates.TemplateResponse(
+        request,
         "assignment/instructor/builder.html",
         {
             "course": course,
@@ -1166,7 +1136,9 @@ async def make_invoice_request(
         referer=referer,
     )
     templates = get_shared_templates()
-    response = templates.TemplateResponse("assignment/instructor/invoice.html", context)
+    response = templates.TemplateResponse(
+        request, "assignment/instructor/invoice.html", context
+    )
 
     return response
 
@@ -1375,63 +1347,6 @@ async def do_download_assignment(
     return response
 
 
-@router.get("/assignment_summary/{assignment_id}")
-@instructor_role_required()
-async def do_assignment_summary(
-    assignment_id: int,
-    request: Request,
-    user=Depends(auth_manager),
-    response_class=HTMLResponse,
-):
-    """
-    Download the specified assignment.
-    """
-
-    course_name = user.course_name
-
-    course = await fetch_course(course_name)
-    context = {
-        "course": course,
-        "course_name": course.course_name,
-        "base_course": course.base_course,
-        "assignment_id": assignment_id,
-        "course_id": course.id,
-        "user": user,
-        "request": request,
-        "is_instructor": True,
-        "student_page": False,
-    }
-    templates = get_shared_templates()
-    response = templates.TemplateResponse(
-        "assignment/instructor/assignment_summary.html", context
-    )
-
-    return response
-
-
-@router.get("/assignment_summary_data/{assignment_id}")
-@instructor_role_required()
-async def do_assignment_summary_data(
-    assignment_id: int,
-    request: Request,
-    user=Depends(auth_manager),
-    response_class=JSONResponse,
-):
-    course = await fetch_course(user.course_name)
-    # create_assignment_summary is blocking (pandas + psycopg2), so keep it off
-    # the event loop; a single call spans every *_answers table for the course.
-    summary_data, question_metadata = await asyncio.to_thread(
-        create_assignment_summary, assignment_id, course
-    )
-    return make_json_response(
-        status=status.HTTP_200_OK,
-        detail={
-            "assignment_summary": summary_data,
-            "question_metadata": question_metadata,
-        },
-    )
-
-
 @router.post("/question")
 @instructor_role_required()
 async def question_creation(
@@ -1596,7 +1511,9 @@ async def get_add_token_page(
         "token_list": token_list,
     }
 
-    return templates.TemplateResponse("assignment/instructor/add_token.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/instructor/add_token.html", context
+    )
 
 
 @router.delete("/delete_tokens")

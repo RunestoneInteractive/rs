@@ -18,6 +18,7 @@ import classNames from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { usePersistedPagination } from "@/hooks/usePersistedPagination";
+import { useRouteHeadingFocus } from "@/hooks/useRouteHeadingFocus";
 import { Assignment } from "@/types/assignment";
 import { formatUTCDateForDisplay } from "@/utils/date";
 
@@ -94,6 +95,7 @@ export const AssignmentList = ({
   onBulkEnforceDueChange,
   onBulkRemove
 }: AssignmentListProps) => {
+  const headingRef = useRouteHeadingFocus(window.location.pathname);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const [sortField, setSortField] = useState<string>(
@@ -390,7 +392,9 @@ export const AssignmentList = ({
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div className={styles.titleGroup}>
-          <h1 className={styles.pageTitle}>Assignments</h1>
+          <h1 ref={headingRef} className={styles.pageTitle} tabIndex={-1}>
+            Assignments
+          </h1>
           {!loading && <span className={styles.countBadge}>{assignments.length}</span>}
         </div>
         <div className={styles.headerActions}>

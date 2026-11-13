@@ -109,7 +109,7 @@ def _render(request: Request, key: str) -> HTMLResponse:
         "updated": doc["updated"],
     }
     context.update(doc.get("extra", {}))
-    return templates.TemplateResponse(doc["template"], context)
+    return templates.TemplateResponse(request, doc["template"], context)
 
 
 # ---------------------------------------------------------------------------
@@ -123,6 +123,7 @@ async def legal_hub(request: Request):
     """Trust-center style landing page linking to every legal document."""
     cards = [{"key": key, **doc} for key, doc in LEGAL_DOCS.items() if doc["hub"]]
     return templates.TemplateResponse(
+        request,
         "legal/hub.html",
         {
             "request": request,

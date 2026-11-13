@@ -5,14 +5,8 @@ describe("setupStore", () => {
     const testStore = setupStore({});
     const state = testStore.getState();
 
-    expect(state).toHaveProperty("acEditor");
     expect(state).toHaveProperty("assignment");
-    expect(state).toHaveProperty("preview");
     expect(state).toHaveProperty("ePicker");
-    expect(state).toHaveProperty("componentEditor");
-    expect(state).toHaveProperty("interactive");
-    expect(state).toHaveProperty("multiplechoice");
-    expect(state).toHaveProperty("shortanswer");
     expect(state).toHaveProperty("student");
     expect(state).toHaveProperty("assignmentTemp");
     expect(state).toHaveProperty("user");

@@ -24,7 +24,6 @@ from rsptx.db.crud import (
 from rsptx.db.crud.user import create_user
 from rsptx.db.models import AssignmentValidator, AuthUserValidator
 
-
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 

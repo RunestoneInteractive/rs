@@ -62,7 +62,6 @@ from rsptx.response_helpers.core import make_json_response, canonical_utcnow
 from rsptx.validation.schemas import AssessmentRequest, SelectQRequest
 from rsptx.auth.session import is_instructor, auth_manager
 
-
 # Routing
 # =======
 # See `APIRouter config` for an explanation of this approach.

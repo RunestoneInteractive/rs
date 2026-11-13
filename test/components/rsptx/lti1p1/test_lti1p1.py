@@ -15,7 +15,6 @@ from rsptx.lti1p1 import core
 from rsptx.lti1p1.core import param_converter, verify_lti1p1_signature
 from rsptx.lti1p1.outcome_request import OutcomeRequest, REPLACE_REQUEST
 
-
 KEY = "test.consumer"
 SECRET = "supersecret"
 URL = "https://runestone.academy/runestone/lti"

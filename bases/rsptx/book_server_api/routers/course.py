@@ -42,7 +42,6 @@ from rsptx.auth.session import is_instructor
 from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.grading_helpers.core import adjust_deadlines
 
-
 # .. _APIRouter config:
 #
 # Routing
@@ -190,7 +189,9 @@ async def index(request: Request, user=Depends(auth_manager)):
             readings=None,
             activities={},
         )
-    return templates.TemplateResponse("book/course/current_course.html", context)
+    return templates.TemplateResponse(
+        request, "book/course/current_course.html", context
+    )
 
 
 @router.api_route("/changeCourse/{course_name:str}", methods=["GET", "POST"])

@@ -154,7 +154,7 @@ def add_exception_handlers(app):
             }
 
             templates = get_shared_templates()
-            return templates.TemplateResponse("error_page.html", context)
+            return templates.TemplateResponse(request, "error_page.html", context)
         else:
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

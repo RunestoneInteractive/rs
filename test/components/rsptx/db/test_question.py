@@ -2,8 +2,10 @@
 Tests for question and question_grade CRUD operations.
 """
 
+import asyncio
 import datetime
 import pytest
+from sqlalchemy import func, select, update
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -13,10 +15,11 @@ from rsptx.db.crud import (
     create_question_grade_entry,
     fetch_question_grade,
     update_question_grade_entry,
+    upsert_question_grade_entry,
 )
 from rsptx.db.crud.question import copy_question
 from rsptx.db.async_session import async_session
-from rsptx.db.models import Chapter, QuestionValidator, SubChapter
+from rsptx.db.models import Chapter, QuestionGrade, QuestionValidator, SubChapter
 from rsptx.response_helpers.core import canonical_utcnow
 
 BASE_COURSE = "test_course_1"
@@ -93,6 +96,126 @@ async def test_update_question_grade(test_question):
     )
     assert updated is not None
     assert updated.score == 100
+
+
+async def _hand_grade(div_id, comment):
+    """Mark USER's grade for ``div_id`` the way the grading page does."""
+    async with async_session.begin() as session:
+        await session.execute(
+            update(QuestionGrade)
+            .where(
+                (QuestionGrade.sid == USER)
+                & (QuestionGrade.course_name == BASE_COURSE)
+                & (QuestionGrade.div_id == div_id)
+            )
+            .values(comment=comment)
+        )
+
+
+async def test_upsert_creates_a_missing_grade(init_test_db):
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_new", 5, policy="last"
+    )
+    assert written
+    assert (row.sid, row.div_id, row.score) == (USER, "upsert_new", 5)
+    assert row.comment == "autograded"
+
+
+async def test_upsert_first_keeps_the_first_score(init_test_db):
+    await upsert_question_grade_entry(USER, BASE_COURSE, "upsert_first", 3, "first")
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_first", 9, policy="first"
+    )
+    assert not written
+    assert row.score == 3
+
+
+async def test_upsert_last_replaces_the_score(init_test_db):
+    await upsert_question_grade_entry(USER, BASE_COURSE, "upsert_last", 9, "last")
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_last", 2, policy="last"
+    )
+    assert written
+    assert row.score == 2
+    fetched = await fetch_question_grade(USER, BASE_COURSE, "upsert_last")
+    assert fetched.score == 2
+
+
+async def test_upsert_best_keeps_the_higher_score(init_test_db):
+    await upsert_question_grade_entry(USER, BASE_COURSE, "upsert_best", 6, "best")
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_best", 4, policy="best", max_score=10
+    )
+    assert not written
+    assert row.score == 6
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_best", 8, policy="best", max_score=10
+    )
+    assert written
+    assert row.score == 8
+
+
+async def test_upsert_best_replaces_a_score_above_the_maximum(init_test_db):
+    # Earned where the question is worth 2; in this assignment it is worth 1.
+    await upsert_question_grade_entry(USER, BASE_COURSE, "upsert_over", 2, "best")
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_over", 1, policy="best", max_score=1
+    )
+    assert written
+    assert row.score == 1
+
+
+@pytest.mark.parametrize("policy", ["first", "last", "best"])
+async def test_upsert_never_overwrites_a_hand_grade(init_test_db, policy):
+    div_id = f"upsert_hand_{policy}"
+    await upsert_question_grade_entry(USER, BASE_COURSE, div_id, 1, "last")
+    await _hand_grade(div_id, "see me after class")
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, div_id, 10, policy=policy, max_score=10
+    )
+    assert not written
+    assert row.score == 1
+    assert row.comment == "see me after class"
+
+
+async def test_upsert_rescores_a_blank_comment(init_test_db):
+    # Rows from before the hand-graded marker have no comment; the autograder
+    # may still score them.
+    await upsert_question_grade_entry(USER, BASE_COURSE, "upsert_blank", 1, "last")
+    await _hand_grade("upsert_blank", None)
+    row, written = await upsert_question_grade_entry(
+        USER, BASE_COURSE, "upsert_blank", 7, policy="last"
+    )
+    assert written
+    assert row.score == 7
+
+
+@pytest.mark.parametrize("policy", ["first", "last", "best"])
+async def test_concurrent_upserts_store_one_row(init_test_db, policy):
+    # The bug: submissions arriving together each found no row and each
+    # inserted, and all but one failed on the unique index.
+    div_id = f"upsert_race_{policy}"
+    results = await asyncio.gather(
+        *(
+            upsert_question_grade_entry(USER, BASE_COURSE, div_id, s, policy=policy)
+            for s in range(1, 9)
+        )
+    )
+    assert sum(written for _, written in results) >= 1
+    async with async_session() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(QuestionGrade)
+            .where(
+                (QuestionGrade.sid == USER)
+                & (QuestionGrade.course_name == BASE_COURSE)
+                & (QuestionGrade.div_id == div_id)
+            )
+        )
+    assert count == 1
+    if policy == "best":
+        stored = await fetch_question_grade(USER, BASE_COURSE, div_id)
+        assert stored.score == 8
 
 
 @pytest.fixture(scope="session")

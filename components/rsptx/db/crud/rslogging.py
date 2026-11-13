@@ -171,12 +171,10 @@ async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
              of students who chose that response.
     :rtype: List[tuple]
     """
-    query = text(
-        """select act, count(*) from useinfo
+    query = text("""select act, count(*) from useinfo
         join (select sid, max(id) mid
         from useinfo where event='poll' and div_id = :div_id and course_id = :course_name group by sid) as T
-        on id = T.mid group by act"""
-    )
+        on id = T.mid group by act""")
 
     async with async_session() as session:
         rows = await session.execute(

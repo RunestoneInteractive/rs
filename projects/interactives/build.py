@@ -5,21 +5,17 @@ import sys
 import os
 import pathlib
 from rsptx.cl_utils.core import pushd
-import toml
 import json
 from json2xml import json2xml
 
 
-project = toml.load("pyproject.toml")
-
 if sys.argv[1:] == ["--test"]:
     VERSION = "test"
 else:
-    # pyproject was migrated from poetry ([tool.poetry]) to PEP 621 ([project]);
-    # fall back to the old location for safety.
-    VERSION = project.get("project", {}).get("version") or project["tool"][
-        "poetry"
-    ]["version"]
+    # The release version lives in the interactives package.json; bump it with
+    # ``npm version X.Y.Z --no-git-tag-version`` from bases/rsptx/interactives.
+    with open("../../bases/rsptx/interactives/package.json") as f:
+        VERSION = json.load(f)["version"]
 
 
 
@@ -46,7 +42,7 @@ with pushd("../../bases/rsptx/interactives"):
             with open(
                 os.path.join(static_path, "webpack_static_imports.xml"), "w"
             ) as f:
-                f.write(json2xml.Json2xml(data).to_xml())
+                f.write(json2xml.Json2xml(data, pretty=True).to_xml())
         else:
             subprocess.run(["npm", "run", "build"], check=True)
             subprocess.run(
@@ -60,13 +56,8 @@ with pushd("../../bases/rsptx/interactives"):
 if "--dev" in sys.argv:
     sys.exit(0)
 
-# if "--fromroot" not in sys.argv:
-#     subprocess.run(["poetry", "build-project"], check=True)
-
-
 if sys.argv[1:] == ["--publish"]:
     # Do not send to PYPI, just publish the .tgz to the CDN and update the author_server and rsmanage dependencies.  The .tgz is published to the CDN so that it can be used in the package.json for author_server and rsmanage without needing to publish to PYPI first.
-    #subprocess.run(["poetry", "publish"], check=True)
 
     with pushd("../../bases/rsptx/interactives/runestone"):
         subprocess.run(
