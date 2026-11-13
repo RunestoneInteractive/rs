@@ -23,6 +23,7 @@ import pandas as pd
 # -------------------
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from rsptx.ai_helpers.api_token import fetch_llm_token
 from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
@@ -33,7 +34,6 @@ from rsptx.db.crud import (
     create_useinfo_entry,
     create_user_experiment_entry,
     fetch_all_course_attributes,
-    fetch_api_token,
     fetch_assignment_questions,
     fetch_assignments,
     fetch_course_students,
@@ -598,24 +598,29 @@ async def _has_reflection_async(div_id: str, sid: str) -> bool:
         return result.scalar() is not None
 
 
-LLM_BASE_URLS = {
-    "umgpt": "https://api.toolkit.umgpt.umich.edu/v1",
-    "openai": "https://api.openai.com/v1",
-}
-
-
-async def _llm_provider_async(course_id: int) -> tuple[Optional[str], str]:
-    """Return (api token, base url) for the course, or (None, "") if it has none."""
-    for provider, base_url in LLM_BASE_URLS.items():
-        token_row = await fetch_api_token(course_id, provider)
-        if token_row and token_row.token:
-            return token_row.token, base_url
-    return None, ""
-
-
 async def _llm_enabled_async(course_id: int) -> bool:
-    token, _base_url = await _llm_provider_async(course_id)
-    return token is not None
+    return await fetch_llm_token(course_id, "peer") is not None
+
+
+async def _llm_chat_async(
+    course_id: int, messages: list, *, temperature: float, max_tokens: int, timeout
+) -> Optional[str]:
+    """
+    Send messages to the course's LLM provider (see rsptx.ai_helpers) and return
+    the reply, or None if the course has no API token.
+    """
+    token = await fetch_llm_token(course_id, "peer")
+    if token is None:
+        return None
+    # no retries: a student is waiting on the reply
+    client = token.async_client(timeout=timeout, max_retries=0)
+    response = await client.chat.completions.create(
+        **token.request_params(
+            messages=messages, temperature=temperature, max_tokens=max_tokens
+        )
+    )
+    rslogger.warning(f"PEER LLM CALL | provider={token.provider} | model={token.model}")
+    return response.choices[0].message.content.strip()
 
 
 # Async PI study conditions
@@ -2003,34 +2008,12 @@ async def _get_mcq_context_async(div_id: str):
 
 
 async def _call_openai_async(messages: list, course_id: int) -> str:
-    import os
-
-    import aiohttp
-
-    api_key, base_url = await _llm_provider_async(course_id)
-    if not api_key:
+    reply = await _llm_chat_async(
+        course_id, messages, temperature=0.4, max_tokens=300, timeout=30
+    )
+    if reply is None:
         raise Exception("missing api key")
-
-    model = os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-    url = f"{base_url}/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.4,
-        "max_tokens": 300,
-    }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)
-        ) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-    rslogger.warning(f"PEER LLM CALL | base_url={base_url} | model={model}")
-    return data["choices"][0]["message"]["content"].strip()
+    return reply
 
 
 async def _generate_analogy_mapping_async(
@@ -2094,37 +2077,15 @@ async def _generate_analogy_mapping_async(
     )
 
     try:
-        import os
-
-        import aiohttp
-
-        api_key, base_url = await _llm_provider_async(course_id)
-        if not api_key:
-            return "", ""
-        model = (
-            os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+        raw = await _llm_chat_async(
+            course_id,
+            [{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=700,
+            timeout=45,
         )
-        url = f"{base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.5,
-            "max_tokens": 700,
-        }
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=45),
-            ) as resp:
-                resp.raise_for_status()
-                result = await resp.json()
-        raw = result["choices"][0]["message"]["content"].strip()
+        if raw is None:
+            return "", ""
         rslogger.warning(f"ANALOGY MAPPING RAW RESPONSE:\n{raw}")
         first_message = ""
         mapping = raw

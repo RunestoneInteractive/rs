@@ -50,6 +50,8 @@ dependencies = [
     "oauth2>=1.9",
     # oauth2 imports distutils, which Python 3.12+ only has via setuptools.
     "setuptools>=84.1.0",
+    # Required by the rsptx/ai_helpers brick (LLM calls for peer instruction).
+    "openai>=1.59.3,<2",
 ]
 
 [dependency-groups]
@@ -115,3 +117,4 @@ exclude = [
 "../../bases/rsptx/assignment_server_api" = "rsptx/assignment_server_api"
 "../../components/rsptx/lti1p3" = "rsptx/lti1p3"
 "../../components/rsptx/lti1p1" = "rsptx/lti1p1"
+"../../components/rsptx/ai_helpers" = "rsptx/ai_helpers"
