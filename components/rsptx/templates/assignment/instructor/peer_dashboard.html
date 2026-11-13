@@ -31,6 +31,8 @@ Peer Instruction Dashboard - {{ assignment_name }}
     #pi-assignment-navigation .btn { font-size: 13.5px; }
     #nextq.btn-info { background-color: #1a6a83 !important; border-color: #155a70 !important; }
     #nextq.btn-info:hover { background-color: #124f63 !important; border-color: #124f63 !important; }
+    #prevq.btn-info { background-color: #1a6a83 !important; border-color: #155a70 !important; }
+    #prevq.btn-info:hover { background-color: #124f63 !important; border-color: #124f63 !important; }
 
     
     :root {
@@ -280,6 +282,9 @@ Peer Instruction Dashboard - {{ assignment_name }}
                 </div>
             </div>
             <div id="pi-assignment-navigation">
+                {% if current_qnum > 1 %}
+                <button type="submit" id="prevq" class="btn btn-info" name="next" value="Previous">Previous Question</button>
+                {% endif %}
                 {% if not is_last %}
                 <button type="submit" id="nextq" class="btn btn-info" name="next" value="Next">Next Question</button>
                 {% else %}
