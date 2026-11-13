@@ -48,6 +48,8 @@ dependencies = [
     # Required by the rsptx/lti1p1 brick (OAuth1-signed grade passback).
     "lxml>=6.0,<7",
     "oauth2>=1.9",
+    # Required by the rsptx/ai_helpers brick (LLM calls for peer instruction).
+    "openai>=1.59.3,<2",
 ]
 
 [dependency-groups]
@@ -113,3 +115,4 @@ exclude = [
 "../../bases/rsptx/assignment_server_api" = "rsptx/assignment_server_api"
 "../../components/rsptx/lti1p3" = "rsptx/lti1p3"
 "../../components/rsptx/lti1p1" = "rsptx/lti1p1"
+"../../components/rsptx/ai_helpers" = "rsptx/ai_helpers"

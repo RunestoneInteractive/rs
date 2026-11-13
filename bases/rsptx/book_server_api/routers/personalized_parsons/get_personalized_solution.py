@@ -164,12 +164,8 @@ def generate_personalized_fix(
         prompt_messages[0]["content"] = prompt_messages[0]["content"] + attachment
     client = api_token.client()
 
-    # verbosity is a GPT-5 parameter; other models reject it
-    extra = {"verbosity": "low"} if api_token.model.startswith("gpt-5") else {}
     raw_completion_response = client.chat.completions.create(
-        model=api_token.model,
-        messages=prompt_messages,
-        **extra,
+        **api_token.request_params(messages=prompt_messages)
     )
     end_marker = "[end-fixed-code]"
     start_marker = "[fixed-code]:\n"
@@ -280,11 +276,12 @@ Requirements:
 """
 
     raw_completion_response = client.chat.completions.create(
-        model=api_token.model,
-        messages=[
-            {"role": "system", "content": example_solution_system_message},
-            {"role": "user", "content": example_solution_user_message},
-        ],
+        **api_token.request_params(
+            messages=[
+                {"role": "system", "content": example_solution_system_message},
+                {"role": "user", "content": example_solution_user_message},
+            ]
+        )
     )
 
     completion = raw_completion_response.choices[0].message

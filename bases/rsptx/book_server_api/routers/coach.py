@@ -449,7 +449,7 @@ async def parsons_scaffolding(
         if uses_dev_api_key(course_name):
             # Dev/Test mode testing
             rslogger.warning("CodeTailor: Using predefined dev API key")
-            api_token = dev_llm_token()
+            api_token = dev_llm_token("codetailor")
         else:
             # obtain the CoursesValidator object - Brad's review
             try:
@@ -463,7 +463,7 @@ async def parsons_scaffolding(
             rslogger.warning(
                 f"[CodeTailor] Fetching course: {course_name}, id: {course.id}"
             )
-            api_token = await fetch_llm_token(course)
+            api_token = await fetch_llm_token(course.id, "codetailor")
             if api_token is None:
                 rslogger.error(
                     f"CodeTailor: No API token found for course '{course_name}'."
@@ -480,7 +480,7 @@ async def parsons_scaffolding(
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
             rslogger.warning(
-                f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: {api_token.provider}, api_token: {api_token.masked()}"
+                f"CodeTailor: Fetching course: {course_name}, id: {course.id}, provider: {api_token.provider}, model: {api_token.model}, api_token: {api_token.masked()}"
             )
     except Exception as e:
         rslogger.error(f"CodeTailor: Error fetching API tokens: {e}")

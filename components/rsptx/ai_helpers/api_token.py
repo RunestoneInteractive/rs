@@ -1,12 +1,16 @@
 """The LLM API token a course's instructor added for its LLM features.
 
-CodeTailor calls the LLM with the course's own token, never a server-wide key.
+AI features (CodeTailor, peer instruction) call the LLM with the course's own
+token, never a server-wide key. Which provider, model and request parameters
+a course gets is configured once, in Settings (``llm_*`` in
+rsptx.configuration.core), and shared by every feature.
 """
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 
+from rsptx.configuration import settings
 from rsptx.db.crud.crud import fetch_api_token
 
 # for dev/test -- replace with your own key for local testing
@@ -14,34 +18,51 @@ DEV_API_KEY = ""
 # The test course for development, which uses DEV_API_KEY
 DEV_COURSE = "personalized_parsons"
 
-# The providers CodeTailor can call, in the order a course's tokens are tried.
-# Each serves the OpenAI chat completions API. The keys are the provider names
-# instructors save tokens under (add_token.html; UMGPT is entered as "umgpt").
-# Trying "openai" first keeps courses that have both on the model they used.
-LLM_PROVIDERS = {
-    "openai": {"base_url": "https://api.openai.com/v1", "model": "gpt-5-nano"},
-    # U-M's gateway, as in assignment_server_api/routers/peer.py
-    "umgpt": {
-        "base_url": "https://api.toolkit.umgpt.umich.edu/v1",
-        "model": "gpt-4o-mini",
-    },
-}
+# The providers the AI features can call. The names are the ones instructors
+# save tokens under (add_token.html; UMGPT is entered as "umgpt" under Other).
+# Each needs llm_base_url_<name> and llm_model_<name> in Settings.
+LLM_PROVIDERS = ("openai", "umgpt")
 
 
 class LLMToken(NamedTuple):
-    """A course's API token and the provider it belongs to."""
+    """A course's API token, the provider it belongs to, and the feature using it."""
 
     token: str
     provider: str = "openai"
+    # e.g. "codetailor" or "peer"; picks up that feature's llm_feature_models
+    feature: Optional[str] = None
+
+    @property
+    def base_url(self):
+        return getattr(settings, f"llm_base_url_{self.provider}")
 
     @property
     def model(self):
-        return LLM_PROVIDERS[self.provider]["model"]
-
-    def client(self):
-        return OpenAI(
-            api_key=self.token, base_url=LLM_PROVIDERS[self.provider]["base_url"]
+        feature_models = settings.llm_feature_models.get(self.feature) or {}
+        return feature_models.get(self.provider) or getattr(
+            settings, f"llm_model_{self.provider}"
         )
+
+    def request_params(self, **params):
+        """
+        The model and its extra parameters (llm_model_params) for a chat
+        completions request, plus the caller's own ``params``, which take
+        precedence.
+        """
+        model = self.model
+        return {
+            "model": model,
+            **settings.llm_model_params.get(model, {}),
+            **params,
+        }
+
+    def client(self, **options):
+        """A synchronous OpenAI client for this provider; ``options`` go to OpenAI()."""
+        return OpenAI(api_key=self.token, base_url=self.base_url, **options)
+
+    def async_client(self, **options):
+        """An async OpenAI client for this provider; ``options`` go to AsyncOpenAI()."""
+        return AsyncOpenAI(api_key=self.token, base_url=self.base_url, **options)
 
     def masked(self):
         """
@@ -56,24 +77,31 @@ class LLMToken(NamedTuple):
 
     def __repr__(self):
         # keep the key out of logs and tracebacks
-        return f"LLMToken(provider={self.provider!r}, token={self.masked()!r})"
+        return (
+            f"LLMToken(provider={self.provider!r}, feature={self.feature!r}, "
+            f"token={self.masked()!r})"
+        )
 
 
 def uses_dev_api_key(course_name):
     return course_name is None or course_name == DEV_COURSE
 
 
-def dev_llm_token():
-    return LLMToken(DEV_API_KEY, "openai")
+def dev_llm_token(feature=None):
+    return LLMToken(DEV_API_KEY, "openai", feature)
 
 
-async def fetch_llm_token(course):
+async def fetch_llm_token(course_id, feature=None):
     """
-    The course's least recently used token (decrypted) for the first provider
-    in LLM_PROVIDERS it has one for, or None if its instructor hasn't added one.
+    The course's least recently used token (decrypted) for the provider it has
+    a token for, or None if its instructor hasn't added one. A course with
+    tokens for several providers gets the first in ``llm_provider_order``.
+    ``feature`` names the feature that will use it (see llm_feature_models).
     """
-    for provider in LLM_PROVIDERS:
-        token_record = await fetch_api_token(course_id=course.id, provider=provider)
+    for provider in settings.llm_provider_order:
+        if provider not in LLM_PROVIDERS:
+            continue
+        token_record = await fetch_api_token(course_id=course_id, provider=provider)
         if token_record and token_record.token:
-            return LLMToken(token_record.token, provider)
+            return LLMToken(token_record.token, provider, feature)
     return None
