@@ -1093,6 +1093,10 @@ def bake(ctx, config, version):
             "buildx",
             "bake",
             "--push",
+            # Also load the images into the local Docker image store.  The
+            # targets are multi-platform, so this needs Docker's containerd
+            # image store; the classic store rejects manifest lists.
+            "--load",
             "--file",
             "docker-bake.hcl",
             repo.rsplit("/", 1)[-1],
