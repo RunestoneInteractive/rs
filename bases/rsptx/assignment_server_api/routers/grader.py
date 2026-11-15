@@ -3,7 +3,7 @@ import io
 import json
 from typing import Any, List, Literal, Optional
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select, func, and_
@@ -518,14 +518,7 @@ async def list_assignment_questions(
     )
 
 
-@router.get("/questions/answers")
-@instructor_role_required()
-async def list_question_answers(
-    request: Request,
-    assignment_id: int = Query(...),
-    question_id: int = Query(...),
-    user=Depends(auth_manager),
-):
+async def load_question_answers(course, assignment_id: int, question_id: int):
     """Return the most-recent answer for every student in the course, excluding
     instructors.
 
@@ -534,11 +527,10 @@ async def list_question_answers(
     page marks them "No submission" rather than pretending the class is smaller
     than it is.
     """
-    course = await fetch_course(user.course_name)
     assignment = await fetch_one_assignment(assignment_id)
     if not assignment or assignment.course != course.id:
-        return make_json_response(
-            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
 
     rows = await fetch_assignment_questions(assignment_id)
@@ -550,8 +542,9 @@ async def list_question_answers(
             max_points = row.AssignmentQuestion.points or 0
             break
     if question is None:
-        return make_json_response(
-            status=status.HTTP_404_NOT_FOUND, detail="Question not in assignment"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question not in assignment",
         )
 
     students = await fetch_users_for_course(course.course_name)
@@ -722,17 +715,35 @@ async def list_question_answers(
 
     answers.sort(key=lambda x: ((x.last_name or ""), (x.first_name or ""), x.sid))
 
+    return {
+        "question": {
+            "id": question.id,
+            "name": question.name,
+            "question_type": question.question_type,
+            "htmlsrc": question.htmlsrc,
+            "max_points": max_points,
+        },
+        "answers": answers,
+    }
+
+
+@router.get("/questions/answers")
+@instructor_role_required()
+async def list_question_answers(
+    request: Request,
+    assignment_id: int = Query(...),
+    question_id: int = Query(...),
+    user=Depends(auth_manager),
+):
+    """Return identity-bearing answers to an instructor."""
+
+    course = await fetch_course(user.course_name)
+    detail = await load_question_answers(course, assignment_id, question_id)
     return make_json_response(
         status=status.HTTP_200_OK,
         detail={
-            "question": {
-                "id": question.id,
-                "name": question.name,
-                "question_type": question.question_type,
-                "htmlsrc": question.htmlsrc,
-                "max_points": max_points,
-            },
-            "answers": [a.dict() for a in answers],
+            "question": detail["question"],
+            "answers": [answer.dict() for answer in detail["answers"]],
         },
     )
 
