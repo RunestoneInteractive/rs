@@ -25,7 +25,7 @@ def llm(monkeypatch):
     """
     Give course 7 the token in ``llm.token`` and record every request PI sends.
     """
-    state = {"token": None, "requests": []}
+    state = {"token": None, "requests": [], "http_clients": [], "status": 200}
 
     async def fetch_llm_token(course_id, feature=None):
         assert feature == "peer"
@@ -36,6 +36,8 @@ def llm(monkeypatch):
         state["requests"].append(
             {"url": str(request.url), "body": json.loads(request.content)}
         )
+        if state["status"] != 200:
+            return httpx.Response(state["status"], json={"error": {"message": "x"}})
         return httpx.Response(
             200,
             json={
@@ -56,10 +58,9 @@ def llm(monkeypatch):
     real_async_openai = api_token.AsyncOpenAI
 
     def async_openai(**kwargs):
-        transport = httpx.MockTransport(handler)
-        return real_async_openai(
-            http_client=httpx.AsyncClient(transport=transport), **kwargs
-        )
+        http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        state["http_clients"].append(http_client)
+        return real_async_openai(http_client=http_client, **kwargs)
 
     monkeypatch.setattr(peer, "fetch_llm_token", fetch_llm_token)
     monkeypatch.setattr(api_token, "AsyncOpenAI", async_openai)
@@ -119,3 +120,16 @@ async def test_analogy_mapping_splits_first_message(llm, monkeypatch):
     assert req["body"]["max_tokens"] == 700
     # the stub reply has no FIRST_MESSAGE marker, so it is all mapping
     assert mapping == "a reply" and first == ""
+
+
+async def test_client_closed_after_each_call(llm):
+    llm["token"] = LLMToken("um-key", "umgpt")
+
+    await peer._call_openai_async([{"role": "user", "content": "hi"}], 7)
+
+    llm["status"] = 500
+    with pytest.raises(Exception):
+        await peer._call_openai_async([{"role": "user", "content": "hi"}], 7)
+
+    assert len(llm["http_clients"]) == 2
+    assert all(c.is_closed for c in llm["http_clients"])

@@ -612,13 +612,14 @@ async def _llm_chat_async(
     token = await fetch_llm_token(course_id, "peer")
     if token is None:
         return None
-    # no retries: a student is waiting on the reply
-    client = token.async_client(timeout=timeout, max_retries=0)
-    response = await client.chat.completions.create(
-        **token.request_params(
-            messages=messages, temperature=temperature, max_tokens=max_tokens
+    # no retries: a student is waiting on the reply. The context manager
+    # closes the client's connections even when the request fails.
+    async with token.async_client(timeout=timeout, max_retries=0) as client:
+        response = await client.chat.completions.create(
+            **token.request_params(
+                messages=messages, temperature=temperature, max_tokens=max_tokens
+            )
         )
-    )
     rslogger.warning(f"PEER LLM CALL | provider={token.provider} | model={token.model}")
     return response.choices[0].message.content.strip()
 
