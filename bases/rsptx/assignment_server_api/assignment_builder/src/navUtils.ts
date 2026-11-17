@@ -235,6 +235,12 @@ export const buildNavBar = (
           icon: "discord",
           href: "https://discord.gg/f3Qmbk9P3U",
           onClick: () => navigateToPath("https://discord.gg/f3Qmbk9P3U")
+        },
+        {
+          label: "Our Library",
+          icon: "book",
+          href: "/ns/books/index",
+          onClick: () => navigateToPath("/ns/books/index")
         }
       ]
     }
