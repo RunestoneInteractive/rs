@@ -216,6 +216,10 @@ async def get_peer_dashboard(
         rslogger.info(f"New index: {new_idx}")
         assignment.current_index = new_idx
         await update_assignment(assignment, pi_update=True)
+    elif next == "Previous":
+        rslogger.info("Going back to previous question")
+        assignment.current_index = max((assignment.current_index or 0) - 1, 0)
+        await update_assignment(assignment, pi_update=True)
 
     # Get all questions for this assignment
     questions_result = await fetch_assignment_questions(assignment_id)
