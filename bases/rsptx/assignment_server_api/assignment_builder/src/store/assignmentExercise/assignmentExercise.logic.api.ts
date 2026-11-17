@@ -5,7 +5,7 @@ import { assignmentExerciseActions } from "@store/assignmentExercise/assignmentE
 import { baseQuery } from "@store/baseQuery";
 import { chooseExercisesActions } from "@store/chooseExercises/chooseExercises.logic";
 
-import { RootState } from "@/state/store";
+import { RootState } from "@/store/rootReducer";
 import { DetailResponse } from "@/types/api";
 import { CreateAssignmentExercisePayload } from "@/types/assignment";
 import {
@@ -84,9 +84,7 @@ export const assignmentExerciseApi = createApi({
             dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
 
             dispatch(
-              assignmentApi.endpoints.getAssignment.initiate(
-                state.assignmentTemp.selectedAssignmentId!
-              )
+              assignmentApi.endpoints.getAssignment.initiate(state.assignment.selectedAssignmentId!)
             );
           })
           .catch(() => {
@@ -163,9 +161,7 @@ export const assignmentExerciseApi = createApi({
             dispatch(assignmentApi.util.invalidateTags(["Assignment", "Assignments"]));
 
             dispatch(
-              assignmentApi.endpoints.getAssignment.initiate(
-                state.assignmentTemp.selectedAssignmentId!
-              )
+              assignmentApi.endpoints.getAssignment.initiate(state.assignment.selectedAssignmentId!)
             );
           })
           .catch(() => {
@@ -228,10 +224,10 @@ export const assignmentExerciseApi = createApi({
 
             dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
 
-            if (state.assignmentTemp.selectedAssignmentId) {
+            if (state.assignment.selectedAssignmentId) {
               dispatch(
                 assignmentApi.endpoints.getAssignment.initiate(
-                  state.assignmentTemp.selectedAssignmentId
+                  state.assignment.selectedAssignmentId
                 )
               );
             }
