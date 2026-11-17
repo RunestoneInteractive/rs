@@ -2221,7 +2221,7 @@ export default class Parsons extends RunestoneBase {
                         this.lastAnswerHash = answerHash;
                     }
                     // if time to offer help
-                    if (this.numDistinct == 3 && !this.gotHelp) {
+                    if (this.numDistinct >= 3 && !this.gotHelp) {
                         this.pendingHelpMessage = t("msg_parson_help_info");
                     } // end if
                 } // end if can help
