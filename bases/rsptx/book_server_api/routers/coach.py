@@ -120,9 +120,13 @@ def extract_parsons_code(html_block):
 
     # Remove all HTML tags and extract the code lines
     text = re.sub(r"<.*?>", "", pre_content, flags=re.DOTALL)
-    lines = text.strip().splitlines()
-    if "-----" in lines:
-        idx = lines.index("-----")
+    # Don't strip() the whole text: that would remove the first code line's
+    # indentation but leave the others intact, so the copied solution pastes
+    # with mismatched indents (most visible in Java). Blank lines are dropped below.
+    lines = text.splitlines()
+    stripped = [line.strip() for line in lines]
+    if "-----" in stripped:
+        idx = stripped.index("-----")
         code_lines = lines[idx + 1 :]
     else:
         code_lines = lines
