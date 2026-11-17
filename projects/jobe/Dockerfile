@@ -66,7 +66,7 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     vim \
     wget
 
-RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas requests altair && \
+RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas requests altair nltk textblob scikit-learn && \
     pylint --reports=no --score=n --generate-rcfile > /etc/pylintrc && \
     ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
     ln -sf /proc/self/fd/1 /var/log/apache2/error.log && \

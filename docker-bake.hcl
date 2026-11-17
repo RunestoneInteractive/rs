@@ -16,8 +16,13 @@
 # docker buildx bake --file docker-bake.hcl rs-admin
 # docker buildx bake --file docker-bake.hcl rs-dash
 
-# Note that bake does not leave the images locally, it only pushes them to the registry.
-# You still need to pull or build them locally the old way during development.
+# By itself bake does not leave the images locally, it only pushes them to the registry.
+# Add --load (as `uv run build bake` does) to also load them into the local image store:
+#   docker buildx bake --file docker-bake.hcl --push --load rs-book
+# Because every target is multi-platform, --load requires Docker's containerd image store
+# (Docker Desktop: Settings > General > "Use containerd for pulling and storing images").
+# With the classic store it fails with "docker exporter does not currently support
+# exporting manifest lists".
 
 variable "VERSION" {
     default = "latest"

@@ -227,6 +227,32 @@ class Settings(BaseSettings):
     author_server_url: str = "https://author.runestone.academy/author"
     landing_page_url: str = "https://landing.runestone.academy"
 
+    # LLM providers for the AI features (CodeTailor, peer instruction). A course
+    # calls the provider it has an API token for (add_token.html); a course with
+    # tokens for several uses the first one in ``llm_provider_order``. Each
+    # provider serves the OpenAI chat completions API. Override any of these
+    # with the matching env var, e.g. ``LLM_MODEL_UMGPT=gpt-4.1-mini`` (dicts
+    # and lists as JSON, e.g. ``LLM_MODEL_PARAMS='{}'``).
+    llm_provider_order: list[str] = ["umgpt", "openai"]
+    llm_base_url_openai: str = "https://api.openai.com/v1"
+    llm_model_openai: str = "gpt-5-nano"
+    llm_base_url_umgpt: str = "https://api.toolkit.umgpt.umich.edu/v1"
+    # PI_OPENAI_MODEL is peer instruction's older name for this setting
+    llm_model_umgpt: str = (
+        os.environ.get("PI_OPENAI_MODEL", "").strip() or "gpt-4o-mini"
+    )
+    # A feature that needs a different model on some provider, as
+    # {feature: {provider: model}}. Peer instruction sends ``temperature``,
+    # which GPT-5 models reject, so on OpenAI it stays on its older model.
+    llm_feature_models: dict[str, dict[str, str]] = {
+        "peer": {
+            "openai": os.environ.get("PI_OPENAI_MODEL", "").strip() or "gpt-4o-mini"
+        },
+    }
+    # Extra parameters sent with every request to a model, as {model: params}.
+    # ``verbosity`` is a GPT-5 option; other models reject it.
+    llm_model_params: dict[str, dict] = {"gpt-5-nano": {"verbosity": "low"}}
+
     # Public-facing host used to build absolute URLs (e.g. course links in
     # emails). Populated from the matching environment variables by
     # pydantic-settings. In production set ``LOAD_BALANCER_HOST`` (preferred,

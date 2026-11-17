@@ -69,13 +69,13 @@ const buildStore = (
 ) => {
   return configureStore({
     reducer: {
-      assignmentTemp: assignmentSlice.reducer,
+      assignment: assignmentSlice.reducer,
       assignmentExercise: assignmentExerciseSlice.reducer,
       readings: readingsSlice.reducer,
       [assignmentExerciseApi.reducerPath]: assignmentExerciseApi.reducer
     },
     preloadedState: {
-      assignmentTemp: { selectedAssignmentId },
+      assignment: { selectedAssignmentId },
       assignmentExercise: { assignmentExercises, forAssignmentId },
       readings: { availableReadings, selectedReadings: [], selectionAssignmentId: null }
     },

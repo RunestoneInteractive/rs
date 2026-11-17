@@ -15,7 +15,7 @@ describe("useScrollShadow", () => {
     disconnect.mockClear();
     vi.stubGlobal(
       "IntersectionObserver",
-      vi.fn((callback: IntersectionCallback) => {
+      vi.fn(function (callback: IntersectionCallback) {
         intersectionCallback = callback;
         return { observe, disconnect, unobserve: vi.fn() };
       })

@@ -58,12 +58,17 @@ agree on every rule below:
 
 ## Trap: grade-key mistakes are silent
 
-`create_question_grade_entry` catches `IntegrityError`, logs it, and returns `None`.
-If a branch looks up a grade under one key and creates it under another, the first
-save inserts a row nobody finds, and every later save fails into the log. The student
-just stops getting credit. An occasional
-`IntegrityError ... called from grade_submission` in the logs means a key mismatch,
-not a database problem.
+`grade_submission` and `score_reading_page` write through
+`upsert_question_grade_entry`, one `INSERT ... ON CONFLICT` statement, so two
+submissions arriving together can't collide. Don't go back to look-up-then-create:
+that race used to drop the losing score with an IntegrityError in the log.
+
+The upsert can't fail on a key mismatch, so a mismatch is now silent. If a branch
+looks up a grade under one key (the early `fetch_question_grade`) and writes it
+under another, the hand-graded and first-answer checks read the wrong row. Look up
+and write under the same `div_id`; the selectquestion test in `test_core.py` covers
+the usual way this goes wrong. `create_question_grade_entry` still catches and logs
+`IntegrityError` for the instructor grading route.
 
 ## Tests
 

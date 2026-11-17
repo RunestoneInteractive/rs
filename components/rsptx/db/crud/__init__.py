@@ -263,6 +263,7 @@ from .question import (
     search_exercises,
     update_question,
     update_question_grade_entry,
+    upsert_question_grade_entry,
 )
 
 from .rsfiles import (
@@ -572,6 +573,7 @@ __all__ += [
     "search_exercises",
     "update_question",
     "update_question_grade_entry",
+    "upsert_question_grade_entry",
 ]
 
 # from .rsfiles

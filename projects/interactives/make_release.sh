@@ -54,12 +54,23 @@ $SHA256
 
 Verify a download with \`shasum -a 256 $TGZ_NAME\`."
 
+# Tag the local HEAD (the version-bump commit), not whatever the default branch
+# points at on GitHub.  Immutable tags can't be moved later, so refuse to
+# release a commit GitHub doesn't have yet.
+TARGET=$(git rev-parse HEAD)
+git fetch --quiet origin
+if ! git branch -r --contains "$TARGET" | grep -q .; then
+  echo "HEAD ($TARGET) has not been pushed; push it before releasing."
+  exit 1
+fi
+
 # Release immutability is on for this repo: once a release is published, its
 # tag and assets can never be changed.  So create a draft, check the uploaded
 # asset while it can still be fixed, and only then publish.
 gh release create "$TAG" \
   "$TGZ_FILE" \
   --draft \
+  --target "$TARGET" \
   --title "Release $TAG" \
   --notes "$NOTES"
 
@@ -82,11 +93,25 @@ fi
 # Publish.  This creates the tag and locks the release.
 gh release edit "$TAG" --draft=false
 
-if gh release verify "$TAG"; then
+# GitHub creates the release attestation asynchronously, so `gh release verify`
+# run right after publishing can report "no attestations" for a release that is
+# in fact immutable.  Retry for a while before warning.
+VERIFIED=""
+for _ in $(seq 1 12); do
+  if gh release verify "$TAG" >/dev/null 2>&1; then
+    VERIFIED=1
+    break
+  fi
+  sleep 5
+done
+if [[ -n "$VERIFIED" ]]; then
   echo "Release $TAG published and immutable; asset sha256:$SHA256"
-else
+elif [[ "$(gh api "repos/{owner}/{repo}/immutable-releases" -q .enabled 2>/dev/null)" != "true" ]]; then
   echo "WARNING: Release $TAG is published but is not immutable."
   echo "Turn on Settings > General > Releases > 'Enable release immutability'."
+else
+  echo "WARNING: release immutability is enabled, but no attestation for $TAG appeared yet."
+  echo "Check later with: gh release verify $TAG"
 fi
 
 # Restore GITHUB_TOKEN if it was unset

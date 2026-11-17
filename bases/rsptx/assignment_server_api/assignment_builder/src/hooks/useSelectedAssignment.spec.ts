@@ -26,11 +26,11 @@ const mockPutAssignment = vi.fn();
 function makeStore(selectedAssignmentId: number | null = null) {
   return configureStore({
     reducer: {
-      assignmentTemp: assignmentSlice.reducer,
+      assignment: assignmentSlice.reducer,
       assignmentAPI: (state = {}) => state
     },
     preloadedState: {
-      assignmentTemp: { selectedAssignmentId }
+      assignment: { selectedAssignmentId }
     }
   });
 }
