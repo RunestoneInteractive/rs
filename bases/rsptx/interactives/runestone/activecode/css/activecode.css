@@ -410,18 +410,20 @@
     align-items: flex-start;
     margin: 4px 30px 12px;
     padding: 10px 14px;
-    background-color: #fff8e1;
-    border: 2px solid #ffd54f;
+    /* theme tokens from common/css/variables.less, so dark mode follows */
+    background-color: var(--parsonsHintBgColor);
+    border: 2px solid var(--parsonsHintBorderColor);
     border-left-width: 6px;
     border-radius: 12px;
-    color: #191919;
+    color: var(--parsonsHintColor);
     font-size: 0.95em;
     line-height: 1.4;
 }
 
 .labels-next-steps.solved {
-    background-color: #e8f5e9;
-    border-color: #81c784;
+    background-color: var(--parsonsCorrectBgColor);
+    border-color: var(--parsonsCorrectBorderColor);
+    color: var(--bodyFont);
 }
 
 .labels-next-steps .labels-icon {
@@ -434,8 +436,9 @@
 }
 
 .labels-next-steps.nudge {
-    background-color: #fff3e0;
-    border-color: #ef6c00;
+    background-color: var(--admonition);
+    border-color: var(--parsonsBorderColor);
+    color: var(--bodyFont);
 }
 
 /* open CodeTailor*/
