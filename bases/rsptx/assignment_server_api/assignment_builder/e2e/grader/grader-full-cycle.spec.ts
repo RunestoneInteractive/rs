@@ -25,6 +25,7 @@ const THRESHOLD_PERCENT = 70;
 interface GraderQuestionStat {
   name: string;
   answered_count: number;
+  total_attempts: number;
   correct_count: number;
 }
 
@@ -108,11 +109,13 @@ const fetchGradebook = async (request: APIRequestContext): Promise<GradebookPayl
 
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { detail: GradebookPayload };
+
   return body.detail;
 };
 
 const cellScore = (gb: GradebookPayload, sid: string, assignmentId: number): number | null => {
   const cell = gb.cells.find((c) => c.sid === sid && c.assignment_id === assignmentId);
+
   return cell ? cell.score : null;
 };
 
@@ -179,6 +182,7 @@ test(
         { id: assignmentId, name: assignmentName },
         { name: divId, points: QUESTION_POINTS }
       );
+
       expect(question.id).toBeGreaterThan(0);
 
       await setAssignmentVisible(page, assignmentName);
@@ -189,6 +193,7 @@ test(
       const stat = await fetchQuestionStat(page.request, assignmentId, divId);
 
       expect(stat.answered_count, "both students submitted").toBe(2);
+      expect(stat.total_attempts, "each student submitted once").toBe(2);
       expect(stat.correct_count, "only the correct submission counts").toBe(1);
 
       await gradeInSplitView(page, assignmentId, question, correctSid, CORRECT_GRADE);
@@ -203,6 +208,7 @@ test(
 
       await recompute(page.request, assignmentId, [correctSid, wrongSid]);
       const afterGrade = await fetchGradebook(page.request);
+
       expect(cellScore(afterGrade, correctSid, assignmentId)).toBe(CORRECT_GRADE);
       expect(cellScore(afterGrade, wrongSid, assignmentId)).toBe(PARTIAL_GRADE);
 
@@ -222,6 +228,7 @@ test(
 
       await toggleControl.click();
       const releaseDialog = page.getByRole("dialog");
+
       await releaseDialog
         .getByRole("button", { name: releaseInitial ? "Hide" : "Release" })
         .click();
@@ -230,6 +237,7 @@ test(
       await expect.poll(() => fetchReleased(page.request, assignmentId!)).toBe(!releaseInitial);
 
       const thresholdButton = page.getByRole("button", { name: "Threshold", exact: true });
+
       await thresholdButton.waitFor({ state: "visible", timeout: 30_000 });
       await thresholdButton.click();
       await page.getByLabel("Threshold percentage").fill(String(THRESHOLD_PERCENT));
@@ -238,12 +246,14 @@ test(
       const setThresholdResponse = page.waitForResponse(
         (r) => r.url().includes("/grader/threshold") && r.request().method() === "POST"
       );
+
       await thresholdModal.getByRole("button", { name: "Set threshold" }).click();
       await setThresholdResponse;
       await expect(thresholdModal).toBeHidden();
 
       await recompute(page.request, assignmentId, [correctSid, wrongSid]);
       const afterThreshold = await fetchGradebook(page.request);
+
       expect(
         cellScore(afterThreshold, wrongSid, assignmentId),
         "0.8 of points clears the 70% threshold and is bumped to full"
@@ -256,6 +266,7 @@ test(
       const clearThresholdResponse = page.waitForResponse(
         (r) => r.url().includes("/grader/threshold") && r.request().method() === "POST"
       );
+
       await page.getByRole("button", { name: "Clear" }).click();
       await clearThresholdResponse;
       await recompute(page.request, assignmentId, [correctSid, wrongSid]);
@@ -265,14 +276,16 @@ test(
 
       const gradebook = await fetchGradebook(page.request);
       const wrongStudent = gradebook.students.find((s) => s.sid === wrongSid);
+
       expect(wrongStudent, `cycle student ${wrongSid} not enrolled; run the S2 seed`).toBeTruthy();
 
-      await gotoApp(page, "/grader/gradebook");
+      await gotoApp(page, "/gradebook");
       await expect(page.getByRole("table", { name: "Gradebook" })).toBeVisible();
 
       const cellButton = page.getByRole("button", {
         name: `Edit total for ${wrongStudent!.name} on ${assignmentName}`
       });
+
       await cellButton.scrollIntoViewIfNeeded();
       await cellButton.click();
       await page.getByLabel("Manual total").fill(String(MANUAL_OVERRIDE));
@@ -283,11 +296,13 @@ test(
       const overrideCell = afterOverride.cells.find(
         (c) => c.sid === wrongSid && c.assignment_id === assignmentId
       );
+
       expect(overrideCell?.score).toBe(MANUAL_OVERRIDE);
       expect(overrideCell?.manual_total).toBe(true);
 
       await recompute(page.request, assignmentId, [wrongSid]);
       const afterManualRecompute = await fetchGradebook(page.request);
+
       expect(
         cellScore(afterManualRecompute, wrongSid, assignmentId),
         "manual total survives recompute"
@@ -302,9 +317,11 @@ test(
       );
 
       const csvResponse = await page.request.get("/assignment/instructor/grader/gradebook.csv");
+
       expect(csvResponse.ok()).toBe(true);
       expect(csvResponse.headers()["content-type"]).toContain("text/csv");
       const csv = await csvResponse.text();
+
       expect(csv.split("\n")[0]).toMatch(/^Student,.*Total/);
     } finally {
       await Promise.all(books.map((book) => book.context.close()));

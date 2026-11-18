@@ -22,8 +22,8 @@ import {
   ParsonsBlocksManager,
   ParsonsOptions
 } from "./components";
-import { ParsonsExerciseTour } from "./components/ParsonsExerciseTour";
 import parsonsStyles from "./components/ParsonsExercise.module.css";
+import { ParsonsExerciseTour } from "./components/ParsonsExerciseTour";
 
 export type ParsonsMode = "simple" | "enhanced";
 
@@ -76,7 +76,10 @@ const generatePreview = (data: ParsonsData): string => {
     questionLabel: data.name,
     grader: data.grader ?? "line",
     orderMode: data.orderMode ?? "random",
-    customOrder: data.customOrder
+    customOrder: data.customOrder,
+    runnable: data.runnable,
+    runnableCode: data.runnableCode,
+    runnableOptions: data.runnableOptions
   });
 };
 
@@ -92,7 +95,10 @@ const generateExerciseHtmlSrc = (data: ParsonsData): string => {
     questionLabel: data.name,
     grader: data.grader ?? "line",
     orderMode: data.orderMode ?? "random",
-    customOrder: data.customOrder
+    customOrder: data.customOrder,
+    runnable: data.runnable,
+    runnableCode: data.runnableCode,
+    runnableOptions: data.runnableOptions
   });
 };
 
@@ -224,6 +230,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               depends: undefined,
               displayOrder: undefined
             }));
+
             updateFormData("blocks", clearedBlocks);
             setMode("simple");
           }
@@ -284,7 +291,6 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
               onGraderChange={(value: "line" | "dag") => {
                 updateFormData("grader", value);
                 if (value === "dag") {
-                  updateFormData("adaptive", false);
                   // Auto-assign tags to blocks that don't have them
                   const updatedBlocks = (formData.blocks || []).map((block, idx) => {
                     if (!block.tag && !block.isDistractor && !block.groupId) {
@@ -292,6 +298,7 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
                     }
                     return block;
                   });
+
                   updateFormData("blocks", updatedBlocks);
                 }
               }}
@@ -326,6 +333,9 @@ export const ParsonsExercise: FC<ExerciseComponentProps> = ({
             grader={formData.grader ?? "line"}
             orderMode={formData.orderMode ?? "random"}
             customOrder={formData.customOrder}
+            runnable={formData.runnable}
+            runnableCode={formData.runnableCode}
+            runnableOptions={formData.runnableOptions}
           />
         );
 

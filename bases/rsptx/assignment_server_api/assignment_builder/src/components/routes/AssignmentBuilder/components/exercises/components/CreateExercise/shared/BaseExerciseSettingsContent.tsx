@@ -1,5 +1,5 @@
-import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
 import { NumberInput, Select, Switch, TagsInput, TextInput } from "@mantine/core";
+import { useGetSectionsForChapterQuery } from "@store/dataset/dataset.logic.api";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
 import { difficultyOptions } from "@/config/exerciseTypes";
@@ -30,6 +30,7 @@ export interface BaseExerciseSettingsContentProps<T extends BaseExerciseSettings
 const DEFAULT_POINTS = 3;
 const DEFAULT_DIFFICULTY = 1;
 const MAX_TAGS = 10;
+const REQUIRED_LABEL_STYLES = { required: { color: "var(--rs-danger-text)" } };
 
 export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
   initialData,
@@ -40,7 +41,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
 
   const [settings, setSettings] = useState<T>({
     ...initialData,
-    name: initialData?.name ?? createExerciseId(),
+    name: initialData?.name?.trim() ?? createExerciseId(),
     author: initialData?.author ?? "",
     topic: initialData?.topic ?? "",
     chapter: initialData?.chapter || chapters?.[0]?.value || "",
@@ -140,9 +141,11 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             id="name"
             label="Exercise name"
             withAsterisk
+            styles={REQUIRED_LABEL_STYLES}
             value={settings.name}
             error={nameValidationError || undefined}
-            onChange={(e) => updateSetting("name", e.target.value)}
+            // The name becomes the question's id; drop surrounding whitespace (often pasted in).
+            onChange={(e) => updateSetting("name", e.target.value.trim())}
           />
         </div>
 
@@ -151,6 +154,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             id="chapter"
             label="Chapter"
             withAsterisk
+            styles={REQUIRED_LABEL_STYLES}
             value={settings.chapter}
             data={chapters ?? []}
             allowDeselect={false}
@@ -172,6 +176,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
             id="subchapter"
             label="Section"
             withAsterisk
+            styles={REQUIRED_LABEL_STYLES}
             value={settings.subchapter}
             data={sectionsOptions}
             allowDeselect={false}
@@ -211,6 +216,7 @@ export const BaseExerciseSettingsContent = <T extends BaseExerciseSettings>({
               id="points"
               label="Points"
               withAsterisk
+              styles={REQUIRED_LABEL_STYLES}
               value={settings.points}
               min={0}
               max={100000}

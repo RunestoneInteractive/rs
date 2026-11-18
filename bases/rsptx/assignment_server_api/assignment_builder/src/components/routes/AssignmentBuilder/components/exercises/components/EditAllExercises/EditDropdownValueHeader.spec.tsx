@@ -1,3 +1,4 @@
+import { notify } from "@components/ui/notify";
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
@@ -23,8 +24,6 @@ vi.mock("@components/ui/notify", () => ({
     clean: vi.fn()
   }
 }));
-
-import { notify } from "@components/ui/notify";
 
 vi.mock("@/hooks/useExercisesSelector", () => ({
   useExercisesSelector: () => ({ assignmentExercises: [{ id: 1, question_json: {} }] })

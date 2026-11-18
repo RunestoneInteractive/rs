@@ -1,8 +1,9 @@
 import { ColumnDef } from "@tanstack/react-table";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { renderWithMantine, screen, fireEvent } from "@/test/renderWithMantine";
+import { act, fireEvent, renderWithMantine, screen } from "@/test/renderWithMantine";
 
 import { DataGrid } from "./DataGrid";
 
@@ -43,6 +44,7 @@ describe("DataGrid", () => {
 
   it("renders a loader while loading", () => {
     const { container } = renderGrid({ loading: true });
+
     expect(container.querySelector(".mantine-Loader-root")).toBeTruthy();
     expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
   });
@@ -56,9 +58,74 @@ describe("DataGrid", () => {
 
   it("invokes onRowClick with the clicked row", () => {
     const onRowClick = vi.fn();
+
     renderGrid({ onRowClick });
     fireEvent.click(screen.getByText("Bravo"));
     expect(onRowClick).toHaveBeenCalledWith(ROWS[1]);
+  });
+
+  it("makes clickable rows keyboard accessible", () => {
+    const onRowClick = vi.fn();
+
+    renderGrid({ onRowClick });
+    const row = screen.getByText("Bravo").closest("tr");
+    const rows = screen.getAllByRole("row").slice(1);
+
+    expect(rows[0]).toHaveAttribute("tabindex", "0");
+    expect(rows[1]).toHaveAttribute("tabindex", "-1");
+    fireEvent.keyDown(row!, { key: "Enter" });
+    fireEvent.keyDown(row!, { key: " " });
+    expect(onRowClick).toHaveBeenNthCalledWith(1, ROWS[1]);
+    expect(onRowClick).toHaveBeenNthCalledWith(2, ROWS[1]);
+  });
+
+  it("places the first clickable row in the sequential Tab order", async () => {
+    renderGrid({
+      onRowClick: vi.fn(),
+      columns: COLUMNS.map((column) => ({ ...column, enableSorting: false }))
+    });
+    const firstRow = screen.getByText("Alpha").closest("tr");
+
+    await userEvent.tab();
+
+    expect(firstRow).toHaveFocus();
+  });
+
+  it("moves through clickable rows with arrow, Home, and End keys", () => {
+    const onRowClick = vi.fn();
+
+    renderGrid({ onRowClick });
+    const rows = screen.getAllByRole("row").slice(1);
+
+    act(() => rows[0].focus());
+    fireEvent.keyDown(rows[0], { key: "ArrowDown" });
+    expect(rows[1]).toHaveFocus();
+
+    fireEvent.keyDown(rows[1], { key: "End" });
+    expect(rows[2]).toHaveFocus();
+
+    fireEvent.keyDown(rows[2], { key: "Home" });
+    expect(rows[0]).toHaveFocus();
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("does not activate a clickable row from a nested control keypress", () => {
+    const onRowClick = vi.fn();
+    const columns: ColumnDef<Row, unknown>[] = [
+      { accessorKey: "name", header: "Name" },
+      {
+        id: "action",
+        header: "Action",
+        cell: () => <button type="button">Nested action</button>
+      }
+    ];
+
+    renderGrid({ onRowClick, columns });
+    fireEvent.keyDown(screen.getAllByRole("button", { name: "Nested action" })[0], {
+      key: "Enter"
+    });
+
+    expect(onRowClick).not.toHaveBeenCalled();
   });
 
   it("orders rows by initialSorting before user interaction", () => {
@@ -209,6 +276,42 @@ describe("DataGrid", () => {
     expect(screen.getByRole("textbox", { name: "Search assignments" })).toBeInTheDocument();
   });
 
+  it("announces the number of results after global filtering", async () => {
+    renderGrid({
+      enableGlobalFilter: true,
+      globalFilterPlaceholder: "Search assignments",
+      filterResultsLabel: "assignments",
+      filterResultsTotal: 5
+    });
+
+    const status = screen.getByRole("status");
+
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(status).toHaveAttribute("aria-atomic", "true");
+    expect(status).toBeVisible();
+    expect(status).toHaveTextContent("3 of 5 assignments shown.");
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Search assignments" }), "Alp");
+
+    expect(status).toHaveTextContent("1 of 5 assignments shown.");
+  });
+
+  it("can render the filter status outside the framed table content", () => {
+    renderGrid({
+      enableGlobalFilter: true,
+      filterResultsLabel: "assignments",
+      tableFrameClassName: "table-frame"
+    });
+
+    const status = screen.getByRole("status");
+    const frame = document.querySelector(".table-frame");
+
+    expect(frame).toBeInTheDocument();
+    expect(frame).toContainElement(screen.getByRole("table"));
+    expect(frame).toContainElement(screen.getByText("Rows per page"));
+    expect(frame).not.toContainElement(status);
+  });
+
   it("renders its own scroll area with a sentinel in fillHeight mode", () => {
     const sentinelRef = vi.fn();
     const { container } = renderGrid({ fillHeight: true, scrollSentinelRef: sentinelRef });
@@ -245,6 +348,7 @@ describe("DataGrid column filters", () => {
     const { rerender } = renderWithMantine(
       <DataGrid<Row> data={ROWS} columns={FILTER_COLUMNS} getRowId={(r) => r.id} />
     );
+
     expect(screen.queryByPlaceholderText("filter-name")).not.toBeInTheDocument();
 
     rerender(
@@ -273,6 +377,23 @@ describe("DataGrid column filters", () => {
     expect(screen.queryByText("Charlie")).not.toBeInTheDocument();
   });
 
+  it("announces the number of results after column filtering", () => {
+    renderWithMantine(
+      <DataGrid<Row>
+        data={ROWS}
+        columns={FILTER_COLUMNS}
+        getRowId={(r) => r.id}
+        enableColumnFilters
+      />
+    );
+
+    const status = screen.getByRole("status");
+
+    fireEvent.change(screen.getByPlaceholderText("filter-name"), { target: { value: "Alp" } });
+
+    expect(status).toHaveTextContent("1 of 3 results shown.");
+  });
+
   it("labels filter controls after their column header", () => {
     renderWithMantine(
       <DataGrid<Row>
@@ -287,6 +408,19 @@ describe("DataGrid column filters", () => {
     expect(screen.getByRole("textbox", { name: "Filter by Score" })).toBeInTheDocument();
   });
 
+  it("does not expose filter cells as empty column headers", () => {
+    renderWithMantine(
+      <DataGrid<Row>
+        data={ROWS}
+        columns={FILTER_COLUMNS}
+        getRowId={(r) => r.id}
+        enableColumnFilters
+      />
+    );
+
+    expect(screen.getAllByRole("columnheader")).toHaveLength(FILTER_COLUMNS.length);
+  });
+
   it("renders a custom filter element", () => {
     const columns: ColumnDef<Row, unknown>[] = [
       {
@@ -297,6 +431,7 @@ describe("DataGrid column filters", () => {
       },
       { accessorKey: "score", header: "Score" }
     ];
+
     renderWithMantine(
       <DataGrid<Row> data={ROWS} columns={columns} getRowId={(r) => r.id} enableColumnFilters />
     );
@@ -314,6 +449,7 @@ describe("DataGrid column filters", () => {
   it("orders rows according to controlled descending sorting", () => {
     renderGrid({ sorting: [{ id: "score", desc: true }] });
     const cells = screen.getAllByText(/Alpha|Bravo|Charlie/).map((el) => el.textContent);
+
     expect(cells[0]).toBe("Alpha");
     expect(cells[2]).toBe("Bravo");
   });

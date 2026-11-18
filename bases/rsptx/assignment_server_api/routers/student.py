@@ -13,6 +13,7 @@
 #
 # Standard library
 # ----------------
+import asyncio
 import csv
 import io
 from typing import Optional
@@ -51,15 +52,18 @@ from rsptx.db.crud import (
     fetch_assignment_by_name,
     fetch_assignment_questions,
     fetch_question_grade,
+    fetch_question_grades_for,
     fetch_assignment_release_for_div_id,
     fetch_recent_useinfo,
     fetch_user,
-    fetch_user_chapter_progress,
+    fetch_user_chapter_progress_for,
     fetch_user_sub_chapter_progress,
     fetch_useinfo_for_sid,
     get_book_chapters,
     get_book_subchapters,
 )
+from .course_guard import assignment_course_redirect
+from rsptx.grading_helpers.comments import UNGRADED_COMMENT, display_comment
 from rsptx.grading_helpers.core import check_for_exceptions
 from rsptx.grading_helpers.regrade import RegradeOptions, regrade_batch
 
@@ -71,7 +75,12 @@ from rsptx.templates import (
     get_jinja_templates,
     get_shared_templates,
 )
-from rsptx.response_helpers import construct_course_url, safe_join
+from rsptx.templates.ebook_config import ebook_config_override
+from rsptx.response_helpers import (
+    construct_course_url,
+    prepare_question_htmlsrc,
+    safe_join,
+)
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -201,6 +210,7 @@ async def get_assignments(
         lti1p1=is_lti1p1_course,
         now=now,
         visibility_map=visibility_map,
+        term_start_date=course.term_start_date,
         settings=settings,
         base_url=construct_course_url(course),
         activity_info="{}",
@@ -209,8 +219,17 @@ async def get_assignments(
         origin=course_markup_system,
         **course_attrs,
     )
+    if use_pretext_student_pages:
+        context["ebook_config_override"] = await ebook_config_override(
+            course=course,
+            user=user,
+            user_is_instructor=user_is_instructor,
+            course_attrs=course_attrs,
+            readings=None,  # force bookfuncs to not render assignment tracker
+            activities={},
+        )
     return templates.TemplateResponse(
-        "assignment/student/chooseAssignment.html", context
+        request, "assignment/student/chooseAssignment.html", context
     )
 
 
@@ -430,7 +449,9 @@ async def studentreport(
         activity=activity,
         target_id=id if (id and user_is_instructor) else None,
     )
-    return templates.TemplateResponse("assignment/student/studentreport.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/studentreport.html", context
+    )
 
 
 class UpdateStatusRequest(BaseModel):
@@ -463,6 +484,7 @@ def get_studyclues_book_id(course: CoursesValidator) -> str:
         "ac-single": 42,
         "py4eint": 43,
         "foppff": 44,
+        "ai4all": 62,
         # Add more mappings as needed
     }
     return course_to_book_id.get(course.base_course, 28)
@@ -488,14 +510,28 @@ async def studyclues_query(
         "https://api.demo.learningclues.com/",
     )
     query_studyclues_post_url = f"{api_base_domain.rstrip('/')}/studyclues/query"
+    course = await fetch_course(user.course_name)
+    book_id = get_studyclues_book_id(course)
 
     # Maybe cache the user_id for StudyClues in the future in Redis
     runestone_login_url = f"{api_base_domain.rstrip('/')}/auth/runestone_login"
-    params = {"runestone_username": user.username}
+    params = {"runestone_username": user.username, "course_id": book_id}
     rslogger.debug(
         f"Logging in to StudyClues with params: {params} and url: {runestone_login_url}"
     )
-    response = requests.get(runestone_login_url, params=params)
+    # requests is blocking, so hand both StudyClues round trips to a thread:
+    # this is a third-party service and a slow reply must not stall the event
+    # loop (and with it every other request this process is serving).
+    try:
+        response = await asyncio.to_thread(
+            requests.get, runestone_login_url, params=params, timeout=30
+        )
+    except requests.RequestException as err:
+        rslogger.error(f"StudyClues login request failed: {err}")
+        return make_json_response(
+            status=502,
+            detail={"success": False, "message": "StudyClues login request failed"},
+        )
     if response.status_code != 200:
         rslogger.error(
             f"StudyClues login request failed with status {response.status_code}: {response.text}"
@@ -511,8 +547,6 @@ async def studyclues_query(
     data = response.json()
     lc_user = data.get("user_id")
 
-    course = await fetch_course(user.course_name)
-    book_id = get_studyclues_book_id(course)
     studyclues_params = {
         "course_id": book_id,  # todo: make this dynamic based on the basecourse
         "query": request_data.query,
@@ -524,7 +558,7 @@ async def studyclues_query(
         "source_priorities": {"GITHUB_FILE": "prioritize"},
     }
 
-    try:
+    def _post_query():
         with requests.Session() as session:
             upstream_response = session.post(
                 query_studyclues_post_url,
@@ -532,7 +566,10 @@ async def studyclues_query(
                 timeout=30,
             )
             upstream_response.raise_for_status()
-            studyclues_response = upstream_response.json()
+            return upstream_response.json()
+
+    try:
+        studyclues_response = await asyncio.to_thread(_post_query)
     except requests.RequestException as err:
         rslogger.error(f"StudyClues request failed: {err}")
         return make_json_response(
@@ -603,8 +640,11 @@ async def update_submit(
     return make_json_response(detail=dict(success=True))
 
 
-async def _sync_assignment_total(user, assignment_id: int, computed_score) -> None:
-    """Keep the student's ``grades`` row in step with their per-question scores.
+async def _sync_assignment_total(
+    user, assignment_id: int, computed_score
+) -> GradeValidator:
+    """Keep the student's ``grades`` row in step with their per-question scores,
+    returning the row as it now stands.
 
     A total the instructor pinned with ``/manual_total`` is deliberately not
     derived from the question grades, so leave it alone -- otherwise a student
@@ -618,7 +658,7 @@ async def _sync_assignment_total(user, assignment_id: int, computed_score) -> No
             f"Leaving manual total for {user.id} assignment {assignment_id} at "
             f"{current_grade.score}"
         )
-        return
+        return current_grade
 
     if current_grade:
         if current_grade.score != computed_score:
@@ -627,8 +667,8 @@ async def _sync_assignment_total(user, assignment_id: int, computed_score) -> No
                 f"to {computed_score}"
             )
             current_grade.score = computed_score
-            await upsert_grade(current_grade)
-        return
+            current_grade = await upsert_grade(current_grade)
+        return current_grade
 
     new_grade = GradeValidator(
         auth_user=user.id,
@@ -637,10 +677,11 @@ async def _sync_assignment_total(user, assignment_id: int, computed_score) -> No
         manual_total=False,
         score=computed_score,
     )
-    await upsert_grade(new_grade)
+    new_grade = await upsert_grade(new_grade)
     rslogger.debug(
         f"Creating total score for {user.id} assignment {assignment_id} to {computed_score}"
     )
+    return new_grade
 
 
 @router.get("/doAssignment")
@@ -674,6 +715,19 @@ async def doAssignment(
         )
 
         return RedirectResponse("/assignment/student/chooseAssignment")
+
+    # The link only carries an assignment id, so a student whose active course
+    # is a different one would otherwise work this assignment against the wrong
+    # course and be scored zero in the course it belongs to (issue #1494).
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/student/doAssignment?assignment_id={assignment_id}",
+    )
+    if wrong_course:
+        return wrong_course
+
     user_is_instructor = await is_instructor(request, user=user)
 
     if assignment.is_peer or assignment.kind == "Peer":
@@ -694,7 +748,7 @@ async def doAssignment(
     if not is_assignment_visible_to_students(assignment):
         # Allow access for instructors and students with exceptions
         if not (
-            await is_instructor(request)
+            user_is_instructor
             or deadline_exception.visible
             or deadline_exception.allowLink
         ):
@@ -727,7 +781,23 @@ async def doAssignment(
     if assignment.kind == "Timed":
         assignment.is_timed = True
 
-    questions = await fetch_assignment_questions(assignment_id)
+    questions = list(await fetch_assignment_questions(assignment_id))
+
+    # Look up the student's grades and reading progress for the whole
+    # assignment up front rather than a query or two per question.
+    question_grades = await fetch_question_grades_for(
+        user.username, user.course_name, {q.Question.name for q in questions}
+    )
+    reading_chapters = {
+        q.Question.chapter for q in questions if q.AssignmentQuestion.reading_assignment
+    }
+    chapter_progress = await fetch_user_chapter_progress_for(
+        user, list(reading_chapters)
+    )
+    subchapter_progress = {}
+    if reading_chapters:
+        for row in await fetch_user_sub_chapter_progress(user):
+            subchapter_progress.setdefault((row.chapter_id, row.sub_chapter_id), row)
 
     await create_useinfo_entry(
         UseinfoValidation(
@@ -751,60 +821,19 @@ async def doAssignment(
 
     preambles = {course.base_course: course_attrs.get("latex_macros", "")}
     for q in questions:
-        if q.Question.htmlsrc:
-            # This replacement is to render images
-            bts = q.Question.htmlsrc
-            htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
-            )
-            htmlsrc = htmlsrc.replace(
-                "../_images", construct_course_url(course, "_images")
-            )
-            htmlsrc = htmlsrc.replace(
-                'src=\\"external', 'src=\\"' + construct_course_url(course, "external")
-            )
-            # htmlsrc = htmlsrc.replace(
-            #     "generated/webwork", get_course_url(course, "generated/webwork")
-            # )
-            # rewrite xref links and knowls in fillintheblank questions
-            if "fillintheblank" in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'href="', f'href="/ns/books/published/{course.base_course}/'
-                )
-
-            # Unescape contents of script tags in fitb questions.
-            if "application/json" in htmlsrc:
-                htmlsrc = htmlsrc.replace("&lt;", "<")
-                htmlsrc = htmlsrc.replace("&gt;", ">")
-                htmlsrc = htmlsrc.replace("&amp;", "&")
-
-            if 'data-knowl="./' in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'data-knowl="./',
-                    f'data-knowl="/ns/books/published/{course.base_course}/',
-                )
-            # check if the htmlsrc contains a self closing iframe tag (using a regex) and if so, replace it with a regular iframe tag
-            if re.search(r"<iframe[^>]*?\/>", htmlsrc):
-                htmlsrc = re.sub(
-                    r"<iframe([^>]*?)\/>", r"<iframe\1>  </iframe>", htmlsrc
-                )
-
-        else:
-            htmlsrc = None
+        htmlsrc = prepare_question_htmlsrc(q.Question.htmlsrc, course)
 
         # get score and comment
-        grade = await fetch_question_grade(
-            user.username, user.course_name, q.Question.name
-        )
+        grade = question_grades.get(q.Question.name)
         if grade:
             score, comment = grade.score, grade.comment
         else:
-            score, comment = 0, "ungraded"
+            score, comment = 0, UNGRADED_COMMENT
 
         if score is None:
             score = 0
 
-        is_incorrect = score == 0 and comment != "ungraded"
+        is_incorrect = score == 0 and comment != UNGRADED_COMMENT
 
         chap_label = q.Question.chapter
         subchap_label = q.Question.subchapter
@@ -835,7 +864,11 @@ async def doAssignment(
             score=score,
             is_incorrect=is_incorrect,
             points=q.AssignmentQuestion.points,
-            comment=comment,
+            # Only the instructor's own words; "autograded" and friends are
+            # bookkeeping and the page shows the scoring method instead.
+            comment=display_comment(comment),
+            # There is a question_grades row for this question, whatever it says.
+            has_grade=comment != UNGRADED_COMMENT,
             name=q.Question.name,
             qnumber=q.Question.qnumber,
             question_type=q.Question.question_type,
@@ -871,7 +904,7 @@ async def doAssignment(
             # add to readings
             if chap_label not in readings:
                 # add chapter info
-                completion = await fetch_user_chapter_progress(user, chap_label)
+                completion = chapter_progress.get(chap_label)
                 if not completion:
                     status = "notstarted"
                 elif completion.status == 1:
@@ -890,15 +923,13 @@ async def doAssignment(
 
             # add subchapter info
             # add completion status to info
-            subch_completion = await fetch_user_sub_chapter_progress(
-                user, chap_label, subchap_label
-            )
+            subch_completion = subchapter_progress.get((chap_label, subchap_label))
 
             if not subch_completion:
                 status = "notstarted"
-            elif subch_completion[0].status == 1:
+            elif subch_completion.status == 1:
                 status = "completed"
-            elif subch_completion[0].status == 0:
+            elif subch_completion.status == 0:
                 status = "started"
             else:
                 status = "notstarted"
@@ -917,8 +948,11 @@ async def doAssignment(
                 questionslist.append(info)
                 questions_score += info["score"]
                 qset.add(q.Question.name)
-    # Just to be sure we are current, we will update the total score for the assignment
-    await _sync_assignment_total(user, assignment_id, readings_score + questions_score)
+    # Just to be sure we are current, we will update the total score for the
+    # assignment. This also guarantees the student has a grades row.
+    grade = await _sync_assignment_total(
+        user, assignment_id, readings_score + questions_score
+    )
 
     # put readings into a session variable, to enable next/prev button
     readings_names = []
@@ -940,19 +974,6 @@ async def doAssignment(
     parsed_js["readings"] = readings_names
 
     course_markup_system = course_attrs.get("markup_system", "Runestone")
-
-    # grabs the row for the current user and and assignment in the grades table
-    grade = await fetch_grade(user.id, assignment_id)
-    # If cannot find the row in the grades folder, make one and set to not submitted
-    if not grade:
-        grade = await upsert_grade(
-            GradeValidator(
-                auth_user=user.id,
-                assignment=assignment_id,
-                is_submit="",  # set is_submit variable to incomplete
-                manual_total=False,
-            )
-        )
 
     # Makes variable that will not allow student to change status if assignment is graded.
     if grade.score:
@@ -1007,6 +1028,11 @@ async def doAssignment(
         del course_attrs["ptx_js_version"]
     else:
         ptx_js_version = "0.2"
+    # A book built without WeBWorK does not load pretext-webwork.js in its
+    # generated _base.html, but an assignment may include WeBWorK questions
+    # borrowed from another book.  Let the template know it must load the
+    # WeBWorK support itself in that case.
+    needs_webwork = any(q["question_type"] == "webwork" for q in questionslist)
     context = dict(  # This is all the variables that will be used in the doAssignment.html document
         course=course,
         request=request,
@@ -1019,6 +1045,9 @@ async def doAssignment(
         questions_score=questions_score,
         readings_score=readings_score,
         user=user,
+        term_start_date=course.term_start_date,
+        user_id=user.username,  # _base.html for ptx student pages needs user_id
+        base_course=course.base_course,
         # gradeRecordingUrl=URL('assignments', 'record_grade'),
         # calcTotalsURL=URL('assignments', 'calculate_totals'),
         released=assignment.released,
@@ -1033,6 +1062,7 @@ async def doAssignment(
         enforce_pastdue=enforce_pastdue,
         ptx_js_version=ptx_js_version,
         webwork_js_version=webwork_js_version,
+        needs_webwork=needs_webwork,
         latex_preamble_dict=preambles,
         wp_imports=get_webpack_static_imports(course),
         settings=settings,
@@ -1043,8 +1073,17 @@ async def doAssignment(
         allow_pairs="true" if course.allow_pairs else "false",
         **course_attrs,
     )
+    if use_pretext_student_pages:
+        context["ebook_config_override"] = await ebook_config_override(
+            course=course,
+            user=user,
+            user_is_instructor=user_is_instructor,
+            course_attrs=course_attrs,
+            readings=None,  # force bookfuncs to not render assignment tracker
+            activities={},
+        )
     response = templates.TemplateResponse(
-        "assignment/student/doAssignment.html", context
+        request, "assignment/student/doAssignment.html", context
     )
     response.set_cookie(key="RS_info", value=str(json.dumps(parsed_js)))
     return response
@@ -1070,7 +1109,7 @@ async def addPreamble(base_course: str) -> str:
     # get the course attributes
     course_attrs = await fetch_all_course_attributes(course.id)
     if not course_attrs:
-        rslogger.error(f"Course attributes for {base_course} not found.")
+        rslogger.info(f"Course attributes for {base_course} not found.")
         return ""
     return course_attrs.get("latex_macros", "")
 
@@ -1116,8 +1155,11 @@ async def getassignmentgrade(
 
         ret["max"] = a_q.points if (a_q and a_q.released) else ""
 
-        if result.comment:
-            ret["comment"] = result.comment
+        # Only words an instructor wrote; the graders' own bookkeeping is not
+        # feedback and has no business in the student's grade popup.
+        feedback = display_comment(result.comment)
+        if feedback:
+            ret["comment"] = feedback
 
     return JSONResponse(content=ret)
 

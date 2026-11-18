@@ -1,6 +1,7 @@
-import React from "react";
 import { renderHook, act } from "@testing-library/react";
+import React from "react";
 import screenfull from "screenfull";
+
 import { useFullscreen } from "./useFullscreen";
 
 vi.mock("screenfull", () => {
@@ -18,10 +19,11 @@ vi.mock("screenfull", () => {
       off: vi.fn((name: string, handler: (event: Event) => void) => {
         if (name === "change") {
           const idx = changeHandlers.indexOf(handler);
+
           if (idx !== -1) changeHandlers.splice(idx, 1);
         }
       }),
-      _changeHandlers: changeHandlers
+      changeHandlers
     }
   };
 });
@@ -33,11 +35,11 @@ const screenfullMock = screenfull as unknown as {
   exit: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
   off: ReturnType<typeof vi.fn>;
-  _changeHandlers: Array<(event: Event) => void>;
+  changeHandlers: Array<(event: Event) => void>;
 };
 
 function triggerChange() {
-  screenfullMock._changeHandlers.forEach((h) => h(new Event("fullscreenchange")));
+  screenfullMock.changeHandlers.forEach((h) => h(new Event("fullscreenchange")));
 }
 
 describe("useFullscreen", () => {
@@ -51,22 +53,26 @@ describe("useFullscreen", () => {
   describe("initial state", () => {
     it("returns isFullscreen as false initially", () => {
       const { result } = renderHook(() => useFullscreen());
+
       expect(result.current.isFullscreen).toBe(false);
     });
 
     it("returns isSupported as true when screenfull is enabled", () => {
       const { result } = renderHook(() => useFullscreen());
+
       expect(result.current.isSupported).toBe(true);
     });
 
     it("returns isSupported as false when screenfull is not enabled", () => {
       screenfullMock.isEnabled = false;
       const { result } = renderHook(() => useFullscreen());
+
       expect(result.current.isSupported).toBe(false);
     });
 
     it("exposes toggleFullscreen, enterFullscreen, and exitFullscreen as functions", () => {
       const { result } = renderHook(() => useFullscreen());
+
       expect(typeof result.current.toggleFullscreen).toBe("function");
       expect(typeof result.current.enterFullscreen).toBe("function");
       expect(typeof result.current.exitFullscreen).toBe("function");
@@ -87,6 +93,7 @@ describe("useFullscreen", () => {
 
     it("removes the change listener on unmount", () => {
       const { unmount } = renderHook(() => useFullscreen());
+
       unmount();
       expect(screenfullMock.off).toHaveBeenCalledWith("change", expect.any(Function));
     });

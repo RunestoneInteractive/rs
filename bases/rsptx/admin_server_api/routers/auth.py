@@ -12,22 +12,25 @@ from rsptx.configuration import settings
 from rsptx.db.crud import (
     consume_reset_token,
     create_user,
+    create_useinfo_entry,
     create_user_course_entry,
+    delete_user,
     delete_user_course_entry,
     fetch_course,
+    fetch_course_access_for_user,
     fetch_courses_by_institution,
     fetch_courses_for_user,
     fetch_instructor_courses,
-    fetch_last_course_access,
+    is_course_instructor,
     fetch_library_books,
     fetch_user,
     fetch_user_by_email,
+    has_lti1p3_user_association,
     set_reset_token,
     update_user,
-    delete_user,
     user_in_course,
 )
-from rsptx.db.models import AuthUserValidator
+from rsptx.db.models import AuthUserValidator, UseinfoValidation
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
@@ -83,12 +86,53 @@ def _validate_username(username: str) -> str | None:
     return None
 
 
+def _safe_next(next: str, default: str = "/ns/course/index") -> str:
+    """Return ``next`` only if it is a path on this site, else ``default``.
+
+    ``next`` is attacker-controllable -- it arrives in a query string and ends
+    up as a redirect target after a successful login. Anything that is not a
+    site-relative path is discarded, which rules out absolute URLs
+    (``https://evil.example``), scheme-relative ones (``//evil.example``, which
+    a browser treats as absolute), and backslash variants that some browsers
+    normalise to slashes.
+    """
+    if not next or not next.startswith("/"):
+        return default
+    if next.startswith("//") or next.startswith("/\\"):
+        return default
+    return next
+
+
 async def _current_user(request: Request):
     """Return the authenticated user or None (never raises)."""
     try:
         return await auth_manager(request)
     except (NotAuthenticatedException, Exception):
         return None
+
+
+async def _browse_url(course_name: str, pagepath: str) -> str | None:
+    """Return a read-only ``?mode=browsing`` URL for a page, or None.
+
+    Browsing mode is anonymous -- the book server drops the user when it sees
+    ``mode=browsing`` -- so a course with ``login_required`` set would bounce
+    the reader straight back to the sign-in page. For those, point at the
+    **base** course instead: a custom course's pages are served from its base
+    course's build, so this is the same content without making
+    ``login_required`` bypassable with a query string.
+
+    For an open course we can link the course itself, which preserves any
+    instructor customization.
+    """
+    if not course_name or not pagepath:
+        return None
+    course_row = await fetch_course(course_name)
+    if not course_row:
+        return None
+    book = course_row.base_course if course_row.login_required else course_name
+    if not book:
+        return None
+    return f"/ns/books/published/{book}/{pagepath}?mode=browsing"
 
 
 async def _navbar_context(user: AuthUserValidator) -> dict:
@@ -100,7 +144,7 @@ async def _navbar_context(user: AuthUserValidator) -> dict:
     course = await fetch_course(user.course_name)
     is_instructor = False
     if course and course.id:
-        is_instructor = bool(await fetch_instructor_courses(user.id, course.id))
+        is_instructor = await is_course_instructor(user.id, course.id)
     return {"course": course, "is_instructor": is_instructor}
 
 
@@ -123,8 +167,56 @@ async def login_page(request: Request, next: str = "/ns/course/index"):
         return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/login.html",
-        {"request": request, "next": next, "error": None},
+        {"request": request, "next": _safe_next(next), "error": None},
+    )
+
+
+# ---------------------------------------------------------------------------
+# "This course requires you to sign in"
+# ---------------------------------------------------------------------------
+
+
+@router.get("/login-required", response_class=HTMLResponse)
+async def login_required_page(
+    request: Request, course: str = "", next: str = "/ns/course/index"
+):
+    """Explain why an anonymous visitor cannot read a course, and offer a way in.
+
+    Replaces web2py's ``default/accessIssue``. The book server sends people here
+    when a course has ``login_required`` set and no one is signed in
+    (``book_server_api/routers/books.py``).
+
+    The old page was written for a failure mode that no longer exists: with two
+    auth systems you could hold a valid web2py session but no Runestone JWT, so
+    it told you to log *out* and back in. There is one session now, so this is
+    simply "please sign in", plus the troubleshooting notes that still apply.
+    """
+    next = _safe_next(next)
+
+    # Already signed in? Then they followed a stale link, or signed in from
+    # another tab. Send them where they were trying to go.
+    user = await _current_user(request)
+    if _user_exists(user):
+        return RedirectResponse(next, status_code=status.HTTP_302_FOUND)
+
+    # Offer a read-only way in. `next` is /ns/books/published/<course>/<page...>;
+    # pull the page path back out so _browse_url can pick the right book.
+    browse_url = None
+    prefix = f"/ns/books/published/{course}/"
+    if course and next.startswith(prefix):
+        browse_url = await _browse_url(course, next[len(prefix) :])
+
+    return templates.TemplateResponse(
+        request,
+        "admin/auth/login_required.html",
+        {
+            "request": request,
+            "course": course,
+            "next": next,
+            "browse_url": browse_url,
+        },
     )
 
 
@@ -139,6 +231,7 @@ async def login_post(
     if not _user_exists(user) or not _verify_password(user.password, password):
         rslogger.info(f"LOGIN FAILED: {username} Exists: {_user_exists(user)}")
         return templates.TemplateResponse(
+            request,
             "admin/auth/login.html",
             {
                 "request": request,
@@ -156,7 +249,7 @@ async def login_post(
             "/admin/auth/courses", status_code=status.HTTP_302_FOUND
         )
     else:
-        response = RedirectResponse(next, status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(_safe_next(next), status_code=status.HTTP_302_FOUND)
     auth_manager.set_cookie(response, access_token)
     rslogger.info(f"LOGIN SUCCESS: {username}")
     return response
@@ -182,6 +275,7 @@ async def logout():
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "admin/auth/register.html",
         {"request": request, "errors": []},
     )
@@ -244,6 +338,7 @@ async def register_post(
 
     if errors:
         return templates.TemplateResponse(
+            request,
             "admin/auth/register.html",
             {
                 "request": request,
@@ -282,6 +377,7 @@ async def register_post(
     except Exception as exc:
         rslogger.error("REGISTER ERROR: %s", exc)
         return templates.TemplateResponse(
+            request,
             "admin/auth/register.html",
             {
                 "request": request,
@@ -299,6 +395,7 @@ async def register_post(
 
     if not _user_exists(created):
         return templates.TemplateResponse(
+            request,
             "admin/auth/register.html",
             {
                 "request": request,
@@ -352,6 +449,7 @@ async def courses_page(request: Request, institution: str = ""):
         institution_courses = await fetch_courses_by_institution(institution)
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/courses.html",
         {
             "request": request,
@@ -359,6 +457,7 @@ async def courses_page(request: Request, institution: str = ""):
             "open_books": open_books,
             "institution_courses": institution_courses,
             "institution": institution,
+            "direct_course": "",
             "error": None,
             **(await _navbar_context(user)),
         },
@@ -368,20 +467,31 @@ async def courses_page(request: Request, institution: str = ""):
 @router.post("/courses", response_class=HTMLResponse)
 async def courses_post(
     request: Request,
-    course_name: str = Form(...),
+    course_name: str = Form(default=""),
+    direct_course: str = Form(default=""),
     institution: str = Form(default=""),
 ):
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
 
-    course = await fetch_course(course_name)
-    if not course or not course.id:
+    # A typed course name is the one an instructor handed out, so it wins over
+    # any book or institution course the student also clicked. Letting the radio
+    # win enrolled them in the open base course instead, where the work they did
+    # counted for nothing and looked identical to the real course. See #1489.
+    # The rule lives here rather than only in the page's JavaScript so that it
+    # holds however the form is submitted.
+    typed = direct_course.strip()
+    chosen = typed or course_name.strip()
+
+    async def reenter(error: str):
+        """Re-render the form, keeping what the student typed."""
         open_books = await fetch_library_books()
         institution_courses = (
             await fetch_courses_by_institution(institution) if institution else []
         )
         return templates.TemplateResponse(
+            request,
             "admin/auth/courses.html",
             {
                 "request": request,
@@ -389,9 +499,19 @@ async def courses_post(
                 "open_books": open_books,
                 "institution_courses": institution_courses,
                 "institution": institution,
-                "error": f"Course '{course_name}' not found. Please check the name and try again.",
+                "direct_course": typed,
+                "error": error,
                 **(await _navbar_context(user)),
             },
+        )
+
+    if not chosen:
+        return await reenter("Please enter a course name or choose a book.")
+
+    course = await fetch_course(chosen)
+    if not course or not course.id:
+        return await reenter(
+            f"Course '{chosen}' not found. Please check the name and try again."
         )
 
     already_enrolled = await user_in_course(user.id, course.id)
@@ -415,17 +535,59 @@ async def courses_post(
 # ---------------------------------------------------------------------------
 
 
+async def _log_donate_visit(user, ad: str) -> None:
+    """Record a donate-page visit in useinfo, crediting the ad that sent it.
+
+    Matches what web2py's ``admin_logger`` wrote for its donate page (event
+    ``default``, act ``donate``), so old and new rows can be counted together.
+    The book banners link here with ``?ad=N``; anything else -- the
+    post-enrollment redirect, a hand-typed URL -- is logged as ``ad=none``.
+    Anonymous readers go under ``boguscourse`` because ``course_id`` is a
+    foreign key to courses.
+    """
+    ad_label = ad if ad.isdigit() and len(ad) <= 4 else "none"
+    if _user_exists(user):
+        sid = user.username
+        course = user.course_name or "boguscourse"
+    else:
+        sid = "Anonymous"
+        course = "boguscourse"
+    try:
+        await create_useinfo_entry(
+            UseinfoValidation(
+                event="default",
+                act="donate",
+                div_id=f"ad={ad_label}",
+                course_id=course,
+                sid=sid,
+                timestamp=canonical_utcnow(),
+            )
+        )
+    except Exception as e:
+        # A missing log row must never cost us the donation.
+        rslogger.error(f"Failed to log donate visit for {sid} / {course}: {e}")
+
+
 @router.get("/donate", response_class=HTMLResponse)
-async def donate_page(request: Request):
+async def donate_page(request: Request, next: str = "", ad: str = ""):
+    """Invite the reader to support Runestone.
+
+    ``next`` is where they were actually headed. An LTI launch by a brand-new
+    enrollment lands here on its way to an assignment, so the page has to be a
+    stop along the route, not a dead end -- web2py did this with
+    ``session.lti_url_next``. Empty means they arrived on their own and there is
+    nowhere in particular to continue to.
+    """
     # The donate page is open to everyone -- logged-in students we prompt after
     # registration as well as anonymous visitors who want to support Runestone.
     # Only build the (user-specific) navbar context when someone is signed in.
     user = await _current_user(request)
-    context = {"request": request, "user": None}
+    await _log_donate_visit(user, ad)
+    context = {"request": request, "user": None, "next": _safe_next(next, "")}
     if _user_exists(user):
         context["user"] = user
         context.update(await _navbar_context(user))
-    return templates.TemplateResponse("admin/auth/donate.html", context)
+    return templates.TemplateResponse(request, "admin/auth/donate.html", context)
 
 
 @router.post("/donate/mark")
@@ -458,9 +620,12 @@ async def _build_my_courses_context(user: AuthUserValidator):
 
     # Most-recent access time per course in the last 30 days. Used both to flag
     # recently-used courses (with a ⏱️ in the template) and to sort the lists.
-    access_dict = await fetch_last_course_access(
-        user.username, datetime.datetime.now() - timedelta(days=30)
-    )
+    cutoff = canonical_utcnow() - timedelta(days=30)
+    access_dict = {
+        name: when
+        for name, when in (await fetch_course_access_for_user(user.id)).items()
+        if when > cutoff
+    }
 
     open_books = []
     class_courses = []
@@ -506,27 +671,87 @@ async def _build_my_courses_context(user: AuthUserValidator):
 
 
 @router.get("/my_courses", response_class=HTMLResponse)
-async def my_courses_page(request: Request):
+async def my_courses_page(
+    request: Request,
+    bad_course: str = "",
+    bad_page: str = "",
+    page_course: str = "",
+    requested_course: str = "",
+    current_course: str = "",
+    requested_path: str = "",
+    requested_assignment: str = "",
+    next: str = "",
+):
+    """List the user's courses.
+
+    The book server bounces people here when it cannot serve the page they
+    asked for, passing the reason in the query string
+    (``book_server_api/routers/books.py``):
+
+    * ``bad_course``      -- no such course
+    * ``bad_page``/``page_course`` -- the course exists but has no such page
+    * ``requested_course``/``current_course``/``requested_path`` -- the course
+      they asked for is not their active one
+
+    The assignment server bounces people here the same way when an assignment
+    link points at a course that is not their active one, naming the assignment
+    in ``requested_assignment`` and passing the link itself in ``next`` so that
+    switching courses takes them straight back to it.
+
+    Without those the page gives no hint why the reader was redirected, which
+    is what the old web2py ``courses.html`` explained. It also offered a
+    browsing-mode link for the requested course; both are restored here.
+    """
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(
             f"{_LOGIN}?next={_MY_COURSES}", status_code=status.HTTP_302_FOUND
         )
     ctx = await _build_my_courses_context(user)
+
+    browse_url = None
+    if requested_course and requested_path:
+        browse_url = await _browse_url(requested_course, requested_path)
+
+    # When we know exactly which course they need and they are already in it,
+    # the page can offer one button instead of making them find the row in a
+    # list that runs to dozens of courses.
+    enrolled_in_requested = requested_course and any(
+        c["course_name"] == requested_course
+        for c in ctx["class_courses"] + ctx["open_books"]
+    )
+
     return templates.TemplateResponse(
+        request,
         "admin/auth/my_courses.html",
         {
             "request": request,
             "user": user,
             "error": None,
+            "bad_course": bad_course,
+            "bad_page": bad_page,
+            "page_course": page_course,
+            "requested_course": requested_course,
+            "current_course": current_course,
+            "requested_assignment": requested_assignment,
+            "enrolled_in_requested": enrolled_in_requested,
+            "next": _safe_next(next, default=""),
+            "browse_url": browse_url,
             **ctx,
         },
     )
 
 
 @router.post("/my_courses/switch", response_class=HTMLResponse)
-async def my_courses_switch(request: Request, course_name: str = Form(...)):
-    """Switch the user's active course."""
+async def my_courses_switch(
+    request: Request, course_name: str = Form(...), next: str = Form("")
+):
+    """Switch the user's active course.
+
+    ``next`` lets a caller that sent the user here -- a book page or an
+    assignment link in the wrong course -- get them back to what they clicked
+    once the switch is done.
+    """
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
@@ -535,6 +760,7 @@ async def my_courses_switch(request: Request, course_name: str = Form(...)):
     if not course or not course.id:
         ctx = await _build_my_courses_context(user)
         return templates.TemplateResponse(
+            request,
             "admin/auth/my_courses.html",
             {
                 "request": request,
@@ -547,7 +773,7 @@ async def my_courses_switch(request: Request, course_name: str = Form(...)):
     await update_user(
         user.id, {"course_name": course.course_name, "course_id": course.id}
     )
-    return RedirectResponse("/ns/course/index", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(_safe_next(next), status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/my_courses/drop", response_class=HTMLResponse)
@@ -560,6 +786,7 @@ async def my_courses_drop(request: Request, course_name: str = Form(...)):
     if course_name == user.course_name:
         ctx = await _build_my_courses_context(user)
         return templates.TemplateResponse(
+            request,
             "admin/auth/my_courses.html",
             {
                 "request": request,
@@ -588,13 +815,17 @@ async def profile_page(request: Request):
         return RedirectResponse(
             f"{_LOGIN}?next={_PROFILE}", status_code=status.HTTP_302_FOUND
         )
+    has_lti1p3_association = await has_lti1p3_user_association(user.id)
     return templates.TemplateResponse(
+        request,
         "admin/auth/profile.html",
         {
             "request": request,
             "user": user,
+            "has_lti1p3_association": has_lti1p3_association,
             "errors": [],
             "success": None,
+            "student_page": True,
             **(await _navbar_context(user)),
         },
     )
@@ -605,25 +836,33 @@ async def profile_post(
     request: Request,
     first_name: str = Form(...),
     last_name: str = Form(...),
-    email: str = Form(...),
+    email: str = Form(default=""),
 ):
     user = await _current_user(request)
     if not _user_exists(user):
         return RedirectResponse(_LOGIN, status_code=status.HTTP_302_FOUND)
 
+    email = email.strip()
+    has_lti1p3_association = await has_lti1p3_user_association(user.id)
     errors = []
-    existing = await fetch_user_by_email(email)
-    if _user_exists(existing) and existing.id != user.id:
-        errors.append("That email address is already in use by another account.")
+    if not email and not has_lti1p3_association:
+        errors.append("Email address is required.")
+    elif email:
+        existing = await fetch_user_by_email(email)
+        if _user_exists(existing) and existing.id != user.id:
+            errors.append("That email address is already in use by another account.")
 
     if errors:
         return templates.TemplateResponse(
+            request,
             "admin/auth/profile.html",
             {
                 "request": request,
                 "user": user,
+                "has_lti1p3_association": has_lti1p3_association,
                 "errors": errors,
                 "success": None,
+                "student_page": True,
                 **(await _navbar_context(user)),
             },
         )
@@ -634,12 +873,15 @@ async def profile_post(
     updated = await fetch_user(user.username)
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/profile.html",
         {
             "request": request,
             "user": updated,
+            "has_lti1p3_association": has_lti1p3_association,
             "errors": [],
             "success": "Profile updated successfully.",
+            "student_page": True,
             **(await _navbar_context(updated)),
         },
     )
@@ -653,12 +895,15 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
 
     if confirm != user.username:
         return templates.TemplateResponse(
+            request,
             "admin/auth/profile.html",
             {
                 "request": request,
                 "user": user,
+                "has_lti1p3_association": await has_lti1p3_user_association(user.id),
                 "errors": ["Username confirmation did not match. Account not deleted."],
                 "success": None,
+                "student_page": True,
                 **(await _navbar_context(user)),
             },
         )
@@ -677,6 +922,7 @@ async def delete_account(request: Request, confirm: str = Form(default="")):
 @router.get("/forgot-username", response_class=HTMLResponse)
 async def forgot_username_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_username.html",
         {"request": request, "sent": False, "error": None},
     )
@@ -692,6 +938,7 @@ async def forgot_username_post(request: Request, email: str = Form(...)):
             text=f"Your Runestone Academy username is: {user.username}\n\nIf you did not request this, you can ignore this email.",
         )
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_username.html",
         {"request": request, "sent": True, "error": None},
     )
@@ -705,6 +952,7 @@ async def forgot_username_post(request: Request, email: str = Form(...)):
 @router.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_password.html",
         {"request": request, "sent": False, "error": None},
     )
@@ -726,6 +974,7 @@ async def forgot_password_post(request: Request, email: str = Form(...)):
             ),
         )
     return templates.TemplateResponse(
+        request,
         "admin/auth/forgot_password.html",
         {"request": request, "sent": True, "error": None},
     )
@@ -742,6 +991,7 @@ async def reset_password_page(request: Request, token: str):
         valid = False
 
     return templates.TemplateResponse(
+        request,
         "admin/auth/reset_password.html",
         {"request": request, "token": token, "expired": not valid, "error": None},
     )
@@ -756,6 +1006,7 @@ async def reset_password_post(
 ):
     if password != password2:
         return templates.TemplateResponse(
+            request,
             "admin/auth/reset_password.html",
             {
                 "request": request,
@@ -766,6 +1017,7 @@ async def reset_password_post(
         )
     if len(password) < 6:
         return templates.TemplateResponse(
+            request,
             "admin/auth/reset_password.html",
             {
                 "request": request,
@@ -778,6 +1030,7 @@ async def reset_password_post(
     user = await consume_reset_token(token)
     if not user:
         return templates.TemplateResponse(
+            request,
             "admin/auth/reset_password.html",
             {"request": request, "token": token, "expired": True, "error": None},
         )

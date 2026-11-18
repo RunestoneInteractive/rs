@@ -1,6 +1,6 @@
 // Custom CodeBlockPrism that preserves marks in HTML serialization
-import CodeBlockPrism from "tiptap-extension-code-block-prism";
 import { DOMOutputSpec } from "@tiptap/pm/model";
+import CodeBlockPrism from "tiptap-extension-code-block-prism";
 
 export const CustomCodeBlockPrism = CodeBlockPrism.extend({
   addAttributes() {
@@ -29,12 +29,15 @@ export const CustomCodeBlockPrism = CodeBlockPrism.extend({
           const element = node as HTMLElement;
 
           const codeElement = element.querySelector("code");
+
           if (codeElement) {
             const language = codeElement.getAttribute("data-language") || "javascript";
+
             return { language };
           }
 
           const language = element.getAttribute("data-language") || "javascript";
+
           return { language };
         }
       }

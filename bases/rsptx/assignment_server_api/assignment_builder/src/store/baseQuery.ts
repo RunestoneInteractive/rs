@@ -1,10 +1,10 @@
+import { notify } from "@components/ui/notify";
 import {
   BaseQueryFn,
   FetchArgs,
   fetchBaseQuery,
   FetchBaseQueryError
 } from "@reduxjs/toolkit/query";
-import { notify } from "@components/ui/notify";
 
 import { HttpStatusCode } from "@/types/api";
 

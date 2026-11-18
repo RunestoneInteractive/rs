@@ -30,7 +30,7 @@ export const ConnectionList: FC<ConnectionListProps> = ({
             const targetLabel = resolveLabel(targetId);
 
             return (
-              <li key={`${sourceId}-${targetId}`} className={styles.connectionRow} tabIndex={0}>
+              <li key={`${sourceId}-${targetId}`} className={styles.connectionRow}>
                 <span className={styles.connectionRowLabel}>{sourceLabel}</span>
                 <Icon name="arrow-right" size={14} color="currentColor" />
                 <span className={styles.connectionRowLabel}>{targetLabel}</span>

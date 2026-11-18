@@ -15,6 +15,14 @@ vi.mock("@/hooks/useExercisesSelector", () => ({
   useExercisesSelector: () => exercisesSelectorMock()
 }));
 
+const hasApiKeyMock = vi.fn(() => ({
+  data: { hasApiKey: true, asyncLlmModesEnabled: true, asyncConditionsEnabled: false }
+}));
+
+vi.mock("@store/assignmentExercise/assignmentExercise.logic.api", () => ({
+  useHasApiKeyQuery: () => hasApiKeyMock()
+}));
+
 vi.mock("../reading/AssignmentReadings", () => ({
   AssignmentReadings: () => <div data-testid="readings-tab" />
 }));
@@ -91,7 +99,7 @@ describe("AssignmentEdit", () => {
   it("renders the assignment name and the section papers for a Regular assignment", () => {
     renderWithMantine(<Harness kind="Regular" />);
 
-    expect(screen.getByRole("heading", { name: "Homework 3" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Homework 3" })).toHaveFocus();
     expect(screen.getByRole("heading", { name: "Details" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Schedule" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scoring" })).toBeInTheDocument();

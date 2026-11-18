@@ -283,12 +283,14 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
 
       // Check that all non-distractor blocks have tags
       const missingTags = nonDistractorBlocks.filter((b) => !b.tag);
+
       if (missingTags.length > 0) {
         errors.push("All non-distractor blocks must have a tag when using DAG grader");
       }
 
       // Check for duplicate tags
       const tagSet = new Set<string>();
+
       for (const tag of tags) {
         if (tagSet.has(tag)) {
           errors.push(`Duplicate tag "${tag}" found. Each block must have a unique tag`);
@@ -316,6 +318,7 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
     if (data.blocks?.length) {
       for (let i = 0; i < data.blocks.length; i++) {
         const block = data.blocks[i];
+
         if (block.pairedWithBlockAbove && block.isDistractor) {
           if (i === 0) {
             errors.push(
@@ -323,6 +326,7 @@ export const PARSONS_STEP_VALIDATORS: StepValidator<ParsonsData>[] = [
             );
           } else {
             const blockAbove = data.blocks[i - 1];
+
             if (blockAbove.isDistractor) {
               errors.push(
                 `Paired distractor "${block.content.substring(0, 30)}…" must be placed directly after a solution block, not another distractor`
@@ -770,12 +774,14 @@ export const CLICKABLE_AREA_STEP_VALIDATORS: StepValidator<Partial<CreateExercis
 
     // Check for at least one correct clickable area
     const hasCorrect = questionText.includes("data-correct");
+
     if (!hasCorrect) {
       errors.push("Mark at least one correct area");
     }
 
     // Check for at least one incorrect clickable area
     const hasIncorrect = questionText.includes("data-incorrect");
+
     if (!hasIncorrect) {
       errors.push("Mark at least one incorrect area");
     }

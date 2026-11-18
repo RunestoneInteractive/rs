@@ -1,47 +1,49 @@
-Packaging of the Runestone components for publishing educational materials using Sphinx and restructuredText. Check out the `Overview <https://runestone.academy/ns/books/published/overview/overview.html>`_ To see all of the extensions in action.
+The Runestone interactive components (activecode, CodeLens, Parsons, multiple choice, and the rest) as they are used in `PreTeXt <https://pretextbook.org>`_ books. The source lives in ``bases/rsptx/interactives``; this folder holds the scripts that build and release it.
 
 Runestone Version 8
 -------------------
-Version 8 and beyond just support the components as they are used in PreTeXt.  
+Version 8 and beyond just support the components as they are used in PreTeXt. Releases are JavaScript only; nothing is published to PyPI.
 
 If you need to build a book using the old RST markup language, you can use version 7.13.x of the runestone package.  You can install that version using pip like this:
+
 .. code-block:: bash
 
     pip install runestone==7.13.5
 
 
-If you need to fix a bug in the old RST version you can clone the repository and checkout the legacy_support branch.  That branch will be maintained with bug fixes for the RST version of the components, but no new features will be added to that branch.  The master branch will be used for development of the components as they are used in PreTeXt.
+If you need to fix a bug in the old RST version you can clone the repository and checkout the legacy_support branch.  That branch will be maintained with bug fixes for the RST version of the components, but no new features will be added to that branch.  The main branch is used for development of the components as they are used in PreTeXt.
 
-Runestone Version 7
--------------------
+Building and Releasing
+----------------------
 
-**Important** May 2023 moved RunestoneComponents repository to a new monorepo for the whole project.
+Run these from this folder with the rs virtual environment active.
 
-To build a release of runestone including the javascript for the interactive components, use the build.py script in this folder.
-
-.. code-block:: bash
-
-    python build.py
-
-To build a release and publish that release to PyPI use the ``--publish`` option
+To build the components into a book you are working on (``<book>`` is a book directory under ``$BOOK_PATH``):
 
 .. code-block:: bash
 
-    python build.py --publish
+    ./build.py --dev --to <book>
 
-The publish option assumes you have the credentials to publish on pyPI, as well as credentials for the runestone load balancer.
+The release version is the ``version`` field of ``bases/rsptx/interactives/package.json``.  To make a release, bump it, then build and publish:
+
+.. code-block:: bash
+
+    (cd ../../bases/rsptx/interactives && npm version X.Y.Z --no-git-tag-version)
+    ./build.py --publish
+    ./make_release.sh vX.Y.Z
+
+``--publish`` packages ``runestone/dist`` as ``dist-X.Y.Z.tgz``, installs it on the CDN, tags the repo ``components_X.Y.Z``, and moves the tarball to ``jsdist``.  It needs ssh access to the Runestone CDN host.  ``make_release.sh`` creates the matching GitHub release (it needs an authenticated ``gh`` CLI).
 
 Documentation
 -------------
 
 Writing **new** books using the Runestone RST markup language is deprecated as of Summer 2022.  It is strongly recommended that you use the `PreTeXt <https://pretextbook.org>`_ markup language for writing new books.
 
-* Take a look at the `Sample Book <https://pretextbook.org/examples/sample-book/annotated/sample-book.html>` Especially Chapter 3, the section titled Interactive Exercises.  The activecode, CodeLens and all the rest of the interactives that you see in that sample book are powered by the components in this repository.  This repository will remain the home of those interctive components.
+* Take a look at the `Sample Book <https://pretextbook.org/examples/sample-book/annotated/sample-book.html>`_ Especially Chapter 3, the section titled Interactive Exercises.  The activecode, CodeLens and all the rest of the interactives that you see in that sample book are powered by the components in this repository.  This repository will remain the home of those interactive components.
 
 * Take a look at the `PreTeXt Guide <https://pretextbook.org/doc/guide/html/guide-toc.html>`_ It contains comprehensive documentation on writing in PreTeXt.
 
-* As an Author you will want to use the PreTeXt CLI for writing books.   Experienced Runestone authors will find the pretext cli to be quite familiar, but better organized with fewer mysterious configuration files. See `PreTeXt-CLI <https://pretextbook.org/doc/guide/html/guide-toc.html>`
-
+* As an Author you will want to use the PreTeXt CLI for writing books. See `PreTeXt-CLI <https://pretextbook.org/doc/guide/html/guide-toc.html>`_
 
 Quick Start
 -----------
@@ -50,157 +52,10 @@ Quick Start
 * Create a folder for your book project then run
 * ``pretext new`` to create a new book.
 
-
-Old Documentation
------------------
-
-I will keep this around for a while during the transition to PreTeXt.
-
-To get started with Runestone restructuredText as the markup language:
-
-* ``pip install runestone``
-
-To start a project, create a new folder and then run the following command (installed by pip)  in that new folder ``runestone init``  For example:
-
-.. code-block:: bash
-
-    mkdir myproject
-    cd myproject
-    runestone init
-
-
-The init command will ask you some questions and setup a default project for you. The default response is in square brackets, example ``[false]``.
-
-To build the included default project run
-
-.. code-block:: bash
-
-    runestone build
-
-*Note:* If you come across version conflict with ``six`` library while building the project, ``pip install --ignore-installed six`` command might be useful.
-
-You will now have a build folder with a file index.html in it, along with some default content.  The contents of the build folder are suitable for hosting anywhere that you can serve static web content from!  For a small class you could even serve the content using the provided Python webserver:
-
-.. code-block:: bash
-
-    $ runestone serve
-
-Now from your browser you can open up ``http://localhost:8000/index.html``  You should see the table of contents for a sample page like this:
-
-.. image:: images/runeCompo-index.png
-    :width: 370
-
-
-If you edit ``_sources/index.html`` or ``_sources/overview.rst`` and then rebuild and serve again you will see your changes.  The best documentation is probably the overview.rst file itself, as it demonstrates how to use all of the common components and shows most of their options.
-
-
-**Windows Users** I have tested the installation, along with init, build, and serve on Windows 8.1.
-The biggest pain is probably setting your PATH environment variable so you can simply type the commands
-from the shell.  Please note that I am not a regular user of windows, I only test things on my VMWare
-installation every so often.  If you are new to using Python on windows I recommend you check out this
-link on `Using Python with Windows <https://docs.python.org/3.4/using/windows.html>`_
-
-
-Developing and Hacking
-----------------------
-
-So, you would like to help out with developing the Runestone Components.  Great We welcome all the help we can get.  There is plenty to do no matter what your experience level.  There are a couple of prerequisites.
-
-1. You will need a version of Python, I currently develop on 3.9 or higher, but test on 3.8 and later.
-
-2. You will need nodejs and npm as well since there is a LOT of Javascript code in the components.
-
-To get everything set up do the following
-
-1.  Make a Fork of this repository. and ``git clone`` the repository to your development machine.
-
-2.  Install `Poetry  <https://python-poetry.org/docs/>`_
-
-3.  From the top level RunestoneComponents folder run ``npm install`` this will install the packaging tools that are needed for Javascript development.  ``npm run`` gives you a list of commands  The key command is ``npm run build`` this will combine all of the Javascript and CSS files for all the components into a single runestone.js file.  If you are doing some really deep development and want to avoid building a book, you can put your html in public/index.html and use the ``npm run start`` command.  This will automatically rebuild runestone.js and refresh the webpage every time you save a change.
-
-
-4.  When you have some changes to share, make a Pull Request.
-
-(See the RunestoneServer repository and **http://runestoneinteractive.org** for more complete documentation on how this project works.)
-
-Code Style
+Developing
 ----------
 
-We use ``black`` to automatically style Python.  You can set up your editor to automatically run black whenever you save, or you can run it manually.
-
-We use ``prettier`` to automatically style Javascript.
-
-Run ``jshint`` on your code we have some options configured for this project.
-
-Writing Tests
--------------
-
-A great way to contribute to the Runestone Components repository is to add to our test suite.
-
-Our goal is to have unit tests which rely on Selenium (a library that helps simulate interactions in a web browser) for each directive, to see if the JavaScript that powers the directives is working correctly.
-
-**In order to get started with writing a test/writing additional tests, you will need the following:**
-
-
-* Download the latest `ChromeDriver <https://chromedriver.storage.googleapis.com/index.html>`_., which is a driver that simulates Google Chrome.
-
-* On linux you will need to install Xvfb ``apt-get install xvfb``
-
-* You'll also need to have done the above installation.
-
-* We have converted to using poetry for our dependency management.  To run `runestone` while in development mode `poetry run runestone ...`  OR you can run `poetry shell` to start up a shell with a virtual environment activated.
-
-
-**To run tests:**
-
-* Make sure the directory containing the ChromeDriver executable is in your ``PATH`` environment variable. e.g. ``PATH=$PATH:path/to/chromedriver`` at your command line (or edit your ``.bash_profile``).
-
-* Check out the existing tests, e.g. the ``test_question.py`` file that tests the Question directive, which you can find at the path ``/runestone/question/test/test_question.py``, for an example.
-
-* Each directive's individual set of tests requires a mini book. You'll see a ``_sources`` folder for each existing test containing an ``index.rst`` file. That file contains a title, as required by ``.rst``, and whatever directive examples you want to test.
-
-* Finally, to run a test, ensuring that you have accessed a directive folder, type the following at the command prompt:
-
-  * ``poetry run pytest``
-
-Running pytest from the main directory will run all the tests.  To run a single test you can navigate to the
-directory of the test, or you can run ``poetry run pytest -k XXX`` where XXX is a substring that matches some part of
-the test functions name.
-
-.. note::
-
-  8081 is the default test port.
-  If you are running another server on this port, you may encounter an error.
-  See the Python files, e.g. ``test_question.py``, to see how this is set up.
-
-You should then see some test output, showing a pass (``ok``), FAIL, or error(s).
-
-If you have an error relating to PhantomJS/a driver in the output, you probably have a PATH or driver installation problem.
-
-**To write a new test:**
-
-* Create a ``test`` directory inside a directive's folder
-
-* Create a Python file to hold the test suite inside that directory, e.g. ``test_directivename.py``
-
-* Run ``runestone init`` inside that folder and answer the following prompts
-
-* Write the appropriate directive example(s) inside the ``index.rst`` file (which will be created as a result of ``runestone init``)
-
-* Edit the Python file you created as appropriate (see documentation for the Python ``unittest`` module `In the Python docs <https://docs.python.org/2/library/unittest.html>`_.)
-
-
-Notes for more Advanced Users
------------------------------
-
-If you already have an existing `Sphinx <http://sphinx-doc.org>`_  project and you want to incorporate the runestone components into your project you can just make a couple of simple edits to your existing ``conf.py`` file.
-
-* First add the following import line ``from runestone import runestone_static_dirs, runestone_extensions``
-* Then modify your extensions.  You may have a different set of extensions already enabled, but it doesn't matter just do this:  ``extensions = ['sphinx.ext.mathjax'] + runestone_extensions()``
-* Then modify your html_static_path:  ``html_static_path = ['_static']  + runestone_static_dirs()``  Again you may have your own set of static paths in the initial list.
-
-
-See https://github.com/bnmnetp/runestone/wiki/DevelopmentRoadmap to get a sense for how this is all going to come together.
+See ``bases/rsptx/interactives/AGENTS.md`` and ``docs/source/javascript_feature.rst`` for how the components are organized and tested.  From ``bases/rsptx/interactives``, ``npm test`` runs the vitest suite.
 
 Researchers
 -----------

@@ -33,6 +33,7 @@
   gap: var(--rs-space-3);
   font-size: var(--rs-font-size-xl);
   font-weight: var(--rs-font-weight-heading);
+  margin: 0;
 }
 .titleText {
   color: var(--rs-text-strong);
@@ -43,14 +44,46 @@
   gap: var(--rs-space-2);
 }
 
-.breadcrumb {
+.sectionNav {
   display: flex;
-  align-items: center;
-  gap: var(--rs-space-2);
+  gap: var(--rs-space-5);
+  margin-bottom: var(--rs-space-4);
+  border-bottom: 1px solid var(--rs-border-solid);
+}
+
+.sectionNavLink {
+  color: var(--rs-text-muted);
+  font-weight: var(--rs-font-weight-semibold);
+  padding: 0 var(--rs-space-1) var(--rs-space-2);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.sectionNavLink:hover,
+.sectionNavLink:focus-visible,
+.sectionNavLinkActive {
+  color: var(--rs-brand-600);
+  border-bottom-color: var(--rs-brand-500);
+}
+
+.breadcrumb {
   color: var(--rs-text-muted);
   font-size: var(--rs-font-size-md);
   margin-bottom: var(--rs-space-4);
+}
+.breadcrumbList {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
   flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.breadcrumbItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-2);
 }
 .breadcrumb a {
   color: var(--rs-brand-600);
@@ -80,7 +113,19 @@
 .breadcrumbPath {
   margin-left: auto;
   font-size: var(--rs-font-size-xs);
-  color: var(--rs-text-subtle);
+  color: var(--rs-text-muted);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .grid {
@@ -117,6 +162,10 @@
   transform: translateY(-2px);
   border-color: var(--rs-border-brand);
   box-shadow: var(--rs-shadow-sm);
+}
+.card:focus-visible {
+  outline: 3px solid var(--rs-brand-500);
+  outline-offset: 2px;
 }
 .card:hover::before {
   opacity: 1;
@@ -213,7 +262,7 @@
   margin-top: var(--rs-space-3);
 }
 .metaIcon {
-  color: var(--rs-brand-500);
+  color: var(--rs-brand-600);
 }
 
 .iconText {
@@ -257,11 +306,11 @@
 }
 .emptyStateIcon {
   font-size: 30px;
-  color: var(--rs-brand-400);
+  color: var(--rs-brand-600);
 }
 .emptyStateIconWarn {
   font-size: 30px;
-  color: var(--rs-warning);
+  color: var(--rs-warning-text);
 }
 
 .loadingWrap {
@@ -271,18 +320,7 @@
 }
 
 .toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--rs-space-3);
   margin-bottom: var(--rs-space-3);
-  flex-wrap: wrap;
-}
-.toolbarGroup {
-  display: flex;
-  gap: var(--rs-space-2);
-  align-items: center;
-  flex-wrap: wrap;
 }
 .releaseControl {
   display: inline-flex;
@@ -331,16 +369,10 @@
   border-bottom: 1px solid var(--rs-border-solid);
 }
 
-.cellStrong {
-  font-weight: var(--rs-font-weight-semibold);
-  color: var(--rs-text-strong);
-}
 .cellName {
   display: inline-block;
   max-width: 360px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-weight: var(--rs-font-weight-semibold);
   color: var(--rs-text-strong);
   vertical-align: middle;
@@ -352,7 +384,7 @@
   color: var(--rs-text);
 }
 .cellSubtle {
-  color: var(--rs-text-subtle);
+  color: var(--rs-text-muted);
   font-weight: var(--rs-font-weight-medium);
 }
 .cellMuted {
@@ -360,16 +392,14 @@
   font-size: 13px;
   display: inline-block;
   max-width: 420px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   vertical-align: middle;
 }
 .cellDash {
-  color: var(--rs-border-strong);
+  color: var(--rs-text-muted);
 }
 .cellLink {
-  color: var(--rs-brand-500);
+  color: var(--rs-brand-600);
 }
 .studentNameCell {
   display: flex;
@@ -403,7 +433,6 @@
 .viewToggle {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: var(--rs-space-2);
 }
 
 .dateFilterWrapper {
@@ -435,7 +464,7 @@
   box-shadow: 0 0 0 2px var(--rs-border-brand);
 }
 .dateFilterInput::placeholder {
-  color: var(--rs-text-subtle);
+  color: var(--rs-text-muted);
 }
 .dateFilterWrapper :global(.react-datepicker__close-icon) {
   padding: 0 6px 0 0;
@@ -475,7 +504,7 @@
 }
 .chipUnknown {
   background: var(--rs-neutral-200);
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
 }
 
 .floatBtn {
@@ -524,7 +553,7 @@
   min-width: 0;
 }
 .gradePaneAvatar {
-  color: var(--rs-brand-500);
+  color: var(--rs-brand-600);
 }
 .gradePaneIdentity {
   flex: 1;
@@ -539,7 +568,7 @@
 }
 .gradePaneMeta {
   font-size: 11px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
 }
 .gradePaneMeta .mono {
   font-family: var(--rs-font-mono);
@@ -572,15 +601,17 @@
   text-align: center;
 }
 .autoAdvanceToggle {
-  display: flex;
-  align-items: center;
-  gap: var(--rs-space-2);
   font-size: 12px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
   cursor: pointer;
   user-select: none;
 }
-.autoAdvanceToggle .pi {
+.autoAdvanceLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+}
+.autoAdvanceLabel .pi {
   color: var(--rs-brand-500);
 }
 
@@ -645,7 +676,7 @@
   padding: 0.25rem;
 }
 .toastIcon {
-  color: var(--rs-success);
+  color: var(--rs-success-text);
 }
 .toastText {
   flex: 1;
@@ -765,7 +796,7 @@
 }
 .attemptTimestamp {
   font-size: 11px;
-  color: var(--rs-text-subtle);
+  color: var(--rs-text);
   font-variant-numeric: tabular-nums;
 }
 .latestBadge {
@@ -843,8 +874,11 @@
   gap: 8px;
   align-items: center;
   font-size: 11px;
-  color: var(--rs-text-muted);
+  color: var(--rs-text);
   margin-bottom: 4px;
+}
+.historyItem.active .historyMeta {
+  color: var(--rs-brand-800);
 }
 .historyAnswer {
   font-size: 11px;
@@ -901,7 +935,7 @@
 .selectionChip button {
   border: none;
   background: transparent;
-  color: var(--rs-brand-500);
+  color: var(--rs-brand-600);
   font-weight: var(--rs-font-weight-semibold);
   cursor: pointer;
   font-size: var(--rs-font-size-sm);
@@ -946,7 +980,7 @@
   color: var(--rs-text-muted);
 }
 .textSubtle {
-  color: var(--rs-text-subtle);
+  color: var(--rs-text-muted);
 }
 .textStrong {
   color: var(--rs-text-strong);
@@ -1017,7 +1051,7 @@
   color: var(--rs-text-strong);
 }
 .dialogHeaderIcon {
-  color: var(--rs-brand-500);
+  color: var(--rs-brand-600);
 }
 .sidChip {
   font-family: var(--rs-font-mono);
@@ -1044,17 +1078,23 @@
 }
 .kbdSep {
   margin: 0 6px;
-  color: var(--rs-text-subtle);
+  color: var(--rs-text-muted);
 }
-.shortcutTable {
+.shortcutList {
   width: 100%;
-  border-collapse: collapse;
+  margin: 0;
 }
 .shortcutRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--rs-space-2);
   border-top: 1px solid var(--rs-neutral-100);
-}
-.shortcutRow td {
   padding: 0.4rem 0.2rem;
+}
+.shortcutRow dt,
+.shortcutRow dd {
+  margin: 0;
 }
 .shortcutDesc {
   color: var(--rs-text-muted);
@@ -1062,7 +1102,7 @@
 }
 .dialogFootnote {
   font-size: 11px;
-  color: var(--rs-text-subtle);
+  color: var(--rs-text-muted);
   border-top: 1px solid var(--rs-border-solid);
   padding-top: var(--rs-space-2);
 }
@@ -1073,7 +1113,7 @@
   padding: 0;
   font-family: inherit;
   font-size: 13px;
-  color: var(--rs-brand-500);
+  color: var(--rs-brand-600);
   cursor: pointer;
   font-weight: var(--rs-font-weight-medium);
 }
@@ -1221,6 +1261,22 @@
   z-index: 3;
   background: var(--rs-neutral-50);
 }
+.gradebookStudentUsername {
+  display: block;
+  width: fit-content;
+  color: var(--rs-brand-600);
+  font-family: var(--rs-font-mono);
+  font-size: 11px;
+  font-weight: var(--rs-font-weight-medium);
+}
+.gradebookStudentUsername:hover,
+.gradebookStudentUsername:focus-visible {
+  color: var(--rs-brand-800);
+  text-decoration: underline;
+}
+.gradebookLateWorkModalContent {
+  overflow-y: visible;
+}
 .gradebookWrap thead th {
   background: var(--rs-neutral-50);
   color: var(--rs-text-muted);
@@ -1236,6 +1292,23 @@
 }
 .gradebookColName {
   color: var(--rs-text-strong);
+}
+.gradebookHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--rs-space-1);
+}
+.gradebookLateButton {
+  display: inline-flex;
+  padding: var(--rs-space-1);
+  border-radius: var(--rs-radius-sm);
+  color: var(--rs-text-muted);
+}
+.gradebookLateButton:hover,
+.gradebookLateButton:focus-visible {
+  color: var(--rs-text-strong);
+  background: var(--rs-neutral-100);
 }
 .gradebookTotalCell {
   font-weight: var(--rs-font-weight-semibold);
@@ -1270,7 +1343,7 @@
   background: var(--rs-neutral-100);
 }
 .gradebookCellButton:focus-visible {
-  outline: 2px solid var(--rs-brand);
+  outline: 2px solid var(--rs-brand-600);
   outline-offset: 1px;
 }
 .gradebookCellManual {
@@ -1285,4 +1358,14 @@
 }
 .manualTotalForm {
   min-width: 220px;
+}
+.gradebookFilterInput {
+  width: 200px;
+}
+.gradebookFilterSelect {
+  min-width: 220px;
+  max-width: 360px;
+}
+.gradebookFilterSummary {
+  margin-bottom: var(--rs-space-2);
 }

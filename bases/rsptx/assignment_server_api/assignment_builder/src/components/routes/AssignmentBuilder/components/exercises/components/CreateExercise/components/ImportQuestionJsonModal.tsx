@@ -72,6 +72,7 @@ export const ImportQuestionJsonModal = ({
       opened={opened}
       onClose={onClose}
       title={lockedType ? "View or replace question JSON" : "Paste question JSON"}
+      closeButtonProps={{ "aria-label": "Close question JSON dialog" }}
       size="lg"
       centered
     >
@@ -87,20 +88,14 @@ export const ImportQuestionJsonModal = ({
           />
         )}
 
-        <div>
-          <Text fw={500} mb={6}>
-            Question JSON
-          </Text>
-          <Textarea
-            value={jsonText}
-            onChange={(event) => setJsonText(event.currentTarget.value)}
-            placeholder='{ "statement": "...", "optionList": [ ... ] }'
-            autosize
-            minRows={12}
-            maxRows={24}
-            styles={{ input: { fontFamily: "var(--rs-font-mono, monospace)" } }}
-          />
-        </div>
+        <Textarea
+          label="Question JSON"
+          value={jsonText}
+          onChange={(event) => setJsonText(event.currentTarget.value)}
+          placeholder='{ "statement": "...", "optionList": [ ... ] }'
+          rows={12}
+          styles={{ input: { fontFamily: "var(--rs-font-mono, monospace)" } }}
+        />
 
         {errors.length > 0 && (
           <Alert color="red" variant="light" title="The JSON could not be imported">

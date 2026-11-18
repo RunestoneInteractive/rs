@@ -1,8 +1,8 @@
+import { notify } from "@components/ui/notify";
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
 import { CreateExerciseFormType } from "@/types/exercises";
-import { notify } from "@components/ui/notify";
 
 import { CreateView } from "./CreateView";
 

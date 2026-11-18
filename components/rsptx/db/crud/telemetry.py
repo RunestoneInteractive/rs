@@ -25,7 +25,6 @@ from ..async_session import async_session
 from rsptx.configuration import settings
 from rsptx.logging import rslogger
 
-
 # ---------------------------------------------------------------------------
 # Sender side
 # ---------------------------------------------------------------------------

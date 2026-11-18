@@ -40,6 +40,7 @@ export const useTableColumnMenu = (editor: Editor | null): UseTableColumnMenuRes
       if (tableHeader && editor?.isActive("table")) {
         event.preventDefault();
         const rect = tableHeader.getBoundingClientRect();
+
         setColumnMenuPosition({
           x: rect.left + rect.width / 2,
           y: rect.bottom + 5
@@ -49,6 +50,7 @@ export const useTableColumnMenu = (editor: Editor | null): UseTableColumnMenuRes
     };
 
     const editorElement = document.querySelector(".ProseMirror");
+
     if (editorElement && editor) {
       editorElement.addEventListener("click", handleTableHeaderClick as EventListener);
       return () => {
@@ -68,9 +70,11 @@ export const useTableColumnMenu = (editor: Editor | null): UseTableColumnMenuRes
     // Find the table node
     for (let depth = $anchor.depth; depth > 0; depth--) {
       const node = $anchor.node(depth);
+
       if (node.type.name === "table") {
         // Get the first row to count columns
         const firstRow = node.firstChild;
+
         if (firstRow) {
           return firstRow.childCount;
         }

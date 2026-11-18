@@ -61,6 +61,28 @@ class QuestionType(Enum):
         "Embed external content using an iFrame",
     )
 
+    DOENET = (
+        "doenet",
+        "Doenet",
+        "Embed an interactive activity using Doenet",
+    )
+
+    SPLICE = (
+        "splice",
+        "SPLICE",
+        "Embed an external interactive activity using SPLICE",
+    )
+
+    QUIZLY = (
+        "quizly",
+        "Quizly",
+        "Create a quiz question using the Quizly platform",
+    )
+
+    # Legacy Khan Academy exercises.  The component is gone from new books, but
+    # questions of this type are still assigned in old courses.
+    KHANEX = ("khanex", "Khan Exercise", "")
+
     def to_dict(self):
         return {
             "value": self.value[0],
@@ -74,3 +96,30 @@ class QuestionType(Enum):
     @classmethod
     def all_types(cls):
         return [member for member in cls]
+
+    @classmethod
+    def interaction_only_types(cls):
+        """Types with no notion of a correct answer: all we can ever know is
+        that the student interacted with them.  These correspond to the
+        ``INTERACTION_ONLY_EVENTS`` the scorer recognises."""
+        return [cls.VIDEO, cls.YOUTUBE, cls.POLL, cls.QUIZLY, cls.KHANEX]
+
+    @classmethod
+    def interact_policy_only_types(cls):
+        """Types for which interact is the *only* autograde policy offered --
+        not even manual.  Khan exercises are kept for backward compatibility
+        and have always been graded on interaction."""
+        return [cls.KHANEX]
+
+    @classmethod
+    def manually_gradable_types(cls):
+        """Every type for which the manual autograde policy is offered."""
+        interact_only = set(cls.interact_policy_only_types())
+        return [member for member in cls if member not in interact_only]
+
+    @classmethod
+    def correctness_gradable_types(cls):
+        """Every type that can be scored against a correct answer -- i.e. every
+        type for which ``pct_correct`` or ``all_or_nothing`` is meaningful."""
+        interaction_only = set(cls.interaction_only_types())
+        return [member for member in cls if member not in interaction_only]

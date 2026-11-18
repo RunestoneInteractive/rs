@@ -131,6 +131,81 @@ class Settings(BaseSettings):
     # Setting db_echo to True makes for a LOT of sqlalchemy output - it gives you the SQL for every query!
     db_echo: bool = False
 
+    # Connection pool sizing. These apply to the PostgreSQL engines only; SQLite
+    # uses SQLAlchemy's default pool, which does not accept these arguments.
+    #
+    # When the servers talk to PostgreSQL through pgbouncer in ``transaction``
+    # pool mode -- the production configuration -- a slot in the pool below is a
+    # cheap client connection that pgbouncer multiplexes onto its much smaller
+    # set of real server connections. Sizing these generously therefore costs
+    # very little, and a pool that is too small shows up as
+    # ``QueuePool limit of size N overflow M reached`` under perfectly ordinary
+    # load. Without pgbouncer, ``db_pool_size + db_max_overflow`` per server
+    # process is the real ceiling on backends and must stay well under
+    # PostgreSQL's ``max_connections``.
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+
+    # How long a request waits for a free connection before giving up. The
+    # SQLAlchemy default is 30 seconds, which converts pool exhaustion into a
+    # request that hangs for half a minute and then fails anyway. Failing fast
+    # keeps the event loop moving and makes the problem obvious in the logs.
+    db_pool_timeout: int = 10
+
+    # Recycle connections after this many seconds. Guards against a connection
+    # that has been idle long enough for pgbouncer, a load balancer or a NAT
+    # table to have dropped it out from under us.
+    db_pool_recycle: int = 1800
+
+    # The synchronous engine backs the pandas-based reports. It serves far fewer
+    # requests than the async engine, so it gets a smaller pool of its own.
+    db_sync_pool_size: int = 5
+    db_sync_max_overflow: int = 10
+
+    # Book server only. Compiled book pages are cached on disk as Jinja bytecode
+    # (see ``rsptx.book_server_api.routers.books``), roughly 1.03x the size of
+    # each page's HTML. Nothing in Jinja evicts, so a long-lived container tends
+    # toward the size of every page it has ever served -- about 1.1GB for the
+    # current corpus. This is the budget the pruner keeps it under; set it to 0
+    # to disable pruning and let the cache grow.
+    book_template_cache_mb: int = 512
+
+    @property
+    def pool_settings(self) -> dict:
+        """Return the pool keyword arguments for ``create_engine``.
+
+        Empty for SQLite, whose default pool rejects ``pool_size`` and friends.
+        Callers splat this into the engine constructor rather than passing the
+        arguments unconditionally and catching the resulting error, so a genuine
+        misconfiguration is not silently downgraded to a default-sized pool.
+
+        :return: kwargs suitable for ``create_engine``/``create_async_engine``.
+        :rtype: dict
+        """
+        if self.database_type == DatabaseType.SQLite:
+            return {}
+        return dict(
+            pool_size=self.db_pool_size,
+            max_overflow=self.db_max_overflow,
+            pool_timeout=self.db_pool_timeout,
+            pool_recycle=self.db_pool_recycle,
+            pool_pre_ping=True,
+        )
+
+    @property
+    def sync_pool_settings(self) -> dict:
+        """``pool_settings`` with the smaller sizes used by the sync engine.
+
+        :return: kwargs suitable for ``create_engine``.
+        :rtype: dict
+        """
+        settings_dict = self.pool_settings
+        if not settings_dict:
+            return {}
+        settings_dict["pool_size"] = self.db_sync_pool_size
+        settings_dict["max_overflow"] = self.db_sync_max_overflow
+        return settings_dict
+
     # The docker-compose.yml file will set the REDIS_URI environment variable
     redis_uri: str = "redis://localhost:6379/0"
 
@@ -151,6 +226,40 @@ class Settings(BaseSettings):
     # No trailing slash; callers append the path they want.
     author_server_url: str = "https://author.runestone.academy/author"
     landing_page_url: str = "https://landing.runestone.academy"
+
+    # Root URL of the SageCell server that runs Sage cells on our own pages
+    # (assignments, the question editor, the builder). The proxy serves it at
+    # /sagecell/ (see projects/caddy/Caddyfile), so the browser stays
+    # same-origin and never needs to reach the SageCell host itself. PreTeXt
+    # books built for Runestone use the same path. Must end with a slash;
+    # set SAGECELL_URL=https://sagecell.sagemath.org/ when no proxy is in front.
+    sagecell_url: str = "/sagecell/"
+
+    # LLM providers for the AI features (CodeTailor, peer instruction). A course
+    # calls the provider it has an API token for (add_token.html); a course with
+    # tokens for several uses the first one in ``llm_provider_order``. Each
+    # provider serves the OpenAI chat completions API. Override any of these
+    # with the matching env var, e.g. ``LLM_MODEL_UMGPT=gpt-4.1-mini`` (dicts
+    # and lists as JSON, e.g. ``LLM_MODEL_PARAMS='{}'``).
+    llm_provider_order: list[str] = ["umgpt", "openai"]
+    llm_base_url_openai: str = "https://api.openai.com/v1"
+    llm_model_openai: str = "gpt-5-nano"
+    llm_base_url_umgpt: str = "https://api.toolkit.umgpt.umich.edu/v1"
+    # PI_OPENAI_MODEL is peer instruction's older name for this setting
+    llm_model_umgpt: str = (
+        os.environ.get("PI_OPENAI_MODEL", "").strip() or "gpt-4o-mini"
+    )
+    # A feature that needs a different model on some provider, as
+    # {feature: {provider: model}}. Peer instruction sends ``temperature``,
+    # which GPT-5 models reject, so on OpenAI it stays on its older model.
+    llm_feature_models: dict[str, dict[str, str]] = {
+        "peer": {
+            "openai": os.environ.get("PI_OPENAI_MODEL", "").strip() or "gpt-4o-mini"
+        },
+    }
+    # Extra parameters sent with every request to a model, as {model: params}.
+    # ``verbosity`` is a GPT-5 option; other models reject it.
+    llm_model_params: dict[str, dict] = {"gpt-5-nano": {"verbosity": "low"}}
 
     # Public-facing host used to build absolute URLs (e.g. course links in
     # emails). Populated from the matching environment variables by
@@ -181,6 +290,21 @@ class Settings(BaseSettings):
             return self.caddy_site_address
         scheme = "https" if self.certbot_email or self.caddy_site_address else "http"
         return f"{scheme}://{self.runestone_host}"
+
+    @property
+    def server_protocol(self) -> str:
+        """Return the scheme (protocol) for this deployment.
+
+        Similar to above but only stores the scheme.
+
+        :return: The scheme, e.g. ``https://``.
+        :rtype: str
+        """
+        if self.load_balancer_host:
+            return "https://"
+        if self.caddy_site_address:
+            return "https://"
+        return "https://" if self.certbot_email else "http://"
 
     # Configure ads. TODO: Link to the place in the Runestone Components where this is used.
     adsenseid: str = ""

@@ -135,6 +135,10 @@ export class MicroParsonsElement extends HTMLElement {
     return (this.hparsonsInput as ParsonsInput).getBlockIndices();
   }
 
+  public refreshBlockAria(): void {
+    (this.hparsonsInput as ParsonsInput).refreshBlockAria();
+  }
+
   public setCodeContext(props: {
     before: string | null;
     after: string | null;

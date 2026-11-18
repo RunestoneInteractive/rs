@@ -1,7 +1,11 @@
 import { ExercisePreview } from "@components/routes/AssignmentBuilder/components/exercises/components/ExercisePreview/ExercisePreview";
 import { FC } from "react";
 
-import { generateParsonsPreview, ParsonsBlock } from "@/utils/preview/parsonsPreview";
+import {
+  generateParsonsPreview,
+  ParsonsBlock,
+  ParsonsRunnableOptions
+} from "@/utils/preview/parsonsPreview";
 
 interface ParsonsPreviewProps {
   instructions: string;
@@ -15,6 +19,9 @@ interface ParsonsPreviewProps {
   grader?: "line" | "dag";
   orderMode?: "random" | "custom";
   customOrder?: number[];
+  runnable?: boolean;
+  runnableCode?: string;
+  runnableOptions?: ParsonsRunnableOptions;
 }
 
 export const ParsonsPreview: FC<ParsonsPreviewProps> = ({
@@ -28,7 +35,10 @@ export const ParsonsPreview: FC<ParsonsPreviewProps> = ({
   questionLabel,
   grader = "line",
   orderMode = "random",
-  customOrder
+  customOrder,
+  runnable,
+  runnableCode,
+  runnableOptions
 }) => {
   return (
     <div style={{ display: "flex", alignItems: "start", justifyContent: "center" }}>
@@ -44,7 +54,10 @@ export const ParsonsPreview: FC<ParsonsPreviewProps> = ({
           questionLabel: questionLabel || name,
           grader,
           orderMode,
-          customOrder
+          customOrder,
+          runnable,
+          runnableCode,
+          runnableOptions
         })}
       />
     </div>

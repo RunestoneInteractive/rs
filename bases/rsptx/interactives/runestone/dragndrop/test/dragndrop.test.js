@@ -55,6 +55,24 @@ function makeLegacyFixture({ id = "test_dnd_legacy" } = {}) {
     return document.getElementById(id);
 }
 
+// Two premises that belong in the same dropzone, in the markup the assignment
+// builder generates for a many-to-one question.
+function makeManyToOneFixture({ id = "test_dnd_many" } = {}) {
+    document.body.innerHTML = `
+      <div class="runestone">
+        <ul data-component="dragndrop" id="${id}" data-random="no">
+          <span data-subcomponent="question">Sort the food.</span>
+          <li data-subcomponent="draggable" id="${id}_drag_l1" data-category="${id}_cat_r1">Corn</li>
+          <li data-subcomponent="dropzone" for="${id}_drag_l1" data-category="${id}_cat_r1">Vegetable</li>
+          <li data-subcomponent="draggable" id="${id}_drag_l2" data-category="${id}_cat_r1">Peas</li>
+          <li data-subcomponent="draggable" id="${id}_drag_l3" data-category="${id}_cat_r2">Pear</li>
+          <li data-subcomponent="dropzone" for="${id}_drag_l3" data-category="${id}_cat_r2">Fruit</li>
+          <span data-subcomponent="feedback">Not quite.</span>
+        </ul>
+      </div>`;
+    return document.getElementById(id);
+}
+
 const tick = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function makeDnd(fixtureOpts = {}, extraOpts = {}, Cls = DragNDrop) {
@@ -75,6 +93,14 @@ function place(dnd, premiseId, responseId) {
     const premise = dnd.premiseArray.find((p) => p.id === premiseId);
     const response = dnd.responseArray.find((r) => r.id === responseId);
     response.appendChild(premise);
+}
+
+function renderMathSpeech(element, speech) {
+    const math = element.querySelector(".process-math") || element;
+    math.innerHTML =
+        '<mjx-container data-semantic-speech-none="' +
+        speech +
+        '"><mjx-math aria-hidden="true">ignored</mjx-math></mjx-container>';
 }
 
 // Feedback text is written inside a setTimeout(…, 10).
@@ -154,6 +180,22 @@ describe("construction from legacy data-subcomponent markup", () => {
         ]);
         expect(dnd.premiseArray[0].dataset.category).toBe("cat_a");
         expect(dnd.responseArray[0].dataset.category).toBe("cat_a");
+    });
+
+    it("grades every premise that shares a dropzone as correct", async () => {
+        const id = "test_dnd_many";
+        const orig = makeManyToOneFixture({ id });
+        const dnd = new DragNDrop({ orig, useRunestoneServices: false });
+        await dnd.component_ready_promise;
+        await tick();
+        // Both Corn and Peas belong in the Vegetable zone.
+        place(dnd, `${id}_drag_l1`, `${id}_drop_l1`);
+        place(dnd, `${id}_drag_l2`, `${id}_drop_l1`);
+        place(dnd, `${id}_drag_l3`, `${id}_drop_l3`);
+        dnd.checkCurrentAnswer();
+        expect(dnd.incorrectNum).toBe(0);
+        expect(dnd.correctNum).toBe(3);
+        expect(dnd.correct).toBe(true);
     });
 });
 
@@ -250,6 +292,8 @@ describe("feedback rendering", () => {
         place(dnd, "p1", "r2");
         place(dnd, "p2", "r1");
         const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        const p1Error = document.getElementById("p1_error");
+        expect(p1Error.classList.contains("visuallyhidden")).toBe(true);
         dnd.submitButton.click();
         await feedbackSettles();
         expect(p1.classList.contains("drop-incorrect")).toBe(false);
@@ -259,8 +303,72 @@ describe("feedback rendering", () => {
         dnd.submitButton.click();
         await feedbackSettles();
         expect(p1.classList.contains("drop-incorrect")).toBe(true);
+        expect(p1Error.classList.contains("visuallyhidden")).toBe(false);
         expect(p1.getAttribute("aria-invalid")).toBe("true");
         expect(p1.getAttribute("aria-errormessage")).toBe("p1_error");
+    });
+});
+
+describe("returning a misplaced premise", () => {
+    async function dndWithRedPremise() {
+        const dnd = await makeDnd();
+        place(dnd, "p1", "r2");
+        place(dnd, "p2", "r1");
+        for (let i = 0; i < 3; i++) {
+            dnd.submitButton.click();
+            await feedbackSettles();
+        }
+        const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        expect(p1.classList.contains("drop-incorrect")).toBe(true);
+        return { dnd, p1 };
+    }
+
+    function expectNotMarkedIncorrect(premise) {
+        expect(premise.classList.contains("drop-incorrect")).toBe(false);
+        expect(premise.getAttribute("aria-invalid")).toBe("false");
+        expect(premise.hasAttribute("aria-errormessage")).toBe(false);
+        expect(
+            document
+                .getElementById(premise.id + "_error")
+                .classList.contains("visuallyhidden"),
+        ).toBe(true);
+    }
+
+    it("clears its red styling when dropped back in the dragzone", async () => {
+        const { dnd, p1 } = await dndWithRedPremise();
+        const drop = new Event("drop", { bubbles: true, cancelable: true });
+        Object.defineProperty(drop, "dataTransfer", {
+            value: { getData: () => p1.id },
+        });
+
+        dnd.draggableDiv.dispatchEvent(drop);
+
+        expect(p1.parentElement).toBe(dnd.draggableDiv);
+        expectNotMarkedIncorrect(p1);
+    });
+
+    it("clears its red styling when returned with the keyboard", async () => {
+        const { dnd, p1 } = await dndWithRedPremise();
+
+        p1.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        p1.parentElement.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+        );
+
+        expect(p1.parentElement).toBe(dnd.draggableDiv);
+        expectNotMarkedIncorrect(p1);
+    });
+
+    it("keeps a premise red while it stays in a response", async () => {
+        const { dnd } = await dndWithRedPremise();
+        const p2 = dnd.premiseArray.find((p) => p.id === "p2");
+
+        dnd.responseArray.find((r) => r.id === "r2").appendChild(p2);
+        dnd.updatePremiseAriaLabel(p2);
+
+        expect(p2.classList.contains("drop-incorrect")).toBe(true);
     });
 });
 
@@ -314,6 +422,191 @@ describe("keyboard controls", () => {
         expect(document.activeElement).toBe(firstPremise);
     });
 
+    it("moves focus between unselected premises in tab order", async () => {
+        const dnd = await makeDnd();
+        const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        const p2 = dnd.premiseArray.find((p) => p.id === "p2");
+        const p3 = dnd.premiseArray.find((p) => p.id === "p3");
+        place(dnd, "p2", "r1");
+        place(dnd, "p1", "r2");
+
+        p3.focus();
+        p3.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p2);
+
+        p2.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowDown",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p1);
+
+        p1.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowUp",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p2);
+        expect(dnd.selectedPremise).toBe(null);
+    });
+
+    it("moves focus to the first premise in the left or right column", async () => {
+        const dnd = await makeDnd();
+        const p1 = dnd.premiseArray.find((p) => p.id === "p1");
+        const p2 = dnd.premiseArray.find((p) => p.id === "p2");
+        const p3 = dnd.premiseArray.find((p) => p.id === "p3");
+        place(dnd, "p2", "r1");
+        place(dnd, "p1", "r2");
+
+        p3.focus();
+        p3.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p2);
+
+        p1.focus();
+        p1.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                bubbles: true,
+            }),
+        );
+        expect(document.activeElement).toBe(p3);
+        expect(dnd.selectedPremise).toBe(null);
+    });
+
+    it("selects and places a premise with click events", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const response = dnd.responseArray.find((r) => r.id === "r2");
+
+        premise.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+        expect(premise.getAttribute("aria-pressed")).toBe("true");
+
+        response.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+        expect(response.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+        expect(premise.getAttribute("aria-pressed")).toBe("false");
+        expect(dnd.isAnswered).toBe(true);
+    });
+
+    it("selects a premise from a nested click", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nested = document.createElement("span");
+        premise.appendChild(nested);
+
+        nested.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+    });
+
+    it("places a selected premise from a nested response click", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[1];
+        const nested = document.createElement("span");
+        response.appendChild(nested);
+
+        premise.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+        nested.dispatchEvent(
+            new MouseEvent("click", { bubbles: true, cancelable: true }),
+        );
+
+        expect(response.contains(premise)).toBe(true);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+    });
+
+    it("updates premise aria labels as premises are placed and returned", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray.find((p) => p.id === "p1");
+        const response = dnd.responseArray.find((r) => r.id === "r1");
+
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Dog matching premise, unplaced",
+        );
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(response.contains(premise)).toBe(true);
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Dog matching premise, placed in Barks",
+        );
+
+        dnd.dragDropWrapDiv.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(premise.getAttribute("aria-label")).toBe(
+            "Dog matching premise, unplaced",
+        );
+    });
+
+    it("uses MathJax speech for premise aria labels", async () => {
+        const dnd = await makeDnd({
+            question: {
+                statement: "Match each function to its derivative.",
+                left: [
+                    {
+                        id: "p1",
+                        label: '<span class="process-math">\(x^2\)</span>',
+                    },
+                ],
+                right: [
+                    {
+                        id: "r1",
+                        label: '<span class="process-math">\(2x\)</span>',
+                    },
+                ],
+                correctAnswers: [["p1", "r1"]],
+            },
+        });
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[0];
+
+        renderMathSpeech(premise, "x squared");
+        renderMathSpeech(response, "two x");
+        dnd.updatePremiseAriaLabels();
+
+        expect(premise.getAttribute("aria-label")).toBe(
+            "x squared matching premise, unplaced",
+        );
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+
+        expect(premise.getAttribute("aria-label")).toBe(
+            "x squared matching premise, placed in two x",
+        );
+        expect(dnd.keyboardInstructionDiv.textContent).toBe(
+            "Moving x squared. Use arrow keys to choose a target, Enter to place, or Escape to cancel.",
+        );
+    });
     it.each(["Enter", " "])(
         "places the selected premise in a response with %j",
         async (key) => {
@@ -327,7 +620,16 @@ describe("keyboard controls", () => {
             expect(dnd.selectedPremise).toBe(premise);
             expect(premise.classList.contains("selected")).toBe(true);
             expect(premise.getAttribute("aria-pressed")).toBe("true");
-            expect(document.activeElement).toBe(dnd.responseArray[0]);
+            expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+            expect(dnd.dragDropWrapDiv.getAttribute("role")).toBe(
+                "application",
+            );
+            expect(
+                dnd.dragDropWrapDiv.getAttribute("aria-activedescendant"),
+            ).toBe(response.id);
+            expect(dnd.keyboardInstructionDiv.textContent).toBe(
+                "Moving Dog. Use arrow keys to choose a target, Enter to place, or Escape to cancel.",
+            );
             expect(dnd.responseArray[0].contains(premise)).toBe(true);
             expect(dnd.premiseArray.every((item) => item.tabIndex === -1)).toBe(
                 true,
@@ -336,7 +638,7 @@ describe("keyboard controls", () => {
                 true,
             );
 
-            response.dispatchEvent(
+            dnd.dragDropWrapDiv.dispatchEvent(
                 new KeyboardEvent("keydown", { key, bubbles: true }),
             );
             expect(response.contains(premise)).toBe(true);
@@ -345,6 +647,8 @@ describe("keyboard controls", () => {
             expect(premise.getAttribute("aria-pressed")).toBe("false");
             expect(dnd.isAnswered).toBe(true);
             expect(document.activeElement).toBe(premise);
+            expect(dnd.dragDropWrapDiv.getAttribute("role")).toBe(null);
+            expect(dnd.dragDropWrapDiv.tabIndex).toBe(-1);
             expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
                 true,
             );
@@ -361,7 +665,7 @@ describe("keyboard controls", () => {
         premise.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
         );
-        dnd.responseArray[0].dispatchEvent(
+        dnd.dragDropWrapDiv.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
         );
 
@@ -375,6 +679,59 @@ describe("keyboard controls", () => {
         );
     });
 
+    it("removes premise math content from the tab order", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nestedMath = document.createElement("span");
+        const nestedMathChild = document.createElement("span");
+        nestedMath.className = "MathJax";
+        nestedMath.tabIndex = 0;
+        nestedMathChild.tabIndex = 0;
+        nestedMath.appendChild(nestedMathChild);
+        premise.appendChild(nestedMath);
+
+        dnd.disablePremiseMathTabStops();
+
+        expect(nestedMath.tabIndex).toBe(-1);
+        expect(nestedMathChild.tabIndex).toBe(-1);
+    });
+
+    it("captures Space on the premise when it contains math content", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nestedMath = document.createElement("span");
+        nestedMath.className = "MathJax";
+        premise.appendChild(nestedMath);
+
+        const event = new KeyboardEvent("keydown", {
+            key: " ",
+            bubbles: true,
+            cancelable: true,
+        });
+        premise.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(dnd.selectedPremise).toBe(premise);
+        expect(premise.classList.contains("selected")).toBe(true);
+    });
+    it("does not capture Space from nested premise content", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const nestedMath = document.createElement("span");
+        nestedMath.className = "MathJax";
+        premise.appendChild(nestedMath);
+
+        const event = new KeyboardEvent("keydown", {
+            key: " ",
+            bubbles: true,
+            cancelable: true,
+        });
+        nestedMath.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+    });
     it("does not treat a key event from a nested premise as response activation", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray.find((p) => p.id === "p1");
@@ -399,7 +756,11 @@ describe("keyboard controls", () => {
         );
 
         expect(secondResponse.contains(premise)).toBe(true);
-        expect(document.activeElement).toBe(secondResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(secondResponse);
+        expect(dnd.dragDropWrapDiv.getAttribute("aria-activedescendant")).toBe(
+            secondResponse.id,
+        );
         expect(dnd.selectedPremise).toBe(premise);
     });
 
@@ -455,7 +816,7 @@ describe("keyboard controls", () => {
         expect(dnd.selectedPremise).toBe(premise);
     });
 
-    it("traps Tab and Shift+Tab within responses while a premise is selected", async () => {
+    it("traps Tab and Shift+Tab within the application surface while a premise is selected", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray[0];
         const [firstResponse, secondResponse] = dnd.responseArray;
@@ -463,28 +824,32 @@ describe("keyboard controls", () => {
         premise.dispatchEvent(
             new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
         );
-        expect(document.activeElement).toBe(firstResponse);
-
-        firstResponse.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
-        );
-        expect(document.activeElement).toBe(secondResponse);
-        expect(secondResponse.contains(premise)).toBe(true);
-
-        secondResponse.dispatchEvent(
-            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
-        );
-        expect(document.activeElement).toBe(firstResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
         expect(firstResponse.contains(premise)).toBe(true);
 
-        firstResponse.dispatchEvent(
+        dnd.dragDropWrapDiv.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(secondResponse);
+        expect(secondResponse.contains(premise)).toBe(true);
+
+        dnd.dragDropWrapDiv.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+        );
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(firstResponse);
+        expect(firstResponse.contains(premise)).toBe(true);
+
+        dnd.dragDropWrapDiv.dispatchEvent(
             new KeyboardEvent("keydown", {
                 key: "Tab",
                 shiftKey: true,
                 bubbles: true,
             }),
         );
-        expect(document.activeElement).toBe(secondResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(secondResponse);
         expect(secondResponse.contains(premise)).toBe(true);
     });
 
@@ -505,6 +870,9 @@ describe("keyboard controls", () => {
         );
 
         expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(dnd.keyboardInstructionDiv.textContent).toBe(
+            "Returned to unplaced list.",
+        );
         expect(dnd.selectedPremise).toBe(premise);
         expect(premise.classList.contains("selected")).toBe(true);
         expect(dnd.responseArray.every((item) => item.tabIndex === 0)).toBe(
@@ -512,6 +880,38 @@ describe("keyboard controls", () => {
         );
     });
 
+    it("drops a selected premise in the dragzone with Enter after moving left", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[0];
+
+        premise.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(response.contains(premise)).toBe(true);
+
+        response.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowLeft",
+                bubbles: true,
+            }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+
+        response.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+        expect(premise.parentElement).toBe(dnd.draggableDiv);
+        expect(dnd.selectedPremise).toBe(null);
+        expect(premise.classList.contains("selected")).toBe(false);
+        expect(document.activeElement).toBe(premise);
+        expect(dnd.premiseArray.every((item) => item.tabIndex === 0)).toBe(
+            true,
+        );
+        expect(dnd.responseArray.every((item) => item.tabIndex === -1)).toBe(
+            true,
+        );
+    });
     it("moves a selected premise right into the focused response", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray[0];
@@ -527,9 +927,10 @@ describe("keyboard controls", () => {
             }),
         );
         expect(premise.parentElement).toBe(dnd.draggableDiv);
-        expect(document.activeElement).toBe(firstResponse);
+        expect(document.activeElement).toBe(dnd.dragDropWrapDiv);
+        expect(dnd.activeResponse).toBe(firstResponse);
 
-        firstResponse.dispatchEvent(
+        dnd.dragDropWrapDiv.dispatchEvent(
             new KeyboardEvent("keydown", {
                 key: "ArrowRight",
                 bubbles: true,
@@ -541,6 +942,23 @@ describe("keyboard controls", () => {
 });
 
 describe("pointer controls", () => {
+    it("drops on the response when the pointer event starts on nested content", async () => {
+        const dnd = await makeDnd();
+        const premise = dnd.premiseArray[0];
+        const response = dnd.responseArray[0];
+        const nestedMath = document.createElement("span");
+        nestedMath.className = "MathJax";
+        response.appendChild(nestedMath);
+        const drop = new Event("drop", { bubbles: true, cancelable: true });
+        Object.defineProperty(drop, "dataTransfer", {
+            value: { getData: () => premise.id },
+        });
+
+        nestedMath.dispatchEvent(drop);
+
+        expect(response.contains(premise)).toBe(true);
+        expect(drop.defaultPrevented).toBe(true);
+    });
     it("highlights responses only while a premise is being dragged", async () => {
         const dnd = await makeDnd();
         const premise = dnd.premiseArray[0];
@@ -743,5 +1161,227 @@ describe("TimedDragNDrop", () => {
             timed: true,
         });
         expect(timed).toBeInstanceOf(TimedDragNDrop);
+    });
+});
+
+// The XML PreTeXt writes for a "cardsort" with feedback on cards: the
+// exercise <feedback> comes first, then cards that may carry their own
+// <feedback>. d3 is a distractor and z2 is a response nothing belongs in.
+const CARD_FEEDBACK_XML = `<dragndrop>
+  <statement><div class="para">Classify each number.</div></statement>
+  <feedback><div class="para">Simplify first.</div></feedback>
+  <premise><id>d1</id><label>-7</label></premise>
+  <premise><id>d2</id><label>sqrt 16</label><feedback><div class="para">sqrt 16 = 4.</div></feedback></premise>
+  <premise><id>d3</id><label>i</label><feedback><div class="para">i is not real.</div></feedback></premise>
+  <response><id>z1</id><label>Integer</label><feedback><div class="para">Integers are whole.</div></feedback></response>
+  <response><id>z2</id><label>Positive integer less than one</label><feedback><div class="para">Nothing belongs here.</div></feedback></response>
+  <answer premise="d1" response="z1"></answer>
+  <answer premise="d2" response="z1"></answer>
+</dragndrop>`;
+
+// The same question as lxml serializes it into the manifest/database: empty
+// elements are self-closing, here an empty exercise <feedback/>.
+const CARD_FEEDBACK_XML_SELF_CLOSING = CARD_FEEDBACK_XML.replace(
+    '<feedback><div class="para">Simplify first.</div></feedback>',
+    "<feedback/>",
+).replace(/><\/answer>/g, "/>");
+
+async function makeXmlDnd(xml, id = "test_dnd_xml") {
+    document.body.innerHTML = `
+      <div class="runestone">
+        <div data-component="dragndrop" id="${id}" data-random="no">
+          <script type="text/xml">${xml}</script>
+        </div>
+      </div>`;
+    const dnd = new DragNDrop({
+        orig: document.getElementById(id),
+        useRunestoneServices: false,
+    });
+    await dnd.component_ready_promise;
+    await tick();
+    return dnd;
+}
+
+// Three gradeable tries, so feedback that identifies wrong cards is shown.
+async function checkThreeTimes(dnd) {
+    for (let i = 0; i < 3; i++) {
+        dnd.submitButton.click();
+        await feedbackSettles();
+    }
+}
+
+describe("feedback on cards", () => {
+    it("reads the exercise feedback, not the first card's, from XML", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        expect(dnd.feedback).toBe('<div class="para">Simplify first.</div>');
+        expect(dnd.premiseArray.map((p) => p.id)).toEqual(["d1", "d2", "d3"]);
+        expect(Object.keys(dnd.cardFeedback).sort()).toEqual([
+            "d2",
+            "d3",
+            "z1",
+            "z2",
+        ]);
+    });
+
+    it("handles self-closing elements written by an XML serializer", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML_SELF_CLOSING);
+        expect(dnd.feedback).toBe("");
+        expect(dnd.premiseArray.map((p) => p.id)).toEqual(["d1", "d2", "d3"]);
+        expect(dnd.responseArray.map((r) => r.id)).toEqual(["z1", "z2"]);
+        const byId = Object.fromEntries(
+            dnd.premiseArray.map((p) => [p.id, p.dataset.category]),
+        );
+        expect(byId).toEqual({ d1: "z1", d2: "z1", d3: "distractor-d3" });
+    });
+
+    const infoCards = (dnd) =>
+        [...dnd.containerDiv.querySelectorAll(".draggable-card-info")].map(
+            (info) => info.dataset.card,
+        );
+    const popover = (id) => document.getElementById(id + "_info");
+    const infoButton = (id) =>
+        document.querySelector(
+            `.draggable-card-info[data-card="${id}"] > button`,
+        );
+
+    it("puts an info button after misplaced cards with feedback after three tries", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d1", "z1");
+        place(dnd, "d2", "z2");
+        place(dnd, "d3", "z2");
+        dnd.submitButton.click();
+        await feedbackSettles();
+        expect(infoCards(dnd)).toEqual([]);
+        await checkThreeTimes(dnd);
+        // z1 is missing d2, z2 holds cards that don't belong there
+        expect(infoCards(dnd).sort()).toEqual(["d2", "d3", "z1", "z2"]);
+        // card feedback stays out of the feedback area
+        expect(dnd.feedBackDiv.textContent).toContain("Simplify first.");
+        expect(dnd.feedBackDiv.textContent).not.toContain("sqrt 16 = 4.");
+        expect(popover("d2").textContent).toBe("sqrt 16 = 4.");
+        expect(popover("d2").hidden).toBe(true);
+    });
+
+    it("makes the info buttons tabbable disclosures outside the card's role=button", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const d2 = dnd.premiseArray.find((p) => p.id === "d2");
+        const button = infoButton("d2");
+        // not nested in the card, and right after it in tab order
+        expect(d2.contains(button)).toBe(false);
+        expect(d2.nextElementSibling.contains(button)).toBe(true);
+        expect(button.tabIndex).toBe(0);
+        expect(button.getAttribute("aria-label")).toBe("Feedback for sqrt 16");
+        expect(button.getAttribute("aria-expanded")).toBe("false");
+        expect(button.getAttribute("aria-controls")).toBe("d2_info");
+        const z2 = dnd.responseArray.find((r) => r.id === "z2");
+        expect(z2.contains(infoButton("z2"))).toBe(false);
+        expect(z2.previousElementSibling.contains(infoButton("z2"))).toBe(true);
+        expect(infoButton("z2").getAttribute("aria-label")).toBe(
+            "Feedback for Positive integer less than one",
+        );
+        // the card's own accessible name is unchanged
+        expect(d2.getAttribute("aria-label")).not.toContain("Feedback");
+        button.click();
+        expect(button.getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("opens one popover at a time and closes it on an outside click or Escape", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d3", "z2");
+        await checkThreeTimes(dnd);
+        infoButton("d2").click();
+        expect(popover("d2").hidden).toBe(false);
+        infoButton("z1").click();
+        expect(popover("d2").hidden).toBe(true);
+        expect(popover("z1").hidden).toBe(false);
+        document.body.click();
+        expect(popover("z1").hidden).toBe(true);
+        infoButton("d3").click();
+        infoButton("d3").focus();
+        infoButton("d3").dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        expect(popover("d3").hidden).toBe(true);
+        expect(infoButton("d3").getAttribute("aria-expanded")).toBe("false");
+        expect(document.activeElement).toBe(infoButton("d3"));
+    });
+
+    it("does not place a selected premise when a response's info button is clicked", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const d3 = dnd.premiseArray.find((p) => p.id === "d3");
+        dnd.selectPremise(d3);
+        const before = d3.parentElement;
+        infoButton("z2").click();
+        expect(d3.parentElement).toBe(before);
+        expect(popover("z2").hidden).toBe(false);
+    });
+
+    it("drops a premise's feedback when the premise is moved", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const d2 = dnd.premiseArray.find((p) => p.id === "d2");
+        dnd.selectPremise(d2);
+        dnd.moveSelectedPremise(dnd.draggableDiv, "dragzone");
+        expect(infoCards(dnd)).not.toContain("d2");
+        expect(d2.classList.contains("has-card-info")).toBe(false);
+    });
+
+    it("grades the same with info controls in the columns", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        const counts = [dnd.correctNum, dnd.incorrectNum, dnd.unansweredNum];
+        expect(infoCards(dnd)).toContain("z1");
+        dnd.checkCurrentAnswer();
+        expect([dnd.correctNum, dnd.incorrectNum, dnd.unansweredNum]).toEqual(
+            counts,
+        );
+        expect(dnd.getAllCategories()).toEqual(["z1", "z2"]);
+        dnd.setLocalStorage({ correct: "F" });
+        expect(dnd.answerState).toEqual({ z1: ["d1"], z2: ["d2"] });
+    });
+
+    it("removes the info buttons on reset and when the answer is fixed", async () => {
+        const dnd = await makeXmlDnd(CARD_FEEDBACK_XML);
+        place(dnd, "d2", "z2");
+        place(dnd, "d1", "z1");
+        await checkThreeTimes(dnd);
+        expect(infoCards(dnd).length).toBeGreaterThan(0);
+        place(dnd, "d2", "z1");
+        dnd.submitButton.click();
+        await feedbackSettles();
+        expect(infoCards(dnd)).toEqual([]);
+        expect(document.getElementById("d2_info")).toBe(null);
+        place(dnd, "d2", "z2");
+        await checkThreeTimes(dnd);
+        dnd.resetButton.click();
+        expect(infoCards(dnd)).toEqual([]);
+    });
+
+    it("reads card feedback from the JSON representation", async () => {
+        const question = {
+            ...JSON_QUESTION,
+            left: [
+                { id: "p1", label: "Dog" },
+                { id: "p2", label: "Cat", feedback: "Cats meow." },
+                { id: "p3", label: "Rock" },
+            ],
+        };
+        const dnd = await makeDnd({ question });
+        place(dnd, "p1", "r2");
+        place(dnd, "p2", "r1");
+        await checkThreeTimes(dnd);
+        expect(infoCards(dnd)).toEqual(["p2"]);
+        expect(popover("p2").textContent).toBe("Cats meow.");
     });
 });

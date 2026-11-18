@@ -115,7 +115,7 @@
 }
 
 .column:first-child .blockContainer::after {
-  content: '';
+  content: "";
   position: absolute;
   right: -1px;
   top: 50%;
@@ -129,7 +129,7 @@
 }
 
 .column:last-child .blockContainer::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -1px;
   top: 50%;
@@ -217,7 +217,7 @@
 }
 
 .rightTarget::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -4px;
   top: 50%;
@@ -393,7 +393,7 @@
 }
 
 .column:first-child .connectedBlock::after {
-  content: '';
+  content: "";
   position: absolute;
   right: -4px;
   top: 50%;
@@ -408,7 +408,7 @@
 }
 
 .column:last-child .connectedBlock::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -4px;
   top: 50%;

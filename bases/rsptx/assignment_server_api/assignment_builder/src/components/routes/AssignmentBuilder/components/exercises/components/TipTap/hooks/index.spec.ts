@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { useTableColumnMenu } from "./useTableColumnMenu";
 import { useTableRowMenu } from "./useTableRowMenu";
 
@@ -167,6 +168,7 @@ describe("useTableColumnMenu", () => {
     });
 
     const addCalls = addSpy.mock.calls.filter(([event]) => event === "mousedown");
+
     expect(addCalls).toHaveLength(1);
 
     act(() => {
@@ -174,6 +176,7 @@ describe("useTableColumnMenu", () => {
     });
 
     const removeCalls = removeSpy.mock.calls.filter(([event]) => event === "mousedown");
+
     expect(removeCalls).toHaveLength(1);
 
     addSpy.mockRestore();
@@ -186,6 +189,7 @@ describe("useTableColumnMenu", () => {
     renderHook(() => useTableColumnMenu(null));
 
     const mousedownCalls = addSpy.mock.calls.filter(([event]) => event === "mousedown");
+
     expect(mousedownCalls).toHaveLength(0);
 
     addSpy.mockRestore();
@@ -377,6 +381,7 @@ describe("useTableRowMenu", () => {
     });
 
     const addCalls = addSpy.mock.calls.filter(([event]) => event === "mousedown");
+
     expect(addCalls).toHaveLength(1);
 
     act(() => {
@@ -384,6 +389,7 @@ describe("useTableRowMenu", () => {
     });
 
     const removeCalls = removeSpy.mock.calls.filter(([event]) => event === "mousedown");
+
     expect(removeCalls).toHaveLength(1);
 
     addSpy.mockRestore();
@@ -394,11 +400,13 @@ describe("useTableRowMenu", () => {
 describe("re-exports from index", () => {
   it("exports useTableColumnMenu", async () => {
     const mod = await import("./index");
+
     expect(typeof mod.useTableColumnMenu).toBe("function");
   });
 
   it("exports useTableRowMenu", async () => {
     const mod = await import("./index");
+
     expect(typeof mod.useTableRowMenu).toBe("function");
   });
 });

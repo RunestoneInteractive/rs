@@ -7,6 +7,8 @@ mapping, an assignment worth zero points, and a computed total larger than the
 assignment's points (which the LMS rejects with a 422).
 """
 
+import datetime
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -21,10 +23,10 @@ def _lti_user(rs_user_id=1, lti_user_id="lms-user-1"):
     return SimpleNamespace(rs_user_id=rs_user_id, lti_user_id=lti_user_id)
 
 
-def _lti_assign(points=10, released=True):
+def _lti_assign(points=10, released=True, duedate=None):
     rs_course = SimpleNamespace(id=1, course_name="course1", timezone="UTC")
     rs_assignment = SimpleNamespace(
-        id=7, name="Homework 1", duedate=None, points=points, released=released
+        id=7, name="Homework 1", duedate=duedate, points=points, released=released
     )
     return SimpleNamespace(
         lti_lineitem_id="https://lms.example/lineitems/1",
@@ -35,7 +37,13 @@ def _lti_assign(points=10, released=True):
     )
 
 
-async def _send(updates, lti_assign=None, show_points="true"):
+async def _send(
+    updates,
+    lti_assign=None,
+    show_points="true",
+    return_payloads=False,
+    instructor_triggered=False,
+):
     """Drive _send_lti1p3_score_updates and report the grades it sent.
 
     Returns the list of (user_id, score_given, score_maximum) actually handed to
@@ -45,13 +53,16 @@ async def _send(updates, lti_assign=None, show_points="true"):
     sent = []
 
     async def fake_put_grade(grade, line_item):
-        sent.append(
-            (
-                grade.get_user_id(),
-                grade.get_score_given(),
-                grade.get_score_maximum(),
+        if return_payloads:
+            sent.append(json.loads(grade.get_value()))
+        else:
+            sent.append(
+                (
+                    grade.get_user_id(),
+                    grade.get_score_given(),
+                    grade.get_score_maximum(),
+                )
             )
-        )
         return {}
 
     ags = MagicMock()
@@ -69,9 +80,33 @@ async def _send(updates, lti_assign=None, show_points="true"):
         patch.object(core, "ServiceConnector"),
         patch.object(core, "AssignmentsGradesService", return_value=ags),
     ):
-        await core._send_lti1p3_score_updates(lti_assign, updates)
+        await core._send_lti1p3_score_updates(
+            lti_assign, updates, instructor_triggered=instructor_triggered
+        )
 
     return sent
+
+
+async def test_instructor_triggered_score_sets_submitted_at_before_deadline():
+    duedate = datetime.datetime(2026, 1, 2, 12, 0, 0)
+
+    sent = await _send(
+        [(_lti_user(), 5)],
+        lti_assign=_lti_assign(duedate=duedate),
+        return_payloads=True,
+        instructor_triggered=True,
+    )
+
+    assert sent[0]["submission"] == {"submittedAt": "2026-01-02T11:59:00Z"}
+
+
+async def test_student_triggered_score_sets_submitted_at_to_timestamp():
+    sent = await _send(
+        [(_lti_user(), 5)],
+        return_payloads=True,
+    )
+
+    assert sent[0]["submission"] == {"submittedAt": sent[0]["timestamp"]}
 
 
 async def test_a_user_with_no_lti_mapping_is_skipped_not_fatal():

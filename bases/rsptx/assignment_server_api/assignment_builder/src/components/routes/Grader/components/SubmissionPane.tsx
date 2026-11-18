@@ -1,17 +1,18 @@
 import { Slider } from "@mantine/core";
-import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
-
-import { Icon } from "@/components/ui/Icon";
 import {
   GraderAnswerHistoryItem,
   GraderStudentAnswer,
   useGetGraderHistoryQuery
 } from "@store/grader/grader.logic.api";
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import styles from "../Grader.module.css";
-import { getDemoHistoryFor } from "../tour/graderDemoData";
 import { useGraderTourContext } from "../tour/GraderTourContext";
-import { AnswerRenderer } from "./questionTypes/AnswerRenderer";
+import { getDemoHistoryFor } from "../tour/graderDemoData";
+
+import { AnswerRenderer, formatCompactAnswer } from "./questionTypes";
 import { CorrectChipKind, correctChipKind, formatAnswer } from "./submissionPaneHelpers";
 
 interface Props {
@@ -39,6 +40,7 @@ const correctChip = (
   h: Pick<GraderAnswerHistoryItem, "correct" | "percent">
 ): { label: string; cls: string } | null => {
   const kind = correctChipKind(h);
+
   return kind ? { label: kind, cls: CHIP_CLASS[kind] } : null;
 };
 
@@ -52,6 +54,8 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
     { skip: isDemo }
   );
 
+  // TODO(eslint): Stabilize history without changing demo or query update behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const history: GraderAnswerHistoryItem[] = isDemo
     ? getDemoHistoryFor(student.sid).history
     : (historyData?.history ?? []);
@@ -82,6 +86,8 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
       nextAttempt: goNextAttempt
     }),
 
+    // TODO(eslint): Audit the imperative handle dependencies without changing navigation behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [totalAttempts]
   );
 
@@ -89,7 +95,7 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
     <div className={styles.submissionPane} data-tour="grader-preview-pane">
       <div className={styles.attemptBar} data-tour="grader-history">
         <div className={styles.attemptBarRow}>
-          <span className={styles.attemptLabel}>
+          <span className={styles.attemptLabel} role="status" aria-live="polite" aria-atomic="true">
             <Icon name="history" size={14} />
             <strong>
               {totalAttempts > 0
@@ -134,6 +140,7 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
             max={totalAttempts - 1}
             step={1}
             className={styles.attemptSlider}
+            thumbLabel={`Attempt ${activeAttempt + 1} of ${totalAttempts}`}
           />
         )}
       </div>
@@ -163,6 +170,8 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
               const c = correctChip(h);
               const active = idx === activeAttempt;
               const raw = formatAnswer(h.answer);
+              const summary = formatCompactAnswer(questionType, raw, htmlsrc);
+
               return (
                 <button
                   type="button"
@@ -180,8 +189,8 @@ export const SubmissionPane = forwardRef<SubmissionPaneHandle, Props>(function S
                     )}
                   </div>
                   <div className={styles.historyAnswer}>
-                    {raw.slice(0, 200) || "(empty)"}
-                    {raw.length > 200 ? "…" : ""}
+                    {summary.slice(0, 200) || "(empty)"}
+                    {summary.length > 200 ? "…" : ""}
                   </div>
                 </button>
               );

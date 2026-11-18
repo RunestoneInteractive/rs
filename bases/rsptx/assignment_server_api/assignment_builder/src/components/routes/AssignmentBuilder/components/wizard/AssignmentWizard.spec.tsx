@@ -130,9 +130,7 @@ describe("AssignmentWizard", () => {
   it("renders the active step title as the page h1", () => {
     renderWithMantine(<Harness wizardStep="basic" />);
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Basic information" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Basic information" })).toHaveFocus();
   });
 
   it("disables Create assignment while the creation request is pending", () => {

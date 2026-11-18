@@ -37,6 +37,7 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
   question_type: "mchoice",
   statement: "",
   forceCheckboxes: false,
+  random: false,
   optionList: [
     {
       id: `option-${crypto.randomUUID()}`,
@@ -59,7 +60,8 @@ const generateExerciseHtmlSrc = (data: Partial<CreateExerciseFormType>): string 
     data.statement || "",
     (data.optionList || []) as OptionWithId[],
     data.name || "",
-    data.forceCheckboxes
+    data.forceCheckboxes,
+    data.random
   );
 };
 
@@ -159,6 +161,7 @@ export const MultiChoiceExercise: FC<BaseExerciseProps> = ({
             options={(formData.optionList || []) as OptionWithId[]}
             questionName={formData.name || ""}
             forceCheckboxes={formData.forceCheckboxes}
+            random={formData.random}
           />
         );
       default:

@@ -27,11 +27,10 @@ import {
   SortingState,
   useReactTable
 } from "@tanstack/react-table";
-import React, { RefCallback, useMemo, useState } from "react";
-
-import { Icon } from "./Icon";
+import React, { RefCallback, useEffect, useMemo, useState } from "react";
 
 import styles from "./DataGrid.module.css";
+import { Icon } from "./Icon";
 
 export type DataGridFilter<TData extends RowData, TValue> =
   | { variant: "text"; placeholder?: string }
@@ -85,6 +84,10 @@ export interface DataGridProps<T> {
   initialSorting?: SortingState;
   loading?: boolean;
   emptyMessage?: React.ReactNode;
+  filterResultsLabel?: string;
+  showFilterResultsStatus?: boolean;
+  filterResultsTotal?: number;
+  tableFrameClassName?: string;
   ariaLabel?: string;
   minWidth?: number;
   fillHeight?: boolean;
@@ -114,6 +117,7 @@ function getColumnFilterLabel<T>(column: Column<T, unknown>): string {
 
 function ColumnFilterControl<T>({ column }: { column: Column<T, unknown> }) {
   const filter = column.columnDef.meta?.filter;
+
   if (!filter) return null;
 
   if (filter.variant === "custom") {
@@ -187,6 +191,10 @@ export function DataGrid<T>({
   initialSorting = [],
   loading = false,
   emptyMessage = "Nothing here yet",
+  showFilterResultsStatus = true,
+  filterResultsLabel = "results",
+  filterResultsTotal = data.length,
+  tableFrameClassName,
   ariaLabel,
   minWidth = 0,
   fillHeight = false,
@@ -201,6 +209,7 @@ export function DataGrid<T>({
     pageSize: initialPageSize
   });
   const [internalSelection, setInternalSelection] = useState<RowSelectionState>({});
+  const [keyboardRowId, setKeyboardRowId] = useState<string | null>(null);
 
   const sorting = controlledSorting ?? internalSorting;
   const setSorting = onSortingChange ?? setInternalSorting;
@@ -243,6 +252,22 @@ export function DataGrid<T>({
 
   const resolvedPageCount = table.getPageCount();
   const rows = table.getRowModel().rows;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const announcesFilterResults =
+    showFilterResultsStatus && (enableGlobalFilter || enableColumnFilters);
+  const tabbableRowId = rows.some((row) => row.id === keyboardRowId) ? keyboardRowId : rows[0]?.id;
+
+  // Column filters shrink the table from the inside, so a page index that came
+  // from somewhere else (a restored preference, say) can point past the last
+  // page — where the pager is hidden and the table just looks empty.
+  useEffect(() => {
+    if (loading || resolvedPageCount === 0) {
+      return;
+    }
+    if (pagination.pageIndex > resolvedPageCount - 1) {
+      setPagination((p) => ({ ...p, pageIndex: resolvedPageCount - 1 }));
+    }
+  }, [loading, resolvedPageCount, pagination.pageIndex, setPagination]);
 
   const sizeData = useMemo(
     () => pageSizeOptions.map((n) => ({ value: String(n), label: String(n) })),
@@ -302,13 +327,14 @@ export function DataGrid<T>({
             <Table.Tr key={`filter-${hg.id}`}>
               {hg.headers.map((header) => {
                 const meta = header.column.columnDef.meta;
+
                 return (
-                  <Table.Th
+                  <Table.Td
                     key={header.id}
                     style={{ ...meta?.headerStyle, padding: "4px 8px", fontWeight: 400 }}
                   >
                     {meta?.filter ? <ColumnFilterControl column={header.column} /> : null}
-                  </Table.Th>
+                  </Table.Td>
                 );
               })}
             </Table.Tr>
@@ -336,12 +362,59 @@ export function DataGrid<T>({
             <Table.Tr
               key={row.id}
               onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+              onFocus={
+                onRowClick
+                  ? (event) => {
+                      if (event.target === event.currentTarget) setKeyboardRowId(row.id);
+                    }
+                  : undefined
+              }
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.target !== event.currentTarget) return;
+
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onRowClick(row.original);
+                        return;
+                      }
+
+                      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+
+                      const rowElements = Array.from(
+                        event.currentTarget.parentElement?.querySelectorAll<HTMLElement>(
+                          "tr[data-clickable-row='true']"
+                        ) ?? []
+                      );
+                      const currentIndex = rowElements.indexOf(event.currentTarget);
+
+                      if (currentIndex < 0 || rowElements.length === 0) return;
+
+                      event.preventDefault();
+                      const nextIndex =
+                        event.key === "Home"
+                          ? 0
+                          : event.key === "End"
+                            ? rowElements.length - 1
+                            : event.key === "ArrowDown"
+                              ? Math.min(currentIndex + 1, rowElements.length - 1)
+                              : Math.max(currentIndex - 1, 0);
+
+                      rowElements[nextIndex].focus();
+                    }
+                  : undefined
+              }
+              tabIndex={onRowClick ? (row.id === tabbableRowId ? 0 : -1) : undefined}
+              data-clickable-row={onRowClick ? "true" : undefined}
+              className={onRowClick ? styles.clickableRow : undefined}
               style={onRowClick ? { cursor: "pointer" } : undefined}
               data-selected={row.getIsSelected() || undefined}
             >
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta;
                 const onCellClick = meta?.onCellClick;
+
                 return (
                   <Table.Td
                     key={cell.id}
@@ -360,25 +433,8 @@ export function DataGrid<T>({
     </Table>
   );
 
-  return (
-    <div
-      data-tour={rest["data-tour"]}
-      className={fillHeight ? styles.rootFill : undefined}
-      aria-busy={loading || undefined}
-    >
-      {enableGlobalFilter && (
-        <Group justify="flex-end" mb="sm">
-          <TextInput
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.currentTarget.value)}
-            placeholder={globalFilterPlaceholder}
-            aria-label={globalFilterPlaceholder}
-            leftSection={<Icon name="search" />}
-            size="sm"
-          />
-        </Group>
-      )}
-
+  const tableContent = (
+    <>
       {fillHeight ? (
         <div className={styles.scrollFill}>
           {scrollSentinelRef && (
@@ -427,6 +483,39 @@ export function DataGrid<T>({
           />
         )}
       </Group>
+    </>
+  );
+
+  return (
+    <div
+      data-tour={rest["data-tour"]}
+      className={fillHeight ? styles.rootFill : undefined}
+      aria-busy={loading || undefined}
+    >
+      {enableGlobalFilter && (
+        <Group justify="flex-end" mb="sm">
+          <TextInput
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.currentTarget.value)}
+            placeholder={globalFilterPlaceholder}
+            aria-label={globalFilterPlaceholder}
+            leftSection={<Icon name="search" />}
+            size="sm"
+          />
+        </Group>
+      )}
+
+      {announcesFilterResults && !loading && (
+        <Text size="sm" c="dimmed" mb="xs" role="status" aria-live="polite" aria-atomic="true">
+          {filteredRowCount} of {filterResultsTotal} {filterResultsLabel} shown.
+        </Text>
+      )}
+
+      {tableFrameClassName ? (
+        <div className={tableFrameClassName}>{tableContent}</div>
+      ) : (
+        tableContent
+      )}
     </div>
   );
 }

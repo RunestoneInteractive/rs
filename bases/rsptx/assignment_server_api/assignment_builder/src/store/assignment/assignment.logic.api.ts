@@ -12,6 +12,18 @@ import {
   GetAssignmentResponse,
   GetAssignmentsResponse
 } from "@/types/assignment";
+import {
+  ImportAssignmentResult,
+  ImportCourseResult,
+  ShareableTreeRequest,
+  ShareableTreeResponse,
+  SharedAssignmentPreview
+} from "@/types/assignmentSharing";
+
+export interface BulkActionResult {
+  succeeded: number;
+  failed: number;
+}
 
 export const ASSIGNMENT_TOAST_COPY = {
   loadAssignmentsError: "Couldn't load assignments. Refresh the page.",
@@ -23,14 +35,54 @@ export const ASSIGNMENT_TOAST_COPY = {
   deleted: "Assignment deleted",
   deleteError: "Couldn't delete assignment. Try again.",
   duplicated: (name: string) => `Assignment duplicated as "${name}"`,
-  duplicateError: "Couldn't duplicate assignment. Try again."
+  duplicateError: "Couldn't duplicate assignment. Try again.",
+  previewSharedError: "Couldn't load that assignment. It may no longer be shared.",
+  imported: (name: string, skippedReadings: number) =>
+    skippedReadings > 0
+      ? `Imported as "${name}", without ${skippedReadings} reading${
+          skippedReadings === 1 ? "" : "s"
+        } that belong to the other book. It is hidden until you make it visible.`
+      : `Imported as "${name}". It is hidden until you make it visible.`,
+  importError: "Couldn't import assignment. It may no longer be shared.",
+  // Shown separately from the success toast so it doesn't get lost inside a
+  // longer message -- the instructor needs to notice and go fix the timezone.
+  duedateWarning: (duedateWarning: string) => duedateWarning,
+  loadTreeError: "Couldn't load shared assignments. Try again.",
+  // Partial success is a normal outcome for a multi-import, so the toast counts
+  // rather than claiming everything worked.
+  importedMany: (result: {
+    imported: string[];
+    skipped_existing: string[];
+    skipped_readings: number;
+    failed: string[];
+    duedate_not_shifted: number;
+  }) => {
+    const parts = [`Imported ${result.imported.length}`];
+
+    if (result.skipped_existing.length) {
+      parts.push(`${result.skipped_existing.length} already in your course`);
+    }
+    if (result.failed.length) {
+      parts.push(`${result.failed.length} couldn't be imported`);
+    }
+    if (result.skipped_readings) {
+      parts.push(`${result.skipped_readings} readings left behind`);
+    }
+    if (result.duedate_not_shifted) {
+      parts.push(`${result.duedate_not_shifted} due dates not adjusted`);
+    }
+    return `${parts.join(", ")}. Imports are hidden until you make them visible.`;
+  },
+  bulkDeleted: (count: number) => `Deleted ${count} ${count === 1 ? "assignment" : "assignments"}`,
+  bulkDeleteError: (count: number) =>
+    `Couldn't delete ${count} ${count === 1 ? "assignment" : "assignments"}. Try again.`
 } as const;
 
 export const assignmentApi = createApi({
   reducerPath: "assignmentAPI",
   keepUnusedDataFor: 60, //change to 0 for tests,
   baseQuery: baseQuery,
-  tagTypes: ["Assignments", "Exercises", "Assignment"],
+  tagTypes: ["Assignments", "Exercises", "Assignment", "ShareableTree"],
   endpoints: (build) => ({
     getAssignments: build.query<Assignment[], void>({
       query: () => ({
@@ -183,6 +235,139 @@ export const assignmentApi = createApi({
             notify.error(ASSIGNMENT_TOAST_COPY.duplicateError);
           });
       }
+    }),
+    previewSharedAssignment: build.query<SharedAssignmentPreview, number>({
+      query: (assignmentId) => ({
+        method: "GET",
+        url: `/assignment/instructor/assignments/${assignmentId}/preview`
+      }),
+      keepUnusedDataFor: 0.1,
+      transformResponse: (response: DetailResponse<SharedAssignmentPreview>) => response.detail,
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled.catch(() => {
+          notify.error(ASSIGNMENT_TOAST_COPY.previewSharedError);
+        });
+      }
+    }),
+    shareableTree: build.query<ShareableTreeResponse, ShareableTreeRequest>({
+      query: ({ search, use_base_course, only_my_courses, page, limit }) => ({
+        method: "GET",
+        url: "/assignment/instructor/shareable_tree",
+        params: { search, use_base_course, only_my_courses, page, limit }
+      }),
+      providesTags: ["ShareableTree"],
+      transformResponse: (response: DetailResponse<ShareableTreeResponse>) => response.detail,
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled.catch(() => {
+          notify.error(ASSIGNMENT_TOAST_COPY.loadTreeError);
+        });
+      }
+    }),
+    importCourseAssignments: build.mutation<DetailResponse<ImportCourseResult>, number>({
+      query: (sourceCourseId) => ({
+        method: "POST",
+        url: "/assignment/instructor/assignments/import_course",
+        body: { source_course_id: sourceCourseId }
+      }),
+      invalidatesTags: (_, error) =>
+        error ? [] : [{ type: "Assignments" as const }, { type: "ShareableTree" as const }],
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            notify.success(ASSIGNMENT_TOAST_COPY.importedMany(data.detail));
+            if (data.detail.duedate_not_shifted) {
+              notify.info(
+                ASSIGNMENT_TOAST_COPY.duedateWarning(
+                  "Some due dates could not be adjusted because a course timezone " +
+                    "setting is invalid. Update it in Course Settings, then check " +
+                    "the affected assignments."
+                )
+              );
+            }
+          })
+          .catch(() => {
+            notify.error(ASSIGNMENT_TOAST_COPY.importError);
+          });
+      }
+    }),
+    importAssignment: build.mutation<DetailResponse<ImportAssignmentResult>, number>({
+      query: (assignmentId) => ({
+        method: "POST",
+        url: `/assignment/instructor/assignments/${assignmentId}/import`
+      }),
+      invalidatesTags: (_, error) =>
+        error ? [] : [{ type: "Assignments" as const }, { type: "ShareableTree" as const }],
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            notify.success(
+              ASSIGNMENT_TOAST_COPY.imported(data.detail.name, data.detail.skipped_readings)
+            );
+            if (data.detail.duedate_warning) {
+              notify.info(ASSIGNMENT_TOAST_COPY.duedateWarning(data.detail.duedate_warning));
+            }
+          })
+          .catch(() => {
+            notify.error(ASSIGNMENT_TOAST_COPY.importError);
+          });
+      }
+    }),
+    bulkUpdateAssignments: build.mutation<BulkActionResult, Assignment[]>({
+      queryFn: async (assignments, _api, _extraOptions, fetchWithBQ) => {
+        const results = await Promise.all(
+          assignments.map((assignment) =>
+            fetchWithBQ({
+              method: "PUT",
+              url: `/assignment/instructor/assignments/${assignment.id}`,
+              body: assignment
+            })
+          )
+        );
+        const failed = results.filter((result) => result.error).length;
+
+        return { data: { succeeded: assignments.length - failed, failed } };
+      },
+      invalidatesTags: (result) => {
+        if (result && result.succeeded > 0) {
+          return [{ type: "Assignments" }, { type: "Assignment" }];
+        }
+        return [];
+      }
+    }),
+    bulkRemoveAssignments: build.mutation<BulkActionResult, Assignment[]>({
+      queryFn: async (assignments, _api, _extraOptions, fetchWithBQ) => {
+        const results = await Promise.all(
+          assignments.map((assignment) =>
+            fetchWithBQ({
+              method: "DELETE",
+              url: `/assignment/instructor/assignments/${assignment.id}`
+            })
+          )
+        );
+        const failed = results.filter((result) => result.error).length;
+
+        return { data: { succeeded: assignments.length - failed, failed } };
+      },
+      invalidatesTags: (result) => {
+        if (result && result.succeeded > 0) {
+          return [{ type: "Assignments" }];
+        }
+        return [];
+      },
+      onQueryStarted: (_, { queryFulfilled }) => {
+        queryFulfilled
+          .then(({ data }) => {
+            if (data.succeeded > 0) {
+              notify.success(ASSIGNMENT_TOAST_COPY.bulkDeleted(data.succeeded));
+            }
+            if (data.failed > 0) {
+              notify.error(ASSIGNMENT_TOAST_COPY.bulkDeleteError(data.failed));
+            }
+          })
+          .catch(() => {
+            notify.error(ASSIGNMENT_TOAST_COPY.deleteError);
+          });
+      }
     })
   })
 });
@@ -193,5 +378,11 @@ export const {
   useUpdateAssignmentMutation,
   useCreateAssignmentMutation,
   useRemoveAssignmentMutation,
-  useDuplicateAssignmentMutation
+  useDuplicateAssignmentMutation,
+  useShareableTreeQuery,
+  usePreviewSharedAssignmentQuery,
+  useImportAssignmentMutation,
+  useImportCourseAssignmentsMutation,
+  useBulkUpdateAssignmentsMutation,
+  useBulkRemoveAssignmentsMutation
 } = assignmentApi;

@@ -11,6 +11,7 @@ import aiohttp
 import typing_extensions as te
 from .exception import LtiServiceException, LtiException
 from .registration import Registration
+from rsptx.logging import rslogger
 
 TServiceConnectorResponse = te.TypedDict(
     "TServiceConnectorResponse",
@@ -113,9 +114,15 @@ class ServiceConnector:
         try:
             r = await self._requests_session.post(auth_url, data=auth_request)
             if not r.ok:
+                rslogger.debug(
+                    f"get_access_token post failed: {r.status} - {r.reason}. Headers: {r.headers}."
+                )
                 raise LtiServiceException(r)
         except Exception:
             raw_body = await r.text()
+            rslogger.debug(
+                f"get_access_token exception caught: {r.status} - {r.reason}. Headers: {r.headers}."
+            )
             raise LtiServiceException(r)
         if r.content_type == "application/json":
             response = await r.json()
@@ -127,6 +134,9 @@ class ServiceConnector:
                 response = json.loads(raw_body)
             except json.JSONDecodeError:
                 r.reason = "JSON decode error"
+                rslogger.debug(
+                    f"get_access_token json decode error: {r.status} - {r.reason}. Headers: {r.headers}. Full body: {raw_body}"
+                )
                 raise LtiServiceException(r)
 
         self._access_tokens[scope_key] = response["access_token"]
@@ -182,6 +192,10 @@ class ServiceConnector:
             raise LtiException("Unsupported HTTP method: " + method)
 
         if not r.ok:
+            # Detailed logging of the response should only be required for debugging
+            rslogger.debug(
+                f"Service request failed: {r.status} - {r.reason}. Headers: {r.headers}. Full response: {r.__dict__}"
+            )
             raise LtiServiceException(r)
 
         next_page_url = None
@@ -198,9 +212,17 @@ class ServiceConnector:
         json_body = None
         try:
             json_body = await r.json()
-        except json.JSONDecodeError:
-            text = await r.text()
-            raise LtiException(text)
+        except (aiohttp.ContentTypeError, json.JSONDecodeError):
+            # An AGS score POST legitimately answers 200 with an empty body and
+            # no content type (D2L does this), and Moodle is known to serve JSON
+            # as text/html -- aiohttp refuses both on mimetype alone. Only a
+            # non-empty body we cannot parse is a real error.
+            text = (await r.text()).strip()
+            if text:
+                try:
+                    json_body = json.loads(text)
+                except json.JSONDecodeError:
+                    raise LtiException(text)
 
         return {
             "headers": r.headers if case_insensitive_headers else dict(r.headers),

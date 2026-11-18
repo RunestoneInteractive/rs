@@ -1,3 +1,4 @@
+import { notify } from "@components/ui/notify";
 import userEvent from "@testing-library/user-event";
 import { FC } from "react";
 
@@ -30,8 +31,6 @@ vi.mock("@components/ui/notify", () => ({
     clean: vi.fn()
   }
 }));
-
-import { notify } from "@components/ui/notify";
 
 vi.mock("@/hooks/useReadingsSelector", () => ({
   useReadingsSelector: () => ({ readingExercises: [{ id: 1, question_json: {} }] })

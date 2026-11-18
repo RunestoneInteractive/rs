@@ -1,78 +1,120 @@
-import "./App.css";
 import { AppNavBar } from "@components/shell/AppNavBar";
 import { useScrollShadow } from "@components/shell/useScrollShadow";
+import {
+  useGetRecentInstructorCoursesQuery,
+  useSwitchInstructorCourseMutation
+} from "@store/course/course.logic.api";
+import { userSelectors } from "@store/user/userLogic";
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import {
-  createBrowserRouter,
+  Navigate,
+  Outlet,
   RouterProvider,
-  useNavigate,
+  createBrowserRouter,
   useLocation,
-  Outlet
+  useNavigate
 } from "react-router-dom";
+import "./App.css";
 
 import { routerService } from "@/router";
 
 import shellStyles from "./components/shell/AppShell.module.css";
-import { buildNavBar } from "./navUtils.js";
-import AssignmentEditor, { MoreOptions, AddQuestionTabGroup } from "./renderers/assignment.jsx";
-import { AssignmentPicker } from "./renderers/assignmentPicker.jsx";
 import {
-  AssignmentQuestion,
-  problemColumnSpec,
-  problemColumns,
-  readingColumnSpec,
-  readingColumns
-} from "./renderers/assignmentQuestion.jsx";
-import { AssignmentSummary } from "./renderers/assignmentSummary.jsx";
-import { ExceptionScheduler } from "./renderers/exceptionScheduler.jsx";
-import { selectIsAuthorized } from "./state/assignment/assignSlice.js";
+  getRestoredCourseDestination,
+  markCourseSwitch,
+  reconcileServerCourse,
+  syncCourseHistoryEntry
+} from "./courseHistory";
+import { buildNavBar, getCourseSwitchDestination } from "./navUtils.js";
 
 import "katex/dist/katex.min.css";
 
-function OldAssignmentBuilder() {
-  return (
-    <>
-      {" "}
-      <div className="App card flex justify-content-center">
-        <h1 className="App" style={{ marginBottom: "1rem" }}>
-          Assignment Builder
-        </h1>
-      </div>
-      <AssignmentEditor />
-      <MoreOptions />
-      <AssignmentQuestion
-        headerTitle="Sections to read"
-        columns={readingColumns}
-        columnSpecs={readingColumnSpec}
-        isReading={true}
-      />
-      <AssignmentQuestion
-        headerTitle="Graded exercises"
-        columns={problemColumns}
-        columnSpecs={problemColumnSpec}
-      />
-      <AddQuestionTabGroup />
-    </>
-  );
-}
-
-function AssignmentGraderOld() {
-  return (
-    <div className="App">
-      <h1>Assignment grader (legacy)</h1>
-      <AssignmentPicker />
-      <AssignmentSummary />
-    </div>
-  );
-}
-
-const FULL_BLEED_ROUTE = /^\/(grader|builder)(\/|$)/;
+const FULL_BLEED_ROUTE = /^\/(grader|gradebook|builder)(\/|$)/;
 
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { sentinelRef, scrolled } = useScrollShadow();
-  const items = buildNavBar(window.eBookConfig, navigate);
+  const { data: instructorCourses = [], refetch: refetchInstructorCourses } =
+    useGetRecentInstructorCoursesQuery(undefined, {
+      skip: window.eBookConfig.isInstructor === false
+    });
+  const [switchInstructorCourse, { isLoading: isSwitchingCourse }] =
+    useSwitchInstructorCourseMutation();
+  const currentCourse = window.eBookConfig.course ?? "";
+  const serverCourse = instructorCourses.find(({ is_current }) => is_current)?.course_name;
+
+  useEffect(() => {
+    const redirectToServerCourse = (courseName: string | undefined): boolean => {
+      const destination = reconcileServerCourse(currentCourse, courseName, location.pathname);
+
+      if (!destination) return false;
+
+      window.location.replace(destination);
+      return true;
+    };
+
+    if (redirectToServerCourse(serverCourse)) return;
+
+    const destination = syncCourseHistoryEntry(currentCourse, location.pathname);
+
+    if (destination) {
+      window.location.replace(destination);
+      return;
+    }
+
+    let cancelled = false;
+    const handlePageShow = async (event: PageTransitionEvent) => {
+      if (event.persisted && window.eBookConfig.isInstructor !== false) {
+        try {
+          const refreshed = await refetchInstructorCourses();
+
+          if (cancelled) return;
+
+          const restoredServerCourse = refreshed.data?.find(
+            ({ is_current }) => is_current
+          )?.course_name;
+
+          if (redirectToServerCourse(restoredServerCourse)) return;
+        } catch {
+          // Fall back to the local history checks when the refresh is unavailable.
+        }
+      }
+
+      const restoredDestination = getRestoredCourseDestination(
+        event.persisted,
+        currentCourse,
+        location.pathname
+      );
+
+      if (restoredDestination) {
+        window.location.replace(restoredDestination);
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [currentCourse, location.key, location.pathname, refetchInstructorCourses, serverCourse]);
+
+  const handleCourseSwitch = async (courseName: string) => {
+    try {
+      await switchInstructorCourse(courseName).unwrap();
+      markCourseSwitch(courseName);
+      window.location.replace(getCourseSwitchDestination(location.pathname));
+    } catch {
+      return;
+    }
+  };
+  const items = buildNavBar(window.eBookConfig, navigate, {
+    courses: instructorCourses,
+    onSwitch: handleCourseSwitch,
+    isSwitching: isSwitchingCourse
+  });
   const isFullBleedRoute = FULL_BLEED_ROUTE.test(location.pathname);
 
   return (
@@ -93,7 +135,7 @@ function AppContent() {
 }
 
 function App() {
-  if (useSelector(selectIsAuthorized) === false) {
+  if (useSelector(userSelectors.getIsAuthorized) === false) {
     return (
       <div>
         <h1 className="App">Assignment Builder</h1>
@@ -159,13 +201,10 @@ function App() {
               ]
             },
             {
-              path: "builderV2",
-              element: <OldAssignmentBuilder />
-            },
-            {
               path: "grader",
               async lazy() {
                 const { Grader } = await import("@components/routes/Grader");
+
                 return { Component: Grader };
               },
               children: [
@@ -173,20 +212,19 @@ function App() {
                   index: true,
                   async lazy() {
                     const { GraderAssignmentsPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderAssignmentsPage };
                   }
                 },
                 {
                   path: "gradebook",
-                  async lazy() {
-                    const { GraderGradebookPage } = await import("@components/routes/Grader");
-                    return { Component: GraderGradebookPage };
-                  }
+                  element: <Navigate to="/gradebook" replace />
                 },
                 {
                   path: ":assignmentId",
                   async lazy() {
                     const { GraderQuestionsPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionsPage };
                   }
                 },
@@ -194,6 +232,7 @@ function App() {
                   path: ":assignmentId/questions/:questionId",
                   async lazy() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionPage };
                   }
                 },
@@ -201,6 +240,7 @@ function App() {
                   path: ":assignmentId/questions/:questionId/students/:sid",
                   async lazy() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionPage };
                   }
                 },
@@ -208,22 +248,41 @@ function App() {
                   path: ":assignmentId/questions/:questionId/:sid",
                   async lazy() {
                     const { GraderQuestionPage } = await import("@components/routes/Grader");
+
                     return { Component: GraderQuestionPage };
                   }
                 }
               ]
             },
             {
-              path: "graderOld",
-              element: <AssignmentGraderOld />
+              path: "gradebook",
+              async lazy() {
+                const { Grader } = await import("@components/routes/Grader");
+
+                return { Component: Grader };
+              },
+              children: [
+                {
+                  index: true,
+                  async lazy() {
+                    const { GraderGradebookPage } = await import("@components/routes/Grader");
+
+                    return { Component: GraderGradebookPage };
+                  }
+                }
+              ]
+            },
+            {
+              path: "except",
+              async lazy() {
+                const { Accommodations } = await import("@components/routes/Accommodations");
+
+                return { Component: Accommodations };
+              }
             },
             {
               path: "admin",
               element: <h1>Coming soon</h1>
-            },
-            {
-              path: "except",
-              element: <ExceptionScheduler />
             }
           ]
         }

@@ -32,6 +32,7 @@ export const formatUTCDateForDisplay = (
   options?: Intl.DateTimeFormatOptions
 ): string => {
   const date = parseUTCDate(utcString);
+
   return date.toLocaleDateString(undefined, options);
 };
 
@@ -40,5 +41,6 @@ export const formatUTCDateForDisplay = (
  */
 export const formatUTCDateLocaleString = (utcString: string): string => {
   const date = parseUTCDate(utcString);
+
   return date.toLocaleString();
 };

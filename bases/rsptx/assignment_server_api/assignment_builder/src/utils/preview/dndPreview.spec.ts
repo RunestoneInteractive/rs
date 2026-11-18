@@ -1,6 +1,6 @@
-import { generateDragAndDropPreview } from "./dndPreview";
-
 import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
+import { generateDragAndDropPreview } from "./dndPreview";
 
 const baseLeft = [
   { id: "l1", label: "Apple" },
@@ -111,7 +111,7 @@ describe("generateDragAndDropPreview", () => {
       name: "placeholderTest"
     });
 
-    expect(result).toContain('for="placeholderTest_placeholder"');
+    expect(result).toContain('for="placeholderTest_placeholder_r2"');
     expect(result).toContain("Plant");
   });
 
@@ -223,7 +223,81 @@ describe("generateDragAndDropPreview", () => {
     });
 
     const dropzoneMatches = [...result.matchAll(/data-subcomponent="dropzone"/g)];
+
     expect(dropzoneMatches.length).toBe(1);
+  });
+
+  it("gives every premise sharing a dropzone the same category as that dropzone", () => {
+    const result = generateDragAndDropPreview({
+      left: [
+        { id: "l1", label: "Corn" },
+        { id: "l2", label: "Peas" },
+        { id: "l3", label: "Pear" }
+      ],
+      right: [
+        { id: "r1", label: "Vegetable" },
+        { id: "r2", label: "Fruit" }
+      ],
+      correctAnswers: [
+        ["l1", "r1"],
+        ["l2", "r1"],
+        ["l3", "r2"]
+      ],
+      feedback: "Try again.",
+      name: "manyToOne"
+    });
+
+    expect(result).toContain(
+      '<li data-subcomponent="draggable" id="manyToOne_drag_l1" data-category="manyToOne_cat_r1">Corn</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="draggable" id="manyToOne_drag_l2" data-category="manyToOne_cat_r1">Peas</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="dropzone" for="manyToOne_drag_l1" data-category="manyToOne_cat_r1">Vegetable</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="draggable" id="manyToOne_drag_l3" data-category="manyToOne_cat_r2">Pear</li>'
+    );
+    expect(result).toContain(
+      '<li data-subcomponent="dropzone" for="manyToOne_drag_l3" data-category="manyToOne_cat_r2">Fruit</li>'
+    );
+  });
+
+  it("emits a premise only once when it is linked to several dropzones", () => {
+    const result = generateDragAndDropPreview({
+      left: [{ id: "l1", label: "Cat" }],
+      right: [
+        { id: "r1", label: "Animal" },
+        { id: "r2", label: "Pet" }
+      ],
+      correctAnswers: [
+        ["l1", "r1"],
+        ["l1", "r2"]
+      ],
+      feedback: "Try again.",
+      name: "multiLink"
+    });
+
+    const draggableMatches = [...result.matchAll(/data-subcomponent="draggable"/g)];
+
+    expect(draggableMatches.length).toBe(1);
+  });
+
+  it("gives each unmatched right item its own placeholder id", () => {
+    const result = generateDragAndDropPreview({
+      left: [],
+      right: [
+        { id: "r1", label: "Animal" },
+        { id: "r2", label: "Plant" }
+      ],
+      correctAnswers: [],
+      feedback: "Try again.",
+      name: "twoPlaceholders"
+    });
+
+    expect(result).toContain('for="twoPlaceholders_placeholder_r1"');
+    expect(result).toContain('for="twoPlaceholders_placeholder_r2"');
   });
 
   it("generates a valid fallback id when name contains only special characters", () => {
@@ -249,5 +323,59 @@ describe("generateDragAndDropPreview", () => {
 
     expect(result).toContain('data-subcomponent="draggable"');
     expect(result).toContain('data-subcomponent="dropzone"');
+  });
+});
+
+describe("generateDragAndDropPreview with feedback on cards", () => {
+  const parseJson = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const script = doc.querySelector('[data-component="dragndrop"] script');
+
+    expect(script?.getAttribute("type")).toBe("application/json");
+
+    return JSON.parse(script?.textContent || "");
+  };
+
+  it("writes a JSON script block that keeps each card's feedback", () => {
+    const result = generateDragAndDropPreview({
+      left: [baseLeft[0], { ...baseLeft[1], feedback: "<p>Bananas are yellow.</p>" }],
+      right: [{ ...baseRight[0], feedback: "Only red fruit." }, baseRight[1]],
+      correctAnswers: baseCorrectAnswers,
+      feedback: "Try again.",
+      name: "cards",
+      statement: "Sort the fruit."
+    });
+
+    expect(result).toContain('id="cards"');
+    expect(result).not.toContain("data-subcomponent");
+    expect(parseJson(result)).toEqual({
+      statement: "Sort the fruit.",
+      feedback: "Try again.",
+      left: [
+        { id: "cards_l1", label: "Apple" },
+        { id: "cards_l2", label: "Banana", feedback: "<p>Bananas are yellow.</p>" }
+      ],
+      right: [
+        { id: "cards_r1", label: "Red fruit", feedback: "Only red fruit." },
+        { id: "cards_r2", label: "Yellow fruit" }
+      ],
+      correctAnswers: [
+        ["cards_l1", "cards_r1"],
+        ["cards_l2", "cards_r2"]
+      ]
+    });
+  });
+
+  it("escapes closing tags so the script element is not cut short", () => {
+    const result = generateDragAndDropPreview({
+      left: [{ ...baseLeft[0], feedback: "</script><b>x</b>" }],
+      right: baseRight,
+      correctAnswers: [["l1", "r1"]],
+      feedback: "",
+      name: "cards"
+    });
+
+    expect(result).not.toContain("</script><b>");
+    expect(parseJson(result).left[0].feedback).toBe("</script><b>x</b>");
   });
 });

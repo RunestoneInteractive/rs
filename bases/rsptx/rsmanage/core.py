@@ -18,21 +18,23 @@ from datetime import timezone
 import json
 import os
 import re
+import shutil
 import sys
 import subprocess
 
 # third party imports
 import redis
+from fastapi import HTTPException
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
 import psycopg2
 from psycopg2.sql import Identifier, SQL
 
-
 # our own package imports
 
 from rsptx.db.crud import (
+    backfill_user_interactions,
     build_checkin_payload,
     set_last_sent,
     copy_course_attributes,
@@ -45,16 +47,24 @@ from rsptx.db.crud import (
     create_instructor_course_entry,
     create_library_book,
     create_user_course_entry,
+    delete_course_completely,
     delete_user,
     fetch_all_course_attributes,
     fetch_assignments,
+    fetch_assignment_by_name,
+    fetch_assignment_questions,
+    fetch_backfill_bounds,
     fetch_course,
     fetch_courses_by_start_date,
     fetch_courses_for_user,
+    fetch_course_by_id,
+    fetch_course_enrollment_stats,
     fetch_course_instructors,
     fetch_group,
     fetch_instructor_courses,
     fetch_library_book,
+    fetch_one_assignment,
+    fetch_unused_library_books,
     fetch_users_for_course,
     fetch_membership,
     fetch_user,
@@ -584,11 +594,11 @@ async def adduser(
 
 
 @cli.command()
-@click.option("--username", help="Username, must be unique")
+@click.argument("username", required=False)
 @click.option("--password", help="password - plaintext -- sorry")
 @pass_config
 async def resetpw(config, username, password):
-    """Utility to change a users password. Useful If they can't do it through the normal mechanism"""
+    """Change USERNAME's password. Useful If they can't do it through the normal mechanism"""
     userinfo = {}
     username = username or await click.prompt("Username")
     userinfo["password"] = password or await click.prompt("Password", hide_input=True)
@@ -603,10 +613,10 @@ async def resetpw(config, username, password):
 
 
 @cli.command()
-@click.option("--username", help="Username, must be unique")
+@click.argument("username", required=False)
 @pass_config
 async def rmuser(config, username):
-    """Utility to remove a user from the system completely."""
+    """Remove the user USERNAME from the system completely."""
 
     sid = username or await click.prompt("Username")
     await delete_user(sid)
@@ -650,12 +660,12 @@ def env(config, checkdb):
 
 
 @cli.command()
-@click.option("--username", default=None, help="user to promote to instructor")
-@click.option("--course", default=None, help="name of course")
+@click.argument("username", required=False)
+@click.argument("course", required=False)
 @pass_config
 async def addinstructor(config, username, course):
     """
-    Add an existing user as an instructor for a course
+    Add the existing user USERNAME as an instructor for COURSE
     """
 
     username = username or await click.prompt("Username")
@@ -714,12 +724,12 @@ async def addinstructor(config, username, course):
 
 
 @cli.command()
-@click.option("--username", help="user to promote to instructor", default=None)
-@click.option("--basecourse", help="name of base course", default=None)
+@click.argument("username", required=False)
+@click.argument("basecourse", required=False)
 @pass_config
 async def addeditor(config, username, basecourse):
     """
-    Add an existing user as an editor for a given base course
+    Add the existing user USERNAME as an editor for the base course BASECOURSE
     """
 
     username = username or await click.prompt("Username")
@@ -771,31 +781,36 @@ async def addeditor(config, username, basecourse):
 
 
 @cli.command()
-@click.option("--name", help="Name of the course")
+@click.argument("course_name", required=False)
+@click.option(
+    "--students",
+    is_flag=True,
+    help="Also list the first name, last name, username, and email of each student",
+)
 @pass_config
-async def courseinfo(config, name):
+async def courseinfo(config, course_name, students):
     """
-    List all information for a single course
+    List all information for the single course COURSE_NAME
 
     """
 
-    if not name:
-        name = await click.prompt("What course do you want info about?")
+    if not course_name:
+        course_name = await click.prompt("What course do you want info about?")
 
-    course = await fetch_course(name)
+    course = await fetch_course(course_name)
     if not course:
-        click.echo(f"Sorry, the course {name} does not exist")
+        click.echo(f"Sorry, the course {course_name} does not exist")
         sys.exit(-1)
     cid = course.id
     start_date = course.term_start_date
     inst = course.institution
     bc = course.base_course
 
-    student_list = await fetch_users_for_course(name)
+    student_list = await fetch_users_for_course(course_name)
     s_count = len(student_list)
-    res = await fetch_course_instructors(name)
+    res = await fetch_course_instructors(course_name)
 
-    print(f"Course Information for {name} -- ({cid})")
+    print(f"Course Information for {course_name} -- ({cid})")
     print(inst)
     print(f"timezone: {course.timezone}  Login Required: {course.login_required}")
     print(
@@ -808,19 +823,108 @@ async def courseinfo(config, name):
     for row in res:
         print(" ", row.first_name, row.last_name, row.username, row.email)
 
+    if students:
+        print("Students:")
+        for row in sorted(
+            student_list,
+            key=lambda s: ((s.last_name or "").lower(), (s.first_name or "").lower()),
+        ):
+            print(" ", row.first_name, row.last_name, row.username, row.email)
+
 
 @cli.command()
-@click.option("--student", default=None, help="Name of the student")
+@click.argument("course_name", required=False)
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Skip the confirmation prompt -- for scripted use only",
+)
 @pass_config
-async def studentinfo(config, student):
+async def deletecourse(config, course_name, force):
     """
-    display PII and all courses enrolled for a username
+    Delete COURSE_NAME and all of the data associated with it.
+
+    This is irreversible. Students enrolled in the course are not deleted; they
+    are moved to the base course and marked inactive. Base courses cannot be
+    deleted this way.
+    """
+    if not course_name:
+        course_name = await click.prompt("What course do you want to delete?")
+
+    course = await fetch_course(course_name)
+    if not course:
+        click.echo(f"Sorry, the course {course_name} does not exist")
+        sys.exit(-1)
+
+    if course.base_course == course.course_name:
+        click.echo(
+            f"{course_name} is a base course; "
+            "use the library commands to manage base courses."
+        )
+        sys.exit(-1)
+
+    stats = await fetch_course_enrollment_stats(course.id, course.course_name)
+    assignments = await fetch_assignments(course.course_name, fetch_all=True)
+    instructors = await fetch_course_instructors(course.course_name)
+
+    click.echo(f"Course: {course.course_name} ({course.id})")
+    click.echo(f"  Institution: {course.institution}")
+    click.echo(f"  Base course: {course.base_course}")
+    click.echo(f"  Start date: {course.term_start_date}")
+    click.echo(
+        f"  Students: {stats['enrolled']} enrolled, "
+        f"{stats['with_activity']} with recorded activity"
+    )
+    click.echo(f"  Last activity: {stats['last_activity'] or 'never'}")
+    click.echo(f"  Assignments: {len(assignments)}")
+    click.echo(
+        "  Instructors: "
+        + (", ".join(i.username for i in instructors) if instructors else "none")
+    )
+    click.echo("")
+    click.echo(
+        "This will permanently delete the course, its assignments and grades, and "
+        "all student work recorded in it. It cannot be undone."
+    )
+
+    if not force:
+        confirm = await click.prompt(
+            "Type the course name to confirm deletion (anything else aborts)",
+            default="",
+            show_default=False,
+        )
+        if confirm != course.course_name:
+            click.echo("Aborted -- nothing was deleted.")
+            sys.exit(1)
+
+    try:
+        deleted = await delete_course_completely(course.course_name)
+    except RuntimeError as e:
+        click.echo(f"Could not delete {course.course_name}: {e}")
+        sys.exit(-1)
+
+    if deleted:
+        click.echo(f"Deleted {course.course_name}")
+    else:
+        click.echo(f"{course.course_name} no longer exists")
+        sys.exit(-1)
+
+
+@cli.command()
+@click.argument("username", required=False)
+@pass_config
+async def studentinfo(config, username):
+    """
+    display PII and all courses enrolled for USERNAME
     """
 
+    if not username:
+        username = await click.prompt("Student Id: ")
+
+    student = await fetch_user(username)
     if not student:
-        student = await click.prompt("Student Id: ")
-
-    student = await fetch_user(student)
+        click.echo(f"Sorry, the user {username} does not exist")
+        sys.exit(-1)
     courses = await fetch_courses_for_user(student.id)
 
     print("id\tFirst\tLast\temail")
@@ -835,13 +939,94 @@ async def studentinfo(config, student):
 
 
 @cli.command()
-@click.option("--course", default=None, help="Name of the course")
-@click.option("--attr", default=None, help="Attribute to add")
-@click.option("--value", default=None, help="Attribute Value")
+@click.argument("username", required=False)
+@pass_config
+async def instructorinfo(config, username):
+    """
+    Display PII for the instructor USERNAME plus every course they teach and
+    its enrollment stats.
+    """
+
+    if not username:
+        username = await click.prompt("Instructor username")
+
+    instructor = await fetch_user(username)
+    if not instructor:
+        click.echo(f"Sorry, the user {username} does not exist")
+        sys.exit(-1)
+
+    print(f"Instructor information for {instructor.username}")
+    print(f"  id:         {instructor.id}")
+    print(f"  name:       {instructor.first_name} {instructor.last_name}")
+    print(f"  email:      {instructor.email}")
+    print(f"  active:     {instructor.active}")
+    print(f"  created on: {instructor.created_on}")
+    print(f"  home course: {instructor.course_name} ({instructor.course_id})")
+    print("")
+
+    ci_rows = await fetch_instructor_courses(instructor.id)
+    if not ci_rows:
+        print(f"{instructor.username} is not an instructor for any course.")
+        return
+
+    courses = []
+    for row in ci_rows:
+        course = await fetch_course_by_id(row.course)
+        if not course:
+            # A course_instructor row whose course is gone -- worth seeing.
+            print(f"WARNING: course id {row.course} no longer exists")
+            continue
+        stats = await fetch_course_enrollment_stats(course.id, course.course_name)
+        courses.append((course, stats))
+
+    courses.sort(key=lambda c: (c[0].term_start_date is None, c[0].term_start_date))
+
+    name_width = max([len(c.course_name) for c, _ in courses] + [len("Course")])
+    base_width = max([len(c.base_course) for c, _ in courses] + [len("Base course")])
+    header = (
+        f"{'Course'.ljust(name_width)}  {'cid'.rjust(6)}  "
+        f"{'Base course'.ljust(base_width)}  {'Term start'.ljust(10)}  "
+        f"{'Enrolled'.rjust(8)}  {'Active'.rjust(6)}  {'Worked'.rjust(6)}  "
+        "Last activity"
+    )
+    print(f"Courses taught by {instructor.username} ({len(courses)}):")
+    print(header)
+    print("-" * len(header))
+
+    total_enrolled = 0
+    total_active = 0
+    for course, stats in courses:
+        last = stats["last_activity"]
+        print(
+            f"{course.course_name.ljust(name_width)}  {str(course.id).rjust(6)}  "
+            f"{course.base_course.ljust(base_width)}  "
+            f"{str(course.term_start_date).ljust(10)}  "
+            f"{str(stats['enrolled']).rjust(8)}  {str(stats['active']).rjust(6)}  "
+            f"{str(stats['with_activity']).rjust(6)}  "
+            f"{last.strftime('%Y-%m-%d') if last else 'never'}"
+        )
+        total_enrolled += stats["enrolled"]
+        total_active += stats["active"]
+
+    print("")
+    print(
+        f"Total: {len(courses)} courses, {total_enrolled} enrollments, "
+        f"{total_active} in active accounts"
+    )
+    print(
+        "(Worked = distinct students with a recorded interaction in the course; it can "
+        "exceed Enrolled when a student has since been unenrolled)"
+    )
+
+
+@cli.command()
+@click.argument("course", required=False)
+@click.argument("attr", required=False)
+@click.argument("value", required=False)
 @pass_config
 async def addattribute(config, course, attr, value):
     """
-    Add an attribute to the `course_attributes` table
+    Add the attribute ATTR with VALUE to COURSE in the `course_attributes` table
 
     """
     course = course or await click.prompt("Name of the course ")
@@ -865,7 +1050,7 @@ async def addattribute(config, course, attr, value):
 
 
 @cli.command()
-@click.argument("course", default=None)
+@click.argument("course", required=False)
 @pass_config
 async def showattrs(config, course):
     """
@@ -887,13 +1072,11 @@ async def showattrs(config, course):
 
 
 @cli.command()
-@click.option(
-    "--course", help="The name of a course that should already exist in the DB"
-)
+@click.argument("course", required=False)
 @pass_config
 async def instructors(config, course):
     """
-    List instructor information for all courses or just for a single course
+    List instructor information for all courses, or just for COURSE
 
     """
     if course:
@@ -908,7 +1091,7 @@ async def instructors(config, course):
 
 
 @cli.command()
-@click.argument("domain", default=None)
+@click.argument("domain", required=False)
 @pass_config
 async def approvedomain(config, domain):
     """
@@ -938,14 +1121,12 @@ async def approvedomain(config, domain):
 
 
 @cli.command()
+@click.argument("course", required=False)
 @click.option("--enforce", is_flag=True, help="Enforce deadline when grading")
-@click.option(
-    "--course", help="The name of a course that should already exist in the DB"
-)
 @click.option("--pset", help="Database ID of the Problem Set")
 @pass_config
 async def grade(config, course, pset, enforce):
-    """Grade a problem set; hack for long-running grading processes"""
+    """Grade a problem set in COURSE; hack for long-running grading processes"""
     os.chdir(findProjectRoot())
 
     userinfo = {}
@@ -1157,7 +1338,12 @@ async def fixtotals(
         for a in assignments:
             assignments_scanned += 1
             changes = await recompute_totals_detail(
-                c, a, sids, dry_run=dry_run, only_existing=not create_missing
+                c,
+                a,
+                sids,
+                dry_run=dry_run,
+                only_existing=not create_missing,
+                instructor_triggered=True,
             )
             students_scanned += len(changes)
             total_manual += sum(1 for ch in changes if ch.skipped_manual)
@@ -1202,6 +1388,69 @@ async def fixtotals(
 
 
 @cli.command()
+@click.option("--basecourse", default=None, help="Limit to one book")
+@click.option(
+    "--dry-run", is_flag=True, help="Report what would change without writing"
+)
+@click.option("--yes", is_flag=True, help="Do not ask for confirmation")
+@pass_config
+def dedup_page_questions(config, basecourse, dry_run, yes):
+    """Merge duplicate page questions left behind by subchapter title changes.
+
+    Older builds inserted a new ``page`` question whenever a subchapter was
+    retitled, leaving two rows with the same chapter/subchapter.  This keeps the
+    newest row for each subchapter and moves assignment readings, tags,
+    competencies and reading grades from the stale rows onto it before deleting
+    them.  Everything runs in one transaction; --dry-run rolls it back.
+
+    \b
+        rsmanage dedup-page-questions --dry-run
+        rsmanage dedup-page-questions --basecourse csawesome2
+    """
+    from rsptx.build_tools.core import merge_duplicate_page_questions
+
+    if not dry_run and not yes:
+        scope = basecourse or "ALL books"
+        if not click.confirm(f"Merge duplicate page questions for {scope}?"):
+            return
+    engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    with engine.connect() as conn:
+        trans = conn.begin()
+        try:
+            report = merge_duplicate_page_questions(conn, basecourse)
+        except Exception:
+            trans.rollback()
+            raise
+        for g in report:
+            click.echo(
+                f"{g['base_course']} {g['chapter']}/{g['subchapter']}: "
+                f"keep {g['keep_id']} {g['keep_name']!r}"
+            )
+            for d in g["dropped"]:
+                click.echo(
+                    f"    drop {d['id']} {d['name']!r}: "
+                    f"{d['assignment_questions_moved']} assignment(s) moved, "
+                    f"{d['assignment_questions_deduped']} duplicate(s) removed, "
+                    f"{d['tags_moved']} tag(s), {d['competencies_moved']} "
+                    f"competenc(ies), {d['grades_moved']} grade(s) moved"
+                    + (
+                        f", {d['grades_conflict']} grade(s) LEFT (student "
+                        "already graded under the kept name)"
+                        if d["grades_conflict"]
+                        else ""
+                    )
+                )
+        dropped = sum(len(g["dropped"]) for g in report)
+        click.echo(f"{len(report)} subchapter(s), {dropped} duplicate row(s).")
+        if dry_run:
+            trans.rollback()
+            click.echo("Dry run -- nothing was written. Re-run without --dry-run.")
+        else:
+            trans.commit()
+    engine.dispose()
+
+
+@cli.command()
 @pass_config
 def db(config):
     """
@@ -1213,8 +1462,8 @@ def db(config):
 
 
 @cli.command()
-@click.argument("course_name", default=None)
-@click.argument("assignment_name", default=None)
+@click.argument("course_name", required=False)
+@click.argument("assignment_name", required=False)
 @click.option("--sid", default=None)
 @click.option("-t", "--timezone", default=0)
 @pass_config
@@ -1263,17 +1512,13 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
             has_readings = True
             qlist.append(q.question_id)
 
-    res = conn.execute(
-        text(
-            f"""
+    res = conn.execute(text(f"""
     select useinfo.timestamp as ts,name,sid,event,act from assignment_questions
         join questions ON questions.id = assignment_questions.question_id
         join useinfo on questions.name = useinfo.div_id
         where assignment_id = {current_assignment.id} {sid if sid else ""}
         order by sid, useinfo.timestamp
-                   """
-        )
-    )
+                   """))
     click.echo(
         f"Assignment ({current_assignment.id}) Due: {current_assignment.duedate}"
     )
@@ -1294,35 +1539,23 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
 
     if has_readings:
         click.echo("\n\nReading Assignment Questions")
-        qres = conn.execute(
-            text(
-                f"""
+        qres = conn.execute(text(f"""
         select chapter, subchapter from questions where id in ({','.join([str(q) for q in qlist])})
-        """
-            )
-        )
+        """))
         div_ids = []
         for row in qres:
-            alist = conn.execute(
-                text(
-                    f"""
+            alist = conn.execute(text(f"""
                 select name from questions where chapter = '{row.chapter}' and subchapter = '{row.subchapter}' and base_course = '{course.base_course}' and id not in ({','.join([str(q) for q in qlist])})
-                """
-                )
-            )
+                """))
             for a in alist:
                 div_ids.append(a.name)
         if div_ids:
-            res = conn.execute(
-                text(
-                    f"""
+            res = conn.execute(text(f"""
     select useinfo.timestamp as ts,div_id,sid,event,act
     from useinfo
     where div_id in ({','.join([f"'{d}'" for d in div_ids])}) {sid} and course_id = '{course.course_name}'
     order by sid, useinfo.timestamp
-                """
-                )
-            )
+                """))
         for row in res:
             if (row.ts + dd) > current_assignment.duedate:
                 click.echo(
@@ -1336,6 +1569,56 @@ async def showanswers(config, course_name, assignment_name, sid, timezone):
                     f"< {row.ts} {row.sid:<15} {row.div_id:<40} {row.event:<10} {row.act:<30}"
                 )
     conn.close()
+
+
+@cli.command()
+@click.argument("assignment_id", type=int, required=False)
+@pass_config
+async def showassignment(config, assignment_id):
+    """
+    Show the questions in an assignment, in assignment order
+
+    Give the numeric ASSIGNMENT_ID, or omit it to be prompted for the
+    course name and assignment name.
+    """
+    if assignment_id is None:
+        course_name = await click.prompt("Name of the course ")
+        course = await fetch_course(course_name)
+        if not course:
+            click.echo("Sorry, that course does not exist")
+            sys.exit(-1)
+        assignment_name = await click.prompt("Name of the assignment ")
+        assignment = await fetch_assignment_by_name(
+            assignment_name, course.id, read_only=True
+        )
+        if assignment is None:
+            click.echo("Sorry, that assignment does not exist")
+            click.echo("Here are the available assignments:")
+            for assign in await fetch_assignments(course.course_name):
+                click.echo(f"{assign.name}")
+            sys.exit(-1)
+    else:
+        try:
+            assignment = await fetch_one_assignment(assignment_id, read_only=True)
+        except HTTPException:
+            click.echo(f"Sorry, assignment {assignment_id} does not exist")
+            sys.exit(-1)
+
+    click.echo(
+        f"Assignment ({assignment.id}) {assignment.name}  Due: {assignment.duedate}  Points: {assignment.points}"
+    )
+    rows = (await fetch_assignment_questions(assignment.id)).all()
+    if not rows:
+        click.echo("This assignment has no questions")
+        return
+    click.echo(
+        f"{'ID':>8}  {'Name':<40} {'Chapter':<20} {'Subchapter':<25} {'Type':<15} {'Points':>6}"
+    )
+    for row in rows:
+        q = row.Question
+        click.echo(
+            f"{q.id:>8}  {q.name or '':<40} {q.chapter or '':<20} {q.subchapter or '':<25} {q.question_type or '':<15} {row.AssignmentQuestion.points:>6}"
+        )
 
 
 #
@@ -1390,7 +1673,6 @@ def echoEnviron(config):
     click.echo(f"RUNESTONE_PATH is {settings.runestone_path}")
     click.echo(f"BOOK_PATH is {settings.book_path}")
     click.echo(f"SERVER_CONFIG is {settings.server_config}")
-    click.echo(f"WEB2PY_CONFIG is {config.conf}")
     click.echo(f"The database URL is configured as {config.dburl}")
     click.echo(f"DBNAME is {config.dbname}")
 
@@ -1423,8 +1705,9 @@ def check_db_for_useinfo(config):
 
 
 @cli.command()
-@click.option("--course", help="name of course")
+@click.argument("course", required=False)
 def peergroups(course):
+    """List the peer instruction partner groups recorded for COURSE"""
     r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
     ap = r.hgetall(f"partnerdb_{course}")
     if len(ap) > 0:
@@ -1435,12 +1718,12 @@ def peergroups(course):
 
 
 @cli.command()
-@click.option("--book", help="document-id or basecourse")
-@click.option("--author", help="Runestone username of an author or admin")
+@click.argument("book", required=False)
+@click.argument("author", required=False)
 @click.option("--github", help="url of book on github", default="")
 @pass_config
 async def addbookauthor(config, book, author, github):
-    """Add a user with author permissions for a book to the Runestone DB.
+    """Add AUTHOR with author permissions for BOOK to the Runestone DB.
     Note that this will create the permissions for the user designated as author
     to use the runestone author interface to build and deploy the book.
     The name of the book must match the document-id as defined in the docinfo section
@@ -1705,6 +1988,107 @@ async def library_postbuild(ctx, book, command, remove):
     await update_library_book(bookrec.id, dict(postbuild_hook=command))
 
 
+def _book_folder(bookrec):
+    """The book's source folder under BOOK_PATH, or None if it can't be resolved safely.
+
+    repo_path is the path inside the containers (/books/<dir>), so only its last
+    component is used.  Books without one live in BOOK_PATH/<basecourse>.
+    """
+    name = os.path.basename((bookrec.repo_path or "").rstrip("/")) or bookrec.basecourse
+    root = os.path.realpath(settings.book_path)
+    folder = os.path.realpath(os.path.join(root, name))
+    # never delete BOOK_PATH itself or anything outside it
+    if os.path.dirname(folder) != root:
+        return None
+    return folder
+
+
+@library.command("retire")
+@click.argument("books", nargs=-1)
+@click.option(
+    "--unused-since",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=None,
+    help="Retire every book with no custom course starting on or after this date",
+)
+@click.option(
+    "--dry-run", is_flag=True, help="List the books without changing anything"
+)
+@click.pass_context
+async def library_retire(ctx, books, unused_since, dry_run):
+    """
+    Take books out of service: hide them from the library and the course
+    creation page, set removed_on, and delete their folder from $BOOK_PATH.
+    A book that was never used for a custom course is hidden, but you are
+    asked before its folder is deleted and removed_on is set.
+
+    \b
+        rsmanage library retire --unused-since 2024-08-01 --dry-run
+        rsmanage library retire oldbook1 oldbook2
+    """
+    if not books and not unused_since:
+        raise click.UsageError("Give one or more BOOKS or --unused-since")
+    if books and unused_since:
+        raise click.UsageError("Give BOOKS or --unused-since, not both")
+
+    if unused_since:
+        candidates = await fetch_unused_library_books(unused_since.date())
+    else:
+        # named books are checked against "unused since tomorrow", which
+        # matches every book and still reports its usage
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        usage = {r.basecourse: r for r in await fetch_unused_library_books(tomorrow)}
+        candidates = []
+        for book in books:
+            if book not in usage:
+                click.echo(
+                    click.style(
+                        f"{book}: not in the library, or already retired", fg="yellow"
+                    )
+                )
+            else:
+                candidates.append(usage[book])
+
+    for row in candidates:
+        bookrec = await fetch_library_book(row.basecourse)
+        folder = _book_folder(bookrec)
+        click.echo(
+            f"{row.basecourse} ({row.title}): {row.custom_courses_ever} custom "
+            f"course(s), last started {row.last_custom_course_start or 'never'}; "
+            f"folder {folder or '(unresolved)'}"
+        )
+        if dry_run:
+            continue
+
+        await update_library_book(bookrec.id, dict(is_visible=False, for_classes=False))
+        if row.custom_courses_ever == 0 and not click.confirm(
+            f"  {row.basecourse} was never used for a custom course. "
+            "Delete its folder and mark it removed?",
+            default=False,
+        ):
+            click.echo("  hidden; folder and removed_on left alone")
+            continue
+
+        if folder is None:
+            click.echo(
+                click.style(
+                    f"  could not resolve a folder under {settings.book_path}; "
+                    "not deleting anything",
+                    fg="yellow",
+                )
+            )
+        elif os.path.isdir(folder):
+            shutil.rmtree(folder)
+            click.echo(f"  deleted {folder}")
+        else:
+            click.echo(f"  {folder} does not exist")
+        await update_library_book(bookrec.id, dict(removed_on=datetime.date.today()))
+        click.echo("  retired")
+
+    if dry_run:
+        click.echo(f"Dry run -- {len(candidates)} book(s), nothing was changed.")
+
+
 @cli.command()
 @click.option("--send", is_flag=True, help="Actually send the check-in now")
 @pass_config
@@ -1752,6 +2136,183 @@ async def telemetry(config, send):
             click.echo(f"\nServer responded HTTP {status_code}; not recorded.")
     finally:
         await term_models()
+
+
+@cli.command("backfill-interactions")
+@click.option(
+    "--since",
+    default="2026-01-01",
+    show_default=True,
+    help="Only fold in useinfo rows logged on or after this date (UTC).",
+)
+@click.option(
+    "--start-id",
+    type=int,
+    default=None,
+    help="Resume from this useinfo id (printed after every batch).",
+)
+@click.option(
+    "--end-id",
+    type=int,
+    default=None,
+    help="Stop before this useinfo id. Default: max(id) when the command starts.",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=1_000_000,
+    show_default=True,
+    help="useinfo ids per transaction.",
+)
+@pass_config
+async def backfill_interactions(config, since, start_id, end_id, batch_size):
+    """Fill user_interactions from historical useinfo rows.
+
+    Run after the user_interactions migration and after the servers that write
+    it are deployed: rows logged from then on are recorded live, so the
+    default end (max id at start) is all the history there is to fold in.
+    Each batch commits on its own, so the command can be stopped and resumed
+    with --start-id.  Re-running a range is safe for first/last interaction
+    times but inflates the interaction counts.
+    """
+    since_dt = datetime.datetime.fromisoformat(since)
+    try:
+        first, last = await fetch_backfill_bounds(since_dt)
+        if first is None:
+            click.echo(f"No useinfo rows since {since}; nothing to do.")
+            return
+        lo = start_id if start_id is not None else first
+        stop = end_id if end_id is not None else last + 1
+        click.echo(f"Backfilling useinfo ids {lo}..{stop - 1} since {since}")
+        total = 0
+        while lo < stop:
+            hi = min(lo + batch_size, stop)
+            started = datetime.datetime.now()
+            rows = await backfill_user_interactions(lo, hi, since_dt)
+            total += rows
+            elapsed = (datetime.datetime.now() - started).total_seconds()
+            click.echo(
+                f"  ids {lo}..{hi - 1}: {rows} tracker rows in {elapsed:.1f}s"
+                f"  (resume with --start-id {hi})"
+            )
+            lo = hi
+        click.echo(f"Done: {total} tracker rows inserted or updated.")
+    finally:
+        await term_models()
+
+
+@cli.command("backfill-question-json")
+@click.option(
+    "--basecourse",
+    multiple=True,
+    help="Only questions in this base course (may be repeated). Default: all.",
+)
+@click.option(
+    "--type",
+    "question_types",
+    multiple=True,
+    help="Only questions of this question_type (may be repeated). Default: all "
+    "types with a converter.",
+)
+@click.option("--name", help="Only the question with this name.")
+@click.option(
+    "--dry-run", is_flag=True, help="Report what would be converted; write nothing."
+)
+@click.option(
+    "--verbose", is_flag=True, help="List each question that cannot be converted."
+)
+@pass_config
+def backfill_question_json(config, basecourse, question_types, name, dry_run, verbose):
+    """Give questions with only an htmlsrc their question_json.
+
+    Only rows with from_source = 'F' and no question_json are touched; their
+    htmlsrc is converted with the converters manifest processing uses.  A
+    conversion is stored only when it is lossless, because the assignment
+    builder regenerates a question's HTML from its question_json.
+
+    \b
+        rsmanage backfill-question-json --dry-run --verbose
+        rsmanage backfill-question-json --basecourse thinkcspy
+        rsmanage backfill-question-json --type mchoice --type parsonsprob
+        rsmanage backfill-question-json --basecourse thinkcspy --name ex_3_1
+    """
+    from collections import Counter
+
+    from sqlalchemy import JSON, bindparam
+
+    from rsptx.build_tools.question_json import CONVERTERS, convert_htmlsrc
+
+    unknown = sorted(set(question_types) - set(CONVERTERS))
+    if unknown:
+        raise click.BadParameter(
+            f"{', '.join(unknown)}; choose from {', '.join(sorted(CONVERTERS))}",
+            param_hint="--type",
+        )
+
+    # A JSON column written with Python None holds the JSON value null rather
+    # than SQL NULL; both mean the question has no question_json.
+    query = (
+        "select id, name, base_course, question_type, htmlsrc from questions "
+        "where from_source = 'F' "
+        "and (question_json is null or question_json::text = 'null') "
+        "and htmlsrc is not null and question_type in :types"
+    )
+    params = {"types": list(question_types) or sorted(CONVERTERS)}
+    if basecourse:
+        query += " and base_course in :courses"
+        params["courses"] = list(basecourse)
+    if name:
+        query += " and name = :name"
+        params["name"] = name
+    stmt = text(query + " order by base_course, id").bindparams(
+        bindparam("types", expanding=True)
+    )
+    if basecourse:
+        stmt = stmt.bindparams(bindparam("courses", expanding=True))
+
+    engine = create_engine(config.dburl.replace("+asyncpg", ""))
+    examined = Counter()
+    converted = Counter()
+    reasons = Counter()
+    updates = []
+    with engine.connect() as conn:
+        for row in conn.execute(stmt, params):
+            examined[row.question_type] += 1
+            conversion = convert_htmlsrc(row.question_type, row.htmlsrc)
+            if conversion is not None and conversion.lossless:
+                converted[row.question_type] += 1
+                updates.append({"id": row.id, "qjson": conversion.question_json})
+                continue
+            losses = conversion.losses if conversion else ["htmlsrc is empty"]
+            for loss in losses:
+                reasons[row.question_type, loss] += 1
+            if verbose:
+                click.echo(
+                    f"  #{row.id} {row.name} ({row.base_course}, "
+                    f"{row.question_type}): {'; '.join(losses)}"
+                )
+
+    click.echo(f"Questions with htmlsrc but no question_json: {sum(examined.values())}")
+    for qtype in sorted(examined):
+        click.echo(
+            f"  {qtype:<16} {converted[qtype]:>6} of {examined[qtype]:>6} convertible"
+        )
+    if reasons:
+        click.echo("Not convertible because of:")
+        for (qtype, reason), count in reasons.most_common(30):
+            click.echo(f"  {count:>6}  {qtype:<16} {reason[:90]}")
+
+    if not updates:
+        return
+    if dry_run:
+        click.echo(f"Dry run: {len(updates)} questions would get a question_json.")
+        return
+    update = text(
+        "update questions set question_json = :qjson where id = :id"
+    ).bindparams(bindparam("qjson", type_=JSON))
+    with engine.begin() as conn:
+        conn.execute(update, updates)
+    click.echo(f"Wrote question_json for {len(updates)} questions.")
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from celery.result import AsyncResult
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # Local App
 # ---------
@@ -44,6 +44,7 @@ from rsptx.author_server_api.worker import (
 )
 from rsptx.auth.session import is_instructor
 from rsptx.db.models import CoursesValidator
+from rsptx.auth.csrf import add_csrf_protection
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.endpoint_validators import author_role_required
 
@@ -90,6 +91,7 @@ app.mount("/static", StaticFiles(directory=base_dir / "staticAssets"), name="sta
 templates = get_shared_templates()
 
 add_exception_handlers(app)
+add_csrf_protection(app)
 
 
 async def create_book_entry(
@@ -169,6 +171,7 @@ async def home(request: Request, user=Depends(auth_manager)):
         # redirect them back somewhere....
 
     return templates.TemplateResponse(
+        request,
         "author/home.html",
         context={
             "request": request,
@@ -205,6 +208,7 @@ async def logfiles(request: Request, user=Depends(auth_manager)):
             host = ""
         logger.debug(f"{ready_files=}")
         return templates.TemplateResponse(
+            request,
             "author/logfiles.html",
             context=dict(
                 request=request,
@@ -239,7 +243,7 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
     eng = create_engine(os.environ["DEV_DBURL"])
 
     all_aq_pairs = pd.read_sql_query(
-        f"""
+        text("""
     SELECT assignments.name aname,
            questions.name question,
            assignments.visible,
@@ -249,13 +253,14 @@ async def dump_assignments(request: Request, course: str, user=Depends(auth_mana
     JOIN assignment_questions ON assignment_questions.assignment_id = assignments.id
     JOIN questions ON questions.id = assignment_questions.question_id
     JOIN courses ON assignments.course = courses.id
-    WHERE courses.course_name = '{course}'
-    """,
+    WHERE courses.course_name = :course
+    """),
         eng,
+        params={"course": course},
     )
-    all_aq_pairs.to_csv(
-        f"downloads/logfiles/{user.username}/{course}_assignments.csv", index=False
-    )
+    out_dir = pathlib.Path("downloads", "logfiles", user.username)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    all_aq_pairs.to_csv(out_dir / f"{course}_assignments.csv", index=False)
 
     return JSONResponse({"detail": "success"})
 
@@ -277,6 +282,7 @@ async def impact(request: Request, book: str, user=Depends(auth_manager)):
     chapterHM = get_pv_heatmap(book)
 
     return templates.TemplateResponse(
+        request,
         "author/impact.html",
         context={
             "request": request,
@@ -303,6 +309,7 @@ async def subchapmap(
     info = await fetch_library_book(book)
     chapterHM = get_subchap_heatmap(chapter, book)
     return templates.TemplateResponse(
+        request,
         "author/subchapmap.html",
         context={"request": request, "subchapData": chapterHM, "title": info.title},
     )
@@ -361,6 +368,7 @@ async def editlib(request: Request, book: str, user=Depends(auth_manager)):
         await update_library_book(book_data.id, form.data)
         return RedirectResponse(url="/author/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
+        request,
         "author/editlibrary.html",
         context=dict(
             request=request,
@@ -424,6 +432,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
         print(f"FORM data = {form.data}")
         # return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return templates.TemplateResponse(
+        request,
         "author/anonymize_data.html",
         context=dict(
             request=request,
@@ -441,7 +450,7 @@ async def anondata(request: Request, book: str, user=Depends(auth_manager)):
 @app.get("/author/notauthorized")
 def not_authorized(request: Request):
     return templates.TemplateResponse(
-        "author/notauthorized.html", context={"request": request}
+        request, "author/notauthorized.html", context={"request": request}
     )
 
 

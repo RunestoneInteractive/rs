@@ -18,18 +18,19 @@
     <a class="navbar-brand" href="https://runestone.academy">
         <img src="/staticAssets/RAIcon.png" height="30px" alt="Runestone Logo"/>
     </a>
+    {% block nav_items %}
     <div class="ml-auto nav-item">
         <a class="nav-link" href="/admin/auth/login">Log In</a>
     </div>
-    <div class="nav-item">
-        <a class="nav-link" href="https://blog.runestone.academy/pages/faq.html">Help</a>
-    </div>
+    {% endblock %}
 </nav>
 {% endif %}
 
-<div class="container-fluid">
-    {% block content %}{% endblock %}
-</div>
+    <main>
+        <div class="container-fluid">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
 
 {% include 'footer.html' %}
 

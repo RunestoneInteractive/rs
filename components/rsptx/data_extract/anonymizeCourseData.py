@@ -10,7 +10,6 @@ import pathlib
 from sqlalchemy import create_engine
 from tqdm import tqdm
 
-
 tqdm.pandas(desc="Progress...")
 
 
@@ -57,12 +56,16 @@ def find_closest(sid, acid, time, poss):
     """
     Given an sid, acid, time triple find the closest match in time from the code DF
     """
+    if pd.isna(time):
+        return pd.NaT
     try:
         candidates = poss.loc[(sid, acid)]
-        idx = candidates.index.get_loc(time, method="nearest")
-        return candidates.iloc[idx].name
-    except Exception:
+    except KeyError:
         return pd.NaT
+    # Index.get_loc(..., method="nearest") was removed in pandas 2.0; computing
+    # the nearest timestamp directly also tolerates duplicate timestamps.
+    ts = candidates.index
+    return ts[abs(ts - time).argmin()]
 
 
 def get_error_detail(mess):

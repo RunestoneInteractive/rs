@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { Exercise } from "@/types/exercises";
 
 import { SmartSearchExercises } from "./SmartSearchExercises";
@@ -16,8 +15,8 @@ const {
 } = vi.hoisted(() => ({
   hookReturn: {
     exercises: [
-      { id: 1, name: "Ex One", question_type: "mchoice", qnumber: "Q1" },
-      { id: 2, name: "Ex Two", question_type: "activecode", qnumber: "Q2" }
+      { id: 1, name: "Ex One", author: "Author One", question_type: "mchoice", qnumber: "Q1" },
+      { id: 2, name: "Ex Two", author: "Author Two", question_type: "activecode", qnumber: "Q2" }
     ],
     pagination: { total: 2, page: 0, limit: 20, pages: 1 },
     loading: false,
@@ -158,6 +157,7 @@ describe("SmartSearchExercises", () => {
     renderWithMantine(<SmartSearchExercises />);
     expect(screen.getByRole("heading", { name: "Search exercises" })).toBeInTheDocument();
     expect(screen.getByText("Showing 2 of 2 exercises")).toBeInTheDocument();
+    expect(screen.queryByText("2 of 2 results shown.")).not.toBeInTheDocument();
   });
 
   it("returns to the list view from the toolbar back button", async () => {
@@ -217,5 +217,12 @@ describe("SmartSearchExercises", () => {
 
     expect(monoCells.length).toBe(2);
     expect(monoCells[0].textContent).toBe("Ex One");
+  });
+
+  it("does not duplicate visible Name and Author cell text in title attributes", () => {
+    renderWithMantine(<SmartSearchExercises />);
+
+    expect(screen.getByText("Ex One")).not.toHaveAttribute("title");
+    expect(screen.getByText("Author One")).not.toHaveAttribute("title");
   });
 });

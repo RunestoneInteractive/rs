@@ -1,9 +1,11 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }: { mode: string }) => {
   let basedir = "/";
+  const assignmentProxy = process.env.ASSIGNMENT_PROXY_URL;
+  const adminProxy = process.env.ADMIN_PROXY_URL;
 
   if (mode === "production") {
     basedir = "/assignment/instructor/";
@@ -13,12 +15,35 @@ export default defineConfig(({ mode }: { mode: string }) => {
     build: {
       outDir: "../react",
       base: basedir,
-      manifest: true
+      manifest: true,
+      rollupOptions: {
+        input: {
+          index: path.resolve(__dirname, "index.html"),
+          editorialHtmlRenderer: path.resolve(__dirname, "src/editorialHtmlRenderer.ts")
+        },
+        output: {
+          entryFileNames: (chunkInfo) =>
+            chunkInfo.name === "editorialHtmlRenderer"
+              ? "assets/editorial-html-renderer.js"
+              : "assets/[name]-[hash].js"
+        }
+      }
     },
     server: {
       proxy: {
         "/ns": "http://localhost",
-        "/assignment": "http://localhost"
+        "/admin": adminProxy
+          ? {
+              target: adminProxy,
+              rewrite: (requestPath) => requestPath.replace(/^\/admin/, "")
+            }
+          : "http://localhost",
+        "/assignment": assignmentProxy
+          ? {
+              target: assignmentProxy,
+              rewrite: (requestPath) => requestPath.replace(/^\/assignment/, "")
+            }
+          : "http://localhost"
       }
     },
     base: basedir,
@@ -31,7 +56,8 @@ export default defineConfig(({ mode }: { mode: string }) => {
     },
     plugins: [react()],
     optimizeDeps: {
-      include: ["react", "react-dom"]
+      include: ["react", "react-dom", "tiptap-extension-code-block-prism"],
+      needsInterop: ["tiptap-extension-code-block-prism"]
     }
   };
 });

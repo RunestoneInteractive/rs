@@ -72,6 +72,52 @@ async def instructor_user(init_test_db):
     return user
 
 
+@pytest_asyncio.fixture(scope="session")
+async def editor_user(init_test_db):
+    """Create an editor who is deliberately not a course instructor."""
+    from rsptx.db.crud import (
+        create_editor_for_basecourse,
+        create_group,
+        create_membership,
+        create_user,
+        fetch_course,
+        fetch_group,
+        fetch_user,
+    )
+    from rsptx.db.models import AuthUserValidator
+
+    existing = await fetch_user("test_assignment_editor")
+    if existing:
+        return existing
+
+    course = await fetch_course("overview")
+    user = await create_user(
+        AuthUserValidator(
+            username="test_assignment_editor",
+            first_name="Test",
+            last_name="Editor",
+            password="xxx",
+            email="test_assignment_editor@example.com",
+            course_name="overview",
+            course_id=course.id,
+            donated=True,
+            active=True,
+            accept_tcp=True,
+            created_on=datetime.datetime(2020, 1, 1),
+            modified_on=datetime.datetime(2020, 1, 1),
+            registration_key="",
+            registration_id="",
+            reset_password_key="",
+        )
+    )
+    group = await fetch_group("editor")
+    if group is None:
+        group = await create_group("editor")
+    await create_membership(group.id, user.id)
+    await create_editor_for_basecourse(user.id, "overview")
+    return user
+
+
 @pytest_asyncio.fixture
 async def auth_student_client(student_user):
     """
@@ -94,7 +140,30 @@ async def auth_student_client(student_user):
     app.dependency_overrides[auth_manager] = lambda: student_user
     transport = httpx.ASGITransport(app=app)
     with patch("rsptx.endpoint_validators.core.auth_manager", mock_auth):
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
+            yield client
+    if prior_override is None:
+        app.dependency_overrides.pop(auth_manager, None)
+    else:
+        app.dependency_overrides[auth_manager] = prior_override
+
+
+@pytest_asyncio.fixture
+async def auth_editor_client(editor_user):
+    """An editor without instructor permission must not inherit gradebook access."""
+    from rsptx.assignment_server_api.core import app
+    from rsptx.auth.session import auth_manager
+
+    mock_auth = AsyncMock(return_value=editor_user)
+    prior_override = app.dependency_overrides.get(auth_manager)
+    app.dependency_overrides[auth_manager] = lambda: editor_user
+    transport = httpx.ASGITransport(app=app)
+    with patch("rsptx.endpoint_validators.core.auth_manager", mock_auth):
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             yield client
     if prior_override is None:
         app.dependency_overrides.pop(auth_manager, None)
@@ -120,6 +189,8 @@ async def auth_instructor_client(instructor_user):
     app.dependency_overrides[auth_manager] = lambda: instructor_user
     transport = httpx.ASGITransport(app=app)
     with patch("rsptx.endpoint_validators.core.auth_manager", mock_auth):
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             yield client
     app.dependency_overrides.pop(auth_manager, None)

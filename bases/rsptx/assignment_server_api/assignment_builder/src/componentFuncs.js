@@ -83,11 +83,13 @@ export async function renderRunestoneComponent(
         let preamble =
           document.getElementById("latex_preamble") ||
           document.querySelector("div.hidden-content.process-math");
+
         if (preamble) {
           preamble = preamble.innerHTML;
           opt.preamble = preamble;
         }
         let res = window.component_factory[componentKind](opt);
+
         console.log("res", res);
 
         // For components with async initialization (like selectquestion),
@@ -109,16 +111,19 @@ export async function renderRunestoneComponent(
           let key = moreOpts.gradingContainer
             ? `${moreOpts.gradingContainer} ${res.divid}`
             : res.divid;
+
           window.componentMap[key] = res;
         }
         if (!moreOpts.suppressFlagForReview && !moreOpts.graderMode) {
           let flagButton = document.createElement("button");
+
           flagButton.classList.add("flag-for-review");
           flagButton.textContent = "Flag for Review";
           flagButton.addEventListener("click", async function () {
             let data = {
               question_name: res.divid || res.selector_id || res.origOpts.orig.id
             };
+
             if (!data.question_name) {
               alert("Error:  Cannot determine question name to flag for review");
               return;
@@ -131,8 +136,10 @@ export async function renderRunestoneComponent(
                 "Content-Type": "application/json"
               }
             });
+
             if (response.ok) {
               let resp = await response.json();
+
               if (resp.success === true) {
                 flagButton.textContent = "Question Flagged";
                 flagButton.style.backgroundColor = "var(--rs-success)";

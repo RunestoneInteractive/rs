@@ -1,8 +1,10 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { useViewModeStorage } from "./useViewModeStorage";
 
 const STORAGE_KEY = "test-view-mode";
 const ALLOWED_MODES = ["list", "grid", "detail"] as const;
+
 type TestMode = (typeof ALLOWED_MODES)[number];
 const DEFAULT_MODE: TestMode = "list";
 
@@ -116,6 +118,7 @@ describe("useViewModeStorage", () => {
       );
 
       const [mode, setMode] = result.current;
+
       expect(typeof mode).toBe("string");
       expect(typeof setMode).toBe("function");
     });

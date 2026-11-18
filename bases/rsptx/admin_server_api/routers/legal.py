@@ -58,7 +58,7 @@ LEGAL_DOCS = {
     },
     "accessibility": {
         "title": "Accessibility & VPAT",
-        "updated": "January 2026",
+        "updated": "August 2026",
         "template": "legal/accessibility.html",
         "blurb": "Our commitment to accessibility and our WCAG 2.1 AA "
         "Voluntary Product Accessibility Template (VPAT/ACR).",
@@ -66,12 +66,15 @@ LEGAL_DOCS = {
         # Downloadable VPAT/ACR, served from the shared staticAssets.
         "extra": {"vpat_url": "/staticAssets/docs/runestone-vpat.pdf"},
     },
-    "HECVAT": {
+    "hecvat": {
         "title": "Higher Education Community Vendor Assessment Toolkit (HECVAT)",
-        "updated": None,
-        "template": "#",
-        "blurb": "Runestone does not provide a HECVAT as it is intended for much larger organizations.",
+        "updated": "August 8, 2026",
+        "template": "legal/hecvat.html",
+        "blurb": "Our completed HECVAT-Lite (v2.11) for higher-ed procurement and "
+        "security review — full responses on the page, plus the workbook to download.",
         "hub": True,
+        # Downloadable HECVAT-Lite workbook, served from the shared staticAssets.
+        "extra": {"hecvat_url": "/staticAssets/docs/HECVATLitePublished.xlsx"},
     },
     "ads": {
         "title": "About Advertising",
@@ -106,7 +109,7 @@ def _render(request: Request, key: str) -> HTMLResponse:
         "updated": doc["updated"],
     }
     context.update(doc.get("extra", {}))
-    return templates.TemplateResponse(doc["template"], context)
+    return templates.TemplateResponse(request, doc["template"], context)
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +123,7 @@ async def legal_hub(request: Request):
     """Trust-center style landing page linking to every legal document."""
     cards = [{"key": key, **doc} for key, doc in LEGAL_DOCS.items() if doc["hub"]]
     return templates.TemplateResponse(
+        request,
         "legal/hub.html",
         {
             "request": request,
@@ -152,6 +156,11 @@ async def security(request: Request):
 @router.get("/accessibility", response_class=HTMLResponse)
 async def accessibility(request: Request):
     return _render(request, "accessibility")
+
+
+@router.get("/hecvat", response_class=HTMLResponse)
+async def hecvat(request: Request):
+    return _render(request, "hecvat")
 
 
 @router.get("/ads", response_class=HTMLResponse)

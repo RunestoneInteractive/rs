@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { datasetSlice } from "@store/dataset/dataset.logic";
 import {
   datasetApi,
   useGetWhichToGradeOptionsQuery,
@@ -7,7 +8,7 @@ import {
   useGetQuestionTypeOptionsQuery,
   useGetSectionsForChapterQuery
 } from "@store/dataset/dataset.logic.api";
-import { datasetSlice } from "@store/dataset/dataset.logic";
+
 import { DetailResponse } from "@/types/api";
 import { SectionsResponse } from "@/types/dataset";
 
@@ -57,6 +58,7 @@ describe("datasetApi module exports", () => {
   it("provides a reducer that returns initial state", () => {
     const store = buildStore();
     const state = store.getState()[datasetApi.reducerPath];
+
     expect(state).toBeDefined();
     expect(typeof state).toBe("object");
   });
@@ -65,11 +67,13 @@ describe("datasetApi module exports", () => {
 describe("datasetApi endpoint query builders", () => {
   it("getWhichToGradeOptions endpoint has a select method", () => {
     const endpoint = datasetApi.endpoints.getWhichToGradeOptions;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 
   it("getSectionsForChapter endpoint has a select method", () => {
     const endpoint = datasetApi.endpoints.getSectionsForChapter;
+
     expect(typeof (endpoint as any).select).toBe("function");
   });
 });
@@ -86,6 +90,7 @@ describe("getSectionsForChapter transformResponse", () => {
 
   it("maps each section to a label/value pair", () => {
     const internalEndpoints = (datasetApi as any).internalActions;
+
     expect(internalEndpoints).toBeDefined();
   });
 
@@ -138,18 +143,21 @@ describe("datasetApi store integration", () => {
   it("initial datasetApi state has a queries key", () => {
     const store = buildStore();
     const apiState = store.getState()[datasetApi.reducerPath];
+
     expect(apiState).toHaveProperty("queries");
   });
 
   it("initial datasetApi state has a mutations key", () => {
     const store = buildStore();
     const apiState = store.getState()[datasetApi.reducerPath];
+
     expect(apiState).toHaveProperty("mutations");
   });
 
   it("dataset slice starts with empty option arrays alongside datasetApi", () => {
     const store = buildStore();
     const datasetState = store.getState().dataset;
+
     expect(datasetState.whichToGradeOptions).toEqual([]);
     expect(datasetState.autoGradeOptions).toEqual([]);
     expect(datasetState.languageOptions).toEqual([]);

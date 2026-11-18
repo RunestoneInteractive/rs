@@ -66,7 +66,7 @@ RUN ln -snf /usr/share/zoneinfo/"$TZ" /etc/localtime && \
     vim \
     wget
 
-RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas requests altair && \
+RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas requests altair nltk textblob scikit-learn && \
     pylint --reports=no --score=n --generate-rcfile > /etc/pylintrc && \
     ln -sf /proc/self/fd/1 /var/log/apache2/access.log && \
     ln -sf /proc/self/fd/1 /var/log/apache2/error.log && \
@@ -93,6 +93,12 @@ RUN python3 -m pip install --break-system-packages pylint beautifulsoup4 pandas 
     apt-get -y autoremove --purge && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Stopgap for PHP2Shell (CVE-2026-109618, CVE-2026-109619): the reported attack
+# path is session.upload_progress, which Jobe's REST API never uses.
+RUN for d in /etc/php/*/apache2/conf.d /etc/php/*/cli/conf.d; do \
+        echo "session.upload_progress.enabled = Off" > "$d/99-no-upload-progress.ini"; \
+    done
 
 # Prefer gcc-14 and g++-14
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 60 && \

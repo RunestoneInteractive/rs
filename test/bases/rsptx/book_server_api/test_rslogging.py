@@ -23,6 +23,7 @@ COURSE = "test_course_1"
 # helpers
 # ---------------------------------------------------------------------------
 
+
 def _bookevent(event, act, div_id, **extra):
     payload = {
         "event": event,
@@ -37,6 +38,7 @@ def _bookevent(event, act, div_id, **extra):
 # ---------------------------------------------------------------------------
 # /logger/bookevent
 # ---------------------------------------------------------------------------
+
 
 async def test_bookevent_page_view(auth_book_client):
     """A simple page-view event is accepted and returns 2xx."""
@@ -92,6 +94,158 @@ async def test_bookevent_shortanswer(auth_book_client):
     assert resp.status_code in (200, 201)
 
 
+# ---------------------------------------------------------------------------
+# interaction-only events (video, poll)
+#
+# These have no answer table -- the useinfo row is the whole submission -- so
+# they need their own path through the scorer.  The seeded testuser1 is
+# enrolled in "overview", so the assignment has to live there for is_assigned()
+# to find it.
+# ---------------------------------------------------------------------------
+
+STUDENT_COURSE = "overview"
+
+
+async def _assign_interaction_question(
+    student_user, div_id, question_type, points=5, autograde="interact"
+):
+    """Seed a question, an open assignment and the link between them, and
+    return the assignment id."""
+    import datetime
+
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import Assignment, AssignmentQuestion, Question
+
+    async with async_session.begin() as session:
+        question = Question(
+            base_course=STUDENT_COURSE,
+            name=div_id,
+            chapter="ch1",
+            subchapter="sub1",
+            question_type=question_type,
+            timestamp=datetime.datetime(2024, 1, 1),
+            from_source=False,
+        )
+        session.add(question)
+        await session.flush()
+
+        assignment = Assignment(
+            course=student_user.course_id,
+            name=f"assign_{div_id}",
+            points=points,
+            released=False,
+            duedate=datetime.datetime(2099, 1, 1),
+            visible=True,
+            from_source=False,
+            is_timed=False,
+            kind="Regular",
+        )
+        session.add(assignment)
+        await session.flush()
+
+        session.add(
+            AssignmentQuestion(
+                assignment_id=assignment.id,
+                question_id=question.id,
+                points=points,
+                autograde=autograde,
+                which_to_grade="best_answer",
+                reading_assignment=False,
+                sorting_priority=1,
+            )
+        )
+        return assignment.id
+
+
+async def _question_grade(div_id):
+    from rsptx.db.crud import fetch_question_grade
+
+    return await fetch_question_grade("testuser1", STUDENT_COURSE, div_id)
+
+
+async def test_video_play_is_graded(auth_book_client, student_user):
+    """Playing an assigned video graded on interaction awards full points.
+
+    This is the regression test for videos in the exercises section scoring 0:
+    "video" is not in EVENT2TABLE, so the event used to skip the scorer
+    entirely and no question_grades row was ever written."""
+    div_id = "interaction_video_play"
+    await _assign_interaction_question(student_user, div_id, "youtube")
+
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("video", "play:12.5", div_id, course_name=STUDENT_COURSE),
+    )
+    assert resp.status_code in (200, 201)
+
+    grade = await _question_grade(div_id)
+    assert grade is not None
+    assert grade.score == 5
+
+
+async def test_video_ready_is_not_graded(auth_book_client, student_user):
+    """The player logs "ready" as soon as it is built, before the student has
+    done anything, so it must not earn credit."""
+    div_id = "interaction_video_ready"
+    await _assign_interaction_question(student_user, div_id, "youtube")
+
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("video", "ready", div_id, course_name=STUDENT_COURSE),
+    )
+    assert resp.status_code in (200, 201)
+
+    assert await _question_grade(div_id) is None
+
+
+async def test_repeated_video_events_keep_one_grade_row(auth_book_client, student_user):
+    """Play/pause/complete all score the same, and upsert a single row rather
+    than colliding with the question_grades unique index."""
+    div_id = "interaction_video_repeat"
+    await _assign_interaction_question(student_user, div_id, "youtube", points=3)
+
+    for act in ("play:0", "pause:8.25", "play:8.25", "complete"):
+        resp = await auth_book_client.post(
+            "/logger/bookevent",
+            json=_bookevent("video", act, div_id, course_name=STUDENT_COURSE),
+        )
+        assert resp.status_code in (200, 201)
+
+    grade = await _question_grade(div_id)
+    assert grade is not None
+    assert grade.score == 3
+
+
+async def test_poll_response_is_graded(auth_book_client, student_user):
+    """Polls have the same shape as videos: no answer table, graded on
+    interaction."""
+    div_id = "interaction_poll_1"
+    await _assign_interaction_question(student_user, div_id, "poll", points=2)
+
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("poll", "3", div_id, course_name=STUDENT_COURSE),
+    )
+    assert resp.status_code in (200, 201)
+
+    grade = await _question_grade(div_id)
+    assert grade is not None
+    assert grade.score == 2
+
+
+async def test_unassigned_video_is_not_graded(auth_book_client):
+    """A video watched in the book but not part of any assignment is logged
+    only -- no grade row appears."""
+    div_id = "interaction_video_unassigned"
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("video", "play:1", div_id, course_name=STUDENT_COURSE),
+    )
+    assert resp.status_code in (200, 201)
+
+    assert await _question_grade(div_id) is None
+
+
 async def test_bookevent_missing_required_fields(auth_book_client):
     """A request missing required fields returns 422."""
     resp = await auth_book_client.post(
@@ -105,3 +259,61 @@ async def test_bookevent_empty_body(auth_book_client):
     """An empty body returns 422."""
     resp = await auth_book_client.post("/logger/bookevent", json={})
     assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# the ``detail`` contract (issue #1393)
+#
+# ``detail`` doubles as the score spec for the book JS. Ungraded events used to
+# return a bare {"timestamp": ...}, which is truthy, so the client mistook it for
+# a score spec and threw a TypeError while trying to render a score update --
+# surfacing as a bogus "Your action was not saved!" alert on a 201 response.
+# ---------------------------------------------------------------------------
+
+
+async def test_ungraded_event_returns_no_detail(auth_book_client):
+    """``view_toggle`` is never graded, so there is no score spec to hand back."""
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("view_toggle", "turtle_draw_F_pp", "turtle_draw_F_sq"),
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["detail"] is None
+
+
+async def test_selectquestion_event_returns_no_detail(auth_book_client):
+    """The synthetic ``selectquestion`` interaction event is not graded either."""
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("selectquestion", "interaction", "turtle_draw_F_sq"),
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["detail"] is None
+
+
+async def test_page_view_returns_no_detail(auth_book_client):
+    """Page views carry no score either."""
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("page", "view", "ch1_introduction"),
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["detail"] is None
+
+
+async def test_graded_event_returns_score_spec(auth_book_client, student_user):
+    """A graded event still returns a real score spec, and it carries the
+    ``assigned`` key the client uses to tell a score spec from an empty reply."""
+    div_id = "interaction_video_detail"
+    await _assign_interaction_question(student_user, div_id, "youtube")
+
+    resp = await auth_book_client.post(
+        "/logger/bookevent",
+        json=_bookevent("video", "play:3", div_id, course_name=STUDENT_COURSE),
+    )
+    assert resp.status_code in (200, 201)
+    detail = resp.json()["detail"]
+    assert detail is not None
+    assert "assigned" in detail
+    assert detail["assigned"] is True
+    assert detail["total_score"] == 5

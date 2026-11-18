@@ -38,6 +38,9 @@ export default class SelectOne extends RunestoneBase {
         this.autogradable = getDataValue(opts.orig, "autogradable");
         this.not_seen_ever = getDataValue(opts.orig, "not_seen_ever");
         this.selector_id = opts.orig.getAttribute("id");
+        // RunestoneBase does not set divid; subclasses do. Without this the base
+        // class builds element ids like "undefined_message". See issue #1393.
+        this.divid = this.selector_id;
         this.primaryOnly = getDataValue(opts.orig, "primary");
         this.ABExperiment = getDataValue(opts.orig, "ab");
         this.toggleOptions = getDataValue(opts.orig, "toggleoptions");

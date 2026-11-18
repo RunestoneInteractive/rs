@@ -86,7 +86,7 @@ export class GroupSub extends RunestoneBase {
         for (let [sid, name] of Object.entries(this.studentList)) {
             let opt = document.createElement("option");
             opt.value = sid;
-            opt.innerHTML = this.studentList[sid];
+            opt.textContent = name;
             select.appendChild(opt);
         }
         // A native multi-select (select2 used to enhance this; the size

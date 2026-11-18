@@ -110,8 +110,7 @@ describe("CLICKABLE_AREA_STEP_VALIDATORS content step", () => {
   });
 
   it("passes once both mark kinds exist", () => {
-    const marked =
-      '<p><span data-correct="true">a</span><span data-incorrect="true">b</span></p>';
+    const marked = '<p><span data-correct="true">a</span><span data-incorrect="true">b</span></p>';
 
     expect(validateContentStep({ statement, questionText: marked })).toHaveLength(0);
   });

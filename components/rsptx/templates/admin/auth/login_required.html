@@ -1,0 +1,58 @@
+{% extends "admin/auth/_auth_base.html" %}
+
+{% block title %}Sign In Required — Runestone Academy{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h1>This course requires you to sign in</h1>
+
+    <p>
+        {% if course %}
+        <strong>{{ course }}</strong> is set up so that only people with a
+        Runestone account can read it and save their work.
+        {% else %}
+        That course is set up so that only people with a Runestone account can
+        read it and save their work.
+        {% endif %}
+        Signing in will take you straight to the page you were trying to reach.
+    </p>
+
+    <p>
+        <a href="/admin/auth/login?next={{ next | urlencode }}" class="btn btn-rs-primary">Log In</a>
+    </p>
+
+    {% if browse_url %}
+    <p>
+        Just want to read the book? You can
+        <a href="{{ browse_url }}">browse it without an account</a>.
+        Your answers and progress will not be saved.
+    </p>
+    {% endif %}
+
+    <p>
+        Don't have an account yet?
+        <a href="/admin/auth/register">Register</a> — it's free.
+    </p>
+
+    <hr>
+
+    <h2>Already signed in a moment ago?</h2>
+    <p>
+        If you keep landing here even though you have an account, something is
+        discarding the cookie that keeps you signed in:
+    </p>
+    <ul>
+        <li>Check that cookies are enabled for this site. Blocking them will
+            sign you out on every page.</li>
+        <li>School networks sometimes filter or expire cookies when a computer
+            sleeps or restarts.</li>
+        <li>Some school-managed computers reset browser settings on every
+            login, which clears the cookie each day.</li>
+    </ul>
+    <p>
+        If none of that explains it, try clearing your browser history and
+        signing in again, or report the problem on our
+        <a href="https://github.com/RunestoneInteractive/rs/issues">issue tracker</a>.
+    </p>
+</div>
+{% endblock %}

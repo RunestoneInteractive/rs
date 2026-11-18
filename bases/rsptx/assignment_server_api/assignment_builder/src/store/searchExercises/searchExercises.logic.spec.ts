@@ -1,12 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 
+import type { Exercise } from "@/types/exercises";
+
 import {
   searchExercisesSlice,
   searchExercisesActions,
   searchExercisesSelectors,
   SearchExercisesState
 } from "./searchExercises.logic";
-import type { Exercise } from "@/types/exercises";
 
 const makeStore = (preloadedState?: { searchExercises: SearchExercisesState }) =>
   configureStore({
@@ -52,6 +53,7 @@ const makeExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
 describe("searchExercisesSlice reducer", () => {
   it("returns the initial state with empty selectedExercises when no action is dispatched", () => {
     const store = makeStore();
+
     expect(store.getState().searchExercises.selectedExercises).toEqual([]);
   });
 
@@ -90,6 +92,7 @@ describe("searchExercisesSelectors.getSelectedExercises", () => {
   it("returns an empty array from the initial state", () => {
     const store = makeStore();
     const result = searchExercisesSelectors.getSelectedExercises(store.getState() as any);
+
     expect(result).toEqual([]);
   });
 
@@ -100,6 +103,7 @@ describe("searchExercisesSelectors.getSelectedExercises", () => {
     store.dispatch(searchExercisesActions.setSelectedExercises(exercises));
 
     const result = searchExercisesSelectors.getSelectedExercises(store.getState() as any);
+
     expect(result).toEqual(exercises);
   });
 
@@ -110,6 +114,7 @@ describe("searchExercisesSelectors.getSelectedExercises", () => {
     store.dispatch(searchExercisesActions.setSelectedExercises(exercises));
 
     const result = searchExercisesSelectors.getSelectedExercises(store.getState() as any);
+
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(7);
   });

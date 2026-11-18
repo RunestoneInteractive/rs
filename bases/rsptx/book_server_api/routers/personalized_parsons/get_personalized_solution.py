@@ -1,7 +1,7 @@
-from openai import OpenAI
 import re
 
 from .evaluate_fixed_code import clean_student_code, unittest_evaluation
+from .subgoal_labels import has_labels
 
 # Below is the system message as part of the prompt to generate the fixed code
 system_message = """
@@ -22,6 +22,13 @@ The [fixed-code] should follow the {programming_language} style guide.
 
 [control-structures]: '{control_structures}'
 [end-control-structures]
+"""
+
+# Appended to the system message when the student's code contains subgoal
+# labels (full-line comments naming the steps of their plan)
+label_message = """
+The [user-code] contains comment lines that name the steps of the student's plan (subgoal labels).
+The [fixed-code] should follow that plan. Keep every one of these comment lines in [fixed-code] exactly as written, each one directly above the code that carries out that step and at that code's indentation. Do not add any other comments.
 """
 
 
@@ -119,6 +126,8 @@ def build_code_prompt(
             unittest_code=unittest_code,
             control_structures=control_structures,
         )
+        if has_labels(buggy_code, language):
+            system_message += label_message
 
     prompt_code = "[user-code]:\n" + buggy_code + "\n[end-user-code]"
     prompt_messages = [
@@ -135,7 +144,7 @@ def generate_personalized_fix(
     """
     Generate the personalized fixed code using the LLM.
     Inputs:
-        api_token (str): The API token for the LLM.
+        api_token (LLMToken): The course's LLM token and provider.
         prompt_messages (list): The list of prompt messages for the LLM.
         attempt_type (str): The type of attempt ("new" or "repeat").
         situation (str): The situation of the attempt ("a correct answer"). This can be extended to other nuanced situations in the future.
@@ -153,12 +162,10 @@ def generate_personalized_fix(
         [end-old-fixed-code]
         """
         prompt_messages[0]["content"] = prompt_messages[0]["content"] + attachment
-    client = OpenAI(api_key=api_token)
+    client = api_token.client()
 
     raw_completion_response = client.chat.completions.create(
-        model="gpt-5-nano",
-        messages=prompt_messages,
-        verbosity="low",
+        **api_token.request_params(messages=prompt_messages)
     )
     end_marker = "[end-fixed-code]"
     start_marker = "[fixed-code]:\n"
@@ -186,7 +193,7 @@ def get_fixed_code(
     """
     Get the personalized fixed code for the student's buggy code. It calls generate_personalized_fix to get the fixed code from the LLM.
     Inputs:
-        api_token (str): The API token for the LLM.
+        api_token (LLMToken): The course's LLM token and provider.
         language (str): The programming language of the code ("python" or "java").
         problem_description (str): The description of the coding problem.
         buggy_code (str): The student's buggy code.
@@ -224,19 +231,22 @@ def get_fixed_code(
     return fixed_code_response
 
 
-def get_example_solution(api_token, language, problem_description, unittest_code):
+def get_example_solution(
+    api_token, language, problem_description, unittest_code, data_files=None
+):
     """
     Get an example solution for the coding problem using the LLM, called when we do not have an instructor-provided example solution.
     Inputs:
-        api_token (str): The API token for the LLM.
+        api_token (LLMToken): The course's LLM token and provider.
         language (str): The programming language of the code ("python" or "java").
         problem_description (str): The description of the coding problem.
         unittest_code (str): The unittest code to validate the fixed code.
+        data_files (list): The question's data files the code may open.
     Output:
         str: The generated example solution code. Or an empty string if the LLM-generated code does not pass the unittest.
     """
     # call an LLM to get the example solution
-    client = OpenAI(api_key=api_token)
+    client = api_token.client()
 
     example_solution_system_message = f"""
     You are a helpful {language} coding assistant for CS1/CS2 classes. You only provide correct example solutions that uses the entry-level {language} programming language features.
@@ -266,11 +276,12 @@ Requirements:
 """
 
     raw_completion_response = client.chat.completions.create(
-        model="gpt-5-nano",
-        messages=[
-            {"role": "system", "content": example_solution_system_message},
-            {"role": "user", "content": example_solution_user_message},
-        ],
+        **api_token.request_params(
+            messages=[
+                {"role": "system", "content": example_solution_system_message},
+                {"role": "user", "content": example_solution_user_message},
+            ]
+        )
     )
 
     completion = raw_completion_response.choices[0].message
@@ -278,7 +289,12 @@ Requirements:
     # test if the LLM_example_code is correct remove all potential #
     LLM_example_code = LLM_example_code.lstrip("#").rstrip("#").strip()
     unittest_result, cleaned_LLM_example_code = unittest_evaluation(
-        language, LLM_example_code, "", "", unittest_case=unittest_code
+        language,
+        LLM_example_code,
+        "",
+        "",
+        unittest_case=unittest_code,
+        data_files=data_files,
     )
     if unittest_result:
         # LLM_example_code is correct

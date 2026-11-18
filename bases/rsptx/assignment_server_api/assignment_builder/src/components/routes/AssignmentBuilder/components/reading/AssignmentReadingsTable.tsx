@@ -9,11 +9,10 @@ import { Nullable } from "@/types/common";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
+import styles from "./AssignmentReadingsTable.module.css";
 import { ActivitiesRequiredCell } from "./components/ActivitiesRequiredCell";
 import { EditInputValueHeaderReadings } from "./components/EditAllReadings/EditInputValueHeaderReadings";
 import { MouseUpHandler } from "./types";
-
-import styles from "./AssignmentReadingsTable.module.css";
 
 interface AssignmentReadingsTableProps {
   assignmentReadings: Exercise[];
@@ -35,13 +34,28 @@ interface AssignmentReadingsTableProps {
 const getNumQuestionsOrDefault = (numQuestions: Nullable<number>): number =>
   Math.max(numQuestions ?? 0, 1);
 
+const formatNumberedLabel = (label: string, numbers: Array<number | null | undefined>): string => {
+  const prefix = numbers
+    .filter((value): value is number => value !== null && value !== undefined)
+    .join(".");
+
+  return prefix ? [prefix, label].filter(Boolean).join(" ") : label;
+};
+
 const matchesFilter = (reading: Exercise, filter: string): boolean => {
   const query = filter.trim().toLowerCase();
 
   if (!query) {
     return true;
   }
-  return [reading.name, reading.title, reading.chapter, reading.subchapter]
+  return [
+    reading.name,
+    reading.title,
+    reading.chapter_name,
+    reading.sub_chapter_name,
+    reading.chapter,
+    reading.subchapter
+  ]
     .filter(Boolean)
     .some((field) => field!.toLowerCase().includes(query));
 };
@@ -75,8 +89,15 @@ export const AssignmentReadingsTable = ({
       {
         key: "chapter",
         header: "Chapter",
-        width: "12rem",
-        render: (row) => <div className={styles.nowrap}>{row.chapter}</div>
+        width: "16rem",
+        render: (row) => (
+          <div className={styles.chapterCell}>
+            <div className={styles.sectionTitle}>
+              {formatNumberedLabel(row.chapter_name || row.chapter, [row.chapter_num])}
+            </div>
+            <div className={styles.sectionPath}>{row.chapter}</div>
+          </div>
+        )
       },
       {
         key: "subchapter",
@@ -84,12 +105,13 @@ export const AssignmentReadingsTable = ({
         width: "20rem",
         render: (row) => (
           <div className={styles.sectionCell}>
-            <div className={styles.sectionTitle} title={row.name || row.title}>
-              {row.name || row.title}
+            <div className={styles.sectionTitle}>
+              {formatNumberedLabel(
+                row.sub_chapter_name || row.title || row.name || row.subchapter,
+                [row.chapter_num, row.sub_chapter_num]
+              )}
             </div>
-            <div className={styles.sectionPath} title={row.subchapter || undefined}>
-              {row.subchapter}
-            </div>
+            <div className={styles.sectionPath}>{row.subchapter}</div>
           </div>
         )
       },
@@ -140,6 +162,8 @@ export const AssignmentReadingsTable = ({
         )
       }
     ],
+    // TODO(eslint): Audit the complete dependency list without changing current behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [handleMouseDown, handleChange, startItemId]
   );
 

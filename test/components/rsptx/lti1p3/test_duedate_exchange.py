@@ -21,7 +21,14 @@ def _course(timezone="America/Chicago", id=1):
 
 
 def _assignment(duedate=None, id=7):
-    return SimpleNamespace(id=id, name="Homework 1", duedate=duedate, points=10)
+    return SimpleNamespace(
+        id=id,
+        name="Homework 1",
+        duedate=duedate,
+        visible_on=None,
+        hidden_on=None,
+        points=10,
+    )
 
 
 # Ingest
@@ -98,6 +105,61 @@ async def test_ingest_ignores_an_unparseable_date():
 
     update.assert_not_awaited()
     assert assign.duedate == original
+
+
+async def test_ingest_clears_canvas_unresolved_available_date():
+    from rsptx.admin_server_api.routers import lti1p3
+
+    original = datetime.datetime(2026, 1, 1, 12, 0)
+    assign = _assignment(
+        duedate=original,
+    )
+    assign.visible_on = datetime.datetime(2026, 1, 2, 9, 0)
+    line_item = LineItem()
+    line_item.set_end_date_time("2026-09-01T23:59:00-05:00")
+    custom_params = {
+        "resource_link_available_startdatetime": "$ResourceLink.available.startDateTime"
+    }
+
+    with patch.object(lti1p3, "update_assignment", AsyncMock()) as update:
+        await lti1p3.update_rsassignment_from_lti(
+            assign,
+            line_item,
+            {},
+            _course(),
+            custom_params,
+            "canvas",
+        )
+
+    assert update.await_count == 1
+    assert assign.visible_on is None
+    assert assign.duedate == datetime.datetime(2026, 9, 2, 4, 59)
+
+
+async def test_ingest_ignores_unresolved_available_date_for_non_canvas():
+    from rsptx.admin_server_api.routers import lti1p3
+
+    original = datetime.datetime(2026, 1, 1, 12, 0)
+    assign = _assignment(duedate=original)
+    assign.visible_on = datetime.datetime(2026, 1, 2, 9, 0)
+    line_item = LineItem()
+    line_item.set_end_date_time("2026-09-01T23:59:00-05:00")
+    custom_params = {
+        "resource_link_available_startdatetime": "$ResourceLink.available.startDateTime"
+    }
+
+    with patch.object(lti1p3, "update_assignment", AsyncMock()) as update:
+        await lti1p3.update_rsassignment_from_lti(
+            assign,
+            line_item,
+            {},
+            _course(),
+            custom_params,
+            "moodle",
+        )
+
+    update.assert_awaited()
+    assert assign.visible_on == datetime.datetime(2026, 1, 2, 9, 0)
 
 
 # Push

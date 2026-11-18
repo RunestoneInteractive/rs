@@ -195,3 +195,76 @@ async def test_sync_assignment_total_preserves_manual_total(auth_assignment_clie
     grade = await fetch_grade(user.id, assignment_id)
     assert grade.manual_total
     assert grade.score == 42
+
+
+# ---------------------------------------------------------------------------
+# doAssignment -- an assignment from another course must not be workable
+# ---------------------------------------------------------------------------
+
+
+async def _scratch_assignment_in(course_name, name):
+    """Create a bare assignment in ``course_name`` and return it."""
+    import datetime
+
+    from rsptx.db.crud import create_assignment, fetch_course
+    from rsptx.db.models import AssignmentValidator
+
+    course = await fetch_course(course_name)
+    return await create_assignment(
+        AssignmentValidator(
+            course=course.id,
+            name=name,
+            points=10,
+            released=False,
+            description="wrong course test",
+            duedate=datetime.datetime(2099, 1, 1),
+            visible=True,
+            from_source=False,
+            is_peer=False,
+            current_index=0,
+            peer_async_visible=False,
+        )
+    )
+
+
+@asyncio_session
+async def test_do_assignment_wrong_course_redirects(auth_student_client):
+    """Issue #1494: a direct link to an assignment that belongs to a course
+    other than the student's active one must not open the assignment. The
+    student is sent to My Courses, which names both courses and can switch
+    them back to the link they clicked."""
+    from rsptx.db.crud import fetch_user
+
+    user = await fetch_user("testuser1")
+    other_course = (
+        "test_course_1" if user.course_name != "test_course_1" else "overview"
+    )
+    assignment = await _scratch_assignment_in(other_course, "wrong_course_test")
+
+    resp = await auth_student_client.get(
+        f"/student/doAssignment?assignment_id={assignment.id}"
+    )
+
+    assert resp.status_code in (302, 307)
+    location = resp.headers["location"]
+    assert location.startswith("/admin/auth/my_courses")
+    assert f"requested_course={other_course}" in location
+    assert f"current_course={user.course_name}" in location
+    assert "requested_assignment=wrong_course_test" in location
+    # ...and back to the assignment once they switch.
+    assert f"doAssignment%3Fassignment_id%3D{assignment.id}" in location
+
+
+@asyncio_session
+async def test_do_assignment_own_course_not_redirected(auth_student_client):
+    """The guard must not fire for an assignment in the student's own course."""
+    from rsptx.db.crud import fetch_user
+
+    user = await fetch_user("testuser1")
+    assignment = await _scratch_assignment_in(user.course_name, "right_course_test")
+
+    resp = await auth_student_client.get(
+        f"/student/doAssignment?assignment_id={assignment.id}"
+    )
+
+    assert "my_courses" not in resp.headers.get("location", "")

@@ -1,4 +1,5 @@
 import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Union
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -133,6 +134,11 @@ def install_filters(env: jinja2.Environment) -> jinja2.Environment:
     return env
 
 
+# Building an Environment throws away its compiled-template cache, so a fresh
+# one per request recompiles every template it renders.  Nothing mutates these
+# environments after creation, and the loaders still check file mtimes, so a
+# rebuilt book is picked up without a restart.
+@lru_cache(maxsize=1)
 def get_shared_templates() -> Jinja2Templates:
     """Return Jinja templates for the shared template folder.
 
@@ -144,6 +150,7 @@ def get_shared_templates() -> Jinja2Templates:
     return templates
 
 
+@lru_cache(maxsize=64)
 def get_jinja_templates(book_path: str) -> Jinja2Templates:
     """Return Jinja templates that search book-specific and shared paths."""
     loader = jinja2.ChoiceLoader(

@@ -155,3 +155,23 @@ export function animate(element, properties, options = {}) {
     }
     requestAnimationFrame(step);
 }
+
+/**
+ * Escape a value for interpolation into an HTML string. Use this (or
+ * textContent) for anything a user or the server may have supplied --
+ * student answers, names, filenames, program output.
+ *
+ * @param {*} str - converted with String(); null/undefined become ""
+ * @returns {string}
+ */
+export function escapeHtml(str) {
+    if (str === null || str === undefined) {
+        return "";
+    }
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/'/g, "&#x27;")
+        .replace(/"/g, "&quot;");
+}

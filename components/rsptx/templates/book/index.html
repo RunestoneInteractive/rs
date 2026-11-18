@@ -56,7 +56,7 @@
                         class="link1"
                         href="{{canonical_host}}/ns/books/published/{{book['basecourse']}}/{{ book['main_page']}}?mode=browsing"
                     >
-                        {{ book['title'] }}
+                        {{ book['title'] }}{% if book['subtitle'] %} : {{ book['subtitle'] }}{% endif %}
                     </a>
                 </div>
                 <div class="book_descript">
@@ -71,6 +71,9 @@
                     course
                     {% endif %}
                     </p>
+                    {% if book['build_system'] == 'Runestone': %}
+                    <p class="out_of_print">Warning: This book has limited support, please use a newer alternative.</p>
+                    {% endif %}
                     <p><b>Description:</b> {{ book['description'] }}</p>
                     <a
                         href="/runestone/default/enroll?course_name={{book['basecourse']}}"

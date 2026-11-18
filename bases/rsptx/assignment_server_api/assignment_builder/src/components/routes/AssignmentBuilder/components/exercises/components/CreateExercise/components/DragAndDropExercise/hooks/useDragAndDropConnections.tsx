@@ -3,7 +3,6 @@ import { RefObject, useCallback, useEffect, useState } from "react";
 import { notify } from "@/components/ui/notify";
 
 import { CONNECTION_TOAST_COPY } from "../../../shared/connections";
-
 import styles from "../DragAndDropExercise.module.css";
 import { DragAndDropData } from "../types";
 

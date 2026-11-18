@@ -90,7 +90,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
   {
     route: "questions",
     element: '[data-tour="grader-q-answered"]',
-    title: "Answered",
+    title: "Students attempted",
     description:
       "How many students submitted at least one attempt. For ActiveCode this also includes students who only ran the code, so the card matches what you'll see on the per-question screen.",
     side: "right",
@@ -98,10 +98,10 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
   },
   {
     route: "questions",
-    element: '[data-tour="grader-q-correct"]',
-    title: "Fully correct or fully scored",
+    element: '[data-tour="grader-q-attempts"]',
+    title: "Attempts per student",
     description:
-      "Students whose last attempt is a complete solution. The label changes with the question type:\n• Auto-graded types (multiple choice, ActiveCode, CodeLens, WebWork, …) show 'fully correct': answers the system marked fully correct.\n• Manually graded types (short answer, manual Parsons, …) show 'fully scored': students whose recorded score equals the question's maximum points.\n• Partial-credit types (drag and drop, clickable areas, matching, fill in the blank, Parsons) show 'avg. credit' instead; see the next step.",
+      "The average number of attempts made by students who attempted the question. Students with no submission are not included.",
     side: "right",
     align: "start"
   },
@@ -147,7 +147,7 @@ export const GRADER_TOUR_STEPS: TourStepConfig[] = [
     element: '[data-tour="grader-student-sidebar"]',
     title: "Student sidebar",
     description:
-      "All students who attempted the question. Status icons show progress: ✓ graded, ⚡ auto-graded, ◐ in progress, ○ pending, – no submission. Filter, search, or press H to hide already-graded students.",
+      "Students enrolled in the course. Status icons show progress: ✓ graded, ⚡ auto-graded, ◐ in progress, ○ pending, – no submission. Search the list, hide students with full credit or no submission, or press H to toggle the full-credit filter.",
     side: "right",
     align: "start"
   },

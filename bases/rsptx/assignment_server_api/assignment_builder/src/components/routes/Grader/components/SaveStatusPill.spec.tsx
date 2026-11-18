@@ -28,6 +28,7 @@ describe("SaveStatusPill", () => {
     renderWithMantine(<SaveStatusPill status="saved" />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Saved");
+    expect(screen.getByRole("status")).toHaveAttribute("aria-atomic", "true");
     expect(screen.getByTestId("save-pill-checkmark")).toBeInTheDocument();
   });
 
@@ -38,8 +39,9 @@ describe("SaveStatusPill", () => {
       <SaveStatusPill status="error" onRetry={onRetry} errorMessage="Network down" />
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("Save failed");
-    expect(screen.getByRole("status")).toHaveAttribute("title", "Network down");
+    expect(screen.getByRole("alert")).toHaveTextContent("Save failed");
+    expect(screen.getByRole("alert")).toHaveAttribute("aria-live", "assertive");
+    expect(screen.getByRole("alert")).toHaveAttribute("title", "Network down");
 
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledTimes(1);

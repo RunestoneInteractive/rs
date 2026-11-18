@@ -12,7 +12,12 @@ from rsptx.logging import rslogger
 # We need a synchronous version of this function for use in manifest_data_to_db
 # if/when process_manifest moves to being async we could remove this
 def update_source_code_sync(
-    acid: str, filename: str, course_id: str, main_code: str, owner: str = None
+    acid: str,
+    filename: str,
+    course_id: str,
+    main_code: str,
+    owner: str = None,
+    is_binary: bool = False,
 ):
     """
     Update the source code for a given acid or filename
@@ -31,6 +36,7 @@ def update_source_code_sync(
             source_code_obj.filename = filename
             if owner is not None:
                 source_code_obj.owner = owner
+            source_code_obj.is_binary = is_binary
             session.add(source_code_obj)
         else:
             new_entry = SourceCode(
@@ -39,13 +45,19 @@ def update_source_code_sync(
                 course_id=course_id,
                 main_code=main_code,
                 owner=owner,
+                is_binary=is_binary,
             )
             session.add(new_entry)
         session.commit()
 
 
 async def update_source_code(
-    acid: str, filename: str, course_id: str, main_code: str, owner: str = None
+    acid: str,
+    filename: str,
+    course_id: str,
+    main_code: str,
+    owner: str = None,
+    is_binary: bool = False,
 ):
     """
     Update the source code for a given acid or filename
@@ -64,6 +76,7 @@ async def update_source_code(
             source_code_obj.filename = filename
             if owner is not None:
                 source_code_obj.owner = owner
+            source_code_obj.is_binary = is_binary
             session.add(source_code_obj)
         else:
             new_entry = SourceCode(
@@ -72,6 +85,7 @@ async def update_source_code(
                 course_id=course_id,
                 main_code=main_code,
                 owner=owner,
+                is_binary=is_binary,
             )
             session.add(new_entry)
         await session.commit()
@@ -158,6 +172,8 @@ async def fetch_source_code(
                 ),
             )
         )
+    # A cloned course's own copy of a file overrides the base book's
+    query = query.order_by((SourceCode.course_id == course_name).desc())
     async with async_session() as session:
         res = await session.execute(query)
         return SourceCodeValidator.from_orm(res.scalars().first())

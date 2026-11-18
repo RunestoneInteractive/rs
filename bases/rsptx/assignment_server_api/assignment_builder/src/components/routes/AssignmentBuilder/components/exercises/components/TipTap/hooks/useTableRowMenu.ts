@@ -22,6 +22,7 @@ export const useTableRowMenu = (editor: Editor | null): UseTableRowMenuResult =>
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
+
       if (rowMenuRef.current && !rowMenuRef.current.contains(target)) {
         setRowMenuVisible(false);
       }
@@ -53,6 +54,7 @@ export const useTableRowMenu = (editor: Editor | null): UseTableRowMenuResult =>
     };
 
     const menuElement = rowMenuRef.current;
+
     if (menuElement) {
       menuElement.addEventListener("mouseenter", handleMouseEnter);
       menuElement.addEventListener("mouseleave", handleMouseLeave);
@@ -75,6 +77,7 @@ export const useTableRowMenu = (editor: Editor | null): UseTableRowMenuResult =>
       }
 
       const row = tableCell.closest("tr");
+
       if (!row || !editor?.isActive("table")) {
         return;
       }
@@ -118,6 +121,7 @@ export const useTableRowMenu = (editor: Editor | null): UseTableRowMenuResult =>
         hoverTimeout.current = setTimeout(() => {
           // Check if mouse is over the menu
           const menuElement = rowMenuRef.current;
+
           if (menuElement) {
             const menuRect = menuElement.getBoundingClientRect();
             const mouseX = event.clientX;
@@ -139,6 +143,7 @@ export const useTableRowMenu = (editor: Editor | null): UseTableRowMenuResult =>
     };
 
     const editorElement = document.querySelector(".ProseMirror");
+
     if (editorElement && editor) {
       editorElement.addEventListener("mousemove", handleTableCellHover as EventListener);
       editorElement.addEventListener("mouseleave", handleMouseLeave as EventListener);
@@ -163,13 +168,16 @@ export const useTableRowMenu = (editor: Editor | null): UseTableRowMenuResult =>
     // Find the table node
     for (let depth = $anchor.depth; depth > 0; depth--) {
       const node = $anchor.node(depth);
+
       if (node.type.name === "table") {
         // Count all rows, excluding header row
         let rowCount = 0;
+
         node.forEach((child) => {
           if (child.type.name === "tableRow") {
             // Check if this row contains header cells
             let hasHeaderCell = false;
+
             child.forEach((cell) => {
               if (cell.type.name === "tableHeader") {
                 hasHeaderCell = true;

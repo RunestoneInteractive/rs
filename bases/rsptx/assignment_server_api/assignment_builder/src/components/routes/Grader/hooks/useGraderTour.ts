@@ -3,18 +3,14 @@ import "driver.js/dist/driver.css";
 import { useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useGraderTourContext } from "../tour/GraderTourContext";
 import {
   DEMO_ANSWERS,
   DEMO_ASSIGNMENT_ID,
   DEMO_QUESTION_ID,
   DEMO_STUDENT_SID
 } from "../tour/graderDemoData";
-import {
-  GRADER_TOUR_STEPS,
-  TourRoute,
-  TourStepConfig
-} from "../tour/graderTourConfig";
-import { useGraderTourContext } from "../tour/GraderTourContext";
+import { GRADER_TOUR_STEPS, TourRoute, TourStepConfig } from "../tour/graderTourConfig";
 
 const TOUR_ROUTES: Record<TourRoute, string> = {
   assignments: "/grader",
@@ -24,17 +20,16 @@ const TOUR_ROUTES: Record<TourRoute, string> = {
   student: `/grader/${DEMO_ASSIGNMENT_ID}/questions/${DEMO_QUESTION_ID}/students/${DEMO_STUDENT_SID}`
 };
 
-const waitForElement = (
-  selector: string,
-  timeout = 4000
-): Promise<Element | null> =>
+const waitForElement = (selector: string, timeout = 4000): Promise<Element | null> =>
   new Promise((resolve) => {
     const existing = document.querySelector(selector);
+
     if (existing) return resolve(existing);
 
     const started = Date.now();
     const observer = new MutationObserver(() => {
       const el = document.querySelector(selector);
+
       if (el) {
         observer.disconnect();
         resolve(el);
@@ -43,6 +38,7 @@ const waitForElement = (
         resolve(null);
       }
     });
+
     observer.observe(document.body, { childList: true, subtree: true });
     setTimeout(() => {
       observer.disconnect();
@@ -58,6 +54,7 @@ export const useGraderTour = () => {
   const prepareStep = useCallback(
     async (step: TourStepConfig) => {
       const targetPath = TOUR_ROUTES[step.route];
+
       if (window.location.pathname !== targetPath) {
         navigate(targetPath);
       }
@@ -72,7 +69,6 @@ export const useGraderTour = () => {
   );
 
   const startTour = useCallback(async () => {
-
     driverRef.current?.destroy();
 
     setIsDemo(true);
@@ -103,11 +99,13 @@ export const useGraderTour = () => {
           align: step.align,
           onNextClick: async (_el, _step, opts) => {
             const next = GRADER_TOUR_STEPS[idx + 1];
+
             if (next) await prepareStep(next);
             opts.driver.moveNext();
           },
           onPrevClick: async (_el, _step, opts) => {
             const prev = GRADER_TOUR_STEPS[idx - 1];
+
             if (prev) await prepareStep(prev);
             opts.driver.movePrevious();
           }
@@ -121,11 +119,9 @@ export const useGraderTour = () => {
 
   useEffect(
     () => () => {
-
       driverRef.current?.destroy();
-      const overlays = document.querySelectorAll(
-        ".driver-overlay, .driver-popover"
-      );
+      const overlays = document.querySelectorAll(".driver-overlay, .driver-popover");
+
       overlays.forEach((e) => e.remove());
     },
     []

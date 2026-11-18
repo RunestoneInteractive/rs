@@ -10,10 +10,6 @@ I don't know if any of the following are needed anymore.
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap-theme/0.1.0-beta.10/select2-bootstrap.css" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.full.js"></script>
 
-<!-- TODO: load this dynamically from the e-book's webpack instead. -->
-<script src="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/handsontable@7.2.2/dist/handsontable.full.min.css" rel="stylesheet" media="screen">
-
 <script src="/staticAssets/js/jquery.datetimepicker.full.min.js"></script>
 <link rel="stylesheet" type="text/css" href="/staticAssets/css/jquery.datetimepicker.min.css" />
 <link rel="stylesheet" type="text/css" href="/staticAssets/css/assignment.css" />
@@ -27,11 +23,7 @@ I don't know if any of the following are needed anymore.
         <script src='/ns/books/published/{{course.course_name}}/_static/{{js_import}}'></script>
     {% endfor %}
 
-    {% if webwork_js_version  %}
-        <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/{{webwork_js_version}}/pretext-webwork.js"></script>
-    {% else %}
-        <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/pretext-webwork/2.20/pretext-webwork.js"></script>
-    {% endif %}
+    <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/dist/pretext-webwork.js"></script>
 
     <script src="https://webwork.runestone.academy/webwork2_files/node_modules/iframe-resizer/js/iframeResizer.min.js"></script>
     <script src="/ns/books/published/{{course.course_name}}/_static/pretext/js/lti_iframe_resizer.js"></script>
@@ -51,6 +43,15 @@ I don't know if any of the following are needed anymore.
         console.log("pre-login-complete");
     })
     var runestoneMathReady = new Promise((resolve) => window.rsMathReady = resolve);
+    window.addEventListener("error", function(event) {
+        const target = event.target;
+        if (
+            target?.tagName === "SCRIPT" &&
+            /mathjax/i.test(target.src)
+        ) {
+            window.rsMathReady(null);
+        }
+    }, true);
     window.MathJax = {
     tex: {
         inlineMath: [['\\(','\\)'], ['$','$']],
@@ -81,24 +82,63 @@ I don't know if any of the following are needed anymore.
         mtextInheritFont: true
     },
     loader: {
-        load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand', '[pretext]/mathjaxknowl3.js'],
-        paths: {pretext: "https://pretextbook.org/js/lib"},
+        load: ['input/asciimath', '[tex]/extpfeil', '[tex]/amscd', '[tex]/newcommand'],
     },
     startup: {
+        ready() {
+            // MathJax 4 replaced the internals that PreTeXt's
+            // mathjaxknowl3.js extension used, so define the \knowl macro
+            // here, the way PreTeXt's own MathJax 4 startup does.
+            const { Configuration } = MathJax._.input.tex.Configuration;
+            Configuration.create("knowl", { handler: { macro: ["knowl"] } });
+            const NodeUtil = MathJax._.input.tex.NodeUtil.default;
+            function GetArgumentMML(parser, name) {
+                const arg = parser.ParseArg(name);
+                if (!NodeUtil.isInferred(arg)) {
+                    return arg;
+                }
+                const children = NodeUtil.getChildren(arg);
+                if (children.length === 1) {
+                    return children[0];
+                }
+                const mrow = parser.create("node", "mrow");
+                NodeUtil.copyChildren(arg, mrow);
+                NodeUtil.copyAttributes(arg, mrow);
+                return mrow;
+            }
+            const CommandMap = MathJax._.input.tex.TokenMap.CommandMap;
+            new CommandMap("knowl", {
+                knowl(parser, name) {
+                    const url = parser.GetArgument(name);
+                    const arg = GetArgumentMML(parser, name);
+                    const mrow = parser.create("node", "mrow", [arg], {
+                        tabindex: "0",
+                        "data-knowl": url,
+                    });
+                    parser.Push(mrow);
+                },
+            });
+            MathJax.startup.defaultReady();
+        },
         pageReady() {
-        return MathJax.startup.defaultPageReady().then(function () {
-        console.log("in ready function");
-        rsMathReady();
+            return MathJax.startup.defaultPageReady().then(
+                function () {
+                    console.log("in ready function");
+                    window.rsMathReady(MathJax);
+                },
+                function (error) {
+                    console.error("MathJax failed during page setup", error);
+                    window.rsMathReady(null);
+                },
+            );
         }
-        )}
     },
     };
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="{{ settings.sagecell_url if settings is defined else '/sagecell/' }}static/embedded_sagecell.js"></script>
     <script src="https://pretextbook.org/js/lib/knowl.js"></script>
-    <script src="https://pretextbook.org/js/lib/mathjaxknowl3.js"></script>
 {% endif %}
 
 

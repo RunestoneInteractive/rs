@@ -9,5 +9,7 @@ load({
             "Молимо вас да поставите све картице пре провере одговора. Остало вам је још $1 за постављање.",
         msg_dragndrop_check_me: "Провери",
         msg_dragndrop_reset: "Поништи",
+        msg_dragndrop_card_feedback: "Повратна информација за $1",
+        msg_dragndrop_card_feedback_tip: "Прикажи повратну информацију",
     },
 });

@@ -26,7 +26,9 @@ describe("BaseExerciseForm", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Save/i }));
 
-    expect(screen.getByText("Couldn't find the assignment. Reopen it from the assignments list.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Couldn't find the assignment. Reopen it from the assignments list.")
+    ).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 

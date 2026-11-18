@@ -14,7 +14,6 @@ from .redirect import Redirect
 from .request import Request
 from .tool_config import ToolConfAbstract
 
-
 RED = t.TypeVar("RED")
 REQ = t.TypeVar("REQ", bound=Request)
 TCONF = t.TypeVar("TCONF", bound=ToolConfAbstract)

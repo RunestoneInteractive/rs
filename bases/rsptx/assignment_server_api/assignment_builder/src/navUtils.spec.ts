@@ -1,4 +1,4 @@
-import { buildNavBar, isNavItemActive, NavItem } from "./navUtils";
+import { buildNavBar, getCourseSwitchDestination, isNavItemActive, NavItem } from "./navUtils";
 
 const makeConfig = (overrides: EBookConfig = {}): EBookConfig => ({
   isInstructor: true,
@@ -27,6 +27,7 @@ describe("buildNavBar", () => {
     originalLocationHref = Object.getOwnPropertyDescriptor(window, "location");
 
     const locationValue: Record<string, unknown> = {};
+
     Object.defineProperty(locationValue, "href", {
       configurable: true,
       get() {
@@ -65,14 +66,16 @@ describe("buildNavBar", () => {
   describe("menu structure", () => {
     it("returns an array of menu items", () => {
       const items = buildNavBar(makeConfig());
+
       expect(Array.isArray(items)).toBe(true);
       expect(items.length).toBeGreaterThan(0);
     });
 
-    it("includes Home, Dashboard, Grader, Assignment Builder, User, and Help labels", () => {
+    it("includes Course, Dashboard, Grader, Assignment Builder, User, and Help labels", () => {
       const items = buildNavBar(makeConfig());
       const topLabels = items.map((i) => i.label);
-      expect(topLabels).toContain("Home");
+
+      expect(topLabels).toContain("Course: test-course");
       expect(topLabels).toContain("Dashboard");
       expect(topLabels).toContain("Grader");
       expect(topLabels).toContain("Assignment Builder");
@@ -83,18 +86,21 @@ describe("buildNavBar", () => {
     it("includes a Back to Course item using the course name from config", () => {
       const items = buildNavBar(makeConfig({ course: "my-course" }));
       const backItem = items.find((i) => i.label?.includes("my-course"));
+
       expect(backItem).toBeDefined();
     });
 
     it("uses fallback course label when course is empty string", () => {
       const items = buildNavBar(makeConfig({ course: "" }));
       const backItem = items.find((i) => i.label?.includes("Course"));
+
       expect(backItem).toBeDefined();
     });
 
     it("uses default eBookConfig values when an empty object is provided", () => {
       const items = buildNavBar({} as EBookConfig);
       const backItem = items.find((i) => i.label?.includes("dev mode"));
+
       expect(backItem).toBeDefined();
     });
   });
@@ -105,6 +111,7 @@ describe("buildNavBar", () => {
       const userMenu = items.find((i) => i.label === "User");
       const subItems = (userMenu?.items as Array<{ label?: string }>) ?? [];
       const welcome = subItems.find((s) => s.label?.startsWith("Welcome"));
+
       expect(welcome?.label).toBe("Welcome alice");
     });
 
@@ -113,6 +120,7 @@ describe("buildNavBar", () => {
       const userMenu = items.find((i) => i.label === "User");
       const subItems = (userMenu?.items as Array<{ label?: string }>) ?? [];
       const welcome = subItems.find((s) => s.label?.startsWith("Welcome"));
+
       expect(welcome?.label).toBe("Welcome User");
     });
 
@@ -121,6 +129,7 @@ describe("buildNavBar", () => {
       const userMenu = items.find((i) => i.label === "User");
       const subItems = (userMenu?.items as Array<{ label?: string; visible?: boolean }>) ?? [];
       const peerInstructor = subItems.find((s) => s.label === "Peer instruction (instructor)");
+
       expect(peerInstructor?.visible).toBe(true);
     });
 
@@ -129,6 +138,7 @@ describe("buildNavBar", () => {
       const userMenu = items.find((i) => i.label === "User");
       const subItems = (userMenu?.items as Array<{ label?: string; visible?: boolean }>) ?? [];
       const peerInstructor = subItems.find((s) => s.label === "Peer instruction (instructor)");
+
       expect(peerInstructor?.visible).toBe(false);
     });
   });
@@ -137,50 +147,48 @@ describe("buildNavBar", () => {
     it("opens http URLs in a new tab", () => {
       const items = buildNavBar(makeConfig());
       const helpMenu = items.find((i) => i.label === "Help");
-      const subItems = (helpMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (helpMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const guide = subItems.find((s) => s.label === "Instructor's guide");
-      guide?.command?.();
+
+      guide?.onClick?.();
       expect(openSpy).toHaveBeenCalledWith("https://guide.runestone.academy/", "_blank");
     });
 
     it("opens https URLs in a new tab", () => {
       const items = buildNavBar(makeConfig());
       const helpMenu = items.find((i) => i.label === "Help");
-      const subItems = (helpMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (helpMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const discord = subItems.find((s) => s.label === "Join our Discord");
-      discord?.command?.();
+
+      discord?.onClick?.();
       expect(openSpy).toHaveBeenCalledWith("https://discord.gg/f3Qmbk9P3U", "_blank");
     });
   });
 
   describe("navigation behavior — server paths", () => {
-    it("sets window.location.href for /runestone paths", () => {
-      const items = buildNavBar(makeConfig());
-      const home = items.find((i) => i.label === "Home");
-      home?.command?.();
-      expect(hrefSpy).toHaveBeenCalledWith("/runestone/default/index");
-    });
-
     it("sets window.location.href for /ns paths", () => {
       const items = buildNavBar(makeConfig({ course: "cs101" }));
       const back = items.find((i) => i.label?.startsWith("Back to"));
-      back?.command?.();
+
+      back?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/ns/books/published/cs101/index.html");
     });
 
     it("sets window.location.href for /assignment paths", () => {
       const items = buildNavBar(makeConfig());
       const userMenu = items.find((i) => i.label === "User");
-      const subItems = (userMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (userMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const assignments = subItems.find((s) => s.label === "Assignments");
-      assignments?.command?.();
+
+      assignments?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/assignment/student/chooseAssignment");
     });
 
     it("sets window.location.href for /admin paths", () => {
       const items = buildNavBar(makeConfig());
       const dashboard = items.find((i) => i.label === "Dashboard");
-      dashboard?.command?.();
+
+      dashboard?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/admin/instructor/menu");
     });
   });
@@ -189,14 +197,16 @@ describe("buildNavBar", () => {
     it("sets window.location.hash for relative paths when no navigate fn is provided", () => {
       const items = buildNavBar(makeConfig());
       const grader = items.find((i) => i.label === "Grader");
-      grader?.command?.();
+
+      grader?.onClick?.();
       expect(hashSpy).toHaveBeenCalledWith("#/grader");
     });
 
     it("sets window.location.hash for builder path", () => {
       const items = buildNavBar(makeConfig());
       const builder = items.find((i) => i.label === "Assignment Builder");
-      builder?.command?.();
+
+      builder?.onClick?.();
       expect(hashSpy).toHaveBeenCalledWith("#/builder");
     });
   });
@@ -206,7 +216,8 @@ describe("buildNavBar", () => {
       const navigate = vi.fn();
       const items = buildNavBar(makeConfig(), navigate);
       const grader = items.find((i) => i.label === "Grader");
-      grader?.command?.();
+
+      grader?.onClick?.();
       expect(navigate).toHaveBeenCalledWith("/grader");
     });
 
@@ -214,16 +225,18 @@ describe("buildNavBar", () => {
       const navigate = vi.fn();
       const items = buildNavBar(makeConfig(), navigate);
       const builder = items.find((i) => i.label === "Assignment Builder");
-      builder?.command?.();
+
+      builder?.onClick?.();
       expect(navigate).toHaveBeenCalledWith("/builder");
     });
 
     it("still uses window.location.href for server paths even with navigate fn", () => {
       const navigate = vi.fn();
-      const items = buildNavBar(makeConfig(), navigate);
-      const home = items.find((i) => i.label === "Home");
-      home?.command?.();
-      expect(hrefSpy).toHaveBeenCalledWith("/runestone/default/index");
+      const items = buildNavBar(makeConfig({ course: "cs101" }), navigate);
+      const back = items.find((i) => i.label?.startsWith("Back to"));
+
+      back?.onClick?.();
+      expect(hrefSpy).toHaveBeenCalledWith("/ns/books/published/cs101/index.html");
       expect(navigate).not.toHaveBeenCalled();
     });
 
@@ -231,9 +244,10 @@ describe("buildNavBar", () => {
       const navigate = vi.fn();
       const items = buildNavBar(makeConfig(), navigate);
       const helpMenu = items.find((i) => i.label === "Help");
-      const subItems = (helpMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (helpMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const guide = subItems.find((s) => s.label === "Instructor's guide");
-      guide?.command?.();
+
+      guide?.onClick?.();
       expect(openSpy).toHaveBeenCalledWith("https://guide.runestone.academy/", "_blank");
       expect(navigate).not.toHaveBeenCalled();
     });
@@ -247,6 +261,56 @@ describe("buildNavBar", () => {
 
       expect(grader?.activePrefixes).toEqual(["/grader"]);
       expect(builder?.activePrefixes).toEqual(["/builder", "/"]);
+    });
+  });
+
+  it("provides real destinations for navigation links", () => {
+    const items = buildNavBar(makeConfig());
+    const userItems = items.find((item) => item.label === "User")?.items;
+    const helpItems = items.find((item) => item.label === "Help")?.items;
+
+    expect(items.find((item) => item.label === "Grader")?.href).toBe(
+      "/assignment/instructor/grader"
+    );
+    expect(items.find((item) => item.label === "Assignment Builder")?.href).toBe(
+      "/assignment/instructor/builder"
+    );
+    expect(userItems?.find((item) => item.label === "Course home")?.href).toBe("/ns/course/index");
+    expect(helpItems?.find((item) => item.label === "Instructor's guide")?.href).toBe(
+      "https://guide.runestone.academy/"
+    );
+    expect(userItems?.find((item) => item.label === "Logout")?.href).toBeUndefined();
+  });
+
+  describe("course switcher", () => {
+    it("replaces Home with the current course and recent instructor courses", () => {
+      const onSwitch = vi.fn();
+      const items = buildNavBar(makeConfig({ course: "cs101" }), undefined, {
+        courses: [
+          { course_name: "cs101", is_current: true },
+          { course_name: "cs102", is_current: false }
+        ],
+        onSwitch
+      });
+      const courseMenu = items.find((item) => item.label === "Course: cs101");
+
+      expect(items.some((item) => item.label === "Home")).toBe(false);
+      expect(courseMenu?.items?.map((item) => item.label)).toEqual(["cs101", "cs102"]);
+      expect(courseMenu?.items?.[0]).toMatchObject({ icon: "check", disabled: true });
+
+      courseMenu?.items?.[1].onClick?.();
+      expect(onSwitch).toHaveBeenCalledWith("cs102");
+    });
+
+    it("disables course choices while a switch is in progress", () => {
+      const items = buildNavBar(makeConfig({ course: "cs101" }), undefined, {
+        courses: [{ course_name: "cs102", is_current: false }],
+        onSwitch: vi.fn(),
+        isSwitching: true
+      });
+      const courseMenu = items.find((item) => item.label === "Course: cs101");
+
+      expect(courseMenu?.items?.every((item) => item.disabled)).toBe(true);
     });
   });
 });
@@ -279,4 +343,20 @@ describe("isNavItemActive", () => {
   it("returns false for items without activePrefixes", () => {
     expect(isNavItemActive({ label: "Home" }, "/builder")).toBe(false);
   });
+});
+
+describe("getCourseSwitchDestination", () => {
+  it.each(["/", "/builder", "/builder/123", "/builder/123/exercises/edit/456"])(
+    "returns the assignment list for builder route %s",
+    (pathname) => {
+      expect(getCourseSwitchDestination(pathname)).toBe("/assignment/instructor/builder");
+    }
+  );
+
+  it.each(["/grader", "/grader/123", "/grader/123/questions/456", "/gradebook"])(
+    "returns the grader assignment list for grader route %s",
+    (pathname) => {
+      expect(getCourseSwitchDestination(pathname)).toBe("/assignment/instructor/grader");
+    }
+  );
 });

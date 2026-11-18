@@ -49,7 +49,7 @@ def validate_text_field(
     return None
 
 
-def validate_password(password: str, min_length: int = 6) -> str | None:
+def validate_password(password: str, min_length: int = 10) -> str | None:
     """Validate a password without altering it.
 
     Passwords are deliberately not stripped -- leading or trailing spaces can be

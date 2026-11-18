@@ -63,7 +63,37 @@ export const deleteAssignmentViaApi = async (
   }
 };
 
-export const test = base.extend<{ scratchAssignment: ScratchAssignment }>({
+export const test = base.extend<{
+  ciCourseContext: void;
+  scratchAssignment: ScratchAssignment;
+}>({
+  ciCourseContext: [
+    async ({ page }, use) => {
+      if (process.env.CI_A11Y === "true") {
+        await page.addInitScript(() => {
+          const ciConfig = {
+            basecourse: "overview",
+            course: "overview",
+            isInstructor: true,
+            isLoggedIn: true,
+            username: "testuser1"
+          };
+          let stored = ciConfig;
+
+          Object.defineProperty(window, "eBookConfig", {
+            configurable: true,
+            get: () => stored,
+            set: (next: Partial<EBookConfig>) => {
+              stored = { ...next, ...ciConfig };
+            }
+          });
+        });
+      }
+
+      await use();
+    },
+    { auto: true }
+  ],
   scratchAssignment: async ({ page }, use, testInfo) => {
     const name = scratchName(testInfo.workerIndex, slugify(testInfo.title));
     const id = await createAssignmentViaWizard(page, name);

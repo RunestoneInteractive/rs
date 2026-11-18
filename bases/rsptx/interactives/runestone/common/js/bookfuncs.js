@@ -32,6 +32,23 @@
 import RunestoneBase from "./runestonebase.js";
 import { marked } from "marked";
 
+// ---------------------------------------------------------------------------
+// Server-supplied eBookConfig values (issue #1392)
+//
+// A PreTeXt page served by a Runestone server sets ``ebook_config_override``
+// right after the book template's own eBookConfig assignments.  The server is
+// the authority for those values (course, user, activities, ...), so they win
+// over whatever the template wrote.  This runs when the module is evaluated,
+// before anything else reads eBookConfig.
+// ---------------------------------------------------------------------------
+export function applyEbookConfigOverride() {
+    const override = window.ebook_config_override;
+    if (override && typeof override === "object") {
+        window.eBookConfig = Object.assign(window.eBookConfig || {}, override);
+    }
+}
+applyEbookConfigOverride();
+
 var rb = new RunestoneBase();
 
 // ---------------------------------------------------------------------------
@@ -39,14 +56,40 @@ var rb = new RunestoneBase();
 //
 // The browser gives page scripts no way to read what is already in the devtools
 // console, so we buffer console output ourselves from the moment this module is
-// evaluated.  When the user opens the "Report a Problem" form we stash the
-// buffer in sessionStorage (see the Problem Report menu link below); the form
-// reads it back into a hidden field so recent log output and uncaught errors
-// ride along with the report.
+// evaluated.  The buffer is written through to sessionStorage (debounced, and
+// again on pagehide) so the "Report a Problem" form can always read it back
+// into a hidden field, letting recent log output and uncaught errors ride along
+// with the report.  We can't rely on stashing it only when the Problem Report
+// link is clicked: a beforeunload "Leave site?" prompt (e.g. from timed exams)
+// can get in the way of that.
 // ---------------------------------------------------------------------------
 export const RS_CONSOLE_LOG_KEY = "rs_console_log";
 const RS_LOG_BUFFER_MAX = 200;
+const RS_LOG_PERSIST_DELAY_MS = 500;
 const rsConsoleBuffer = [];
+let rsPersistTimer = null;
+
+function rsPersistConsoleLog() {
+    if (rsPersistTimer) {
+        clearTimeout(rsPersistTimer);
+        rsPersistTimer = null;
+    }
+    try {
+        sessionStorage.setItem(RS_CONSOLE_LOG_KEY, rsGetConsoleLog());
+    } catch (e) {
+        // sessionStorage may be unavailable (e.g. private mode) or full; the
+        // report form simply won't be prefilled with the log.
+    }
+}
+
+function rsSchedulePersist() {
+    if (!rsPersistTimer) {
+        rsPersistTimer = setTimeout(
+            rsPersistConsoleLog,
+            RS_LOG_PERSIST_DELAY_MS,
+        );
+    }
+}
 
 function rsFormatLogArg(arg) {
     if (typeof arg === "string") return arg;
@@ -63,6 +106,7 @@ function rsRecordLog(level, args) {
         const line = `[${level}] ${Array.from(args).map(rsFormatLogArg).join(" ")}`;
         rsConsoleBuffer.push(line);
         if (rsConsoleBuffer.length > RS_LOG_BUFFER_MAX) rsConsoleBuffer.shift();
+        rsSchedulePersist();
     } catch (e) {
         // Never let log capture throw and break the page.
     }
@@ -90,6 +134,8 @@ function rsRecordLog(level, args) {
     window.addEventListener("unhandledrejection", (e) => {
         rsRecordLog("promise", [rsFormatLogArg(e.reason)]);
     });
+    // Catch anything logged inside the debounce window before we navigate away.
+    window.addEventListener("pagehide", rsPersistConsoleLog);
 })();
 
 /** Recent buffered console output, newest last, as a single string. */
@@ -188,8 +234,9 @@ function addReadingList() {
             var fst_lnk = document.createElement("a");
             //fst_lnk.className = "btn btn-lg reading-navigation prev-reading";
             fst_lnk.href = new_pos_link;
-            fst_lnk.textContent = `Back to page ${position
-                } of ${num_readings}: ${reading_names[position - 1]}.`;
+            fst_lnk.textContent = `Back to page ${
+                position
+            } of ${num_readings}: ${reading_names[position - 1]}.`;
             txt.append(fst_lnk);
             fst.append(txt);
         } else if (position == 0) {
@@ -252,8 +299,9 @@ function addReadingList() {
             var snd_lnk = document.createElement("a");
             //snd_lnk.className = "btn btn-lg reading-navigation next-reading";
             snd_lnk.href = new_pos_link;
-            snd_lnk.textContent = `Continue to page ${position + 2
-                } of ${num_readings}: ${reading_names[position + 1]}`;
+            snd_lnk.textContent = `Continue to page ${
+                position + 2
+            } of ${num_readings}: ${reading_names[position + 1]}`;
             let txt = document.createElement("p");
             txt.append(snd_lnk);
             snd.append(txt);
@@ -315,7 +363,6 @@ function addReadingList() {
     }
 }
 
-
 /**
  * Build the activity dictionary for the progress bar by scanning the page.
  *
@@ -348,10 +395,56 @@ export const NON_CONTENT_PAGES = [
     "search.html",
 ];
 
+export function isCourseStarted() {
+    let startDate = eBookConfig.termStartDate; // format is "2026-09-22"
+    if (!startDate) {
+        return false;
+    }
+    let today = new Date();
+    let start = new Date(startDate);
+    return today >= start;
+}
+
+function courseNotStartedMessage() {
+    const formattedDate = new Date(
+        eBookConfig.termStartDate,
+    ).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+    return (
+        "Course has not started yet. Progress will be tracked starting on " +
+        formattedDate
+    );
+}
+
 /** True when pathname names one of the NON_CONTENT_PAGES. */
 export function isNonContentPage(pathname = window.location.pathname) {
     let page = pathname.split("/").pop().toLowerCase();
     return NON_CONTENT_PAGES.some((p) => p.toLowerCase() === page);
+}
+
+/**
+ * True when pathname is a book page the server keeps reading progress for:
+ * a subchapter. The interactives also load on assignment pages, and a
+ * PreTeXt book's root, part, chapter, introduction and front matter pages
+ * are not subchapters either; asking the progress endpoints about any of
+ * them only earns a 422.
+ */
+export function isSubchapterPage(
+    pathname = window.location.pathname,
+    activities = window.eBookConfig?.activities,
+) {
+    if (!pathname.includes("/books/published/") || isNonContentPage(pathname)) {
+        return false;
+    }
+    // serve_page sends the chapter it found for the page, null when the page
+    // is not a subchapter. Pages rendered by an older server don't send it.
+    return (
+        !(activities && "page_chapter" in activities) ||
+        !!activities.page_chapter
+    );
 }
 
 export function countActivitiesInPage(root = document) {
@@ -377,9 +470,14 @@ export class PageProgressBar {
         this.possible = 0;
         // The page itself counts as one item and is attempted as soon as it is
         // opened. That is what lets a page with no activities on it still be
-        // completed. It is deliberately kept out of the numbers shown to the
-        // reader -- see activitiesAttempted/activitiesPossible below.
+        // completed.
         this.total = 1;
+        // page_chapter rides along for isSubchapterPage; it is not an
+        // activity. Copy rather than delete so that check still sees it.
+        if (actDict && "page_chapter" in actDict) {
+            actDict = { ...actDict };
+            delete actDict.page_chapter;
+        }
         if (actDict && "assignment_spec" in actDict) {
             this.assignment_spec = actDict.assignment_spec;
             delete actDict.assignment_spec;
@@ -396,7 +494,7 @@ export class PageProgressBar {
         // activity; nothing we can do about that here, but keep the fallback so
         // a server that sends no page entry at all still lines up.
         if (!("page" in this.activities)) {
-            this.activities.page = 0;
+            this.activities.page = 1;
         }
         this.calculateProgress();
         // Hide the progress bar on navigation pages, which have no activities.
@@ -420,17 +518,12 @@ export class PageProgressBar {
         }
     }
 
-    // The counts shown beside the bar describe "activities on this page", and
-    // the page entry is not one of them -- reporting it made a freshly opened
-    // page read "1 of 4" when the reader could only see three activities.
-    // Progress percentage still uses total/possible so that opening the page
-    // counts toward completion.
     get activitiesAttempted() {
-        return Math.max(this.total - 1, 0);
+        return Math.max(this.total, 0);
     }
 
     get activitiesPossible() {
-        return Math.max(this.possible - 1, 0);
+        return Math.max(this.possible, 0);
     }
 
     renderProgress() {
@@ -445,6 +538,13 @@ export class PageProgressBar {
             value = (100 * this.total) / this.possible;
         } catch (e) {
             value = 0;
+        }
+        let progressText = document.getElementById("scprogress-activity-count");
+        // Warn if course not started
+        if (progressText && !isCourseStarted()) {
+            progressText.appendChild(
+                document.createTextNode(courseNotStartedMessage()),
+            );
         }
         // Replace #subchapterprogress div with a native <progress> element if not already done
         let subchapterprogress = document.getElementById("subchapterprogress");
@@ -865,7 +965,10 @@ function createStudyCluesWidget() {
         }
         var sectionInfo = "";
         // find the section title on the page to include in the initial query
-        if (document.querySelector("body.pretext") && document.querySelector("section.section")) {
+        if (
+            document.querySelector("body.pretext") &&
+            document.querySelector("section.section")
+        ) {
             let section = document.querySelector("section.section");
             let sectionTitle = section.querySelector("span.title").innerText;
             let sectionNumber =
@@ -939,13 +1042,24 @@ function createStudyCluesWidget() {
                 return url ? `[${text}](${url})` : match;
             });
             const formattedResponse = marked.parse(markdownResponse);
-
+            // add a target="_blank" to all links in the formatted response
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = formattedResponse;
+            tempDiv.querySelectorAll("a").forEach((a) => {
+                a.setAttribute("target", "_blank");
+            });
+            const finalFormattedResponse = tempDiv.innerHTML;
             appendStudyCluesMessage(
                 messagesEl,
                 "assistant",
-                formattedResponse,
+                finalFormattedResponse,
                 true,
             );
+            rb.logBookEvent({
+                event: "studyclues_response",
+                act: `coach:${coachMode}:response:${markdownResponse.substring(0, 512)}`,
+                div_id: `${sectionInfo}`,
+            });
         } catch (err) {
             appendStudyCluesMessage(
                 messagesEl,
@@ -972,53 +1086,14 @@ function createStudyCluesWidget() {
 }
 
 function shouldShowStudyCluesWidget() {
-    if (
-        !(
-            location.pathname.includes("/ns/books/") ||
-            location.pathname.includes("doAssignment")
-        )
-    ) {
+    if (!(
+        location.pathname.includes("/ns/books/") ||
+        location.pathname.includes("doAssignment")
+    )) {
         return false;
     }
 
-    const enabledBasecourses = [
-        "csawesome2",
-        "py4e-int",
-        "thinkcspy",
-        "httlacs",
-        "PTXSB",
-        "cppds2",
-    ];
-    const enabledCourses = [
-        "SI201-W26-MW",
-        "SI201-W26-TTh",
-        "DukeCS101SP26",
-        "mcd-csa-schoology",
-        "mcd-csa-canvas",
-        "csawesome2-MOOC",
-        "test_py4e-int_api",
-        "bc_cppds_s26",
-        "bc_cppds2_f26",
-        "Test-py4e-int",
-        "virginiatech_py4e-int_spring26",
-        "umsi101_fall26",
-        "csawesome2_studyclues_test",
-        "httlacs_studyclues_test",
-        "py4e_studyclues_test",
-        "F26-SI201-MW",
-        "F26-SI201-TTh",
-    ];
-    const host = window.location.hostname;
-
-    if (host === "localhost") {
-        return enabledBasecourses.includes(eBookConfig.basecourse);
-    }
-
-    if (host === "runestone.academy") {
-        return enabledCourses.includes(eBookConfig.course);
-    }
-
-    return false;
+    return eBookConfig.course_attrs?.studyClues === "True";
 }
 
 async function handlePageSetup() {
@@ -1077,6 +1152,20 @@ async function handlePageSetup() {
             }
         }
     }
+
+    // PTX generated pages may have stale HTML. Forcibly re-render the content
+    // of the progress container. Any logic that modifies the progress container
+    // should be done after this point, or it will be overwritten.
+    const scprogresscontainer = document.getElementById("scprogresscontainer");
+    if (scprogresscontainer)
+        scprogresscontainer.innerHTML = `
+            <div id="scprogress-activity-count">
+                You have attempted <span id="scprogresstotal"></span> of
+                <span id="scprogressposs"></span> activities on this page.
+            </div>
+            <div id="subchapterprogress" aria-label="Page progress"></div>
+        `;
+
     console.log(`This page served by ${eBookConfig.served_by}`);
     if (eBookConfig.isLoggedIn) {
         mess = `username: ${eBookConfig.username}`;
@@ -1091,9 +1180,28 @@ async function handlePageSetup() {
             }
         }
         document.dispatchEvent(new Event("runestone:login"));
+
         addReadingList();
-        // Only show the StudyClues widget for certain base courses and when the path includes "/ns/books/".
-        // This is a temporary measure to limit the widget to courses that are known to work well with it and to avoid showing it on non-book pages where it may not be as useful.
+
+        // Warn if the course has not started yet
+        if (!isCourseStarted()) {
+            const ptxContent = document.getElementById("ptx-content");
+            if (ptxContent) {
+                const warningContainer = document.createElement("div");
+                warningContainer.className = "ptx-runestone-container";
+                const warningDiv = document.createElement("div");
+                warningDiv.className =
+                    "course-not-started-warning alert alert-danger";
+                warningDiv.textContent = courseNotStartedMessage();
+                warningContainer.appendChild(warningDiv);
+                ptxContent.insertBefore(
+                    warningContainer,
+                    ptxContent.firstChild,
+                );
+            }
+        }
+
+        // Only show the StudyClues widget on book/assignment pages for courses with the studyClues attribute set.
         if (shouldShowStudyCluesWidget()) {
             createStudyCluesWidget();
         }
@@ -1164,16 +1272,258 @@ function notifyRunestoneComponents() {
     document.dispatchEvent(new Event("runestone:pre-login-complete"));
 }
 
-function placeAdCopy() {
-    if (typeof showAd !== "undefined" && showAd) {
-        let adNum = Math.floor(Math.random() * 2) + 1;
-        let adBlock = document.getElementById(`adcopy_${adNum}`);
-        let rsElements = document.querySelectorAll(".runestone");
-        if (rsElements.length > 0) {
-            let randomIndex = Math.floor(Math.random() * rsElements.length);
-            rsElements[randomIndex].after(adBlock);
-            adBlock.style.display = "block";
+// The original two appeals, still used for the inline ad (pages with no PreTeXt
+// masthead or navbar). Sphinx books carry the same copy in their own layout
+// template as ``ad=1`` and ``ad=2``.
+const LEGACY_AD_COPY = [
+    "Runestone Academy can only continue if we get support from individuals like you. As a student you are well aware of the high cost of textbooks.  Our mission is to provide great books to you for free, but we ask that you consider a $10 donation, more if you can or less if $10 is a burden.",
+    "Making great stuff takes time and $$.  If you appreciate the book you are reading now and want to keep quality materials free for other students please consider a donation to Runestone Academy. We ask that you consider a $10 donation, but if you can give more thats great, if $10 is too much for your budget we would be happy with whatever you can afford as a show of support.",
+];
+
+// The PreTeXt banner rotates between these at random. Each has its own ``ad``
+// number, starting after the legacy ones, so donate-page visits in the access
+// logs can be credited to the copy that sent them. The term-students appeal
+// needs a live count from the book server; ``headline`` is a function of it.
+export const BANNER_COPY = [
+    {
+        ad: 3,
+        headline: "This book is free, and we want to keep it that way.",
+        body: "Runestone Academy is a 501(c)(3) nonprofit supported by readers like you. If this book is helping you, a $10 gift keeps it free for the next student.",
+        button: "Donate $10",
+    },
+    {
+        ad: 4,
+        needsTermStudents: true,
+        headline: ({ count, since }) =>
+            `${describeStudentCount(count)} students have started using Runestone books since ${since}.`,
+        body: "We don't charge for them, and we never will. If Runestone is helping you, a tax-deductible gift helps keep it that way.",
+        button: "Chip in",
+    },
+    {
+        ad: 5,
+        headline: "Free textbooks aren't free to make.",
+        body: "If this book is helping you, please consider a tax-deductible $10 gift to Runestone Academy. Any amount helps.",
+        button: "Donate",
+    },
+];
+
+// Early in a term (and on a dev server) the count is too small to impress, so
+// the banner uses one of the other appeals instead.
+export const MIN_TERM_STUDENTS = 1000;
+
+/**
+ * Round down to two significant figures so the banner reads "More than
+ * 48,000" rather than a suspiciously precise 48,213, and never overstates.
+ */
+export function describeStudentCount(count) {
+    const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(count)) - 1);
+    const rounded = Math.floor(count / magnitude) * magnitude;
+    const shown = rounded.toLocaleString("en-US");
+    return rounded < count ? `More than ${shown}` : shown;
+}
+
+/**
+ * Fetch the number of students who joined since the term began, formatted for
+ * the headline, or null when it is unavailable or too small to use.
+ */
+export async function fetchTermStudents() {
+    try {
+        const response = await fetch(
+            `${eBookConfig.new_server_prefix}/books/term_students`,
+        );
+        if (!response.ok) {
+            return null;
         }
+        const { count, since } = await response.json();
+        if (!(count >= MIN_TERM_STUDENTS) || !since) {
+            return null;
+        }
+        // ``since`` is a bare date; format it in UTC so a reader west of
+        // Greenwich does not see "July 31" for August 1.
+        const sinceText = new Date(`${since}T00:00:00Z`).toLocaleDateString(
+            "en-US",
+            { month: "long", day: "numeric", timeZone: "UTC" },
+        );
+        return { count, since: sinceText };
+    } catch (e) {
+        console.error("Failed to fetch term students:", e);
+        return null;
+    }
+}
+
+/**
+ * Resolve ``BANNER_COPY[index]`` to plain strings. If the term-students appeal
+ * cannot get its count, fall back to the next appeal that needs nothing.
+ */
+export async function resolveBannerCopy(index) {
+    const copy = BANNER_COPY[index];
+    if (!copy.needsTermStudents) {
+        return copy;
+    }
+    const stats = await fetchTermStudents();
+    if (stats) {
+        return { ...copy, headline: copy.headline(stats) };
+    }
+    return BANNER_COPY[(index + 1) % BANNER_COPY.length];
+}
+
+// When a reader closes the PreTeXt top-of-page banner we leave them alone for
+// two days, on every book, by remembering when they did it.
+export const AD_DISMISSED_KEY = "rs_ad_dismissed_at";
+export const AD_DISMISS_MS = 48 * 60 * 60 * 1000;
+
+export function adRecentlyDismissed(now = Date.now()) {
+    let dismissedAt;
+    try {
+        dismissedAt = Number(localStorage.getItem(AD_DISMISSED_KEY));
+    } catch (e) {
+        return false;
+    }
+    // A timestamp from the future (the clock was moved back) must not
+    // silence the banner for however long that gap is.
+    return (
+        dismissedAt > 0 &&
+        dismissedAt <= now &&
+        now - dismissedAt < AD_DISMISS_MS
+    );
+}
+
+// Even undismissed, the banner appears only on the first page of a visit, not
+// on every page a student loads while working through a chapter. A visit ends
+// after 30 minutes without a page view (the usual analytics definition); the
+// clock lives in localStorage rather than sessionStorage so that opening a
+// chapter in a new tab does not count as a new visit.
+export const AD_LAST_PAGEVIEW_KEY = "rs_ad_last_pageview";
+export const AD_VISIT_GAP_MS = 30 * 60 * 1000;
+
+/**
+ * Record this page view and report whether it continues a visit already under
+ * way. Every page view extends the visit, including ones where the banner was
+ * held back for a dismissal, so a dismissal that expires mid-visit waits for
+ * the next visit instead of popping up between pages.
+ */
+export function adVisitInProgress(now = Date.now()) {
+    let lastPageview;
+    try {
+        lastPageview = Number(localStorage.getItem(AD_LAST_PAGEVIEW_KEY));
+        localStorage.setItem(AD_LAST_PAGEVIEW_KEY, String(now));
+    } catch (e) {
+        return false;
+    }
+    return (
+        lastPageview > 0 &&
+        lastPageview <= now &&
+        now - lastPageview < AD_VISIT_GAP_MS
+    );
+}
+
+function dismissAd(banner) {
+    try {
+        localStorage.setItem(AD_DISMISSED_KEY, String(Date.now()));
+    } catch (e) {
+        // Storage blocked: the banner still closes, it just comes back on
+        // the next page.
+    }
+    banner.remove();
+}
+
+function shouldShowAd() {
+    return (
+        (typeof showAd !== "undefined" && showAd) ||
+        eBookConfig.course_attrs?.showAd
+    );
+}
+
+/**
+ * PreTeXt books get a dismissible banner across the top of the page, above the
+ * masthead and navbar, instead of an ad dropped into the middle of the
+ * reading. Authors objected to the interruption.
+ */
+export async function placeAdBanner(
+    topOfPage,
+    index = Math.floor(Math.random() * BANNER_COPY.length),
+) {
+    if (document.getElementById("rs-ad-banner")) {
+        return null;
+    }
+    // Always record the page view, even when a dismissal is holding the
+    // banner back, so the visit clock stays current.
+    const continuingVisit = adVisitInProgress();
+    if (continuingVisit || adRecentlyDismissed()) {
+        return null;
+    }
+    const copy = await resolveBannerCopy(index);
+    // Another call may have placed a banner while we waited on the count.
+    if (document.getElementById("rs-ad-banner")) {
+        return null;
+    }
+    const banner = document.createElement("aside");
+    banner.id = "rs-ad-banner";
+    banner.className = "adbanner";
+    banner.setAttribute("aria-label", "Support Runestone Academy");
+    banner.innerHTML = `
+        <div class="adbanner-text">
+            <strong>${copy.headline}</strong>
+            <p>${copy.body}</p>
+        </div>
+        <div class="adbanner-donate">
+            <a href="/admin/auth/donate?ad=${copy.ad}">${copy.button}</a>
+        </div>
+        <button type="button" class="adbanner-close"
+            aria-label="Dismiss for 48 hours" title="Dismiss for 48 hours">&times;</button>`;
+    banner
+        .querySelector(".adbanner-close")
+        .addEventListener("click", () => dismissAd(banner));
+    topOfPage.before(banner);
+    return banner;
+}
+
+// Sphinx books (and any page without a PreTeXt masthead or navbar) keep the
+// old behavior: the appeal appears after a randomly chosen component.
+function placeInlineAd() {
+    let adNum = Math.floor(Math.random() * LEGACY_AD_COPY.length) + 1;
+    let adTemplate = LEGACY_AD_COPY.map(
+        (text, i) => `
+         <aside id="adcopy_${i + 1}" class="adcopy" style="display: none;">
+           <strong>Before you keep reading...</strong>
+           <p>${text}
+           </p>
+           <div class="donate${"ab"[i]}">
+           <a href="/admin/auth/donate?ad=${i + 1}">Support Runestone Academy Today</a>
+           </div>
+         </aside>`,
+    ).join("");
+    if (!document.getElementById("adcopy_1")) {
+        document.body.insertAdjacentHTML("beforeend", adTemplate);
+    }
+    let adBlock = document.getElementById(`adcopy_${adNum}`);
+    let rsElements = document.querySelectorAll(".runestone");
+    if (rsElements.length > 0) {
+        let randomIndex = Math.floor(Math.random() * rsElements.length);
+        rsElements[randomIndex].after(adBlock);
+        // find the a tag within the ad block and change the href from /runestone/default/donate to /admin/auth/donate
+        const aTag = adBlock.querySelector("a");
+        if (aTag && aTag.href.includes("/runestone/default/donate")) {
+            aTag.href = aTag.href.replace(
+                "/runestone/default/donate",
+                "/admin/auth/donate",
+            );
+        }
+        adBlock.style.display = "block";
+    }
+}
+
+function placeAdCopy() {
+    if (!shouldShowAd()) {
+        return;
+    }
+    let topOfPage =
+        document.getElementById("ptx-masthead") ||
+        document.getElementById("ptx-navbar");
+    if (topOfPage) {
+        placeAdBanner(topOfPage);
+    } else {
+        placeInlineAd();
     }
 }
 
@@ -1270,9 +1620,7 @@ window.addEventListener("DOMContentLoaded", function (event) {
     );
 
     if (!itemTemplate || !sepTemplate || !menuContentArea) {
-        console.warn(
-            "Missing template or content area for user dropdown",
-        );
+        console.warn("Missing template or content area for user dropdown");
         return;
     }
 
@@ -1280,7 +1628,9 @@ window.addEventListener("DOMContentLoaded", function (event) {
         // All we should assume about the item template is that it has an anchor element
         const link = itemTemplate.content.cloneNode(true);
         const linkAnchor = link.querySelector("a");
-        linkAnchor.href = url;
+        if (url) {
+            linkAnchor.href = url;
+        }
         linkAnchor.innerText = "";
         const contentSpan = document.createElement("span");
         contentSpan.style.display = "inline-flex";
@@ -1308,16 +1658,41 @@ window.addEventListener("DOMContentLoaded", function (event) {
         if (ariaLabel) {
             linkAnchor.ariaLabel = ariaLabel;
         }
+        if (!url) {
+            const info = document.createElement("span");
+            info.className = linkAnchor.className;
+            if (title.length > 30) {
+                info.innerText = title.slice(0, 12) + "..." + title.slice(-15);
+                // add hover to show full title
+                info.title = title;
+                info.style.cursor = "help";
+            } else {
+                info.innerText = title;
+            }
+            info.style.display = "flex";
+            info.style.justifyContent = "center";
+            info.style.alignItems = "center";
+            linkAnchor.replaceWith(info);
+        }
         // return entire item template, not just link
         return link;
     }
+    // limit length of eBookConfig.course to 30 characters to prevent overly long course names in the menu but preserve the last 15 characters
+    menuContentArea.appendChild(makeLink(null, eBookConfig.course));
+    menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
 
-    menuContentArea.appendChild(makeLink("/ns/course/index", "Course Home", "home"));
+    menuContentArea.appendChild(
+        makeLink("/ns/course/index", "Course Home", "home"),
+    );
     menuContentArea.appendChild(
         makeLink("/assignment/student/chooseAssignment", "Assignments", "edit"),
     );
     menuContentArea.appendChild(
-        makeLink("/assignment/peer/student", "Peer Instruction (Student)", "groups_3"),
+        makeLink(
+            "/assignment/peer/student",
+            "Peer Instruction (Student)",
+            "groups_3",
+        ),
     );
     menuContentArea.appendChild(
         makeLink("/assignment/student/studentreport", "Progress"),
@@ -1325,13 +1700,17 @@ window.addEventListener("DOMContentLoaded", function (event) {
     if (eBookConfig.isInstructor) {
         menuContentArea.appendChild(sepTemplate.content.cloneNode(true));
         menuContentArea.appendChild(
-            makeLink("/admin/instructor/menu", "Instructor Dashboard", "settings"),
+            makeLink(
+                "/admin/instructor/menu",
+                "Instructor Dashboard",
+                "settings",
+            ),
         );
         menuContentArea.appendChild(
             makeLink(
                 "/assignment/peer/instructor",
                 "Peer Instruction (Instructor)",
-                "groups_3"
+                "groups_3",
             ),
         );
         // On runestone.academy the author server is its own host, so this has to
@@ -1339,6 +1718,9 @@ window.addEventListener("DOMContentLoaded", function (event) {
         let authorUrl =
             (eBookConfig.authorServerUrl ||
                 "https://author.runestone.academy/author") + "/";
+        let editorUrl =
+            eBookConfig.editorServerUrl || "/admin/editor/manage_exercises";
+
         if (eBookConfig.isAuthor) {
             menuContentArea.appendChild(
                 makeLink(authorUrl, "Author Dashboard"),
@@ -1346,7 +1728,7 @@ window.addEventListener("DOMContentLoaded", function (event) {
         }
         if (eBookConfig.isEditor) {
             menuContentArea.appendChild(
-                makeLink(authorUrl, "Editor Dashboard"),
+                makeLink(editorUrl, "Editor Dashboard"),
             );
         }
         menuContentArea.appendChild(
@@ -1368,18 +1750,11 @@ window.addEventListener("DOMContentLoaded", function (event) {
         "Problem Report",
         "bug_report",
     );
-    // Stash recent console output so the report form can pick it up and send it
-    // along with the report.
+    // The log is already persisted continuously; flush now so nothing in the
+    // debounce window is lost.
     const problemReportAnchor = problemReportLink.querySelector("a");
     if (problemReportAnchor) {
-        problemReportAnchor.addEventListener("click", () => {
-            try {
-                sessionStorage.setItem(RS_CONSOLE_LOG_KEY, rsGetConsoleLog());
-            } catch (e) {
-                // sessionStorage may be unavailable (e.g. private mode); the
-                // form simply won't be prefilled with the log.
-            }
-        });
+        problemReportAnchor.addEventListener("click", rsPersistConsoleLog);
     }
     menuContentArea.appendChild(problemReportLink);
 });

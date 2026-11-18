@@ -93,13 +93,21 @@ const SortableOption = ({ option, onUpdate, onRemove, totalOptions }: SortableOp
       <div className={styles.optionContent}>
         <div className={styles.horizontalLayout}>
           <div className={styles.editorSection}>
-            <label className={styles.optionLabel}>Option text:</label>
-            <Editor content={option.choice} onChange={handleContentChange} />
+            <div className={styles.optionLabel}>Option text:</div>
+            <Editor
+              content={option.choice}
+              onChange={handleContentChange}
+              ariaLabel="Option text"
+            />
           </div>
 
           <div className={styles.feedbackSection}>
-            <label className={styles.optionLabel}>Feedback (optional):</label>
-            <Editor content={option.feedback || ""} onChange={handleFeedbackChange} />
+            <div className={styles.optionLabel}>Feedback (optional):</div>
+            <Editor
+              content={option.feedback || ""}
+              onChange={handleFeedbackChange}
+              ariaLabel="Option feedback"
+            />
           </div>
 
           <div className={styles.controlsSection}>

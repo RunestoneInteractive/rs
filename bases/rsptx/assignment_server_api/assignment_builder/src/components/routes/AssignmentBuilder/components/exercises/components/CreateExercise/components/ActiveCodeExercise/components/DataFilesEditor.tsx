@@ -1,3 +1,4 @@
+import { notify } from "@components/ui/notify";
 import {
   ActionIcon,
   Button,
@@ -25,7 +26,6 @@ import {
   useUpdateDatafileMutation
 } from "@/store/datafile/datafile.logic.api";
 import { DataFile, ExistingDataFile, SelectedDataFile } from "@/types/datafile";
-import { notify } from "@components/ui/notify";
 
 import styles from "./DataFilesEditor.module.css";
 
@@ -56,6 +56,7 @@ const UPLOAD_ACCEPT = "text/*,image/*,.txt,.csv,.json,.py,.js,.html,.css";
 const hasValidExtension = (filename: string): boolean => {
   if (!filename) return false;
   const lowerFilename = filename.toLowerCase();
+
   return SUPPORTED_EXTENSIONS.some((ext) => lowerFilename.endsWith(ext));
 };
 
@@ -65,6 +66,7 @@ const validateFilename = (filename: string): { isValid: boolean; error: string }
   }
 
   const invalidChars = /[<>:"/\\|?*\x00-\x1f]/;
+
   if (invalidChars.test(filename)) {
     return { isValid: false, error: "Filename contains invalid characters" };
   }
@@ -144,6 +146,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
 
     reader.onload = (e) => {
       const content = e.target?.result as string;
+
       setNewDataFile((prev) => ({
         ...prev,
         filename: file.name,
@@ -164,6 +167,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
 
   const handleCreateDataFile = async () => {
     const validation = validateFilename(newDataFile.filename);
+
     if (!validation.isValid) {
       setFilenameError(validation.error);
       return;
@@ -171,8 +175,10 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
     setFilenameError("");
 
     let contentToSave = newDataFile.content;
+
     if (newDataFile.isImage && contentToSave.startsWith("data:")) {
       const base64Index = contentToSave.indexOf(";base64,");
+
       if (base64Index !== -1) {
         contentToSave = contentToSave.substring(base64Index + 8);
       }
@@ -209,6 +215,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
   const handleEditDataLoaded = useCallback(() => {
     if (editingDatafileData) {
       const isImage = editingDatafileData.filename?.match(/\.(png|jpg|jpeg|gif|svg)$/i) !== null;
+
       setEditDataFile({
         filename: editingDatafileData.filename || "",
         content: editingDatafileData.main_code || "",
@@ -226,6 +233,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
 
   const getFileExtension = (filename: string): string => {
     const lastDot = filename.lastIndexOf(".");
+
     if (lastDot === -1) return "";
     return filename.substring(lastDot).toLowerCase();
   };
@@ -274,8 +282,10 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
     if (!editingAcid) return;
 
     let contentToSave = editDataFile.content;
+
     if (editDataFile.isImage && contentToSave.startsWith("data:")) {
       const base64Index = contentToSave.indexOf(";base64,");
+
       if (base64Index !== -1) {
         contentToSave = contentToSave.substring(base64Index + 8);
       }
@@ -356,6 +366,7 @@ export const DataFilesEditor: FC<DataFilesEditorProps> = ({
             {selectedDataFiles.map((selectedFileAcid) => {
               const file = existingDatafiles.find((df) => df.acid === selectedFileAcid);
               const isOwner = file?.owner !== null;
+
               return (
                 <Group
                   key={selectedFileAcid}

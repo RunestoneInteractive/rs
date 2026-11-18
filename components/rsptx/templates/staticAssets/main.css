@@ -17,10 +17,15 @@ html {
   position: relative;
   min-height: 100%;
 }
+
 body {
-  padding-top: 2rem;
-  margin-bottom: 60px;
-  font-size: 12pt;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
 }
 
 .footer {
@@ -37,8 +42,6 @@ body {
 }
 
 .navbar {
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
 .container {
@@ -47,8 +50,9 @@ body {
   margin-right: auto;
 }
 
+/* plain `red` is 4.00:1 on white */
 .has-error {
-  color: red;
+  color: var(--rs-color-danger);
 }
 
 .autopermalink {

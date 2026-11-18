@@ -1,6 +1,6 @@
-import { generateMatchingPreview } from "./matchingPreview";
-
 import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
+import { generateMatchingPreview } from "./matchingPreview";
 
 const baseProps = {
   left: [{ id: "l1", label: "Concept A" }],
@@ -157,6 +157,7 @@ describe("generateMatchingPreview", () => {
 
 function extractJson(html: string): Record<string, unknown> {
   const match = html.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
+
   if (!match) throw new Error("No JSON script block found in output");
   return JSON.parse(match[1].trim());
 }

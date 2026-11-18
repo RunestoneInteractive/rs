@@ -16,12 +16,13 @@ import html
 import json
 import time
 import uuid
+from urllib.parse import quote, urlsplit
 from typing import Optional
 
 # Third-party imports
 # -------------------
 import oauth2
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
@@ -38,11 +39,11 @@ from rsptx.db.crud import (
     fetch_course,
     fetch_course_by_id,
     fetch_lti1p1_config_by_consumer,
+    fetch_lti1p1_course_ids,
     fetch_one_assignment,
     fetch_user,
     update_user,
     upsert_lti1p1_grade_link,
-    upsert_practice_grade_link,
     user_in_course,
 )
 from rsptx.db.models import AuthUserValidator
@@ -55,7 +56,7 @@ from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
 
-from .lti1p3 import add_w2py_session_cookie, get_domain, get_web2py_session_cookie
+from .lti1p3 import get_domain
 
 # Routing
 # =======
@@ -100,7 +101,23 @@ def _render_error(request: Request, errors: list) -> HTMLResponse:
     templates = get_shared_templates()
     context = {"request": request, "lti_errors": errors}
     return templates.TemplateResponse(
-        "admin/lti1p1/launch_error.html", context, status_code=400
+        request, "admin/lti1p1/launch_error.html", context, status_code=400
+    )
+
+
+def _render_retired(request: Request, feature: str, detail: str) -> HTMLResponse:
+    """Explain that a launched feature no longer exists.
+
+    An LMS keeps whatever link an instructor configured years ago, so retired
+    features keep being launched. 200 rather than an error status: nothing went
+    wrong, the destination simply does not exist any more, and an error page in
+    an LMS iframe just generates support mail.
+    """
+    templates = get_shared_templates()
+    return templates.TemplateResponse(
+        request,
+        "admin/lti1p1/retired.html",
+        {"request": request, "feature": feature, "detail": detail},
     )
 
 
@@ -119,22 +136,9 @@ async def index(request: Request):
     first_name = params.get("lis_person_name_given", None)
     full_name = params.get("lis_person_name_full", None)
     message_type = params.get("lti_message_type")
-    course_id = param_converter(params.get("custom_course_id", None))
-
-    if course_id:
-        # Allow the course_id to be either a number or the course name.
-        try:
-            course_id = int(course_id)
-        except ValueError:
-            cname = course_id
-            course = await fetch_course(cname)
-            if course:
-                course_id = course.id
-            else:
-                rslogger.error(f"LTI1.1 - invalid course name: {cname}")
-                return _render_error(
-                    request, [f"Invalid course name: {cname} LTI not launched."]
-                )
+    # The course is resolved from the consumer key below, once the signature has
+    # been verified; ``custom_course_id`` is only a fallback.
+    param_course_id = param_converter(params.get("custom_course_id", None))
 
     if full_name and not last_name:
         names = full_name.strip().split()
@@ -186,6 +190,14 @@ async def index(request: Request):
     ):
         return _render_error(request, ["OAuth Security Validation failed"])
 
+    # Resolve the course. The key/secret pair was issued for a specific course,
+    # so ``course_lti_map`` is authoritative and is preferred over the LMS's
+    # ``custom_course_id``, which instructors routinely copy from another course
+    # or forget to update when they copy a course in the LMS.
+    course, course_error = await _resolve_course(lti_record, param_course_id)
+    if course_error:
+        return _render_error(request, [course_error])
+
     # Create / update / login the user.
     userinfo = {
         "first_name": first_name,
@@ -193,22 +205,40 @@ async def index(request: Request):
         "email": email,
         "username": email,
     }
-    user, is_new_enrollment = await _login_or_create_user(
-        userinfo, course_id, instructor
-    )
+    user, is_new_enrollment = await _login_or_create_user(userinfo, course, instructor)
     if user is None:
         return _render_error(request, ["Unable to create user record"])
 
-    # In academy mode, a brand-new enrollment is sent to the donation/payment
-    # flow (still served by web2py) rather than straight into the course.
     domain = get_domain()
-    if is_new_enrollment and settings.academy_mode:
-        redirect_to = f"https://{domain}/runestone/default/index"
+
+    async def _send_to(redirect_to: str) -> Response:
+        """Log the user in and send them to ``redirect_to``.
+
+        In academy mode a brand-new enrollment is asked to support Runestone
+        first. The ask goes *in front of* where they were headed rather than
+        replacing it -- web2py did the same thing by stashing
+        ``session.lti_url_next`` and honouring it after the donation page, so a
+        student launching an assignment for the first time still lands on that
+        assignment.
+        """
+        if is_new_enrollment and settings.academy_mode:
+            # Hand on the *path*, not the absolute URL we just built: the donate
+            # page only accepts a site-relative `next` (an absolute URL there
+            # would be an open redirect), so passing the full URL would silently
+            # discard the destination and strand the student on their course
+            # page instead of the assignment they launched.
+            parts = urlsplit(redirect_to)
+            dest = parts.path + (f"?{parts.query}" if parts.query else "")
+            redirect_to = f"https://{domain}/admin/auth/donate?next={quote(dest)}"
         return await _finalize_login(user, redirect_to)
 
     # Content-item selection (deep linking).
     if message_type == "ContentItemSelectionRequest":
-        return await _provide_assignment_list(params, course_id, lti_record)
+        if course is None:
+            return _render_error(
+                request, ["This LTI key is not associated with a Runestone course."]
+            )
+        return await _provide_assignment_list(params, course, lti_record)
 
     # Assignment launch.
     if assignment_id:
@@ -222,18 +252,27 @@ async def index(request: Request):
             is_instructor=instructor,
         )
         if error:
-            return _render_error(
-                request,
-                [f"{error} {assignment_id}; please contact your instructor."],
+            # The link points at an assignment that is gone, or that belongs to
+            # another course. The student cannot act on either, and an error
+            # page inside an LMS iframe is a dead end -- log them in and drop
+            # them on their course page, where the current assignment list is.
+            # _launch_assignment has already logged the specifics.
+            rslogger.info(
+                f"LTI1.1 - {error} ({assignment_id}) for {user.username}; "
+                "sending them to the course page"
             )
-        return await _finalize_login(user, redirect_to)
+            return await _send_to(f"https://{domain}/ns/course/index")
+        return await _send_to(redirect_to)
 
-    # Practice launch.
+    # Practice launch. The practice tool has been retired; LMS courses still
+    # have these links configured, so explain rather than error.
     if practice:
-        redirect_to = await _launch_practice(
-            outcome_url, result_source_did, user, course_id, domain
+        return _render_retired(
+            request,
+            "Practice",
+            "The Runestone practice tool has been retired and is no longer "
+            "available. Your other course work is unaffected.",
         )
-        return await _finalize_login(user, redirect_to)
 
     # Optional custom redirect within the book.
     redirect_url = params.get("redirect", None)
@@ -243,22 +282,108 @@ async def index(request: Request):
         if redirect_url.startswith("/") or redirect_url.startswith("http"):
             return _render_error(request, ["Invalid redirect URL"])
         redirect_to = f"https://{domain}/{redirect_url}"
-        return await _finalize_login(user, redirect_to)
+        return await _send_to(redirect_to)
 
     # Otherwise, send them to their course.
-    redirect_to = f"https://{domain}/ns/course/index"
-    return await _finalize_login(user, redirect_to)
+    return await _send_to(f"https://{domain}/ns/course/index")
+
+
+async def _resolve_course(lti_record, param_course_id):
+    """
+    Decide which Runestone course this launch is for.
+
+    ``course_lti_map`` records the course the consumer key was issued for, and
+    that is what we trust. ``custom_course_id`` is supplied by the LMS and is
+    only consulted when the key is not mapped to exactly one course -- either
+    because the mapping predates the key (older installs) or because an
+    administrator pointed several courses at one key, in which case the LMS
+    parameter is what distinguishes them.
+
+    Returns the course row rather than just its id: everything downstream needs
+    ``course_name`` as well, and resolving here means a mapping that points at a
+    deleted course is caught once, in the one place that knows what to do about
+    it, instead of raising an AttributeError further in.
+
+    :return: (course, error_message); exactly one is non-None on a bad course,
+        and (None, None) when the launch carries no course at all.
+    """
+    mapped = await fetch_lti1p1_course_ids(lti_record.id)
+
+    # Resolve the LMS-supplied value, which may be an id or a course name.
+    param_id = None
+    if param_course_id:
+        try:
+            param_id = int(param_course_id)
+        except ValueError:
+            cname = str(param_course_id)
+            course = await fetch_course(cname)
+            if course:
+                param_id = course.id
+            elif not mapped:
+                rslogger.error(f"LTI1.1 - invalid course name: {cname}")
+                return None, f"Invalid course name: {cname} LTI not launched."
+            else:
+                rslogger.warning(
+                    f"LTI1.1 - invalid course name {cname} from the LMS; using the "
+                    f"course mapped to consumer key {lti_record.consumer}"
+                )
+
+    if len(mapped) == 1:
+        course_id = mapped[0]
+        if param_id is not None and param_id != course_id:
+            rslogger.warning(
+                f"LTI1.1 - LMS sent custom_course_id {param_id} but consumer key "
+                f"{lti_record.consumer} is mapped to course {course_id}; using "
+                "the mapped course"
+            )
+    elif len(mapped) > 1:
+        # Ambiguous mapping: the LMS parameter is the only thing that can pick
+        # one, and it must name a course the key is actually mapped to.
+        if param_id not in mapped:
+            rslogger.error(
+                f"LTI1.1 - consumer key {lti_record.consumer} maps to courses "
+                f"{mapped} but the LMS sent custom_course_id {param_id}"
+            )
+            return (
+                None,
+                "This LTI key is shared by several courses and the launch did not identify one of them.",
+            )
+        course_id = param_id
+    else:
+        # No mapping for this key -- fall back to whatever the LMS told us.
+        if param_id is None:
+            rslogger.error(
+                f"LTI1.1 - no course mapped to consumer key {lti_record.consumer} "
+                "and no custom_course_id in the launch"
+            )
+            return None, None
+        course_id = param_id
+
+    course = await fetch_course_by_id(course_id)
+    if course is None:
+        rslogger.error(
+            f"LTI1.1 - course {course_id} for consumer key {lti_record.consumer} "
+            "does not exist"
+        )
+        return None, f"Course {course_id} no longer exists. LTI not launched."
+    return course, None
 
 
 async def _login_or_create_user(
-    userinfo: dict, course_id: Optional[int], instructor: bool
+    userinfo: dict, course, instructor: bool
 ) -> tuple[Optional[AuthUserValidator], bool]:
     """
     Find or create the Runestone user for this launch, provision course and
     instructor membership, and return (user, is_new_enrollment).
-    """
-    user = await fetch_user(userinfo["email"], fallback_to_registration=True)
 
+    The returned user is guaranteed to carry the launched course: an LTI user
+    typically has several Runestone courses, and every later request in this
+    session -- as well as the assignment check in :func:`_launch_assignment` --
+    reads ``course_id``/``course_name`` off this row.
+    """
+    course_id = course.id if course else None
+    user = await fetch_user(userinfo["email"], fallback_to_registration=True)
+    user_dict = {}
     if not user:
         user_dict = {
             "username": userinfo["username"],
@@ -275,25 +400,44 @@ async def _login_or_create_user(
             "donated": False,
             "accept_tcp": True,
         }
-        if course_id:
-            course = await fetch_course_by_id(course_id)
-            user_dict["course_id"] = course_id
+        if course:
+            user_dict["course_id"] = course.id
             user_dict["course_name"] = course.course_name
+        else:
+            rslogger.error(
+                f"LTI1.1 - missing course information for launch {user_dict}"
+            )
         try:
             new_user = AuthUserValidator(**user_dict)
             user = await create_user(new_user)
             rslogger.info(f"LTI1.1 - created user {user.username} ({user.id})")
         except (ValidationError, Exception) as e:
-            rslogger.error(f"LTI1.1 - error creating user: {e}")
+            rslogger.error(f"LTI1.1 - error creating user: {e} user info: {user_dict}")
             return None, False
 
     is_new_enrollment = False
-    if course_id:
-        course = await fetch_course_by_id(course_id)
+    if course:
         # Keep course_id/course_name current (verifyInstructor uses course_name).
-        await update_user(
-            user.id, {"course_id": course_id, "course_name": course.course_name}
-        )
+        # The auth cookie only carries the username, so the course a request
+        # runs in is whatever this row says -- switching it here is what makes
+        # the redirect below land in the launched course rather than in
+        # whichever course the user last visited.
+        if user.course_id != course.id or user.course_name != course.course_name:
+            await update_user(
+                user.id, {"course_id": course.id, "course_name": course.course_name}
+            )
+            # ``update_user`` writes but hands nothing back, so the object we
+            # were given is now stale in exactly the field we just changed.
+            # Re-read it: _launch_assignment compares the assignment's course
+            # against ``user.course_id``, and a stale value there rejects a
+            # perfectly good assignment launch.
+            user = await fetch_user(user.username, fallback_to_registration=True)
+            if user is None:
+                rslogger.error(
+                    f"LTI1.1 - user {userinfo['username']} vanished while switching "
+                    f"to course {course.course_name}"
+                )
+                return None, False
 
         # Update instructor status.
         if instructor:
@@ -301,32 +445,30 @@ async def _login_or_create_user(
         else:
             await delete_course_instructor(course_id, user.id)
 
-        # Ensure enrollment.
+        # Ensure enrollment. This used to be deferred to web2py's donation flow
+        # in academy mode, which meant the student was never written to
+        # user_courses here -- so user_in_course stayed False, is_new_enrollment
+        # stayed True on every launch, and they were sent back to the donation
+        # flow forever, never reaching their assignment. Enroll unconditionally;
+        # academy mode now only decides whether we *ask for a donation on the
+        # way*, which the caller handles.
         in_course = await user_in_course(user.id, course_id)
         if not in_course:
             is_new_enrollment = True
-            # In academy mode we defer enrollment to the donation flow; otherwise
-            # enroll now.
-            if not settings.academy_mode:
-                await create_user_course_entry(user.id, course_id)
+            await create_user_course_entry(user.id, course_id)
 
     return user, is_new_enrollment
 
 
 async def _finalize_login(user: AuthUserValidator, redirect_to: str) -> Response:
     """
-    Set the Runestone JWT cookie (and the web2py session cookie for pages still
-    served by web2py) on a redirect response.
+    Set the Runestone JWT cookie on a redirect response.
     """
     response = RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)
     access_token = auth_manager.create_access_token(
         data={"sub": user.username}, expires=datetime.timedelta(hours=12)
     )
     auth_manager.set_cookie(response, access_token)
-    reg_id = user.registration_id or user.username
-    web2py_session_cookie = await get_web2py_session_cookie(reg_id)
-    if web2py_session_cookie:
-        add_w2py_session_cookie(response, web2py_session_cookie)
     rslogger.debug(f"LTI1.1 - sending user to {redirect_to}")
     return response
 
@@ -350,7 +492,14 @@ async def _launch_assignment(
     except (TypeError, ValueError):
         return None, "Invalid assignment id"
 
-    assignment = await fetch_one_assignment(assignment_id)
+    try:
+        assignment = await fetch_one_assignment(assignment_id)
+    except HTTPException:
+        # fetch_one_assignment raises 404 rather than returning None. Letting
+        # that propagate here would render a raw JSON error inside the LMS
+        # iframe; an LTI link to a deleted assignment is an ordinary, expected
+        # condition, so turn it back into the error tuple the caller handles.
+        assignment = None
     if not assignment:
         return None, "Invalid assignment id"
     if assignment.course != user.course_id:
@@ -395,23 +544,7 @@ async def _launch_assignment(
     ), None
 
 
-async def _launch_practice(
-    outcome_url, result_source_did, user, course_id, domain
-) -> str:
-    """Record practice grade passback info and return the practice redirect URL."""
-    course = await fetch_course_by_id(course_id)
-    await upsert_practice_grade_link(
-        user.id, course.course_name, result_source_did, outcome_url
-    )
-    return (
-        f"https://{domain}/runestone/assignments/settz_then_practice"
-        f"?course_name={course.course_name}"
-    )
-
-
-async def _provide_assignment_list(
-    params: dict, course_id: int, lti_record
-) -> HTMLResponse:
+async def _provide_assignment_list(params: dict, course, lti_record) -> HTMLResponse:
     """
     Deep-linking (ContentItemSelection): return an auto-submitting form listing
     the course's assignments, signed with the consumer key/secret, per
@@ -421,7 +554,6 @@ async def _provide_assignment_list(
     return_url = params.get("content_item_return_url")
     extra_data = params.get("data", None)
 
-    course = await fetch_course_by_id(course_id)
     assignments = await fetch_assignments(course.course_name, fetch_all=True)
     graph = []
     for assignment in assignments:
@@ -433,7 +565,7 @@ async def _provide_assignment_list(
                 "title": assignment.name,
                 "text": assignment.description,
                 "custom": {
-                    "custom_course_id": course_id,
+                    "custom_course_id": course.id,
                     "assignment_id": assignment.id,
                 },
             }

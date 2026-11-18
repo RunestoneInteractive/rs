@@ -6,9 +6,8 @@ import { modals } from "@mantine/modals";
 
 import { Exercise } from "@/types/exercises";
 
-import { ViewModeSetter } from "./types";
-
 import styles from "./ExercisesToolbar.module.css";
+import { ViewModeSetter } from "./types";
 
 interface ExercisesToolbarProps {
   globalFilter: string;
@@ -47,7 +46,7 @@ export const ExercisesToolbar = ({
   };
 
   return (
-    <TabToolbar title="Exercises" count={totalCount} scrolled={scrolled}>
+    <TabToolbar title="Exercises" count={totalCount} headingLevel={2} scrolled={scrolled}>
       <SearchInput
         value={globalFilter}
         onChange={setGlobalFilter}

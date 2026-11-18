@@ -18,6 +18,11 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
+import { datasetSelectors } from "@store/dataset/dataset.logic";
+import {
+  searchExercisesActions,
+  searchExercisesSelectors
+} from "@store/searchExercises/searchExercises.logic";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -26,11 +31,6 @@ import {
   RowSelectionState,
   SortingState
 } from "@tanstack/react-table";
-import {
-  searchExercisesActions,
-  searchExercisesSelectors
-} from "@store/searchExercises/searchExercises.logic";
-import { datasetSelectors } from "@store/dataset/dataset.logic";
 import { useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -52,11 +52,7 @@ type FilterMetaValue = { value: string | string[] | null };
 const MATCH_CONTAINS = "contains";
 const MATCH_IN = "in";
 
-const renderEllipsis = (text?: string | null) => (
-  <div className={styles.ellipsisText} title={text ?? ""}>
-    {text}
-  </div>
-);
+const renderEllipsis = (text?: string | null) => <div className={styles.ellipsisText}>{text}</div>;
 
 export const SmartSearchExercises = ({
   setCurrentEditExercise,
@@ -212,7 +208,7 @@ export const SmartSearchExercises = ({
       {
         id: "select",
         enableSorting: false,
-        meta: { headerStyle: { width: 40 } },
+        meta: { headerStyle: { width: 40 }, hiddenHeaderLabel: "Select exercises" },
         header: ({ table }) => (
           <Checkbox
             size="sm"
@@ -283,7 +279,7 @@ export const SmartSearchExercises = ({
           filter: { variant: "text", placeholder: "Search by name" }
         },
         cell: ({ row }) => (
-          <div className={styles.monoName} data-mono-name="" title={row.original.name ?? ""}>
+          <div className={styles.monoName} data-mono-name="">
             {row.original.name}
           </div>
         )
@@ -361,6 +357,7 @@ export const SmartSearchExercises = ({
       <TabToolbar
         title="Search exercises"
         count={pagination?.total ?? 0}
+        headingLevel={2}
         scrolled={scrolled}
         leading={
           setViewMode && (
@@ -379,12 +376,14 @@ export const SmartSearchExercises = ({
       >
         <TagsInput
           className={styles.search}
+          aria-label="Search exercises"
           value={globalTerms}
           onChange={(terms) => onGlobalFilterChange(terms.join(" "))}
           placeholder="Search terms…"
           leftSection={<Icon name="search" />}
           clearable
         />
+
         <Switch
           size="sm"
           label={searchParams.use_base_course ? "Book exercises" : "All exercises"}
@@ -422,7 +421,7 @@ export const SmartSearchExercises = ({
               </Button>
             </>
           ) : (
-            <Text size="sm" c="dimmed">
+            <Text size="sm" c="var(--rs-text)">
               Select exercises to add
             </Text>
           )}
@@ -471,6 +470,7 @@ export const SmartSearchExercises = ({
             ariaLabel="Search exercises"
             fillHeight
             scrollSentinelRef={sentinelRef}
+            showFilterResultsStatus={false}
           />
         </div>
       )}

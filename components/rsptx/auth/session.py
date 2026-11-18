@@ -26,7 +26,7 @@ from fastapi_login import LoginManager
 # Local application imports
 # -------------------------
 from rsptx.configuration import settings
-from rsptx.db.crud import fetch_instructor_courses, fetch_user
+from rsptx.db.crud import fetch_user, is_course_instructor
 from rsptx.db.models import AuthUserValidator
 
 
@@ -64,7 +64,7 @@ class RSLoginManager(LoginManager):
         return settings.load_balancer_host or None
 
     def set_cookie(self, response, token):
-        production = settings.server_config == "production"
+        production = settings.server_protocol.startswith("https://")
         domain = self.cookie_domain
         if domain:
             # Anyone who logged in before the cookie was scoped still has a
@@ -133,6 +133,19 @@ async def _load_user(user_id: str) -> AuthUserValidator:
 load_user = cast(Callable[[str], Awaitable[AuthUserValidator]], _load_user)
 
 
+async def get_optional_user(request: Request) -> Optional[AuthUserValidator]:
+    """Return the authenticated user, or None for anonymous/browsing-mode visitors.
+
+    Unlike ``Depends(auth_manager)``, this never raises -- it lets the route
+    itself decide what to do for logged-out users (e.g. serve a static/backup
+    resource instead of one that requires an account).
+    """
+    try:
+        return await auth_manager(request)
+    except NotAuthenticatedException:
+        return None
+
+
 async def is_instructor(
     request: Request, user: Optional[AuthUserValidator] = None
 ) -> bool:
@@ -148,7 +161,4 @@ async def is_instructor(
         user = request.state.user
     if user is None:
         raise HTTPException(401)
-    elif len(await fetch_instructor_courses(user.id, user.course_id)) > 0:
-        return True
-    else:
-        return False
+    return await is_course_instructor(user.id, user.course_id)

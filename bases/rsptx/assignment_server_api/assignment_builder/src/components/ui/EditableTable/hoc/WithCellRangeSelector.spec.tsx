@@ -2,7 +2,6 @@ import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { renderWithMantine } from "@/test/renderWithMantine";
-
 import { EditableCellProps } from "@/types/components/editableTableCell";
 
 import { withCellRangeSelector } from "./WithCellRangeSelector";

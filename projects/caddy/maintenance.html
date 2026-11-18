@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Runestone Academy - Down for Maintenance</title>
+<!--
+  Served by Caddy with a 503 status while the maintenance flag file exists.
+  Kept self-contained (no /staticAssets, no JS) so it renders even if every
+  backend service is stopped. See the @maintenance block in Caddyfile.
+-->
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #57606a;
+    --brand: #216fcc;
+    --border: #d0d7de;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --text: #e6edf3;
+      --muted: #9da7b3;
+      --brand: #6cb6ff;
+      --border: #30363d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    max-width: 34rem;
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--brand);
+    border-radius: 8px;
+    padding: 2rem;
+  }
+  h1 { margin: 0 0 0.75rem; font-size: 1.5rem; }
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--muted); font-size: 0.9rem; margin-bottom: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Runestone Academy is down for maintenance</h1>
+  <p>
+    We are upgrading our servers and will be back shortly. Your work saved
+    before the maintenance started is safe.
+  </p>
+  <p class="muted">Please try again in a few minutes.</p>
+</main>
+</body>
+</html>

@@ -81,7 +81,8 @@ export default class ParsonsLine {
 
         if (
             problem.options.language == "natural" ||
-            problem.options.language == "math"
+            problem.options.language == "math" ||
+            problem.options.language == "text"
         ) {
             if (!displaymath) {
                 view = document.createElement("p");

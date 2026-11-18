@@ -8,10 +8,13 @@ from .crud import (
     delete_api_token,
     fetch_all_api_tokens,
     fetch_api_token,
-    is_server_feedback,
+    is_interaction_event,
     EVENT2TABLE,
+    INTERACTION_ACTS,
+    INTERACTION_ONLY_EVENTS,
 )
 from .user import (
+    count_users_created_since,
     fetch_user,
     fetch_user_by_email,
     create_user,
@@ -23,6 +26,14 @@ from .user import (
 
 from .assignment import (
     create_assignment,
+    fetch_assignment_for_preview,
+    fetch_shareable_assignment_tree,
+    import_assignment,
+    import_course_assignments,
+    search_assignments,
+    search_shareable_courses,
+    shift_duedate_between_courses,
+    term_start_utc,
     create_assignment_question,
     create_deadline_exception,
     delete_deadline_exception,
@@ -68,15 +79,21 @@ from .course import (
     fetch_base_course,
     fetch_basecourse_courses,
     fetch_course,
+    fetch_course_access_for_user,
     fetch_course_by_id,
+    fetch_course_enrollment_stats,
     fetch_course_instructors,
     fetch_course_students,
     fetch_courses_by_start_date,
     fetch_courses_for_user,
     fetch_current_instructors_for_course,
     fetch_instructor_courses,
+    is_course_instructor,
+    fetch_recent_instructor_courses as fetch_recent_instructor_courses,
     fetch_users_for_course,
     fetch_courses_by_institution,
+    institution_match_score,
+    record_course_access,
     update_course_settings,
     user_in_course,
 )
@@ -90,7 +107,19 @@ from .course_attrs import (
     get_course_origin,
 )
 
+from .grading_permissions import (
+    AssignmentGradingPolicy,
+    fetch_assignment_grading_policy,
+    fetch_course_grader,
+    fetch_course_graders,
+    grant_course_grader,
+    is_course_grader,
+    revoke_course_grader,
+    set_assignment_blind_grading,
+)
+
 from .book import (
+    count_reading_activities,
     create_user_chapter_progress_entry,
     create_user_state_entry,
     create_user_sub_chapter_progress_entry,
@@ -99,6 +128,7 @@ from .book import (
     fetch_page_activity_counts,
     fetch_subchapters,
     fetch_user_chapter_progress,
+    fetch_user_chapter_progress_for,
     fetch_user_sub_chapter_progress,
     get_book_chapters,
     get_book_subchapters,
@@ -124,11 +154,24 @@ from .library import (
     fetch_books_by_author,
     fetch_library_book,
     fetch_library_books,
+    fetch_unused_library_books,
     get_courses_per_basecourse,
     get_students_per_basecourse,
     update_library_book,
 )
 
+from .interactions import (
+    PAGE_KEY_PREFIX,
+    backfill_user_interactions,
+    fetch_backfill_bounds,
+    fetch_first_interaction,
+    fetch_interacted_sids,
+    fetch_interaction_counts,
+    fetch_touched_div_ids,
+    interaction_key_for,
+    page_interaction_key,
+    upsert_interaction,
+)
 from .telemetry import (
     bucket_count,
     build_checkin_payload,
@@ -150,6 +193,7 @@ from .lti import (
     fetch_lti_version,
     fetch_lti1p1_config,
     fetch_lti1p1_config_by_consumer,
+    fetch_lti1p1_course_ids,
     fetch_lti1p3_assignments_by_rs_assignment_id,
     fetch_lti1p3_assignments_by_rs_course_id,
     fetch_lti1p3_config_by_lti_data,
@@ -162,6 +206,7 @@ from .lti import (
     fetch_lti1p3_grading_data_for_assignment,
     fetch_lti1p3_user,
     fetch_lti1p3_users_for_course,
+    has_lti1p3_user_association,
     upsert_lti1p1_grade_link,
     upsert_lti1p3_assignment,
     upsert_lti1p3_config,
@@ -204,10 +249,13 @@ from .question import (
     fetch_previous_selections,
     fetch_question,
     fetch_question_by_id,
+    fetch_questions_by_name,
+    fetch_assigned_question_ids,
     fetch_flagged_questions,
     fetch_questions_for_chapter_subchapter,
     fetch_question_count_per_subchapter,
     fetch_question_grade,
+    fetch_question_grades_for,
     fetch_assignment_release_for_div_id,
     fetch_questions_by_search_criteria,
     fetch_user_experiment,
@@ -215,6 +263,7 @@ from .question import (
     search_exercises,
     update_question,
     update_question_grade_entry,
+    upsert_question_grade_entry,
 )
 
 from .rsfiles import (
@@ -236,8 +285,8 @@ from .rslogging import (
     create_useinfo_entry,
     fetch_code,
     fetch_code_for_sid,
+    fetch_interaction_useinfo,
     fetch_last_answer_table_entry,
-    fetch_last_course_access,
     fetch_last_poll_response,
     fetch_poll_summary,
     fetch_recent_useinfo,
@@ -247,13 +296,15 @@ from .rslogging import (
 
 from .scoring import (
     fetch_answers,
-    fetch_assignment_scores,
+    fetch_assignment_scores_with_points,
     fetch_reading_assignment_spec,
     is_assigned,
 )
 
 from .selectq import (
     create_selected_question,
+    fetch_selected_id,
+    fetch_selected_ids_for_selector,
     fetch_selected_question,
     update_selected_question,
 )
@@ -275,6 +326,14 @@ __all__ = []
 # from .assignment
 __all__ += [
     "create_assignment",
+    "fetch_assignment_for_preview",
+    "fetch_shareable_assignment_tree",
+    "import_assignment",
+    "import_course_assignments",
+    "search_assignments",
+    "search_shareable_courses",
+    "shift_duedate_between_courses",
+    "term_start_utc",
     "create_assignment_question",
     "create_deadline_exception",
     "delete_deadline_exception",
@@ -319,8 +378,10 @@ __all__ += [
     "delete_api_token",
     "fetch_all_api_tokens",
     "fetch_api_token",
-    "is_server_feedback",
+    "is_interaction_event",
     "EVENT2TABLE",
+    "INTERACTION_ACTS",
+    "INTERACTION_ONLY_EVENTS",
 ]
 
 # from .library
@@ -330,6 +391,7 @@ __all__ += [
     "fetch_books_by_author",
     "fetch_library_book",
     "fetch_library_books",
+    "fetch_unused_library_books",
     "get_courses_per_basecourse",
     "get_students_per_basecourse",
     "update_library_book",
@@ -359,6 +421,7 @@ __all__ += [
     "fetch_lti_version",
     "fetch_lti1p1_config",
     "fetch_lti1p1_config_by_consumer",
+    "fetch_lti1p1_course_ids",
     "fetch_lti1p3_assignments_by_rs_assignment_id",
     "fetch_lti1p3_assignments_by_rs_course_id",
     "fetch_lti1p3_config_by_lti_data",
@@ -371,6 +434,7 @@ __all__ += [
     "fetch_lti1p3_grading_data_for_assignment",
     "fetch_lti1p3_user",
     "fetch_lti1p3_users_for_course",
+    "has_lti1p3_user_association",
     "upsert_lti1p1_grade_link",
     "upsert_lti1p3_assignment",
     "upsert_lti1p3_config",
@@ -382,6 +446,7 @@ __all__ += [
 
 # from .book
 __all__ += [
+    "count_reading_activities",
     "create_user_chapter_progress_entry",
     "create_user_state_entry",
     "create_user_sub_chapter_progress_entry",
@@ -390,6 +455,7 @@ __all__ += [
     "fetch_page_activity_counts",
     "fetch_subchapters",
     "fetch_user_chapter_progress",
+    "fetch_user_chapter_progress_for",
     "fetch_user_sub_chapter_progress",
     "get_book_chapters",
     "get_book_subchapters",
@@ -411,12 +477,14 @@ __all__ += [
     "fetch_basecourse_courses",
     "fetch_course",
     "fetch_course_by_id",
+    "fetch_course_enrollment_stats",
     "fetch_course_instructors",
     "fetch_course_students",
     "fetch_courses_by_start_date",
     "fetch_courses_for_user",
     "fetch_current_instructors_for_course",
     "fetch_instructor_courses",
+    "is_course_instructor",
     "fetch_users_for_course",
     "update_course_settings",
     "user_in_course",
@@ -430,6 +498,18 @@ __all__ += [
     "fetch_all_course_attributes",
     "fetch_one_course_attribute",
     "get_course_origin",
+]
+
+# from .grading_permissions
+__all__ += [
+    "AssignmentGradingPolicy",
+    "fetch_assignment_grading_policy",
+    "fetch_course_grader",
+    "fetch_course_graders",
+    "grant_course_grader",
+    "is_course_grader",
+    "revoke_course_grader",
+    "set_assignment_blind_grading",
 ]
 
 # from .group
@@ -478,11 +558,14 @@ __all__ += [
     "fetch_matching_questions",
     "fetch_previous_selections",
     "fetch_question",
+    "fetch_questions_by_name",
     "fetch_question_by_id",
+    "fetch_assigned_question_ids",
     "fetch_flagged_questions",
     "fetch_questions_for_chapter_subchapter",
     "fetch_question_count_per_subchapter",
     "fetch_question_grade",
+    "fetch_question_grades_for",
     "fetch_assignment_release_for_div_id",
     "fetch_questions_by_search_criteria",
     "fetch_user_experiment",
@@ -490,6 +573,7 @@ __all__ += [
     "search_exercises",
     "update_question",
     "update_question_grade_entry",
+    "upsert_question_grade_entry",
 ]
 
 # from .rsfiles
@@ -513,8 +597,20 @@ __all__ += [
     "create_useinfo_entry",
     "fetch_code",
     "fetch_code_for_sid",
+    "fetch_interaction_useinfo",
     "fetch_last_answer_table_entry",
-    "fetch_last_course_access",
+    "fetch_course_access_for_user",
+    "record_course_access",
+    "PAGE_KEY_PREFIX",
+    "backfill_user_interactions",
+    "fetch_backfill_bounds",
+    "fetch_first_interaction",
+    "fetch_interacted_sids",
+    "fetch_interaction_counts",
+    "fetch_touched_div_ids",
+    "interaction_key_for",
+    "page_interaction_key",
+    "upsert_interaction",
     "fetch_last_poll_response",
     "fetch_poll_summary",
     "fetch_recent_useinfo",
@@ -525,7 +621,7 @@ __all__ += [
 # from .scoring
 __all__ += [
     "fetch_answers",
-    "fetch_assignment_scores",
+    "fetch_assignment_scores_with_points",
     "fetch_reading_assignment_spec",
     "is_assigned",
 ]
@@ -533,6 +629,8 @@ __all__ += [
 # from .selectq
 __all__ += [
     "create_selected_question",
+    "fetch_selected_id",
+    "fetch_selected_ids_for_selector",
     "fetch_selected_question",
     "update_selected_question",
 ]
@@ -551,8 +649,10 @@ __all__ += [
     "fetch_user_by_email",
     "create_user",
     "update_user",
+    "count_users_created_since",
     "delete_user",
     "set_reset_token",
     "consume_reset_token",
     "fetch_courses_by_institution",
+    "institution_match_score",
 ]

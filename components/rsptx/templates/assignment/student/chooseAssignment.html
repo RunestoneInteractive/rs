@@ -16,6 +16,11 @@ Choose Assignment
 {% endblock %} 
 
 {% block content %}
+
+{% if using_ptx_base != "true" %}
+    {% include 'common/ebook_config.html' %}
+{% endif %}
+
 <section class="assignment-page">
 <h1 class="heading">Choose Assignment</h1>
 

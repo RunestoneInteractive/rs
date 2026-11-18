@@ -1,4 +1,5 @@
 import { QuestionWithLabel } from "@/types/exercises";
+
 import { sanitizeId } from "../sanitize";
 
 interface SelectQuestionPreviewWithLabelsProps {

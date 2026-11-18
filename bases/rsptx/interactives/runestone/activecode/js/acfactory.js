@@ -3,12 +3,17 @@ import JSActiveCode from "./activecode_js.js";
 import HTMLActiveCode from "./activecode_html.js";
 import SQLActiveCode from "./activecode_sql.js";
 import LiveCode from "./livecode.js";
+import GodotActiveCode from "./activecode_gdscript";
+import CodeMirror from "codemirror";
+import { registerGDScriptMode } from "./codemirror_gdscript-mode.js";
+
 import {
     TimedActiveCode,
     TimedLiveCode,
     TimedJSActiveCode,
     TimedHTMLActiveCode,
     TimedSQLActiveCode,
+    TimedGodotActiveCode,
 } from "./timed_activecode";
 
 export default class ACFactory {
@@ -46,6 +51,14 @@ export default class ACFactory {
                 return new TimedHTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new TimedSQLActiveCode(opts);
+            } else if (lang === "gdscript") {
+                // for gdscript mode in codemirror (register once)
+                // may want to register this mode in a different spot
+                // where it wouldn't be called multiple times.
+                if (!CodeMirror.modes || !CodeMirror.modes.gdscript) {
+                    registerGDScriptMode(CodeMirror);
+                }
+                return new TimedGodotActiveCode(opts);
             } else {
                 return new TimedActiveCode(opts);
             }
@@ -56,6 +69,14 @@ export default class ACFactory {
                 return new HTMLActiveCode(opts);
             } else if (lang === "sql") {
                 return new SQLActiveCode(opts);
+            } else if (lang === "gdscript") {
+                // for gdscript mode in codemirror (register once)
+                // may want to register this mode in a different spot
+                // where it wouldn't be called multiple times.
+                if (!CodeMirror.modes || !CodeMirror.modes.gdscript) {
+                    registerGDScriptMode(CodeMirror);
+                }
+                return new GodotActiveCode(opts);
             } else if (
                 [
                     "java",
@@ -145,12 +166,12 @@ export default class ACFactory {
         var html = `<div class="ptx-runestone-container">
             <div id="ac_modal_${divid}" class="scratch-ac-modal">
                 <div class="ac-modal-content">
-                  <div class="ac-modal-header">
+                  <header class="ac-modal-header">
                     <button type="button" class="close first-focusable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="ac-modal-title">Scratch ActiveCode (${
+                    <h2 class="ac-modal-title">Scratch ActiveCode (${
                         languageNames[lang.toLowerCase()] || lang
-                    })</h4>
-                  </div>
+                    })</h2>
+                  </header>
                   <div class="ac-modal-body">
                   <div data-component="activecode" id=${divid}>
                   <div id=${divid}_question class="ac_question"><p>Use this area for writing code or taking notes.</p></div>

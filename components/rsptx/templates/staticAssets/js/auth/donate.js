@@ -1,6 +1,20 @@
 /* Donate page (admin/auth/donate.html) — renders the PayPal buttons.
    The PayPal SDK script is loaded by the template before this file. */
 
+/* Where to go once the reader is done here. The server puts it on the card as
+   data-next when they are passing through on the way somewhere else — an LTI
+   launch by a new enrollment heading for an assignment, say. Only same-site
+   paths are accepted: the value reaches the server from a query string, and the
+   server already filters it, but this is the last hop before a navigation. */
+function continueUrl() {
+    const card = document.querySelector(".donate-card");
+    const next = card && card.dataset.next;
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+        return next;
+    }
+    return "/ns/course/index";
+}
+
 const fundingSources = [
     paypal.FUNDING.PAYPAL,
     paypal.FUNDING.VENMO,
@@ -54,7 +68,7 @@ for (const fundingSource of fundingSources) {
             const captureOrderHandler = (details) => {
                 fetch("/admin/auth/donate/mark", { method: "POST" });
                 alert("Payment successful - Thank you! ");
-                window.location.href = "/ns/course/index";
+                window.location.href = continueUrl();
                 console.log("Transaction completed!");
             };
 

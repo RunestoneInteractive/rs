@@ -12,10 +12,10 @@ const { mockUpdate, mockReadingsSelector, updatingHolder, READINGS_TREE } = vi.h
   READINGS_TREE: [
     {
       key: "chapter-1",
-      data: { title: "Chapter 1" },
+      data: { title: "Chapter 1", chapter_num: 1 },
       children: [
-        { key: "sec-1", data: { title: "Section 1", id: 11 } },
-        { key: "sec-2", data: { title: "Section 2", id: 12 } }
+        { key: "sec-1", data: { title: "Section 1", id: 11, chapter_num: 1, sub_chapter_num: 1 } },
+        { key: "sec-2", data: { title: "Section 2", id: 12, chapter_num: 1, sub_chapter_num: 2 } }
       ]
     }
   ] as TreeNode[]
@@ -46,18 +46,18 @@ describe("ChooseReadingsButton", () => {
 
   it("reveals the readings tree when the button is clicked", async () => {
     renderWithMantine(<ChooseReadingsButton />);
-    expect(screen.queryByText("Chapter 1")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 Chapter 1")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Choose readings" }));
-    expect(screen.getByText("Chapter 1")).toBeInTheDocument();
+    expect(screen.getByText("1 Chapter 1")).toBeInTheDocument();
   });
 
   it("adds the selected leaf readings on select", async () => {
     renderWithMantine(<ChooseReadingsButton />);
     await userEvent.click(screen.getByRole("button", { name: "Choose readings" }));
-    await userEvent.click(screen.getByRole("button", { name: "Expand Chapter 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Expand 1 Chapter 1" }));
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Select Section 1" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select 1.1 Section 1" }));
 
     expect(mockUpdate).toHaveBeenCalledWith({ idsToAdd: [11], isReading: true });
   });
@@ -70,9 +70,9 @@ describe("ChooseReadingsButton", () => {
 
     renderWithMantine(<ChooseReadingsButton />);
     await userEvent.click(screen.getByRole("button", { name: "Choose readings" }));
-    await userEvent.click(screen.getByRole("button", { name: "Expand Chapter 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Expand 1 Chapter 1" }));
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Select Section 1" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select 1.1 Section 1" }));
 
     expect(mockUpdate).toHaveBeenCalledWith({ idsToRemove: [99], isReading: true });
   });
@@ -100,9 +100,9 @@ describe("ChooseReadingsButton", () => {
 
     renderWithMantine(<ChooseReadingsButton />);
     await userEvent.click(screen.getByRole("button", { name: "Choose readings" }));
-    await userEvent.click(screen.getByRole("button", { name: "Expand Chapter 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Expand 1 Chapter 1" }));
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Select Section 1" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select 1.1 Section 1" }));
 
     expect(mockUpdate).not.toHaveBeenCalled();
   });

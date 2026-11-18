@@ -38,6 +38,9 @@ jobs:
       SERVER_CONFIG: test
       TEST_DBURL: postgresql://runestone:runestone@localhost:5432/runestone_test
       DROP_TABLES: "Yes"
+      # Routes that render a book page read BOOK_PATH directly. No books are
+      # built here, so point it at the stub tree created below.
+      BOOK_PATH: ${{ github.workspace }}/test_books
 
     steps:
       - name: Checkout code
@@ -69,6 +72,15 @@ jobs:
         run: |
           mkdir -p bases/rsptx/assignment_server_api/react
           mkdir -p bases/rsptx/assignment_server_api/staticAssets
+          # doAssignment loads the book's webpack manifest for the student's
+          # base course; testuser1 is seeded into "overview". An empty manifest
+          # is enough -- the tests check routing, not the script tags.
+          mkdir -p test_books/overview/published/overview/_static
+          echo '{"js": [], "css": []}' > \
+            test_books/overview/published/overview/_static/webpack_static_imports.json
+          # settings.error_path is BOOK_PATH/tickets; the 500 handler writes
+          # tracebacks there.
+          mkdir -p test_books/tickets
 
       - name: Run tests
         # --no-sync: `uv run` otherwise re-syncs the environment, which would

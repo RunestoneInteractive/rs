@@ -2,15 +2,14 @@ import csv
 import datetime
 import json
 import pathlib
-import pandas as pd
 import io
 
-from .assignment_summary import create_assignment_summary
 
 from fastapi import (
     APIRouter,
     Cookie,
     Depends,
+    HTTPException,
     Request,
     status,
     Form,
@@ -21,7 +20,6 @@ from fastapi.responses import (
     JSONResponse,
     StreamingResponse,
 )
-from sqlalchemy import create_engine
 from pydantic import BaseModel
 from typing import List, Optional, Annotated
 
@@ -46,6 +44,8 @@ from rsptx.db.crud import (
     upsert_deadline_exception,
     create_question,
     fetch_course,
+    fetch_instructor_courses,
+    fetch_recent_instructor_courses,
     fetch_users_for_course,
     create_code_entry,
     fetch_subchapters,
@@ -64,9 +64,17 @@ from rsptx.db.crud import (
     fetch_student_assignment_scores,
     fetch_grade,
     fetch_user,
+    record_course_access,
+    update_user,
     user_in_course,
     get_peer_votes,
     search_exercises,
+    fetch_shareable_assignment_tree,
+    search_assignments,
+    search_shareable_courses,
+    import_assignment,
+    import_course_assignments,
+    fetch_assignment_for_preview,
     create_api_token,
     delete_api_token,
     fetch_all_api_tokens,
@@ -85,9 +93,10 @@ from rsptx.db.crud.assignment import (
     is_assignment_visible_to_students,
 )
 from rsptx.auth.session import auth_manager, is_instructor
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.templates import format_course_datetime, get_shared_templates
 from rsptx.configuration import settings
-from rsptx.response_helpers import construct_course_url
+from rsptx.response_helpers import prepare_question_htmlsrc
 from rsptx.response_helpers.core import (
     make_json_response,
     get_webpack_static_imports,
@@ -109,6 +118,7 @@ from rsptx.validation.schemas import (
     UpdateAssignmentExercisesPayload,
     AssignmentQuestionUpdateDict,
     ExercisesSearchRequest,
+    AssignmentsSearchRequest,
     CreateExercisesPayload,
     ValidateQuestionNameRequest,
     CopyQuestionRequest,
@@ -116,7 +126,7 @@ from rsptx.validation.schemas import (
 from rsptx.logging import rslogger
 from rsptx.analytics import log_this_function
 from rsptx.data_types.which_to_grade import WhichToGradeOptions
-from rsptx.data_types.autograde import AutogradeOptions
+from rsptx.data_types.autograde import AutogradeOptions, effective_autograde
 from rsptx.data_types.language import LanguageOptions
 from rsptx.data_types.question_type import QuestionType
 
@@ -127,6 +137,54 @@ router = APIRouter(
     prefix="/instructor",
     tags=["instructor"],
 )
+
+
+class SwitchInstructorCourseRequest(BaseModel):
+    course_name: str
+
+
+@router.get("/courses/recent")
+@instructor_role_required()
+async def get_recent_instructor_courses(request: Request, user=Depends(auth_manager)):
+    """Return the ten most recently accessed courses taught by the user."""
+    courses = await fetch_recent_instructor_courses(user.id, limit=10)
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={
+            "courses": [
+                {
+                    **course,
+                    "is_current": course["course_name"] == user.course_name,
+                }
+                for course in courses
+            ]
+        },
+    )
+
+
+@router.post("/courses/switch")
+@instructor_role_required()
+async def switch_instructor_course(
+    request: Request,
+    payload: SwitchInstructorCourseRequest,
+    user=Depends(auth_manager),
+):
+    """Make one of the caller's instructor courses their active course."""
+    course = await fetch_course(payload.course_name)
+    if not course or not await fetch_instructor_courses(user.id, course.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not an instructor for that course",
+        )
+
+    await update_user(
+        user.id, {"course_name": course.course_name, "course_id": course.id}
+    )
+    await record_course_access(user.username, course.course_name, canonical_utcnow())
+    return make_json_response(
+        status=status.HTTP_200_OK,
+        detail={"status": "success", "course_name": course.course_name},
+    )
 
 
 @router.get("/reviewPeerAssignment")
@@ -181,36 +239,7 @@ async def review_peer_assignment(
     questions_list = []
 
     for q in questions:
-        # Gathering information about each question
-        if q.Question.htmlsrc:
-            # This replacement is to render images
-            bts = q.Question.htmlsrc
-            htmlsrc = bts.replace(
-                'src="../_static/', 'src="' + construct_course_url(course, "_static/")
-            )
-            htmlsrc = htmlsrc.replace(
-                "../_images", construct_course_url(course, "_images")
-            )
-
-            # Rewrite xref links and knowls in fillintheblank questions
-            if "fillintheblank" in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'href="', f'href="/ns/books/published/{course.base_course}/'
-                )
-
-            # Unescape contents of script tags in fitb questions.
-            if "application/json" in htmlsrc:
-                htmlsrc = htmlsrc.replace("&lt;", "<")
-                htmlsrc = htmlsrc.replace("&gt;", ">")
-                htmlsrc = htmlsrc.replace("&amp;", "&")
-
-            if 'data-knowl="./' in htmlsrc:
-                htmlsrc = htmlsrc.replace(
-                    'data-knowl="./',
-                    f'data-knowl="/ns/books/published/{course.base_course}/',
-                )
-        else:
-            htmlsrc = None
+        htmlsrc = prepare_question_htmlsrc(q.Question.htmlsrc, course)
 
         # Call the internal API to get the aggregate peer votes
         vote_1_results = await get_peer_votes(q.Question.name, course.course_name, 1)
@@ -262,7 +291,7 @@ async def review_peer_assignment(
 
     templates = get_shared_templates()
     response = templates.TemplateResponse(
-        "assignment/instructor/reviewPeerAssignment.html", context
+        request, "assignment/instructor/reviewPeerAssignment.html", context
     )
 
     return response
@@ -291,265 +320,8 @@ def aggregate_peer_votes(votes: List[str]):
 async def get_assignment_gb(
     request: Request, user=Depends(auth_manager), response_class=HTMLResponse
 ):
-    # get the course
-    course = await fetch_course(user.course_name)
-    course_attrs = await fetch_all_course_attributes(course.id)
-    show_points = course_attrs.get("show_points", "false") == "true"
-
-    if settings.server_config == "development":
-        dburl = settings.dev_dburl
-    elif settings.server_config == "production":
-        dburl = settings.dburl
-    eng = create_engine(dburl)
-
-    user_is_instructor = await is_instructor(request, user=user)
-    if not user_is_instructor:
-        return RedirectResponse(url="/")
-
-    classid = course.id
-
-    df = pd.read_sql(
-        """
-    select score, points, assignments.id as assignment, auth_user.id as sid, is_submit
-    from auth_user join grades on (auth_user.id = grades.auth_user)
-    join assignments on (grades.assignment = assignments.id)
-        where points is not null
-            and assignments.course = %s
-            and auth_user.id not in (
-                select instructor from course_instructor where course = %s
-            )
-    order by last_name, first_name, assignments.duedate, assignments.id
-    """,
-        eng,
-        params=(classid, classid),
-    )
-
-    assignments = pd.read_sql(
-        """
-    select id, name, points from assignments where course = %s order by duedate, id
-                    """,
-        eng,
-        params=(classid,),
-    )
-
-    students = pd.read_sql(
-        """
-        select auth_user.id, username, first_name, last_name, email from auth_user join user_courses on auth_user.id = user_id
-        join courses on user_courses.course_id = courses.id
-                where courses.id = %s
-                    and auth_user.id not in (
-                        select instructor from course_instructor where course = %s
-                    )
-                order by last_name, first_name
-        """,
-        eng,
-        params=(classid, classid),
-    )
-
-    # Spaced practice grading, copied from the old gradebook logic.
-    # Get the spaced practice settings for this course.
-    practice_setting = pd.read_sql(
-        """
-        select spacing, day_points, max_practice_days, question_points, max_practice_questions
-        from course_practice
-        where course_name = %s
-          and end_date is not null
-        order by id desc
-        limit 1
-        """,
-        eng,
-        params=(course.course_name,),
-    )
-
-    # This dictionary will store each user's practice grade by user_id.
-    practice_by_user_id = {}
-    show_practice = False
-    practice_total_points = 0.0
-
-    def format_practice_grade(points_received, total_possible_points):
-        # If there are no possible points, return an empty string to avoid division by zero.
-        if not total_possible_points:
-            return ""
-        # Format the grade based on whether we are showing points or percentage.
-        if show_points:
-            return "{0:.2f}".format(points_received)
-
-        return "{0:.2f}".format(100 * points_received / total_possible_points)
-
-    # Only calculate practice grades if this course has practice settings
-    if not practice_setting.empty:
-        show_practice = True
-        ps = practice_setting.iloc[0]
-
-        # If spacing is 1, grade practice based on completed practice days.
-        if ps.spacing == 1:
-            practice_counts = pd.read_sql(
-                """
-                select user_id, count(*) as practice_completion_count
-                from user_topic_practice_completion
-                where course_name = %s
-                group by user_id
-                """,
-                eng,
-                params=(course.course_name,),
-            )
-
-            # Calculate the total possible points for practice days.
-            practice_total_points = float(ps.day_points or 0) * float(
-                ps.max_practice_days or 0
-            )
-
-            # Loop through each student with completed practice questions and calculate
-            # their spaced practice grade based on the number of questions they completed.
-            max_days = int(ps.max_practice_days or 0)
-            points_per_day = float(ps.day_points or 0)
-            for _, prow in practice_counts.iterrows():
-                completion_count = int(prow.practice_completion_count or 0)
-                points_received = points_per_day * min(completion_count, max_days)
-                practice_by_user_id[prow.user_id] = format_practice_grade(
-                    points_received, practice_total_points
-                )
-
-        # Otherwise, grade practice based on the number of completed questions.
-        else:
-            practice_counts = pd.read_sql(
-                """
-                select user_id, count(*) as practice_completion_count
-                from user_topic_practice_log
-                where course_name = %s
-                  and q != 0
-                  and q != -1
-                group by user_id
-                """,
-                eng,
-                params=(course.course_name,),
-            )
-            practice_total_points = float(ps.question_points or 0) * float(
-                ps.max_practice_questions or 0
-            )
-
-            # Loop through each student with completed practice questions and calculate
-            # their spaced practice grade based on the number of questions they completed.
-            max_questions = int(ps.max_practice_questions or 0)
-            points_per_question = float(ps.question_points or 0)
-            for _, prow in practice_counts.iterrows():
-                completion_count = int(prow.practice_completion_count or 0)
-                points_received = points_per_question * min(
-                    completion_count, max_questions
-                )
-                practice_by_user_id[prow.user_id] = format_practice_grade(
-                    points_received, practice_total_points
-                )
-    apoints = {}
-    for ix, row in assignments.iterrows():
-        rslogger.debug(f"AROW = {row['name']}, {row.points}")
-        apoints[row["name"]] = row.points if row.points is not None else 0
-
-    assignments.index = assignments.id
-    aname = assignments.name.to_dict()
-    # Reverse lookup so we can map a rendered column back to its assignment id.
-    aid_by_name = {name: aid for aid, name in aname.items()}
-    students["full_name"] = students.first_name + " " + students.last_name
-    students.index = students.id
-    sfirst = students.first_name.to_dict()
-    slast = students.last_name.to_dict()
-    semail = students.email.to_dict()
-    suser = students.username.to_dict()
-    pt = df.pivot(index="sid", columns="assignment", values="score").rename(
-        columns=aname
-    )
-
-    # Add all students, including students who only have spaced practice.
-    pt = pt.reindex(index=students.index)
-    # Make sure reset_index() creates a sid column later.
-    pt.index.name = "sid"
-
-    cols = pt.columns.to_list()
-    display_cols = []
-    formatter_map = {}
-    # Map each rendered assignment column header to its assignment id so the
-    # gradebook can request the late-work list for whichever column is clicked.
-    assignment_id_by_column = {}
-
-    def format_percent(value):
-        return "" if pd.isna(value) else f"{value:.2f}"
-
-    for c in cols:
-        points = apoints.get(c, 0)
-        if show_points:
-            display_name = c + f" ({points} pts)"
-        else:
-            display_name = c + " (%)"
-            if points and points > 0:
-                pt[c] = (pt[c] / points * 100).round(2)
-            formatter_map[display_name] = format_percent
-        display_cols.append(display_name)
-        if c in aid_by_name:
-            assignment_id_by_column[display_name] = aid_by_name[c]
-
-    pt["first_name"] = pt.index.map(sfirst)
-    pt["last_name"] = pt.index.map(slast)
-    pt["email"] = pt.index.map(semail)
-    pt["username"] = pt.index.map(suser)
-
-    # These are the columns that should always show first.
-    base_cols = ["first_name", "last_name", "email", "username"]
-
-    # Only add the Practice column if spaced practice is actually configured.
-    if show_practice:
-        if show_points:
-            practice_col = f"Practice ({practice_total_points:g} pts)"
-        else:
-            practice_col = "Practice (%)"
-
-        pt[practice_col] = pt.index.map(lambda sid: practice_by_user_id.get(sid, ""))
-        base_cols.append(practice_col)
-
-    pt["_last_name_missing"] = pt["last_name"].fillna("").str.strip().eq("")
-    pt["_first_name_missing"] = pt["first_name"].fillna("").str.strip().eq("")
-    pt = pt.sort_values(
-        by=["_last_name_missing", "_first_name_missing", "last_name", "first_name"],
-        na_position="last",
-    )
-    pt = pt.drop(columns=["_last_name_missing", "_first_name_missing"])
-    pt = pt[base_cols + cols]
-    pt = pt.reset_index()
-    pt = pt.drop(columns=["sid"], axis=1)
-    pt.columns.name = None
-
-    names = {}
-    for ix, row in pt.iterrows():
-        if isinstance(row.first_name, str) and isinstance(row.last_name, str):
-            names[row.username] = row.first_name + " " + row.last_name
-
-    # pt = pt.drop(columns=["username"], axis=1)
-    templates = get_shared_templates()
-    # rename the columns in cols to cols_plus_points
-    rename_dict = {old: new for old, new in zip(cols, display_cols)}
-    pt = pt.rename(columns=rename_dict)
-
-    return templates.TemplateResponse(
-        "assignment/instructor/gradebook.html",
-        {
-            "table_html": pt.to_html(
-                table_id="table",
-                columns=base_cols + display_cols,
-                index=False,
-                na_rep="",
-                formatters=formatter_map,
-            ),
-            "pt": names,
-            "course": course,
-            "user": user.username,
-            "request": request,
-            "is_instructor": user_is_instructor,
-            "student_page": False,
-            "assignment_id_by_column": json.dumps(assignment_id_by_column),
-            # The drill-down popup needs this to re-render a cell in the same
-            # units the table was built with after recomputing a total.
-            "show_points": json.dumps(show_points),
-        },
-    )
+    """Serve the React gradebook at the established public URL."""
+    return await get_builder(request, "/gradebook", user, response_class)
 
 
 @router.get("/assignments")
@@ -609,6 +381,8 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
         first = (s.get("first_name") or "").strip()
         last = (s.get("last_name") or "").strip()
         s["name"] = (f"{first} {last}").strip() or s["username"]
+        s["effective_due_date"] = s["effective_due_date"].isoformat()
+        s["first_late_activity_at"] = s["first_late_activity_at"].isoformat()
 
     return make_json_response(
         status=status.HTTP_200_OK,
@@ -616,6 +390,8 @@ async def get_late_students(request: Request, assignment_id: int, course=None):
             "assignment_id": assignment_id,
             "assignment_name": assignment.name,
             "enforce_due": bool(assignment.enforce_due),
+            "due_date": assignment.duedate.isoformat(),
+            "course_timezone": course.timezone or "UTC",
             "students": students,
         },
     )
@@ -650,6 +426,10 @@ async def get_student_assignment_scores(
     questions = await fetch_student_assignment_scores(
         assignment_id, username, course.course_name
     )
+    # "autograded" and the hand-graded marker are bookkeeping, not feedback --
+    # the drill-down should only show words an instructor actually wrote.
+    for q in questions:
+        q["comment"] = display_comment(q["comment"])
     grade = await fetch_grade(student.id, assignment_id)
 
     first = (student.first_name or "").strip()
@@ -692,6 +472,8 @@ async def new_assignment(
         from_source=False,
         current_index=0,
         updated_date=canonical_utcnow(),
+        # Sharing is opt-in; the instructor turns it on later if they want to.
+        is_private=True,
     )
     try:
         res = await create_assignment(new_assignment)
@@ -966,10 +748,24 @@ async def get_assignment_questions(
         # augment the assignment question with additional question data
         aq["name"] = q["name"]
         aq["subchapter"] = q["subchapter"]
+        # fetch_assignment_questions outer joins the toc tables, so Chapter and
+        # SubChapter are None when the question's labels no longer resolve (a
+        # restructured book, an exercise copied from another book). Send None
+        # and let the builder fall back to the raw chapter/subchapter labels.
+        chapter, subchapter = row.Chapter, row.SubChapter
+        aq["chapter_num"] = chapter.chapter_num if chapter else None
+        aq["sub_chapter_num"] = subchapter.sub_chapter_num if subchapter else None
+        aq["chapter_name"] = chapter.chapter_name if chapter else None
+        aq["sub_chapter_name"] = subchapter.sub_chapter_name if subchapter else None
         aq["chapter"] = q["chapter"]
         aq["base_course"] = q["base_course"]
         aq["htmlsrc"] = q["htmlsrc"]
         aq["question_type"] = q["question_type"]
+        if not aq["reading_assignment"]:
+            # Report the policy the question is actually graded with: an old
+            # Khan exercise may still store pct_correct, which is not among the
+            # options the builder offers for it and would render as a blank cell.
+            aq["autograde"] = effective_autograde(q["question_type"], aq["autograde"])
         aq["question_json"] = q["question_json"]
         aq["owner"] = q["owner"]
         aq["tags"] = q["tags"]
@@ -1237,6 +1033,7 @@ async def get_builder(
     course_attrs = await fetch_all_course_attributes(course.id)
 
     return templates.TemplateResponse(
+        request,
         "assignment/instructor/builder.html",
         {
             "course": course,
@@ -1339,7 +1136,9 @@ async def make_invoice_request(
         referer=referer,
     )
     templates = get_shared_templates()
-    response = templates.TemplateResponse("assignment/instructor/invoice.html", context)
+    response = templates.TemplateResponse(
+        request, "assignment/instructor/invoice.html", context
+    )
 
     return response
 
@@ -1419,12 +1218,22 @@ async def save_exception(
             status=status.HTTP_401_UNAUTHORIZED, detail="not an instructor"
         )
 
+    # Blank time_limit / due_date fields from the form mean "no change" --
+    # store NULL, not an empty string, which the numeric columns reject.
+    def blank_to_none(value):
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
+    time_limit = blank_to_none(request_data.get("time_limit"))
+    due_date = blank_to_none(request_data.get("due_date"))
+
     # save the exception
     res = await create_deadline_exception(
         course.id,
         request_data["sid"],
-        request_data["time_limit"],
-        request_data["due_date"],
+        time_limit,
+        due_date,
         request_data["visible"],
         request_data["assignment_id"],
         request_data["allowLink"],
@@ -1504,22 +1313,25 @@ async def do_download_assignment(
             detail=f"Assignment questions for {assignment_id} not found",
         )
 
+    # ``tz_offset`` is UTC minus local time in hours (Date.getTimezoneOffset() / 60),
+    # and useinfo timestamps are stored as naive UTC, so local time is the stored
+    # timestamp *minus* the offset -- as in analytics.py and rsptx.practice.core.
+    tz_offset_hours = 0.0
     if RS_info:
         rslogger.debug(f"RS_info Cookie {RS_info}")
         # Note that to get to the value of the cookie you must use ``.value``
         try:
-            parsed_js = json.loads(RS_info)
+            tz_offset_hours = float(json.loads(RS_info).get("tz_offset", 0))
         except Exception:
-            parsed_js = {}
+            rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    tzoffset = parsed_js.get("tz_offset", None)
-    dd = datetime.timedelta(hours=int(tzoffset) if tzoffset is not None else 0)
+    dd = datetime.timedelta(hours=tz_offset_hours)
 
     csv_buffer = io.StringIO()
     csv_writer = csv.writer(csv_buffer)
     csv_writer.writerow(["Timestamp", "SID", "Div ID", "Event", "Act"])
     for row in res:
-        csv_row = [row.ts + dd, row.sid, row.name, row.event, row.act]
+        csv_row = [row.ts - dd, row.sid, row.name, row.event, row.act]
         csv_writer.writerow(csv_row)
     csv_buffer.seek(0)
 
@@ -1533,66 +1345,6 @@ async def do_download_assignment(
     )
 
     return response
-
-
-@router.get("/assignment_summary/{assignment_id}")
-@instructor_role_required()
-async def do_assignment_summary(
-    assignment_id: int,
-    request: Request,
-    user=Depends(auth_manager),
-    response_class=HTMLResponse,
-):
-    """
-    Download the specified assignment.
-    """
-
-    course_name = user.course_name
-
-    course = await fetch_course(course_name)
-    context = {
-        "course": course,
-        "course_name": course.course_name,
-        "base_course": course.base_course,
-        "assignment_id": assignment_id,
-        "course_id": course.id,
-        "user": user,
-        "request": request,
-        "is_instructor": True,
-        "student_page": False,
-    }
-    templates = get_shared_templates()
-    response = templates.TemplateResponse(
-        "assignment/instructor/assignment_summary.html", context
-    )
-
-    return response
-
-
-@router.get("/assignment_summary_data/{assignment_id}")
-@instructor_role_required()
-async def do_assignment_summary_data(
-    assignment_id: int,
-    request: Request,
-    user=Depends(auth_manager),
-    response_class=JSONResponse,
-):
-    course = await fetch_course(user.course_name)
-    if settings.server_config == "development":
-        dburl = settings.dev_dburl
-    elif settings.server_config == "production":
-        dburl = settings.dburl
-
-    summary_data, question_metadata = create_assignment_summary(
-        assignment_id, course, dburl
-    )
-    return make_json_response(
-        status=status.HTTP_200_OK,
-        detail={
-            "assignment_summary": summary_data,
-            "question_metadata": question_metadata,
-        },
-    )
 
 
 @router.post("/question")
@@ -1697,17 +1449,21 @@ async def add_api_token(
 @instructor_role_required()
 @with_course()
 async def has_api_key(request: Request, user=Depends(auth_manager), course=None):
-    """Return whether the course has at least one API token configured and whether async LLM modes are enabled."""
+    """Return whether the course has an API token and which async peer instruction settings are on."""
     tokens = await fetch_all_api_tokens(course.id)
     course_attrs = await fetch_all_course_attributes(course.id)
     async_llm_modes_enabled = (
         course_attrs.get("enable_async_llm_modes", "false") == "true"
+    )
+    async_conditions_enabled = (
+        course_attrs.get("enable_async_conditions", "false") == "true"
     )
     return make_json_response(
         status=status.HTTP_200_OK,
         detail={
             "has_api_key": len(tokens) > 0,
             "async_llm_modes_enabled": async_llm_modes_enabled,
+            "async_conditions_enabled": async_conditions_enabled,
         },
     )
 
@@ -1755,7 +1511,9 @@ async def get_add_token_page(
         "token_list": token_list,
     }
 
-    return templates.TemplateResponse("assignment/instructor/add_token.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/instructor/add_token.html", context
+    )
 
 
 @router.delete("/delete_tokens")
@@ -1832,7 +1590,16 @@ async def delete_single_token(
 
 @router.delete("/assignments/{assignment_id}")
 @instructor_role_required()
-async def remove_assignment(assignment_id: int, request: Request):
+@with_course()
+async def remove_assignment(assignment_id: int, request: Request, course=None):
+    # delete_assignment keys off the id alone, so without this check any
+    # instructor could delete any assignment on the platform by guessing an id.
+    existing = await fetch_one_assignment(assignment_id)
+    if not existing or existing.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     rslogger.debug(f"Attempting to delete assignment {assignment_id}")
     try:
         await delete_assignment(assignment_id=assignment_id)
@@ -2064,7 +1831,17 @@ async def duplicate_assignment_endpoint(
 ):
     """
     Duplicate an assignment with all its exercises and readings.
+
+    Duplicating is a within-course operation. Copying in from somewhere else
+    goes through the import endpoint, which enforces the sharing rules -- so
+    this has to refuse a foreign id or it would be a way around them.
     """
+    source = await fetch_one_assignment(assignment_id)
+    if not source or source.course != course.id:
+        return make_json_response(
+            status=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
+        )
+
     try:
         assignments = await fetch_assignments(course.course_name, fetch_all=True)
         existing_names = {assignment.name for assignment in assignments}
@@ -2086,6 +1863,269 @@ async def duplicate_assignment_endpoint(
             status=status.HTTP_400_BAD_REQUEST,
             detail=f"Error duplicating assignment: {str(e)}",
         )
+
+
+@router.post("/assignments/search")
+@instructor_role_required()
+@with_course()
+async def search_assignments_endpoint(
+    request: Request,
+    search_request: AssignmentsSearchRequest,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Browse assignments other instructors have marked as shareable.
+
+    Results span every course on the platform, so an instructor can pick up a
+    problem set from a course they have no connection to. ``use_base_course``
+    narrows this to the caller's own book and ``only_my_courses`` to courses
+    they instruct; the two are independent and apply together. The caller's
+    current course is left out -- importing an assignment into the course it
+    already lives in is not a thing anyone wants.
+
+    Rows carry ``already_imported`` for anything the caller has previously
+    imported into this course, which is what keeps a second import from
+    happening by accident.
+    """
+    if search_request.use_base_course:
+        search_request.base_course = course.base_course
+    else:
+        search_request.base_course = None
+
+    try:
+        result = await search_assignments(
+            search_request,
+            user_id=user.id,
+            exclude_course_id=course.id,
+            target_course_id=course.id,
+            prefer_base_course=course.base_course,
+        )
+    except Exception as e:
+        rslogger.error(f"Error searching assignments: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error searching assignments: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=result)
+
+
+@router.get("/assignments/{assignment_id}/preview")
+@instructor_role_required()
+@with_course()
+async def preview_assignment_endpoint(
+    request: Request,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Summarize an assignment from another course before importing it.
+
+    Deliberately separate from ``GET /assignments/{assignment_id}``, which is
+    scoped to the caller's own course. Widening that endpoint to cover this case
+    would put the "is it mine" and "is it shared" rules in one place where a
+    later edit could blur them; this one answers only the sharing question.
+    """
+    try:
+        preview = await fetch_assignment_for_preview(
+            assignment_id, user_id=user.id, target_course=course
+        )
+    except HTTPException as e:
+        return make_json_response(status=e.status_code, detail=e.detail)
+    except Exception as e:
+        rslogger.error(f"Error previewing assignment {assignment_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error previewing assignment: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=preview)
+
+
+@router.post("/assignments/{assignment_id}/import")
+@instructor_role_required()
+@with_course()
+async def import_assignment_endpoint(
+    request: Request,
+    assignment_id: int,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Copy a shareable assignment from another course into the caller's course.
+
+    The exercises are linked, not copied -- the same thing adding an exercise
+    from another course already does. Readings are left behind when the books
+    differ, since they name a subchapter of a book the caller's students are
+    not reading; ``skipped_readings`` says how many.
+    """
+    try:
+        result = await import_assignment(
+            source_assignment_id=assignment_id,
+            target_course=course,
+            importing_user=user,
+        )
+    except HTTPException as e:
+        return make_json_response(status=e.status_code, detail=e.detail)
+    except Exception as e:
+        rslogger.error(f"Error importing assignment {assignment_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error importing assignment: {str(e)}",
+        )
+
+    return make_json_response(
+        status=status.HTTP_201_CREATED,
+        detail={
+            "status": "success",
+            "id": result.assignment.id,
+            "name": result.name,
+            "skipped_readings": result.skipped_readings,
+            "duedate_warning": result.duedate_warning,
+        },
+    )
+
+
+# Not under /assignments/: `GET /assignments/{assignment_id}` is registered far
+# earlier in this file, and Starlette matches in registration order, so a path
+# like /assignments/shareable_tree binds "shareable_tree" to assignment_id and
+# dies in int coercion. A sibling of /shareable_courses cannot collide.
+@router.get("/shareable_tree")
+@instructor_role_required()
+@with_course()
+async def shareable_assignment_tree_endpoint(
+    request: Request,
+    search: str = "",
+    use_base_course: bool = False,
+    only_my_courses: bool = False,
+    page: int = 0,
+    limit: int = 20,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Courses with the assignments each offers, for the import browser's tree.
+
+    Both levels in one response: the page is bounded by courses, so expanding
+    one is instant rather than another round trip. The caller's own book sorts
+    first, and every assignment says whether it is already in their course.
+    """
+    try:
+        result = await fetch_shareable_assignment_tree(
+            user_id=user.id,
+            target_course=course,
+            search=search,
+            use_base_course=use_base_course,
+            only_my_courses=only_my_courses,
+            page=page,
+            limit=min(max(limit, 1), 100),
+        )
+    except Exception as e:
+        rslogger.error(f"Error building the shareable assignment tree: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error loading shared assignments: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=result)
+
+
+@router.get("/shareable_courses")
+@instructor_role_required()
+@with_course()
+async def shareable_courses_endpoint(
+    request: Request,
+    search: str = "",
+    use_base_course: bool = False,
+    only_my_courses: bool = False,
+    page: int = 0,
+    limit: int = 20,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    List courses with assignments the caller could import.
+
+    The course-first half of importing: "give me what that course uses" rather
+    than "find me one problem set". The book's own course sorts first, since an
+    instructor looking for material for their book should not have to search
+    for the book itself.
+    """
+    try:
+        result = await search_shareable_courses(
+            user_id=user.id,
+            search=search,
+            base_course=course.base_course if use_base_course else None,
+            prefer_base_course=course.base_course,
+            only_my_courses=only_my_courses,
+            exclude_course_id=course.id,
+            page=page,
+            limit=min(max(limit, 1), 100),
+        )
+    except Exception as e:
+        rslogger.error(f"Error listing shareable courses: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error listing shareable courses: {str(e)}",
+        )
+
+    return make_json_response(status=status.HTTP_200_OK, detail=result)
+
+
+class ImportCoursePayload(BaseModel):
+    source_course_id: int
+    # Off only when the instructor deliberately wants a second set. Defaulting
+    # to skipping is what makes re-running this after the source course adds an
+    # assignment useful rather than duplicating everything already taken.
+    skip_existing: bool = True
+
+
+@router.post("/assignments/import_course")
+@instructor_role_required()
+@with_course()
+async def import_course_assignments_endpoint(
+    request: Request,
+    payload: ImportCoursePayload,
+    user=Depends(auth_manager),
+    course=None,
+):
+    """
+    Import every importable assignment from one course into the caller's.
+
+    Each assignment goes through the same path as a single import, so the
+    sharing rules, name de-duplication and cross-book reading handling are
+    identical. Partial success is a normal outcome and is reported as one:
+    the response says what came across, what was already here and what failed.
+    """
+    try:
+        result = await import_course_assignments(
+            source_course_id=payload.source_course_id,
+            target_course=course,
+            importing_user=user,
+            skip_existing=payload.skip_existing,
+        )
+    except HTTPException as e:
+        return make_json_response(status=e.status_code, detail=e.detail)
+    except Exception as e:
+        rslogger.error(f"Error importing course {payload.source_course_id}: {e}")
+        return make_json_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error importing course assignments: {str(e)}",
+        )
+
+    return make_json_response(
+        status=status.HTTP_201_CREATED,
+        detail={
+            "status": "success",
+            "imported": result.imported,
+            "skipped_existing": result.skipped_existing,
+            "skipped_readings": result.skipped_readings,
+            "failed": result.failed,
+            "duedate_not_shifted": result.duedate_not_shifted,
+        },
+    )
 
 
 class CreateDatafilePayload(BaseModel):

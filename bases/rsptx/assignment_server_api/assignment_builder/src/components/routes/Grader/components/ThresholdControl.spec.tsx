@@ -15,6 +15,7 @@ const { mockOpenConfirmModal, mockUseGetAssignmentsQuery, mockSetThreshold, mock
 
 vi.mock("@mantine/modals", async (importOriginal) => {
   const original = await importOriginal<typeof import("@mantine/modals")>();
+
   return { ...original, modals: { ...original.modals, openConfirmModal: mockOpenConfirmModal } };
 });
 
@@ -70,6 +71,7 @@ describe("ThresholdControl", () => {
 
     expect(mockOpenConfirmModal).toHaveBeenCalledTimes(1);
     const config = mockOpenConfirmModal.mock.calls[0][0];
+
     expect(config.title).toBe("Set threshold scoring");
 
     await config.onConfirm();

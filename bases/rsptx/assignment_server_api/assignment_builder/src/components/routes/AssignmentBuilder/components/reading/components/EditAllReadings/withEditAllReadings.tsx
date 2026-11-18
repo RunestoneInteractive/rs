@@ -70,7 +70,7 @@ export function withEditAllReadings<T, P extends WithEditAllReadingsProps<T>>(
                 Edit &quot;{props.label}&quot; for all readings
               </Text>
               <Component {...props} handleSubmit={handleSubmit} onChange={setValue} value={value} />
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="var(--rs-text)">
                 {rowCount === 1 ? "Applies to 1 reading" : `Applies to ${rowCount} readings`}
               </Text>
               <Group justify="space-between">

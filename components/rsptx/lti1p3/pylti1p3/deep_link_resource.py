@@ -10,6 +10,8 @@ class DeepLinkResource:
     _custom_params: t.Mapping[str, str] = None
     _target: str = "window"
     _icon_url: t.Optional[str] = None
+    _available_start_date_time: t.Optional[str] = None
+    _available_end_date_time: t.Optional[str] = None
 
     def get_type(self):
         return self._type
@@ -53,6 +55,20 @@ class DeepLinkResource:
         self._target = value
         return self
 
+    def get_available_start_date_time(self) -> t.Optional[str]:
+        return self._available_start_date_time
+
+    def set_available_start_date_time(self, value: str) -> "DeepLinkResource":
+        self._available_start_date_time = value
+        return self
+
+    def get_available_end_date_time(self) -> t.Optional[str]:
+        return self._available_end_date_time
+
+    def set_available_end_date_time(self, value: str) -> "DeepLinkResource":
+        self._available_end_date_time = value
+        return self
+
     def get_icon_url(self) -> t.Optional[str]:
         return self._icon_url
 
@@ -73,6 +89,14 @@ class DeepLinkResource:
 
         if self._target == "window":
             res["window"] = {"targetName": "_runestone"}
+
+        available: t.Dict[str, object] = {}
+        if self._available_start_date_time:
+            available["startDateTime"] = self._available_start_date_time
+        if self._available_end_date_time:
+            available["endDateTime"] = self._available_end_date_time
+        if available:
+            res["available"] = available
 
         if self._lineitem:
             line_item: t.Dict[str, object] = {
@@ -95,11 +119,8 @@ class DeepLinkResource:
             if submission_review:
                 line_item["submissionReview"] = submission_review
 
-            # if line item has a end date, include it in the resource
-            # as both availability and submission end dates
             end_date_time = self._lineitem.get_end_date_time()
             if end_date_time:
-                res["available"] = {"endDateTime": end_date_time}
                 res["submission"] = {"endDateTime": end_date_time}
 
             res["lineItem"] = line_item

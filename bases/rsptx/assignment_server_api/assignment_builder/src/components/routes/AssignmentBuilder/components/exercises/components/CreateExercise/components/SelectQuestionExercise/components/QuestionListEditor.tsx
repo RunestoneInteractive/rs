@@ -65,11 +65,14 @@ export const QuestionListEditor: FC<QuestionListEditorProps> = ({
     const availableExercises = exercises.filter(
       (ex) => ex.name && !existingQuestionIds.includes(ex.name)
     );
+
     setSuggestions(createSuggestions(availableExercises));
   }, [exercises, existingQuestionIds, createSuggestions]);
 
   useEffect(() => {
     toggleBaseCourse(dataLimitBasecourse);
+    // TODO(eslint): Audit the complete dependency list without changing current behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataLimitBasecourse]);
 
   useEffect(() => {

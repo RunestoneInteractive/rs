@@ -38,7 +38,7 @@
 
 .contentSeparator::before,
 .contentSeparator::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: var(--rs-border-solid);
@@ -289,7 +289,9 @@
   padding: 2px 4px;
   border-radius: 3px;
   cursor: pointer;
-  transition: background-color var(--rs-transition-fast), border-color var(--rs-transition-fast);
+  transition:
+    background-color var(--rs-transition-fast),
+    border-color var(--rs-transition-fast);
   position: relative;
 }
 
@@ -299,7 +301,7 @@
 }
 
 .editor :global(.clickable-area-correct)::after {
-  content: '\2713';
+  content: "\2713";
   color: var(--rs-success-text);
   font-size: 0.75em;
   font-weight: 600;
@@ -316,7 +318,7 @@
 }
 
 .editor :global(.clickable-area-incorrect)::after {
-  content: '\2715';
+  content: "\2715";
   color: var(--rs-danger-text);
   font-size: 0.75em;
   font-weight: 600;
@@ -377,7 +379,9 @@
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: background-color var(--rs-transition-fast), color var(--rs-transition-fast);
+  transition:
+    background-color var(--rs-transition-fast),
+    color var(--rs-transition-fast);
   white-space: nowrap;
 }
 

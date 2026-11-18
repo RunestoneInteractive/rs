@@ -3,6 +3,7 @@ import { renderHook } from "@testing-library/react";
 import { CreateExerciseFormType } from "@/types/exercises";
 
 import { StepValidator } from "../config/stepConfigs";
+
 import { useStepValidation } from "./useStepValidation";
 
 type TestData = Partial<CreateExerciseFormType>;
@@ -140,6 +141,7 @@ describe("useStepValidation", () => {
       );
 
       const first = result.current;
+
       rerender({ d: data, step: 0, v: validators });
 
       expect(result.current).toBe(first);

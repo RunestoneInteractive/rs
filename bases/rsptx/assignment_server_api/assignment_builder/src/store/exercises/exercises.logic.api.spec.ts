@@ -1,13 +1,14 @@
 import { configureStore } from "@reduxjs/toolkit";
+
+import type { DetailResponse } from "@/types/api";
+import type { ExercisesSearchResponse } from "@/types/exercises";
+
 import {
   EXERCISES_TOAST_COPY,
   exercisesApi,
   useCreateNewExerciseMutation,
   useSearchExercisesSmartQuery
 } from "./exercises.logic.api";
-
-import type { DetailResponse } from "@/types/api";
-import type { ExercisesSearchResponse } from "@/types/exercises";
 
 vi.mock("@components/ui/notify", () => ({
   notify: {
@@ -84,6 +85,7 @@ describe("exercisesApi", () => {
       });
 
       const state = store.getState()[exercisesApi.reducerPath];
+
       expect(state).toBeDefined();
       expect(state.queries).toBeDefined();
       expect(state.mutations).toBeDefined();
@@ -96,6 +98,7 @@ describe("exercisesApi", () => {
 describe("searchExercisesSmart transformResponse", () => {
   const buildTransformResponse = () => {
     const endpoint = exercisesApi.endpoints.searchExercisesSmart;
+
     return (endpoint as any).select;
   };
 

@@ -5,6 +5,7 @@ declare let eBookConfig: {
   username?: string;
   // add other known properties here
 };
+
 interface JwtPayload {
   sub: string;
   exp: number;

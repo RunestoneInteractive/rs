@@ -10,9 +10,6 @@ import {
   Textarea,
   TextInput
 } from "@mantine/core";
-import React, { useMemo, useState } from "react";
-
-import { Icon } from "@/components/ui/Icon";
 import {
   GraderQuestionStats,
   GraderStudentAnswer,
@@ -21,10 +18,14 @@ import {
   useRecomputeTotalsMutation,
   useSaveGradeMutation
 } from "@store/grader/grader.logic.api";
+import React, { useMemo, useState } from "react";
+
+import { Icon } from "@/components/ui/Icon";
 
 import styles from "../Grader.module.css";
 
 import { StudentMultiSelect } from "./StudentMultiSelect";
+import { CompactAnswerView } from "./questionTypes";
 
 interface MultiGradeDialogProps {
   visible: boolean;
@@ -33,10 +34,9 @@ interface MultiGradeDialogProps {
   questions: GraderQuestionStats[];
 }
 
-const PROTECT_COMMENT = "manual";
-
 const studentLabel = (a: GraderStudentAnswer) => {
   const name = `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim();
+
   return name ? `${name} (${a.sid})` : a.sid;
 };
 
@@ -65,6 +65,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
 
   const rows = useMemo(() => {
     const answers = data?.answers ?? [];
+
     return allowedSids ? answers.filter((a) => allowedSids.has(a.sid)) : answers;
   }, [data, allowedSids]);
 
@@ -72,6 +73,7 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
 
   const editedSids = Object.keys(edits).filter((sid) => {
     const e = edits[sid];
+
     return e && (e.score !== undefined || (e.comment ?? "") !== "");
   });
 
@@ -84,11 +86,13 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
     if (editedSids.length === 0) return;
     setSaving(true);
     const saved: string[] = [];
+
     for (const sid of editedSids) {
       const e = edits[sid];
       const row = rows.find((r) => r.sid === sid);
       const score = e.score ?? row?.score ?? 0;
-      const comment = (e.comment ?? "").trim() || PROTECT_COMMENT;
+      const comment = (e.comment ?? "").trim();
+
       try {
         await save({
           sid,
@@ -147,10 +151,21 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
                 <Table.Tr key={r.sid}>
                   <Table.Td>{studentLabel(r)}</Table.Td>
                   <Table.Td>
-                    <div className={styles.multiGradeAnswer}>{r.answer || "—"}</div>
+                    <div className={styles.multiGradeAnswer}>
+                      <CompactAnswerView
+                        questionType={
+                          r.selected_question_type ||
+                          data?.question.question_type ||
+                          question.question_type
+                        }
+                        answer={r.answer}
+                        htmlsrc={r.selected_htmlsrc || data?.question.htmlsrc || question.htmlsrc}
+                      />
+                    </div>
                   </Table.Td>
                   <Table.Td>
                     <NumberInput
+                      aria-label={`Score for ${studentLabel(r)}`}
                       value={edits[r.sid]?.score ?? r.score ?? ""}
                       onChange={(v) => setScore(r.sid, typeof v === "number" ? v : null)}
                       min={0}
@@ -161,9 +176,10 @@ const QuestionGradeSection: React.FC<SectionProps> = ({
                   </Table.Td>
                   <Table.Td>
                     <TextInput
+                      aria-label={`Comment for ${studentLabel(r)}`}
                       value={edits[r.sid]?.comment ?? r.comment ?? ""}
                       onChange={(e) => setComment(r.sid, e.currentTarget.value)}
-                      placeholder={PROTECT_COMMENT}
+                      placeholder="optional"
                       size="xs"
                     />
                   </Table.Td>
@@ -210,6 +226,7 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
   const addAffected = (sids: string[]) =>
     setAffected((prev) => {
       const next = new Set(prev);
+
       sids.forEach((s) => next.add(s));
       return next;
     });
@@ -218,11 +235,13 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
     if (sameScore == null) return;
     const targetSids =
       selectedSids.length > 0 ? selectedSids : (roster ?? []).map((s) => s.username);
+
     if (targetSids.length === 0) return;
 
-    const comment = sameComment.trim() || PROTECT_COMMENT;
+    const comment = sameComment.trim();
     const total = targetSids.length * questions.length;
     let done = 0;
+
     setProgress({ done, total });
     const savedSids: string[] = [];
 
@@ -259,11 +278,12 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
 
   return (
     <Modal
-      title="Multi-grade selected questions"
+      title="Manually grade selected questions"
       opened={visible}
       onClose={close}
       size="860px"
       centered
+      closeButtonProps={{ "aria-label": "Close manual grading dialog" }}
     >
       <div className={styles.dialogStack}>
         <p className={styles.dialogIntro}>
@@ -272,7 +292,11 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
           auto-grading.
         </p>
 
-        <Radio.Group value={mode} onChange={(v) => setMode(v as "same" | "grid")}>
+        <Radio.Group
+          label="Grading mode"
+          value={mode}
+          onChange={(v) => setMode(v as "same" | "grid")}
+        >
           <div className={styles.radioRow}>
             <Radio value="same" label="Same grade for all" />
             <Radio value="grid" label="Grade individually (grid)" />
@@ -290,10 +314,9 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
           <div className={styles.fieldStack}>
             <div className={styles.applyRow}>
               <div>
-                <label className={styles.fieldHint}>
-                  Score (applied to every student × question)
-                </label>
                 <NumberInput
+                  label="Score (applied to every student × question)"
+                  classNames={{ label: styles.fieldHint }}
                   value={sameScore ?? ""}
                   onChange={(v) => setSameScore(typeof v === "number" ? v : null)}
                   min={0}
@@ -301,14 +324,12 @@ export const MultiGradeDialog: React.FC<MultiGradeDialogProps> = ({
                 />
               </div>
               <div className={styles.grow}>
-                <label className={styles.fieldHint}>
-                  Comment (blank = &quot;{PROTECT_COMMENT}&quot;)
-                </label>
                 <Textarea
+                  label="Comment (optional)"
+                  classNames={{ label: styles.fieldHint }}
                   value={sameComment}
                   onChange={(e) => setSameComment(e.currentTarget.value)}
-                  autosize
-                  minRows={1}
+                  rows={1}
                 />
               </div>
               <Button

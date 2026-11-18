@@ -102,10 +102,12 @@ export const ClickableAreaMark = Mark.create<ClickableAreaMarkOptions>({
           state.doc.nodesBetween(from, to, (node, pos) => {
             if (node.isText) {
               const marks = node.marks.filter((mark) => mark.type.name === this.name);
+
               if (marks.length > 0) {
                 // Calculate the full range of this text node with the mark
                 const nodeFrom = pos;
                 const nodeTo = pos + node.nodeSize;
+
                 marksToRemove.push({ from: nodeFrom, to: nodeTo });
               }
             }
@@ -127,6 +129,7 @@ export const ClickableAreaMark = Mark.create<ClickableAreaMarkOptions>({
             state.doc.nodesBetween(searchFrom, searchTo, (node, pos) => {
               if (node.isText) {
                 const marks = node.marks.filter((mark) => mark.type.name === this.name);
+
                 if (marks.length > 0) {
                   const nodeFrom = pos;
                   const nodeTo = pos + node.nodeSize;

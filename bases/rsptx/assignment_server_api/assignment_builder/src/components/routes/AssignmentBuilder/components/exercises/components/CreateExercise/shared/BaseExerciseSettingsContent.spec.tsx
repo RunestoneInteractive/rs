@@ -35,6 +35,7 @@ describe("BaseExerciseSettingsContent", () => {
 
     await waitFor(() => {
       const settings = lastSettings(onSettingsChange);
+
       expect(settings.name).toBe("generated-id");
       expect(settings.chapter).toBe("ch1");
       expect(settings.subchapter).toBe("sec1");

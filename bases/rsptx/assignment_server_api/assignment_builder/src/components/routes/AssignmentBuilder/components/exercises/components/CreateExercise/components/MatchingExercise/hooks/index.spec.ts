@@ -1,10 +1,10 @@
 import { renderHook, act } from "@testing-library/react";
 import { createRef } from "react";
 
-import { useMatchingConnections } from "./index";
-
 import { CONNECTION_TOAST_COPY } from "../../../shared/connections";
 import type { MatchingData } from "../types";
+
+import { useMatchingConnections } from "./index";
 
 vi.mock("../MatchingExercise.module.css", () => ({
   default: {
@@ -73,21 +73,25 @@ describe("useMatchingConnections", () => {
   describe("initial state", () => {
     it("starts with no active source", () => {
       const { result } = renderHook(() => useMatchingConnections(makeProps(makeFormData())));
+
       expect(result.current.activeSource).toBeNull();
     });
 
     it("starts with mouse position at origin", () => {
       const { result } = renderHook(() => useMatchingConnections(makeProps(makeFormData())));
+
       expect(result.current.mousePosition).toEqual({ x: 0, y: 0 });
     });
 
     it("starts with hasMovedEnough as false", () => {
       const { result } = renderHook(() => useMatchingConnections(makeProps(makeFormData())));
+
       expect(result.current.hasMovedEnough).toBe(false);
     });
 
     it("starts with forceRedraw at 0", () => {
       const { result } = renderHook(() => useMatchingConnections(makeProps(makeFormData())));
+
       expect(result.current.forceRedraw).toBe(0);
     });
   });

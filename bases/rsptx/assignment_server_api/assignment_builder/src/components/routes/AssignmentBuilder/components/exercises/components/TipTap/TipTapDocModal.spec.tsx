@@ -37,6 +37,7 @@ describe("TipTapDocModal", () => {
 
   it("calls onHide when the modal is closed", () => {
     const onHide = vi.fn();
+
     renderWithMantine(<TipTapDocModal visible onHide={onHide} />);
 
     fireEvent.click(screen.getByRole("button", { name: /close/i }));

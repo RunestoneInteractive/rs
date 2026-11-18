@@ -10,6 +10,7 @@
 # Standard library
 # ----------------
 import os
+from contextlib import asynccontextmanager
 import pathlib
 
 # Third-party imports
@@ -23,10 +24,13 @@ from .routers import student
 from .routers import instructor
 from .routers import peer
 from .routers import grader
+from .routers import echoform
+from rsptx.auth.csrf import add_csrf_protection
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.logging import rslogger
 from rsptx.templates import template_folder
 from rsptx.auth.session import auth_manager
+from rsptx.db.pool_monitor import start_pool_monitor
 
 # FastAPI setup
 # =============
@@ -34,7 +38,19 @@ from rsptx.auth.session import auth_manager
 kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
-app = FastAPI(**kwargs)  # type: ignore
+
+
+# Start and stop the connection pool / event-loop monitor with the app. See
+# rsptx.db.pool_monitor for what it records and how to read it.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    pool_monitor_task = start_pool_monitor()
+    yield
+    if pool_monitor_task:
+        pool_monitor_task.cancel()
+
+
+app = FastAPI(lifespan=lifespan, **kwargs)  # type: ignore
 
 
 # We can mount various "apps" with mount.  Anything that gets to this server with /staticAssets
@@ -61,7 +77,11 @@ app.include_router(student.router)
 app.include_router(grader.router)
 app.include_router(instructor.router)
 app.include_router(peer.router)
+app.include_router(echoform.router)
 
 # DRY: this is the same as in book_server_api and other servers
 # load a common set of middleware/exception handlers.
 add_exception_handlers(app)
+# echoform writes nothing and is meant to receive forms students build anywhere,
+# including pages on their own sites.
+add_csrf_protection(app, exempt_paths=("/echoform",))

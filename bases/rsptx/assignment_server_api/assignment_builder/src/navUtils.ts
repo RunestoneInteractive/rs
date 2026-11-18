@@ -5,15 +5,33 @@ import { isEmptyObject } from "@/utils/object";
 export interface NavItem {
   label?: string;
   icon?: PrimeIconName;
-  command?: () => void;
+  href?: string;
+  onClick?: () => void;
   items?: NavItem[];
   visible?: boolean;
   separator?: boolean;
   activePrefixes?: string[];
+  disabled?: boolean;
+}
+
+export interface CourseSwitcherOptions {
+  courses: Array<{ course_name: string; is_current: boolean }>;
+  onSwitch: (courseName: string) => void;
+  isSwitching?: boolean;
 }
 
 export const isNavItemActive = (item: NavItem, pathname: string): boolean =>
   !!item.activePrefixes?.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
+export const getCourseSwitchDestination = (pathname: string): string => {
+  const isGraderRoute =
+    pathname === "/grader" ||
+    pathname.startsWith("/grader/") ||
+    pathname === "/gradebook" ||
+    pathname.startsWith("/gradebook/");
+
+  return isGraderRoute ? "/assignment/instructor/grader" : "/assignment/instructor/builder";
+};
 
 const defaultEBookConfig: EBookConfig = {
   isInstructor: true,
@@ -47,38 +65,61 @@ const createNavigateToPath = (navigate?: (path: string) => void) => (path: strin
   }
 };
 
-export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) => void) => {
+export const buildNavBar = (
+  eBookConfig: EBookConfig,
+  navigate?: (path: string) => void,
+  courseSwitcher?: CourseSwitcherOptions
+) => {
   const { isInstructor, course, username } = isEmptyObject(eBookConfig)
     ? defaultEBookConfig
     : eBookConfig;
 
   const navigateToPath = createNavigateToPath(navigate);
 
+  const courseItems: NavItem[] = courseSwitcher
+    ? courseSwitcher.courses.map((availableCourse) => ({
+        label: availableCourse.course_name,
+        icon: availableCourse.is_current ? "check" : undefined,
+        onClick: availableCourse.is_current
+          ? undefined
+          : () => courseSwitcher.onSwitch(availableCourse.course_name),
+        disabled: availableCourse.is_current || courseSwitcher.isSwitching
+      }))
+    : [];
+
+  if (courseItems.length === 0) {
+    courseItems.unshift({ label: course || "Current course", icon: "check", disabled: true });
+  }
+
   const items: Array<NavItem> = [
     {
-      label: "Home",
-      icon: "home",
-      command: () => navigateToPath("/runestone/default/index")
+      label: `Course: ${course || "Course"}`,
+      icon: "book",
+      items: courseItems
     },
     {
       label: `Back to ${course || "Course"}`,
-      command: () => navigateToPath("/ns/books/published/" + course + "/index.html")
+      href: `/ns/books/published/${course}/index.html`,
+      onClick: () => navigateToPath("/ns/books/published/" + course + "/index.html")
     },
     {
       label: "Dashboard",
       icon: "cog",
-      command: () => navigateToPath("/admin/instructor/menu")
+      href: "/admin/instructor/menu",
+      onClick: () => navigateToPath("/admin/instructor/menu")
     },
     {
       label: "Grader",
       icon: "check-square",
-      command: () => navigateToPath("grader"),
+      href: "/assignment/instructor/grader",
+      onClick: () => navigateToPath("grader"),
       activePrefixes: ["/grader"]
     },
     {
       label: "Assignment Builder",
       icon: "file-edit",
-      command: () => navigateToPath("builder"),
+      href: "/assignment/instructor/builder",
+      onClick: () => navigateToPath("builder"),
       activePrefixes: ["/builder", "/"]
     },
     {
@@ -92,64 +133,75 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         {
           label: "Course home",
           icon: "home",
-          command: () => navigateToPath("/ns/course/index")
+          href: "/ns/course/index",
+          onClick: () => navigateToPath("/ns/course/index")
         },
         {
           label: "Assignments",
           icon: "pencil",
-          command: () => navigateToPath("/assignment/student/chooseAssignment")
+          href: "/assignment/student/chooseAssignment",
+          onClick: () => navigateToPath("/assignment/student/chooseAssignment")
         },
         {
           label: "Practice",
           icon: "palette",
-          command: () => navigateToPath("/runestone/assignments/practice")
+          href: "/runestone/assignments/practice",
+          onClick: () => navigateToPath("/runestone/assignments/practice")
         },
         {
           label: "Peer instruction (instructor)",
-          command: () => navigateToPath("/assignment/peer/instructor"),
+          href: "/assignment/peer/instructor",
+          onClick: () => navigateToPath("/assignment/peer/instructor"),
           visible: isInstructor
         },
         {
           label: "Peer instruction (student)",
-          command: () => navigateToPath("/assignment/peer/student")
+          href: "/assignment/peer/student",
+          onClick: () => navigateToPath("/assignment/peer/student")
         },
         {
           separator: true
         },
         {
           label: "Change course",
-          command: () => navigateToPath("/admin/auth/my_courses")
+          href: "/admin/auth/my_courses",
+          onClick: () => navigateToPath("/admin/auth/my_courses")
         },
         {
           separator: true
         },
         {
           label: "Instructor's dashboard",
-          command: () => navigateToPath("/admin/instructor/menu")
+          href: "/admin/instructor/menu",
+          onClick: () => navigateToPath("/admin/instructor/menu")
         },
         {
           label: "Accommodations",
           icon: "ban",
-          command: () => navigateToPath("except")
+          href: "/assignment/instructor/except",
+          onClick: () => navigateToPath("except")
         },
         {
           label: "Progress page",
-          command: () => navigateToPath("/assignment/student/studentreport")
+          href: "/assignment/student/studentreport",
+          onClick: () => navigateToPath("/assignment/student/studentreport")
         },
         {
           separator: true
         },
         {
           label: "Edit profile",
-          command: () => navigateToPath("/admin/auth/profile")
+          href: "/admin/auth/profile",
+          onClick: () => navigateToPath("/admin/auth/profile")
         },
         {
           label: "Change password",
-          command: () => navigateToPath("/runestone/default/user/change_password")
+          href: "/runestone/default/user/change_password",
+          onClick: () => navigateToPath("/runestone/default/user/change_password")
         },
         {
           label: "Logout",
-          command: () => navigateToPath("/admin/auth/logout")
+          onClick: () => navigateToPath("/admin/auth/logout")
         }
       ]
     },
@@ -160,12 +212,14 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         {
           label: "Instructor's guide",
           icon: "book",
-          command: () => navigateToPath("https://guide.runestone.academy/")
+          href: "https://guide.runestone.academy/",
+          onClick: () => navigateToPath("https://guide.runestone.academy/")
         },
         {
           label: "Video tutorials",
           icon: "video",
-          command: () =>
+          href: "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU",
+          onClick: () =>
             navigateToPath(
               "https://www.youtube.com/playlist?list=PLnjfglXW2QQRG6NRsg5mq8V99MM_3j_ZU"
             )
@@ -173,12 +227,20 @@ export const buildNavBar = (eBookConfig: EBookConfig, navigate?: (path: string) 
         {
           label: "Contact us",
           icon: "envelope",
-          command: () => navigateToPath("https://github.com/RunestoneInteractive/rs/issues")
+          href: "https://github.com/RunestoneInteractive/rs/issues",
+          onClick: () => navigateToPath("https://github.com/RunestoneInteractive/rs/issues")
         },
         {
           label: "Join our Discord",
           icon: "discord",
-          command: () => navigateToPath("https://discord.gg/f3Qmbk9P3U")
+          href: "https://discord.gg/f3Qmbk9P3U",
+          onClick: () => navigateToPath("https://discord.gg/f3Qmbk9P3U")
+        },
+        {
+          label: "Our Library",
+          icon: "book",
+          href: "/ns/books/index",
+          onClick: () => navigateToPath("/ns/books/index")
         }
       ]
     }

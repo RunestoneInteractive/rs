@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+
 import { useEnsureEbookConfigForGrader } from "./useEnsureEbookConfigForGrader";
 
 type WindowWithEbookConfig = Window & typeof globalThis & { eBookConfig?: Record<string, unknown> };
@@ -115,6 +116,7 @@ describe("useEnsureEbookConfigForGrader", () => {
 
   it("preserves pre-existing eBookConfig object reference when already present", () => {
     const existing: Record<string, unknown> = { course: "bio101" };
+
     w.eBookConfig = existing;
     renderHook(() => useEnsureEbookConfigForGrader());
     expect(w.eBookConfig).toBe(existing);
@@ -123,6 +125,7 @@ describe("useEnsureEbookConfigForGrader", () => {
   it("sets all defaults at once on a fresh window object", () => {
     renderHook(() => useEnsureEbookConfigForGrader());
     const cfg = w.eBookConfig!;
+
     expect(cfg.useRunestoneServices).toBe(true);
     expect(cfg.isLoggedIn).toBe(true);
     expect(cfg.new_server_prefix).toBe("/ns");

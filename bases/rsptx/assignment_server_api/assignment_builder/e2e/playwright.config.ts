@@ -6,10 +6,15 @@ const e2eDir = path.dirname(fileURLToPath(import.meta.url));
 
 const E2E_TARGET = process.env.E2E_TARGET ?? "vite";
 const IS_DOCKER = E2E_TARGET === "docker";
+const IS_CI_A11Y = process.env.CI_A11Y === "true";
 
 export const AUTH_FILE = path.join(e2eDir, ".auth/user.json");
-export const BACKEND_URL = IS_DOCKER ? "http://localhost" : "http://localhost:80";
 export const APP_URL = IS_DOCKER ? "http://localhost" : "http://localhost:5173";
+export const BACKEND_URL = IS_CI_A11Y
+  ? APP_URL
+  : IS_DOCKER
+    ? "http://localhost"
+    : "http://localhost:80";
 export const APP_BASE = IS_DOCKER ? "/assignment/instructor" : "";
 
 export default defineConfig({
@@ -24,6 +29,14 @@ export default defineConfig({
     ["line"],
     ["html", { open: "never", outputFolder: path.join(e2eDir, "playwright-report") }]
   ],
+  webServer: IS_CI_A11Y
+    ? {
+        command: "npm start -- --host 127.0.0.1",
+        url: APP_URL,
+        reuseExistingServer: false,
+        timeout: 120_000
+      }
+    : undefined,
   use: {
     baseURL: APP_URL,
     trace: "retain-on-failure",

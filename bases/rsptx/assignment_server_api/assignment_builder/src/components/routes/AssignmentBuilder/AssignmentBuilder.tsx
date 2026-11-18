@@ -2,11 +2,13 @@ import { Loader } from "@components/ui/Loader";
 import { Center } from "@mantine/core";
 import { assignmentActions } from "@store/assignment/assignment.logic";
 import {
+  useBulkRemoveAssignmentsMutation,
+  useBulkUpdateAssignmentsMutation,
   useCreateAssignmentMutation,
+  useDuplicateAssignmentMutation,
   useGetAssignmentsQuery,
   useRemoveAssignmentMutation,
-  useUpdateAssignmentMutation,
-  useDuplicateAssignmentMutation
+  useUpdateAssignmentMutation
 } from "@store/assignment/assignment.logic.api";
 import {
   useGetAutoGradeOptionsQuery,
@@ -16,15 +18,22 @@ import {
 } from "@store/dataset/dataset.logic.api";
 import { useGetAvailableReadingsQuery } from "@store/readings/readings.logic.api";
 import sortBy from "lodash/sortBy";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { Assignment, CreateAssignmentPayload } from "@/types/assignment";
 
-import { saveEnforceDue, saveVisibility } from "./assignmentMutationHandlers";
+import styles from "./AssignmentBuilder.module.css";
+import {
+  saveBulkEnforceDue,
+  saveBulkVisibility,
+  saveEnforceDue,
+  saveVisibility
+} from "./assignmentMutationHandlers";
 import { ErrorState } from "./components/ErrorState/ErrorState";
 import { AssignmentEdit } from "./components/edit/AssignmentEdit";
+import { ImportAssignmentModal } from "./components/importAssignment/ImportAssignmentModal";
 import { AssignmentList } from "./components/list/AssignmentList";
 import { AssignmentWizard } from "./components/wizard/AssignmentWizard";
 import { defaultAssignment } from "./defaultAssignment";
@@ -33,15 +42,16 @@ import { useAssignmentRouting } from "./hooks/useAssignmentRouting";
 import { useAssignmentState } from "./hooks/useAssignmentState";
 import { useNameValidation } from "./hooks/useNameValidation";
 
-import styles from "./AssignmentBuilder.module.css";
-
 export const AssignmentBuilder = () => {
   const dispatch = useDispatch();
+  const [importModalVisible, setImportModalVisible] = useState(false);
   const { isLoading, isError, data: assignments = [] } = useGetAssignmentsQuery();
   const [createAssignment, { isLoading: isCreating }] = useCreateAssignmentMutation();
   const [updateAssignment] = useUpdateAssignmentMutation();
   const [removeAssignment] = useRemoveAssignmentMutation();
   const [duplicateAssignment] = useDuplicateAssignmentMutation();
+  const [bulkUpdateAssignments] = useBulkUpdateAssignmentsMutation();
+  const [bulkRemoveAssignments] = useBulkRemoveAssignmentsMutation();
 
   // Load all required data
 
@@ -134,6 +144,33 @@ export const AssignmentBuilder = () => {
     [updateAssignment]
   );
 
+  const handleBulkVisibilityChange = useCallback(
+    async (
+      targets: Assignment[],
+      data: { visible: boolean; visible_on: string | null; hidden_on: string | null }
+    ) => {
+      await saveBulkVisibility(bulkUpdateAssignments, targets, data);
+    },
+    [bulkUpdateAssignments]
+  );
+
+  const handleBulkEnforceDueChange = useCallback(
+    async (targets: Assignment[], enforce_due: boolean) => {
+      await saveBulkEnforceDue(bulkUpdateAssignments, targets, enforce_due);
+    },
+    [bulkUpdateAssignments]
+  );
+
+  const handleBulkRemove = useCallback(
+    async (targets: Assignment[]) => {
+      if (targets.length === 0) {
+        return;
+      }
+      await bulkRemoveAssignments(targets);
+    },
+    [bulkRemoveAssignments]
+  );
+
   const handleWizardComplete = async () => {
     const formValues = getValues();
     const payload: CreateAssignmentPayload = {
@@ -193,10 +230,18 @@ export const AssignmentBuilder = () => {
           onEdit={handleEdit}
           onDuplicate={handleDuplicate}
           onEnforceDueChange={handleEnforceDueChange}
+          onImport={() => setImportModalVisible(true)}
           onVisibilityChange={handleVisibilityChange}
           onRemove={onRemove}
+          onBulkVisibilityChange={handleBulkVisibilityChange}
+          onBulkEnforceDueChange={handleBulkEnforceDueChange}
+          onBulkRemove={handleBulkRemove}
         />
       )}
+      <ImportAssignmentModal
+        visible={importModalVisible}
+        onHide={() => setImportModalVisible(false)}
+      />
       {mode === "create" && (
         <AssignmentWizard
           control={control}

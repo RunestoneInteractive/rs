@@ -3,17 +3,16 @@ from datetime import timedelta
 from rsptx.db.models import AuthUserValidator, DeadlineExceptionValidator
 from rsptx.db.crud import (
     is_assigned,
-    fetch_answers,
-    create_question_grade_entry,
     fetch_grade,
     fetch_question_grade,
-    update_question_grade_entry,
     upsert_grade,
-    fetch_assignment_scores,
+    upsert_question_grade_entry,
+    fetch_assignment_scores_with_points,
     fetch_deadline_exception,
     fetch_one_assignment,
     fetch_peer_useinfo,
     has_submissions_after_deadline,
+    INTERACTION_ONLY_EVENTS,
 )
 from rsptx.validation.schemas import (
     LogItemIncoming,
@@ -24,13 +23,45 @@ from rsptx.db.models import (
     GradeValidator,
     AssignmentValidator,
 )
+from rsptx.data_types.answer_storage import CODE_RUN_EVENTS
+from rsptx.data_types.autograde import effective_autograde
 from rsptx.logging import rslogger
 from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.comments import is_hand_graded
+from rsptx.grading_helpers.lti_push import schedule_lti1p1_score_push
 from rsptx.grading_helpers.scoring import (
     score_answer_values,
+    capped_question_total,
     score_peer_values,
     PEER_SCORE_SENTINEL,
 )
+
+
+async def _store_grade(
+    scoreSpec: ScoringSpecification,
+    user: AuthUserValidator,
+    div_id: str,
+    policy: str,
+) -> bool:
+    """Save ``scoreSpec.score`` for ``div_id`` and report whether it was written.
+
+    The save is a single upsert, so two submissions arriving together cannot
+    both try to insert the row (they used to, and the loser's score was thrown
+    away with an IntegrityError in the log). When the row keeps a score this
+    call didn't write (the first answer, a better answer, or a hand grade that
+    landed in between), ``scoreSpec.score`` is set to the stored score.
+    """
+    row, written = await upsert_question_grade_entry(
+        user.username,
+        user.course_name,
+        div_id,
+        scoreSpec.score,
+        policy=policy,
+        max_score=scoreSpec.max_score,
+    )
+    if not written and row is not None:
+        scoreSpec.score = row.score
+    return written
 
 
 async def grade_submission(
@@ -69,6 +100,15 @@ async def grade_submission(
     # in reading assignments that have selectquestions (likely toggles).
     if submission.event == "selectquestion" and submission.act == "interaction":
         return scoreSpec
+    # An activecode run says nothing about correctness -- the unit test result
+    # arrives separately as a ``unittest`` event -- so it only counts toward a
+    # question scored on interaction. Scoring it under any other policy would
+    # record a 0 ahead of the test result, which ``first_answer`` then keeps.
+    if submission.event in CODE_RUN_EVENTS and scoreSpec.how_to_score not in (
+        "interact",
+        "interaction",
+    ):
+        return scoreSpec
 
     # from here on carefully use div_id which may be the selector_id for saving the score
     # but use submission.div_id for scoring the actual question.
@@ -76,35 +116,49 @@ async def grade_submission(
         rslogger.debug(
             f"Scoring {submission.div_id} for {user.username} scoreSpec = {scoreSpec}"
         )
-        if scoreSpec.which_to_grade == "first_answer":
-            answers = await fetch_answers(
-                submission.div_id, submission.event, user.course_name, user.username
+        # A grade an instructor set by hand outranks anything this submission
+        # would earn. Without this the next save a student made silently put the
+        # autograder's score back, and the instructor had to grade the question
+        # all over again. See rsptx.grading_helpers.comments.
+        existing_grade = await fetch_question_grade(
+            user.username, user.course_name, div_id
+        )
+        if existing_grade is not None and is_hand_graded(existing_grade.comment):
+            rslogger.debug(
+                f"Keeping hand-entered grade for {user.username} {div_id}: "
+                f"{existing_grade.score} ({existing_grade.comment})"
             )
-            if len(answers) > 0:
+            scoreSpec.username = user.username
+            scoreSpec.score = existing_grade.score
+            scoreSpec.comment = existing_grade.comment
+            return scoreSpec
+        if submission.event in INTERACTION_ONLY_EVENTS:
+            # Videos and polls have no answer table, so there is nothing for
+            # ``fetch_answers`` to look up (it would raise a KeyError on
+            # EVENT2TABLE).  Every interaction is also worth exactly the same, so
+            # first/last/best answer are indistinguishable here: score the
+            # interaction and upsert the single question_grades row.
+            scoreSpec.username = user.username
+            # Old assignments may still store pct_correct for a Khan exercise,
+            # which would score a wrong attempt 0; those are graded on
+            # interaction no matter what.
+            scoreSpec.how_to_score = effective_autograde(
+                submission.event, scoreSpec.how_to_score
+            )
+            scoreSpec.score = await score_one_answer(scoreSpec, submission)
+            update_total = await _store_grade(scoreSpec, user, div_id, "last")
+        elif scoreSpec.which_to_grade == "first_answer":
+            # Key this on the grade row, not the answer table: the book server
+            # saves this submission's answer row before grading it, so counting
+            # answers always found one and the first answer was never scored.
+            if existing_grade is not None:
+                scoreSpec.score = existing_grade.score
                 return scoreSpec
-            else:
-                scoreSpec.score = await score_one_answer(scoreSpec, submission)
-                await create_question_grade_entry(
-                    user.username, user.course_name, div_id, scoreSpec.score
-                )
-                update_total = True
+            scoreSpec.score = await score_one_answer(scoreSpec, submission)
+            update_total = await _store_grade(scoreSpec, user, div_id, "first")
         elif scoreSpec.which_to_grade == "last_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
-            answer = await fetch_question_grade(user.username, user.course_name, div_id)
-            if answer:
-                answer.score = scoreSpec.score
-                await update_question_grade_entry(
-                    user.username,
-                    user.course_name,
-                    div_id,
-                    scoreSpec.score,
-                    answer.id,
-                )
-            else:
-                await create_question_grade_entry(
-                    user.username, user.course_name, submission.div_id, scoreSpec.score
-                )
-            update_total = True
+            update_total = await _store_grade(scoreSpec, user, div_id, "last")
         elif scoreSpec.which_to_grade == "best_answer":
             scoreSpec.score = await score_one_answer(scoreSpec, submission)
             if scoreSpec.score is None:
@@ -115,36 +169,12 @@ async def grade_submission(
             rslogger.debug(
                 f"Scoring best answer with current score of {scoreSpec.score}"
             )
-            current_score = await fetch_question_grade(
-                user.username, user.course_name, div_id
-            )
-            # Update the score unless the instructor has left a comment.
-            # Instructors should have the last word?
-            if current_score:
-                if current_score.score is None:
-                    current_score.score = 0
-                    # maybe if there is no score we should update it regardless of the comment?
-                if (
-                    current_score.score < scoreSpec.score
-                ) and current_score.comment == "autograded":
-                    await update_question_grade_entry(
-                        user.username,
-                        user.course_name,
-                        div_id,
-                        scoreSpec.score,
-                        current_score.id,
-                    )
-                    update_total = True
-                else:
-                    scoreSpec.score = current_score.score
-            else:
-                await create_question_grade_entry(
-                    user.username,
-                    user.course_name,
-                    div_id,
-                    scoreSpec.score,
-                )
-                update_total = True
+            # The row keeps its score unless this one is higher, or the stored
+            # one is above this assignment's maximum. A score above the maximum
+            # is stale: it was earned where the question is worth more
+            # (question_grades is shared by every assignment using the
+            # question) or before the instructor lowered its points.
+            update_total = await _store_grade(scoreSpec, user, div_id, "best")
         elif scoreSpec.which_to_grade == "all_answer":
             # This is a peer instruction question.
             # check to make sure that this is vote2 before we do anything.
@@ -154,26 +184,9 @@ async def grade_submission(
                 scoreSpec.username = user.username
                 scoreSpec.score = await score_one_answer(scoreSpec, submission)
                 rslogger.debug(f"scoreSpec.score = {scoreSpec.score}")
-                answer = await fetch_question_grade(
-                    user.username, user.course_name, submission.div_id
+                update_total = await _store_grade(
+                    scoreSpec, user, submission.div_id, "last"
                 )
-                if answer:
-                    answer.score = scoreSpec.score
-                    await update_question_grade_entry(
-                        user.username,
-                        user.course_name,
-                        submission.div_id,
-                        scoreSpec.score,
-                        answer.id,
-                    )
-                else:
-                    await create_question_grade_entry(
-                        user.username,
-                        user.course_name,
-                        submission.div_id,
-                        scoreSpec.score,
-                    )
-                update_total = True
         if update_total:
             rslogger.debug("Updating total score")
             # Now compute the total
@@ -222,7 +235,7 @@ async def score_one_answer(
 
 async def compute_total_score(
     scoreSpec: ScoringSpecification, user: AuthUserValidator
-) -> int:
+) -> Union[int, float]:
     """
     Compute the total score for an assignment.
 
@@ -230,17 +243,13 @@ async def compute_total_score(
     :type scoreSpec: ScoringSpecification
     :param user: The user to compute the score for.
     :type user: AuthUserValidator
-    :rtype: int
+    :rtype: int or float
     """
 
-    res = await fetch_assignment_scores(
+    res = await fetch_assignment_scores_with_points(
         scoreSpec.assignment_id, user.course_name, user.username
     )
-    total = 0
-    for row in res:
-        if row.score is None:
-            row.score = 0
-        total += row.score
+    total = capped_question_total(res)
 
     rslogger.debug(f"total = {total} for assignment {scoreSpec.assignment_id}")
     # Now update the grade table with the new total
@@ -259,8 +268,20 @@ async def compute_total_score(
         )
     rslogger.debug(f"newGrade = {newGrade}")
     res = await upsert_grade(newGrade)
-    # And send the grade off to any LTI1.3 tools that are listening
+    scoreSpec.total_score = total
+    # And send the grade off to whichever LTI tools are listening.
+    #
+    # This runs on every scored student answer and every completed reading page
+    # -- the hottest path in the system -- so the two versions are dispatched
+    # differently. The 1.3 push is awaited inline as it always has been. The 1.1
+    # push only reaches an LMS for courses linked over 1.1 (a cached lookup, not
+    # a query per event) and is handed to a debounced background task, because
+    # its replaceResult POST is blocking and a student's save must not wait on a
+    # third-party LMS. See rsptx.grading_helpers.lti_push.
     await attempt_lti1p3_score_update(user.id, scoreSpec.assignment_id, total)
+    await schedule_lti1p1_score_push(
+        user.id, user.course_id, scoreSpec.assignment_id, total
+    )
     return total
 
 
@@ -282,15 +303,15 @@ async def score_reading_page(
     question_grade = await fetch_question_grade(
         user.username, user.course_name, reading_spec.name
     )
-    if question_grade:
-        question_grade.score = score
-        await update_question_grade_entry(
-            user.username, user.course_name, reading_spec.name, score, question_grade.id
+    # As in grade_submission: never walk on a grade an instructor entered.
+    if question_grade and is_hand_graded(question_grade.comment):
+        rslogger.debug(
+            f"Keeping hand-entered grade for {user.username} {reading_spec.name}"
         )
-    else:
-        await create_question_grade_entry(
-            user.username, user.course_name, reading_spec.name, score
-        )
+        return
+    await upsert_question_grade_entry(
+        user.username, user.course_name, reading_spec.name, score, policy="last"
+    )
 
     scoreSpec = ScoringSpecification(
         assigned=True, assignment_id=reading_spec.assignment_id

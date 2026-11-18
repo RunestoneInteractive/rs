@@ -119,10 +119,12 @@ function setupBookFilter() {
             var title = entry.getAttribute("data-title") || "";
             var authors = entry.getAttribute("data-authors") || "";
             var section = entry.getAttribute("data-section") || "";
+            var subtitle = entry.getAttribute("data-subtitle") || "";
             if (
                 title.includes(filter) ||
                 authors.includes(filter) ||
-                section.includes(filter)
+                section.includes(filter) ||
+                subtitle.includes(filter)
             ) {
                 entry.style.display = "";
             } else {

@@ -52,15 +52,19 @@
 <h3>Report Summary</h3>
 <p class="vpat-meta"><strong>Product:</strong> Runestone Academy Website</p>
 <p class="vpat-meta"><strong>Conformance target:</strong> WCAG 2.1 &mdash; Level AA</p>
-<p class="vpat-meta"><strong>Report date:</strong> January 2026</p>
+<p class="vpat-meta"><strong>Report date:</strong> August 2026</p>
 
 <h3>Scope of Evaluation</h3>
 <p>
-    This report covers a representative sample of publicly accessible pages on the
-    Runestone Academy website, including marketing content, authentication workflows,
-    and interactive textbook content rendered via JavaScript. It represents a
-    best-effort conformance assessment based on manual review, not a formal
-    certification.
+    This report covers a representative sample of pages across the platform, including
+    public and authentication pages; student workflows such as the course chooser,
+    profile, assignments, peer instruction and progress reports; instructor and
+    administrative workflows such as the instructor dashboard, course settings, student
+    management and the summary reports; and interactive textbook content rendered via
+    JavaScript. Pages were evaluated in <strong>both the light and dark display
+    themes</strong>, since the two use different color palettes. It represents a
+    best-effort conformance assessment based on manual review and automated measurement,
+    not a formal certification.
 </p>
 
 <h3>Conformance Levels</h3>
@@ -79,19 +83,22 @@
     </thead>
     <tbody>
         <tr><td>1.1.1 Non-text Content</td><td class="vpat-conf partial">Partially Supports</td><td>Images and icons include visible text alternatives where applicable. Some dynamically rendered interactive content (e.g., exercises, math) may require additional ARIA labeling or verification with assistive technologies.</td></tr>
-        <tr><td>1.3.1 Info and Relationships</td><td class="vpat-conf partial">Partially Supports</td><td>Pages use headings, lists, and semantic HTML. Consistency of heading hierarchy within interactive book pages should be verified.</td></tr>
+        <tr><td>1.3.1 Info and Relationships</td><td class="vpat-conf partial">Partially Supports</td><td>Pages use headings, lists, and semantic HTML. Report tables use <code>&lt;th&gt;</code> elements for row and column headers, and a <code>&lt;main&gt;</code> landmark wraps the primary content region of application pages. Consistency of heading hierarchy within interactive book pages should still be verified with assistive technologies.</td></tr>
         <tr><td>1.3.2 Meaningful Sequence</td><td class="vpat-conf supports">Supports</td><td>Reading order appears logical in linearized views.</td></tr>
-        <tr><td>1.4.3 Contrast (Minimum)</td><td class="vpat-conf partial">Partially Supports</td><td>Text is generally readable; formal contrast ratio verification is recommended to confirm AA compliance in all areas.</td></tr>
+        <tr><td>1.4.1 Use of Color</td><td class="vpat-conf partial">Partially Supports</td><td>Color is generally accompanied by text. Two known exceptions remain: overdue assignment due dates, and the per-question score cells in the assignment summary report, are distinguished primarily by color. Both are readable at AA contrast, but a non-color cue has not yet been added.</td></tr>
+        <tr><td>1.4.3 Contrast (Minimum)</td><td class="vpat-conf partial">Partially Supports</td><td>A full contrast remediation was completed in August 2026 and verified by measurement rather than by eye. All text on the authentication, student, instructor and administrative pages listed above meets the 4.5:1 minimum in both light and dark themes, as does text in the interactive textbook components, including graded and error states. Colors are now defined as a documented palette with the measured ratio recorded alongside each value. Residual issues are confined to chrome supplied by the PreTeXt book template rather than by Runestone: a byline (4.44:1) and two code-syntax token colors (4.32:1 and 3.73:1) fall marginally short on published book pages.</td></tr>
         <tr><td>1.4.5 Images of Text</td><td class="vpat-conf supports">Supports</td><td>Text content is rendered as text rather than images, except where mathematical notation is rendered programmatically.</td></tr>
+        <tr><td>1.4.11 Non-text Contrast</td><td class="vpat-conf partial">Partially Supports</td><td>Form input and select borders, which are the only cue identifying those controls, were raised to meet the 3:1 minimum, and the focus indicator described under 2.4.7 exceeds it. Purely decorative rules and separators are exempt. Icons, charts and other graphical objects have not yet been individually assessed against this criterion.</td></tr>
         <tr><td>2.1.1 Keyboard</td><td class="vpat-conf partial">Partially Supports</td><td>Core navigation and forms are keyboard accessible. Interactive textbook components require further keyboard-only testing.</td></tr>
         <tr><td>2.1.2 No Keyboard Trap</td><td class="vpat-conf supports">Supports</td><td>No keyboard traps observed in primary navigation and forms.</td></tr>
-        <tr><td>2.4.1 Bypass Blocks</td><td class="vpat-conf supports">Supports</td><td>&ldquo;Skip to main content&rdquo; links are present on authentication pages; consistent use across all pages is recommended.</td></tr>
+        <tr><td>2.4.1 Bypass Blocks</td><td class="vpat-conf partial">Partially Supports</td><td>A <code>&lt;main&gt;</code> landmark wraps the primary content region of application pages, and the book template provides a &ldquo;Skip to main content&rdquo; link. That skip link currently has no visible focus indicator of its own, so it is difficult to perceive when reached by keyboard.</td></tr>
         <tr><td>2.4.2 Page Titled</td><td class="vpat-conf supports">Supports</td><td>Pages have descriptive and unique titles.</td></tr>
         <tr><td>2.4.6 Headings and Labels</td><td class="vpat-conf supports">Supports</td><td>Headings and labels are generally descriptive and informative.</td></tr>
+        <tr><td>2.4.7 Focus Visible</td><td class="vpat-conf partial">Partially Supports</td><td>A single high-contrast focus indicator (8.79:1 against the page background, drawn clear of the control so its contrast does not depend on what it surrounds) is applied across the Runestone application interface; it was verified on 236 of 237 focusable controls on the pages listed above. Published book pages are rendered by the PreTeXt template, which does not load that stylesheet: there, the skip link noted under 2.4.1 and some embedded third-party editors and math widgets still rely on their own focus handling and have not been verified.</td></tr>
         <tr><td>3.1.1 Language of Page</td><td class="vpat-conf supports">Supports</td><td>Page language is programmatically declared.</td></tr>
-        <tr><td>3.3.2 Labels or Instructions</td><td class="vpat-conf supports">Supports</td><td>Form fields include visible labels and instructions.</td></tr>
+        <tr><td>3.3.2 Labels or Instructions</td><td class="vpat-conf supports">Supports</td><td>Form fields include visible labels and instructions. Course selection and profile forms additionally expose descriptive ARIA labels and help text associations.</td></tr>
         <tr><td>4.1.1 Parsing</td><td class="vpat-conf supports">Supports</td><td>Markup appears well-formed in tested pages.</td></tr>
-        <tr><td>4.1.2 Name, Role, Value</td><td class="vpat-conf partial">Partially Supports</td><td>Standard UI elements expose appropriate accessibility semantics; custom interactive elements may require additional ARIA roles and states.</td></tr>
+        <tr><td>4.1.2 Name, Role, Value</td><td class="vpat-conf partial">Partially Supports</td><td>Standard UI elements expose appropriate accessibility semantics, and ARIA labels and descriptions were added to the course selection and profile controls. Custom interactive elements may still require additional ARIA roles and states, and this has not been confirmed with a screen reader.</td></tr>
     </tbody>
 </table>
 </div>
@@ -100,15 +107,28 @@
 <ul>
     <li>Clear page titles and navigation structure</li>
     <li>Labeled form fields on login and user workflows</li>
-    <li>Semantic HTML used for core layout and navigation</li>
+    <li>Semantic HTML used for core layout and navigation, including a <code>&lt;main&gt;</code> landmark</li>
     <li>Consistent navigation across pages</li>
+    <li>A documented color palette in which every value records its measured contrast
+        ratio, so future changes can be checked against the same standard</li>
+    <li>A single, consistent, high-contrast keyboard focus indicator across the application</li>
+    <li>Contrast verified by measurement in both light and dark themes, including graded
+        and error states</li>
 </ul>
 
 <h3>Known Limitations and Areas for Improvement</h3>
 <ul>
+    <li><strong>Screen reader verification:</strong> No formal testing with JAWS, NVDA or
+        VoiceOver has been performed. This is the most significant remaining gap in this
+        assessment.</li>
     <li><strong>Interactive Content:</strong> Coding exercises, quizzes, and mathematical content rendered via JavaScript should be verified with screen readers and keyboard-only navigation.</li>
     <li><strong>ARIA Enhancements:</strong> Some custom widgets may benefit from additional ARIA roles, states, or descriptions.</li>
-    <li><strong>Contrast Verification:</strong> Automated contrast testing is recommended to confirm full WCAG 2.1 AA compliance.</li>
+    <li><strong>Book template chrome:</strong> A small number of contrast and focus issues
+        on published book pages originate in the PreTeXt page template and third-party
+        editor and mathematics widgets rather than in Runestone's own code. These are
+        tracked and raised upstream where appropriate.</li>
+    <li><strong>Non-color cues:</strong> The two color-only status indicators noted under
+        1.4.1 should be given a text or icon cue.</li>
 </ul>
 
 <h3>Testing Methodology</h3>
@@ -117,7 +137,13 @@
     <li><strong>Manual structural review</strong> of page structure, headings, landmarks, semantic HTML, form labels, and page titles.</li>
     <li><strong>Keyboard navigation testing</strong> of core workflows, including focus order and checks for keyboard traps.</li>
     <li><strong>Automated and assisted tooling</strong> using the WAVE Accessibility Evaluation Tool, with results reviewed manually to distinguish actionable issues from false positives.</li>
-    <li><strong>Authenticated page evaluation</strong> of dashboards, interactive exercises, group-work, and instructor interfaces after logging in as a standard user.</li>
+    <li><strong>Programmatic contrast measurement</strong>, in which pages are loaded in a
+        real browser and every rendered text node is compared against the background
+        actually painted behind it. The measurement resolves gradients at their weakest
+        color stop and modern color spaces such as <code>oklab()</code>, runs in both the
+        light and dark themes, and is repeated after answers are submitted so that graded
+        and error states are measured rather than only the initial page.</li>
+    <li><strong>Authenticated page evaluation</strong> of dashboards, interactive exercises, group-work, and instructor interfaces after logging in as a standard user and, separately, as an instructor.</li>
 </ul>
 <p>
     Due to the dynamic nature of interactive educational content, not all possible user
@@ -127,8 +153,8 @@
 
 <h3>Assumptions and Disclaimers</h3>
 <p>
-    This VPAT is based on a limited manual review of representative public pages and does
-    not constitute a legal guarantee of accessibility compliance. Accessibility is an
+    This VPAT is based on manual review and automated measurement of a representative
+    sample of pages, and does not constitute a legal guarantee of accessibility compliance. Accessibility is an
     ongoing process, and Runestone Academy continues to improve support for users with
     disabilities.
 </p>

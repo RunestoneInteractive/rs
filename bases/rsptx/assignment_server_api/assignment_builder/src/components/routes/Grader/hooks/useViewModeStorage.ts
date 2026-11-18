@@ -8,10 +8,12 @@ export function useViewModeStorage<TMode extends string>(
   const readInitial = useCallback((): TMode => {
     if (typeof window === "undefined") return defaultMode;
     const stored = window.localStorage.getItem(storageKey);
+
     return stored && (allowedModes as readonly string[]).includes(stored)
       ? (stored as TMode)
       : defaultMode;
-
+    // TODO(eslint): Audit the complete dependency list without changing persisted-mode behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   const [mode, setModeState] = useState<TMode>(readInitial);
@@ -27,4 +29,3 @@ export function useViewModeStorage<TMode extends string>(
 
   return [mode, setMode];
 }
-

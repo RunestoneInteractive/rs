@@ -12,15 +12,13 @@ import {
 import classNames from "classnames";
 import { Control, Controller, UseFormSetValue, UseFormWatch } from "react-hook-form";
 
+import stepperStyles from "@/components/ui/WizardStepper.module.css";
+import { useRouteHeadingFocus } from "@/hooks/useRouteHeadingFocus";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
-
 import { CourseTimezoneNotice } from "../edit/CourseTimezoneNotice";
-
 import { VisibilityControl } from "../edit/VisibilityControl";
-
-import stepperStyles from "@/components/ui/WizardStepper.module.css";
 
 import styles from "./AssignmentWizard.module.css";
 
@@ -99,9 +97,13 @@ export const AssignmentWizard = ({
   watch,
   setValue
 }: AssignmentWizardProps) => {
+  const headingRef = useRouteHeadingFocus(window.location.pathname);
+
   const renderBasicInfo = () => (
     <>
-      <h1 className={styles.stepTitle}>Basic information</h1>
+      <h1 ref={headingRef} className={styles.stepTitle} tabIndex={-1}>
+        Basic information
+      </h1>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="wizard-assignment-name">Assignment name</label>
@@ -137,8 +139,7 @@ export const AssignmentWizard = ({
                 {...field}
                 id="wizard-assignment-description"
                 value={field.value || ""}
-                autosize
-                minRows={4}
+                rows={4}
                 placeholder="What is this assignment about?"
               />
             )}
@@ -176,7 +177,9 @@ export const AssignmentWizard = ({
 
   const renderTypeSelection = () => (
     <>
-      <h1 className={styles.stepTitle}>Select assignment type</h1>
+      <h1 ref={headingRef} className={styles.stepTitle} tabIndex={-1}>
+        Select assignment type
+      </h1>
       <div className={styles.typeCards}>
         {assignmentTypeCards.map((card) => {
           const isSelected = watch("kind") === card.type;
@@ -210,14 +213,14 @@ export const AssignmentWizard = ({
         <div className={styles.typeSettings}>
           {watch("kind") === "Regular" && (
             <>
-              <h3 className={styles.settingsTitle}>Regular assignment settings</h3>
+              <h2 className={styles.settingsTitle}>Regular assignment settings</h2>
               <div className={styles.settingsNote}>No additional options</div>
             </>
           )}
 
           {watch("kind") === "Timed" && (
             <>
-              <h3 className={styles.settingsTitle}>Quiz/Exam settings</h3>
+              <h2 className={styles.settingsTitle}>Quiz/Exam settings</h2>
               <div className={styles.settingRows}>
                 <div className={styles.settingRow}>
                   <Checkbox
@@ -249,7 +252,7 @@ export const AssignmentWizard = ({
                   />
                 </div>
                 <div className={styles.settingRow}>
-                  <label>Allow pause</label>
+                  <span className={styles.controlLabel}>Allow pause</span>
                   <Controller
                     name="nopause"
                     control={control}
@@ -265,7 +268,7 @@ export const AssignmentWizard = ({
                   />
                 </div>
                 <div className={styles.settingRow}>
-                  <label>Allow feedback</label>
+                  <span className={styles.controlLabel}>Allow feedback</span>
                   <Controller
                     name="nofeedback"
                     control={control}
@@ -286,10 +289,10 @@ export const AssignmentWizard = ({
 
           {watch("kind") === "Peer" && (
             <>
-              <h3 className={styles.settingsTitle}>Peer instruction settings</h3>
+              <h2 className={styles.settingsTitle}>Peer instruction settings</h2>
               <div className={styles.settingRows}>
                 <div className={styles.settingRow}>
-                  <label>Show async peer</label>
+                  <span className={styles.controlLabel}>Show async peer</span>
                   <Controller
                     name="peer_async_visible"
                     control={control}
@@ -322,7 +325,9 @@ export const AssignmentWizard = ({
 
   const renderVisibility = () => (
     <>
-      <h1 className={styles.stepTitle}>Visibility</h1>
+      <h1 ref={headingRef} className={styles.stepTitle} tabIndex={-1}>
+        Visibility
+      </h1>
       <p className={styles.visibilityIntro}>
         Control when this assignment becomes visible to students. You can make it visible
         immediately, schedule it for a future date, or set it to hide automatically.

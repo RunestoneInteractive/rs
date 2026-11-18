@@ -1,13 +1,12 @@
 .selectwidthauto {
-     width:auto !important;
-     display: inline-block !important;
-     margin: 5px;
+    width: auto !important;
+    display: inline-block !important;
+    margin: 5px;
 }
 
 input.input-validation-error {
     border: 1px solid #e80c4d;
 }
-
 
 .dark-mode .fillintheblank_section input[type="text"] {
     color: unset;

@@ -10,6 +10,7 @@
 # Standard library
 # ----------------
 import datetime
+import html as html_module
 import json
 import random
 import re
@@ -21,30 +22,36 @@ import pandas as pd
 # Third-party imports
 # -------------------
 from fastapi import APIRouter, Body, Depends, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from rsptx.auth.session import auth_manager
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from rsptx.ai_helpers.api_token import fetch_llm_token
+from rsptx.auth.session import auth_manager, is_instructor
 from rsptx.configuration import settings
 from rsptx.db.async_session import async_session
+from rsptx.db.crud.assignment import is_assignment_visible_to_students
 from rsptx.db.crud import (
     count_distinct_student_answers,
     count_peer_messages,
     create_useinfo_entry,
+    create_user_experiment_entry,
     fetch_all_course_attributes,
-    fetch_api_token,
     fetch_assignment_questions,
     fetch_assignments,
     fetch_course_students,
+    fetch_deadline_exception,
     fetch_last_useinfo_peergroup,
     fetch_lti_version,
     fetch_one_assignment,
     fetch_question,
     fetch_recent_student_answers,
     fetch_student_answers_in_timerange,
+    fetch_user_experiment,
     replace_user_experiment_entries,
     update_assignment,
 )
 from rsptx.db.models import Useinfo, UseinfoValidation
+from .course_guard import assignment_course_redirect
 from rsptx.endpoint_validators import instructor_role_required, with_course
+from rsptx.grading_helpers.core import check_for_exceptions
 
 # Local application imports
 # -------------------------
@@ -57,18 +64,66 @@ from rsptx.templates import get_shared_templates
 # Analogy themes for async LLM mode
 # ==================================
 PI_THEMES = [
-    {"id": "family_tree", "label": "Family Tree"},
-    {"id": "geographic", "label": "Geographic Hierarchy"},
-    {"id": "html_dom", "label": "HTML/DOM Tree"},
-    {"id": "university", "label": "Organizational Hierarchy"},
-    {"id": "apartment", "label": "Apartment Building"},
-    {"id": "grocery", "label": "Grocery Store"},
-    {"id": "airport", "label": "Airport"},
-    {"id": "discord", "label": "Discord Server"},
-    {"id": "video_game", "label": "Video Game World"},
-    {"id": "music_library", "label": "Music Library"},
-    {"id": "audio_production", "label": "Audio Production"},
-    {"id": "kitchen", "label": "Kitchen Storage"},
+    {
+        "id": "family_tree",
+        "label": "Family Tree",
+        "description": "parents, children, and ancestors",
+    },
+    {
+        "id": "geographic",
+        "label": "Geographic Hierarchy",
+        "description": "countries, states, and cities",
+    },
+    {
+        "id": "html_dom",
+        "label": "HTML/DOM Tree",
+        "description": "nested tags on a web page",
+    },
+    {
+        "id": "university",
+        "label": "Organizational Hierarchy",
+        "description": "departments, managers, and staff",
+    },
+    {
+        "id": "apartment",
+        "label": "Apartment Building",
+        "description": "floors, units, and rooms",
+    },
+    {
+        "id": "grocery",
+        "label": "Grocery Store",
+        "description": "aisles, sections, and shelves",
+    },
+    {
+        "id": "airport",
+        "label": "Airport",
+        "description": "terminals, gates, and flights",
+    },
+    {
+        "id": "discord",
+        "label": "Discord Server",
+        "description": "servers, categories, and channels",
+    },
+    {
+        "id": "video_game",
+        "label": "Video Game World",
+        "description": "worlds, levels, and areas",
+    },
+    {
+        "id": "music_library",
+        "label": "Music Library",
+        "description": "artists, albums, and tracks",
+    },
+    {
+        "id": "audio_production",
+        "label": "Audio Production",
+        "description": "projects, tracks, and clips",
+    },
+    {
+        "id": "kitchen",
+        "label": "Kitchen Storage",
+        "description": "cabinets, shelves, and containers",
+    },
 ]
 THEME_BY_ID = {t["id"]: t for t in PI_THEMES}
 
@@ -110,17 +165,22 @@ async def get_peer_instructor(
         key=lambda x: x.duedate if x.duedate else datetime.datetime.min, reverse=True
     )
 
+    # Whether students can see each assignment right now, honoring visible_on
+    # and hidden_on as well as the visible flag (same rule as chooseAssignment)
+    visibility_map = {a.id: is_assignment_visible_to_students(a) for a in assignments}
+
     context = {
         "course": course,
         "user": user,
         "request": request,
         "is_instructor": True,
         "assignments": assignments,
+        "visibility_map": visibility_map,
         "settings": settings,
     }
 
     return templates.TemplateResponse(
-        "assignment/instructor/peer_instructor.html", context
+        request, "assignment/instructor/peer_instructor.html", context
     )
 
 
@@ -155,6 +215,10 @@ async def get_peer_dashboard(
         new_idx = (assignment.current_index or 0) + 1
         rslogger.info(f"New index: {new_idx}")
         assignment.current_index = new_idx
+        await update_assignment(assignment, pi_update=True)
+    elif next == "Previous":
+        rslogger.info("Going back to previous question")
+        assignment.current_index = max((assignment.current_index or 0) - 1, 0)
         await update_assignment(assignment, pi_update=True)
 
     # Get all questions for this assignment
@@ -267,7 +331,7 @@ async def get_peer_dashboard(
     }
 
     return templates.TemplateResponse(
-        "assignment/instructor/peer_dashboard.html", context
+        request, "assignment/instructor/peer_dashboard.html", context
     )
 
 
@@ -313,7 +377,9 @@ async def get_peer_extra(
         "is_instructor": True,
     }
 
-    return templates.TemplateResponse("assignment/instructor/peer_extra.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/instructor/peer_extra.html", context
+    )
 
 
 @router.get("/instructor/review", response_class=HTMLResponse)
@@ -331,7 +397,6 @@ async def get_peer_review(
     rslogger.info(
         f"Peer review for assignment {assignment_id} - not yet implemented, redirecting"
     )
-    from fastapi.responses import RedirectResponse
 
     return RedirectResponse(
         url=f"/assignment/instructor/reviewPeerAssignment?assignment_id={assignment_id}"
@@ -355,14 +420,25 @@ async def get_peer_student(
     rslogger.info(f"Rendering peer student page for user: {user.username}")
     templates = get_shared_templates()
 
-    # Fetch visible peer assignments for the student
-    all_assignments = await fetch_assignments(
+    # Fetch peer assignments that are visible now; the SQL filter honors
+    # visible_on and hidden_on as well as the visible flag.
+    assignments = await fetch_assignments(
         course.course_name, is_peer=True, is_visible=True
     )
-    # Filter for peer assignments that are visible
-    assignments = [
-        a for a in all_assignments if (a.is_peer or a.kind == "Peer") and a.visible
-    ]
+    # A student granted a visibility exception sees the assignment even when
+    # it is hidden for everyone else. (allowLink only permits the direct link,
+    # so it does not add the assignment to the list.)
+    accommodations = await fetch_deadline_exception(
+        course.id, user.username, fetch_all=True
+    )
+    exception_ids = {a.assignment_id for a in accommodations if a.visible}
+    if exception_ids:
+        all_peer = await fetch_assignments(course.course_name, is_peer=True)
+        assignments = list(assignments) + [
+            a
+            for a in all_peer
+            if a.id in exception_ids and not is_assignment_visible_to_students(a)
+        ]
 
     # Sort by due date (most recent first)
     assignments.sort(
@@ -378,7 +454,9 @@ async def get_peer_student(
         "settings": settings,
     }
 
-    return templates.TemplateResponse("assignment/student/peer_student.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/peer_student.html", context
+    )
 
 
 @router.get("/student/question", response_class=HTMLResponse)
@@ -397,6 +475,33 @@ async def get_peer_question(
 
     # Fetch the assignment and its questions
     assignment = await fetch_one_assignment(assignment_id)
+    if not assignment:
+        return JSONResponse(status_code=404, content={"detail": "Assignment not found"})
+
+    # A direct link carries only the assignment id, so make sure it belongs to
+    # the student's active course before letting them answer (issue #1494).
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/peer/student/question?assignment_id={assignment_id}",
+    )
+    if wrong_course:
+        return wrong_course
+
+    # Hidden assignments are off limits except to instructors and students
+    # granted an exception, the same rule doAssignment applies.
+    if not is_assignment_visible_to_students(assignment):
+        deadline_exception = await check_for_exceptions(user, assignment_id)
+        if not (
+            await is_instructor(request, user=user)
+            or deadline_exception.visible
+            or deadline_exception.allowLink
+        ):
+            rslogger.warning(
+                f"Attempt to access invisible peer assignment {assignment_id} by {user.username}"
+            )
+            return RedirectResponse("/assignment/peer/student")
 
     # Get all questions for this assignment
     questions_result = await fetch_assignment_questions(assignment_id)
@@ -455,7 +560,9 @@ async def get_peer_question(
         "wp_imports": wp_assets,
     }
 
-    return templates.TemplateResponse("assignment/student/peer_question.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/peer_question.html", context
+    )
 
 
 async def _has_vote1_async(div_id: str, sid: str) -> bool:
@@ -496,8 +603,88 @@ async def _has_reflection_async(div_id: str, sid: str) -> bool:
 
 
 async def _llm_enabled_async(course_id: int) -> bool:
-    token = await fetch_api_token(course_id, "openai")
-    return token is not None and bool(token.token)
+    return await fetch_llm_token(course_id, "peer") is not None
+
+
+async def _llm_chat_async(
+    course_id: int, messages: list, *, temperature: float, max_tokens: int, timeout
+) -> Optional[str]:
+    """
+    Send messages to the course's LLM provider (see rsptx.ai_helpers) and return
+    the reply, or None if the course has no API token.
+    """
+    token = await fetch_llm_token(course_id, "peer")
+    if token is None:
+        return None
+    # no retries: a student is waiting on the reply. The context manager
+    # closes the client's connections even when the request fails.
+    async with token.async_client(timeout=timeout, max_retries=0) as client:
+        response = await client.chat.completions.create(
+            **token.request_params(
+                messages=messages, temperature=temperature, max_tokens=max_tokens
+            )
+        )
+    rslogger.warning(f"PEER LLM CALL | provider={token.provider} | model={token.model}")
+    return response.choices[0].message.content.strip()
+
+
+# Async PI study conditions
+# =========================
+# Condition 0 discusses with the LLM peer, condition 1 reads saved classmate
+# justifications. The mapping is deliberate: adding a condition later means
+# adding to this dict, not editing the page.
+ASYNC_CONDITION_MODES = {0: "llm", 1: "standard"}
+
+
+def resolve_study_mode(question_async_mode: str, condition: Optional[int]) -> str:
+    """Return the mode a student in the study gets, given their condition.
+
+    With no condition to serve -- the assignment is not in a study, the course
+    toggle is off, or the lookup failed -- the question's own mode stands, so
+    an assignment outside the study is untouched by any of this.
+    """
+    if condition is None:
+        return question_async_mode
+    return ASYNC_CONDITION_MODES.get(condition, question_async_mode)
+
+
+def async_condition_experiment_id(assignment_id: int) -> str:
+    """Name the experiment a student's async PI condition is stored under.
+
+    Keyed on the assignment, not the question, so a student stays in one
+    condition for every question in that assignment (a between-subjects
+    design), while a later assignment randomizes independently.
+    """
+    return f"async_pi_cond_{assignment_id}"
+
+
+async def _async_condition_for(sid: str, assignment_id: int) -> Optional[int]:
+    """Return this student's condition for an assignment, assigning on first visit.
+
+    Reuses the ``user_experiment`` table that the book server's A/B question
+    selection already uses, so the assignment is server side and survives a
+    different browser or cleared cookies.
+
+    :return: the condition number, or ``None`` if it could not be determined.
+    """
+    experiment_id = async_condition_experiment_id(assignment_id)
+    try:
+        condition = await fetch_user_experiment(sid, experiment_id)
+        if condition is None:
+            condition = random.randrange(len(ASYNC_CONDITION_MODES))
+            await create_user_experiment_entry(sid, experiment_id, condition)
+            stored = await fetch_user_experiment(sid, experiment_id)
+            if stored is not None:
+                condition = stored
+            rslogger.info(
+                f"async PI: assigned {sid} to condition {condition} for {experiment_id}"
+            )
+        return condition
+    except Exception:
+        # Never block a student from working because assignment failed; the
+        # caller falls back to the question's own configured mode.
+        rslogger.exception(f"Failed to resolve async PI condition for {sid}")
+        return None
 
 
 @router.get("/student/async", response_class=HTMLResponse)
@@ -521,6 +708,16 @@ async def get_peer_async(
     assignment = await fetch_one_assignment(assignment_id)
     if not assignment:
         return JSONResponse(status_code=404, content={"detail": "Assignment not found"})
+
+    wrong_course = await assignment_course_redirect(
+        user,
+        course,
+        assignment,
+        f"/assignment/peer/student/async?assignment_id={assignment_id}"
+        f"&question_num={question_num}",
+    )
+    if wrong_course:
+        return wrong_course
 
     if not assignment.peer_async_visible:
         return JSONResponse(
@@ -563,7 +760,20 @@ async def get_peer_async(
     question_async_mode = (
         (getattr(aq, "async_mode", None) or "standard") if aq else "standard"
     )
-    if async_llm_modes_enabled:
+
+    # On an assignment in the study, the student's assigned condition decides
+    # the mode instead of whatever each question is set to, so they see one
+    # condition across the whole assignment. Assignments outside the study, and
+    # every course without the toggle on, are untouched.
+    async_conditions_enabled = (
+        course_attrs.get("enable_async_conditions", "false") == "true"
+    )
+    async_condition = None
+    if async_conditions_enabled and bool(assignment.async_study):
+        async_condition = await _async_condition_for(user.username, assignment_id)
+    question_async_mode = resolve_study_mode(question_async_mode, async_condition)
+
+    if async_llm_modes_enabled or async_condition is not None:
         question_use_llm = question_async_mode in ("llm", "analogies")
         llm_enabled = question_use_llm and has_api_token
     else:
@@ -583,7 +793,15 @@ async def get_peer_async(
                 sid=user.username,
                 div_id=current_question.name if current_question else "",
                 event="pi_mode",
-                act=json.dumps({"mode": pi_mode}),
+                act=json.dumps(
+                    {
+                        "mode": pi_mode,
+                        "condition": async_condition,
+                        "experiment_id": async_condition_experiment_id(assignment_id),
+                    }
+                    if async_condition is not None
+                    else {"mode": pi_mode}
+                ),
                 timestamp=datetime.datetime.utcnow(),
             )
         )
@@ -628,7 +846,21 @@ async def get_peer_async(
         "wp_imports": wp_assets,
     }
 
-    return templates.TemplateResponse("assignment/student/peer_async.html", context)
+    return templates.TemplateResponse(
+        request, "assignment/student/peer_async.html", context
+    )
+
+
+def parse_peergroup_members(act: str, sid: str) -> set[str]:
+    try:
+        _, members = act.split(":", 1)
+    except (AttributeError, ValueError):
+        return set()
+
+    group = {m.strip() for m in members.split(",") if m.strip()}
+    if sid:
+        group.add(sid)
+    return group
 
 
 def split_ab_conditions(
@@ -787,15 +1019,9 @@ async def make_pairs(
             useinfos = await fetch_last_useinfo_peergroup(course.course_name)
             in_person_groups = []
             for u in useinfos:
-                # act format peergroup:student1,student2,...
-                try:
-                    _, members = u.act.split(":", 1)
-                    grp = set(members.split(","))
-                    if u.sid not in grp:
-                        grp.add(u.sid)
+                grp = parse_peergroup_members(u.act, u.sid)
+                if grp:
                     in_person_groups.append(grp)
-                except Exception:  # defensive; malformed rows shouldn't break pairing
-                    continue
 
             # Group answering students into their recorded verbal clusters and
             # split those clusters across the two conditions. See
@@ -1214,8 +1440,12 @@ async def set_assignment_visibility(
             status_code=403, content={"detail": "Assignment not in this course"}
         )
 
-    # Update visibility
+    # An explicit toggle overrides any schedule, matching the assignment
+    # builder's plain "visible"/"hidden" modes. Leaving visible_on or hidden_on
+    # in place would let the schedule contradict the toggle.
     assignment.visible = visible
+    assignment.visible_on = None
+    assignment.hidden_on = None
     try:
         await update_assignment(assignment, pi_update=True)
     except Exception as e:
@@ -1247,39 +1477,67 @@ async def publish_message(
     """
     import json
     import os
-
+    from rsptx.auth.session import is_instructor
     import redis
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except ValueError:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Invalid JSON request body"},
+        )
+
     rslogger.info(f"Publishing peer message: {data}")
+    # Get the user's authentication
+    user_is_instructor = await is_instructor(request, user=user)
+
+    # Reject if the user is trying to broadcast or use a control without permission
+    if not user_is_instructor and (data.get("broadcast") or data.get("type") != "text"):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "detail": f"User {user.username} is not an instructor in this runestone course."
+            },
+        )
 
     try:
+        # Prevent impersonation, `from` was originally sent from the request but in the frontend
+        # `user` is simply pulled from user.username, same for `sender`
+        # see peer_instructor.html , peer_async.html and peer_question.html
+        if data.get("type") == "text":
+            data["from"] = user.username
+        else:
+            data["sender"] = user.username
+
+        # Now that the permission is checked, we can publish
         r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
         r.publish("peermessages", json.dumps(data))
 
         # Store phase-change control messages so reconnecting students can catch up
+        # countDownAndStop is stored so a student who reconnects after a vote
+        # ends sees voting closed instead of the stale enableVote reopening it.
         if data.get("type") == "control" and data.get("message") in (
             "enableVote",
             "enableNext",
             "enableChat",
             "enableFaceChat",
+            "countDownAndStop",
         ):
             r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
-            if data.get("message") in ("enableVote", "enableNext") and data.get(
-                "assignment_id"
-            ):
+            if data.get("message") in (
+                "enableVote",
+                "enableNext",
+                "countDownAndStop",
+            ) and data.get("assignment_id"):
                 r.delete(f"assignment_{data['assignment_id']}_state")
 
         # Track message count for text messages
         if data.get("type") == "text":
-            res = r.hget(f"{course.course_name}_state", "mess_count")
-            if res is not None:
-                mess_count = int(res) + 1
-            else:
-                mess_count = 1
-            r.hset(f"{course.course_name}_state", "mess_count", str(mess_count))
+            r.hincrby(f"{course.course_name}_state", "mess_count", 1)
 
         return JSONResponse(content={"status": "success"})
+
     except Exception as e:
         rslogger.error(f"Error publishing message: {e}")
         return JSONResponse(
@@ -1493,6 +1751,51 @@ async def get_async_explainer(
                 r"^\s*i chose answer\s+\S+\.\s*my explanation was:\s*", re.I
             )
 
+            # Show which option each student picked on their first vote, so a justification can be shown alongside the answer it supports
+            # pi_vote comes from the async page the in-class session logs the same vote as mChoice
+            vote_query = (
+                select(Useinfo)
+                .where(
+                    Useinfo.event.in_(["pi_vote", "mChoice"]),
+                    Useinfo.div_id == div_id,
+                    Useinfo.course_id == course,
+                )
+                .order_by(Useinfo.id)
+            )
+            vote_result = await session.execute(vote_query)
+            votes_by_sid: dict[str, list[tuple[int, str]]] = {}
+            for row in vote_result.scalars().all():
+                answer = ""
+                if row.event == "pi_vote":
+                    try:
+                        vote = json.loads(row.act)
+                    except Exception:
+                        continue
+                    if vote.get("vote_num") == 1 and vote.get("answer"):
+                        answer = str(vote["answer"])
+                else:
+                    parts = (row.act or "").split(":")
+                    if len(parts) < 4 or parts[0] != "answer" or parts[3] != "vote1":
+                        continue
+                    try:
+                        answer = ",".join(
+                            chr(65 + int(i)) for i in parts[1].split(",") if i != ""
+                        )
+                    except (ValueError, TypeError):
+                        continue
+                if answer:
+                    votes_by_sid.setdefault(row.sid, []).append((row.id, answer))
+
+            def _answer_for(sid: str, msg_id: int) -> str:
+                # The answer this student had voted for when they wrote their message
+                best = ""
+                for vote_id, answer in votes_by_sid.get(sid, []):
+                    if vote_id <= msg_id:
+                        best = answer
+                    else:
+                        break
+                return best
+
             all_msgs = []
             last_per_sid = {}
             for row in messages:
@@ -1508,11 +1811,11 @@ async def get_async_explainer(
                     except Exception:
                         msg = row.act
                 if last_per_sid.get(row.sid) != msg:
-                    all_msgs.append((row.sid, msg))
+                    all_msgs.append((row.sid, msg, _answer_for(row.sid, row.id)))
                     last_per_sid[row.sid] = msg
 
         parts = []
-        for sid, msg in all_msgs:
+        for sid, msg, _ in all_msgs:
             parts.append(f"<li><strong>{sid}</strong> said: {msg}</li>")
 
         if not parts:
@@ -1522,7 +1825,7 @@ async def get_async_explainer(
 
         # Summarize the justifications when the course has an API key so
         summary = ""
-        items = [msg for _, msg in all_msgs]
+        items = [msg for _, msg, _a in all_msgs]
         if items:
             try:
                 from rsptx.db.crud import fetch_course
@@ -1553,6 +1856,8 @@ async def get_async_explainer(
             content={
                 "mess": mess,
                 "items": items,
+                # Which option each justification was arguing for, same order
+                "answers": [ans for _s, _m, ans in all_msgs],
                 "summary": summary,
                 "user": "",
                 "answer": "",
@@ -1567,59 +1872,153 @@ async def get_async_explainer(
         )
 
 
+def _html_to_text(html: str) -> str:
+    """Convert question HTML to plain text for the LLM prompt.
+
+    Whitespace inside <pre> is preserved exactly. These questions draw
+    directory trees and code samples there, where indentation and alignment
+    carry meaning — collapsing it changes what the question says.
+    """
+    if not html:
+        return ""
+    text = html
+
+    # Pull <pre> blocks out so the normalization below can't touch them
+    preserved: list[str] = []
+
+    def _stash(match: re.Match) -> str:
+        inner = re.sub(r"<[^>]+>", "", match.group(1))
+        preserved.append(html_module.unescape(inner))
+        return f"\x00PRE{len(preserved) - 1}\x00"
+
+    text = re.sub(r"<pre[^>]*>(.*?)</pre>", _stash, text, flags=re.I | re.S)
+
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
+    text = re.sub(r"</(p|div|li|tr|h[1-6])>", "\n", text, flags=re.I)
+    text = re.sub(r"<li[^>]*>", "- ", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html_module.unescape(text)
+    # Collapse runs of spaces within a line of prose, keeping any indentation
+    text = "\n".join(
+        re.match(r"[ \t]*", line).group(0) + re.sub(r"[ \t]+", " ", line.strip())
+        for line in text.split("\n")
+    )
+    text = re.sub(r"\n[ \t]*\n[ \t]*\n+", "\n\n", text)
+
+    for i, block in enumerate(preserved):
+        text = text.replace(f"\x00PRE{i}\x00", "\n" + block.strip("\n") + "\n")
+    return text.strip()
+
+
+_LI_RE = re.compile(r"<li\b([^>]*)>(.*?)</li>", re.I | re.S)
+_MCHOICE_LI_RE = re.compile(r"<li\b[^>]*>.*?</li>", re.I | re.S)
+_DATA_CORRECT_RE = re.compile(r"data-correct(?:\s*=\s*[\"']?(\w+))?", re.I)
+_COMPONENT_RE = re.compile(r"data-component\s*=\s*[\"'](\w+)[\"']", re.I)
+
+
+# returns stem, lettered choices, labels of the correct ones, feedback by label
+def parse_mchoice_htmlsrc(
+    htmlsrc: str,
+) -> tuple[str, list[str], list[str], dict[str, str]]:
+    if not htmlsrc:
+        return "", [], [], {}
+
+    choices: list[str] = []
+    correct: list[str] = []
+    feedback: dict[str, str] = {}
+    label = ""
+    index = 0
+
+    for match in _LI_RE.finditer(htmlsrc):
+        attrs, body = match.group(1), match.group(2)
+        component = _COMPONENT_RE.search(attrs)
+        kind = component.group(1).lower() if component else ""
+        text = _html_to_text(body)
+
+        if kind == "answer":
+            label = chr(65 + index)
+            index += 1
+            choices.append(f"{label}. {text}" if text else f"{label}.")
+            marked = _DATA_CORRECT_RE.search(attrs)
+            if marked and (marked.group(1) or "yes").lower() not in ("no", "false"):
+                correct.append(label)
+        elif kind == "feedback" and label and text:
+            feedback[label] = text
+
+    stem = _html_to_text(_MCHOICE_LI_RE.sub("", htmlsrc))
+    return stem, choices, correct, feedback
+
+
 async def _get_mcq_context_async(div_id: str):
+    # Return (question_text, code_text, choices, correct_labels, feedback) for
+    # the LLM peer prompt. correct_labels lets the peer confirm a student who
+    # has reasoned their way to the right answer; feedback, keyed by choice
+    # letter, is the author's explanation of why each option is right or wrong
+    # and is what lets the peer aim at the student's actual misconception.
     try:
         q = await fetch_question(div_id)
         if not q:
             rslogger.error(f"_get_mcq_context_async: no question row for {div_id}")
-            return "", "", []
+            return "", "", [], [], {}
 
-        question = (q.question or "").strip()
-        code = (q.code or "").strip() if hasattr(q, "code") else ""
-        choices = []
-        try:
-            if q.answers:
-                opts = json.loads(q.answers)
-                for i, opt in enumerate(opts):
-                    choices.append(f"{chr(65+i)}. {opt.strip()}")
-        except Exception as e:
-            rslogger.warning(f"Could not parse choices for {div_id}: {e}")
-        return question, code, choices
+        question = ""
+        choices: list[str] = []
+        correct_labels: list[str] = []
+        feedback: dict[str, str] = {}
+
+        qjson = getattr(q, "question_json", None)
+        if qjson:
+            try:
+                if isinstance(qjson, str):
+                    qjson = json.loads(qjson)
+                question = _html_to_text(qjson.get("statement", ""))
+                for i, opt in enumerate(qjson.get("optionList", []) or []):
+                    choice_text = _html_to_text(opt.get("choice", ""))
+                    if choice_text:
+                        label = chr(65 + i)
+                        choices.append(f"{label}. {choice_text}")
+                        if opt.get("correct"):
+                            correct_labels.append(label)
+                        fb = _html_to_text(opt.get("feedback", "") or "")
+                        if fb:
+                            feedback[label] = fb
+            except Exception as e:
+                rslogger.warning(f"Could not parse question_json for {div_id}: {e}")
+
+        if not choices:
+            stem, html_choices, html_correct, html_feedback = parse_mchoice_htmlsrc(
+                (getattr(q, "htmlsrc", "") or "").strip()
+            )
+            if html_choices:
+                choices = html_choices
+                correct_labels = html_correct
+                feedback = html_feedback
+                question = question or stem
+
+        if not question:
+            raw_question = (getattr(q, "question", "") or "").strip()
+            if raw_question.startswith(".."):
+                raw_question = ""
+            question = _html_to_text(raw_question)
+        if not question:
+            question = _html_to_text((getattr(q, "htmlsrc", "") or "").strip())
+
+        code = ""
+        if not question:
+            rslogger.warning(f"_get_mcq_context_async: no question text for {div_id}")
+        return question, code, choices, correct_labels, feedback
     except Exception:
         rslogger.exception(f"_get_mcq_context_async failed for {div_id}")
-        return "", "", []
+        return "", "", [], [], {}
 
 
 async def _call_openai_async(messages: list, course_id: int) -> str:
-    import os
-
-    import aiohttp
-
-    token_row = await fetch_api_token(course_id, "openai")
-    if not token_row or not token_row.token:
+    reply = await _llm_chat_async(
+        course_id, messages, temperature=0.4, max_tokens=300, timeout=30
+    )
+    if reply is None:
         raise Exception("missing api key")
-
-    api_key = token_row.token
-    model = os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.4,
-        "max_tokens": 300,
-    }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)
-        ) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-    rslogger.warning(f"PEER LLM CALL | provider=openai-course-token | model={model}")
-    return data["choices"][0]["message"]["content"].strip()
+    return reply
 
 
 async def _generate_analogy_mapping_async(
@@ -1655,14 +2054,16 @@ async def _generate_analogy_mapping_async(
         f"The student chose '{theme_label}' as their analogy theme.\n\n"
         f"Step 1: Identify the underlying CS concept this question is testing — one sentence, specific about what structurally happens (not just the topic name).\n\n"
         f"Step 2: Break the question's structure down into its meaningful spatial or logical elements — the starting point, the required location to perform the action, the target item, and the action itself. Do NOT include the command syntax itself as an element. Do NOT evaluate the outcome or describe dependencies (do not write elements like 'the outcome depends on...' or 'the action requires...'). Focus only on what factually exists: where the student currently is, where the target item is, and what location is needed to perform the action. Describe elements factually and neutrally. The structure should describe what exists, not what the right reasoning is. Use bullet points, one element per line.\n\n"
-        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}'. Every single item on the right side of the mapping MUST be a real, nameable part of '{theme_label}' and nothing else — do not borrow places, objects, or vocabulary from any other setting. The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or otherwise restricted area that an ordinary person in '{theme_label}' could not walk into. The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location, choosing an item and action that genuinely belong to '{theme_label}'. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
+        f"Step 3: Find a real, concrete, familiar situation in '{theme_label}' that structurally mirrors the question. CRITICAL: use the relation that '{theme_label}' natively encodes. If the theme is a hierarchy of people or categories (family tree, organizational hierarchy, taxonomy), express the mapping in that theme's own relation words — parent, child, ancestor, descendant, reports to, belongs under — and do NOT convert it into desks, filing cabinets, rooms, floors, hallways, or aisles. Only use physical furniture or rooms if '{theme_label}' is literally a building or a place. Silently turning a hierarchy theme into office furniture is the single most common failure here, so check your mapping for it before continuing. Map each element from step 2 to a specific, real, recognizable thing from that situation — not invented names or generic labels. CRITICAL: never use CS or file system terminology on the right side of the mapping — do not name a theme item after a folder name, variable name, or command (e.g. do not write 'project aisle' or 'backup section' — those are just CS names with a theme word appended). Instead use things that actually exist in '{theme_label}'. Every single item on the right side of the mapping MUST be a real, nameable part of '{theme_label}' and nothing else — do not borrow places, objects, or vocabulary from any other setting. The theme items should feel like something a person familiar with '{theme_label}' would immediately picture with no knowledge of CS. CRITICAL: if the question is about being in the right location to perform an action, the target item DOES exist at the required location — the only issue is whether the student is in the right place to reach it. Make this clear in the mapping: the item is there, the student just needs to get there. Do not create any ambiguity about whether the item exists. The required location must be somewhere the person would normally go — do not map it to a staff-only or otherwise restricted area that an ordinary person in '{theme_label}' could not walk into. The scene must start in a natural, already-stable state — do not invent events to explain how things came to be. IMPORTANT: if the question involves navigating toward a root or parent (e.g. `..` in a file path), that means moving toward the outermost container — in a building this is the ground floor or lobby, NOT a higher floor. Deep nested = higher up, closer to root = lower/ground. Make sure the direction in your theme matches this intuition. CRITICAL: the mapped action must be a concrete, physical, presence-required activity — something that only makes sense when you are physically at the required location. Do NOT map 'edit/run/modify a file' to any kind of writing, editing, or rewriting action on a document, card, or paper — documents are portable and can be edited anywhere, which breaks the analogy. Instead map the CS action to the act of REACHING, GRABBING, OR USING a fixed item that lives at that location, choosing an item and action that genuinely belong to '{theme_label}'. The mapped item should be something fixed at the required location that you can only interact with by being there.\n\n"
         f"Step 4: Write the first message the LLM peer will send to the student. This message should:\n"
         f"- Be in casual, lowercase, peer voice — like a student talking to another student\n"
         f"- Use minimal commas\n"
         f"- Introduce the scene to the student from scratch — they have never heard of this scenario. Do not say 'i'm picturing X' or reference the scenario as if they already know it. Start with 'imagine you're in...' or 'so picture this...' to actually place them in the situation\n"
         f"- Set the scene in 1-2 sentences using theme vocabulary only — no file paths, no CS terms, no variable names\n"
+        f"- ENGAGE THE STUDENT'S OWN REASONING FIRST. Their explanation is in the context above. Open by picking up the specific thing they said and turning it into the scene, so the message reads as a response to them rather than a scenario dropped on them. Do not ignore their explanation and launch straight into 'so picture this'. If they gave no real explanation, then and only then open with the scene alone.\n"
         f"- Name the specific locations from your mapping rather than vague ones, so the conversation is grounded from the start\n"
         f"- After placing them in the scene, ask a specific, concrete location question using the exact mapped action — e.g. 'can you board your flight from the lobby or do you need to get to gate 12 first?' not vague questions like 'can you use it from here' or 'where does the item end up'. The action in the question must be the specific mapped action, not a generic 'use it' or 'access it'.\n"
+        f"- NEVER STATE THE ANSWER IN THE SETUP. Do not tell them they need to go anywhere. Never write phrases like 'but you need to go to X first' or 'you have to get to X' — that hands them the conclusion before they reason. Place them in the scene, say where the item is, and ask. The question must be genuinely open.\n"
         f"- Do NOT assume the student is wrong — the question works whether they are right or wrong\n"
         f"- Never imply the student is wrong or ask a rhetorical question with an obvious answer\n"
         f"- Never say 'our scenario' or announce it as an analogy\n"
@@ -1681,38 +2082,15 @@ async def _generate_analogy_mapping_async(
     )
 
     try:
-        import os
-
-        import aiohttp
-
-        token_row = await fetch_api_token(course_id, "openai")
-        if not token_row or not token_row.token:
-            return "", ""
-        api_key = token_row.token
-        model = (
-            os.environ.get("PI_OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+        raw = await _llm_chat_async(
+            course_id,
+            [{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=700,
+            timeout=45,
         )
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.5,
-            "max_tokens": 700,
-        }
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=45),
-            ) as resp:
-                resp.raise_for_status()
-                result = await resp.json()
-        raw = result["choices"][0]["message"]["content"].strip()
+        if raw is None:
+            return "", ""
         rslogger.warning(f"ANALOGY MAPPING RAW RESPONSE:\n{raw}")
         first_message = ""
         mapping = raw
@@ -1802,7 +2180,9 @@ async def get_async_llm_reflection(
     except Exception:
         rslogger.exception("Failed to log LLM user message")
 
-    question, code, choices = await _get_mcq_context_async(div_id)
+    question, code, choices, correct_labels, choice_feedback = (
+        await _get_mcq_context_async(div_id)
+    )
 
     reflection_text = (data.get("reflection") or "").strip()
     if not reflection_text and messages:
@@ -1865,67 +2245,47 @@ async def get_async_llm_reflection(
                 )
 
     common_rules = (
-        "only speak in lower case.\n"
         "you are a student talking to another student during peer instruction.\n"
-        "you are both looking at the same multiple choice question with code and answers.\n"
-        "you remember the question and choices.\n"
-        "most messages should be short (1 to 3 sentences often very short).\n"
-        "use casual informal language and common typos.\n"
-        "never use commas.\n"
-        "never use gendered language.\n"
-        "do not use new lines.\n"
-        "never use em dashes (—) or formal punctuation. write the way you actually talk.\n"
-        "do not sound like a teacher.\n"
-        "do not explain step by step.\n"
-        "never say something is right or wrong.\n"
-        "STRICT RULE: every message must begin with one of these allowed openers: a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm'), or the word 'so' followed immediately by a scenario observation (not 'so exactly' or 'so right'). never begin with 'yeah', 'right', 'exactly', 'correct', 'yes', 'yep', 'true', 'good', 'nice', 'great', 'perfect', 'cool', 'totally', 'sure', 'got it', or any variation. these imply the student is correct. check your first word before every message.\n"
-        "never confirm or explain the code outcome after the student says something — only ask them to keep tracing or elaborate.\n"
-        "each follow-up must move the conversation forward — do not ask the same question twice in different words. if the student answered your last question, accept that and go one level deeper or bridge back to the actual problem.\n"
-        "never use phrases like 'not quite' or 'not exactly' or 'almost' or 'close' or 'not yet' or any phrase that implies the student is incorrect.\n"
-        "never react to whether the student's answer is correct or incorrect — only ask them to explain their reasoning.\n"
-        "never end a message with a rhetorical question whose obvious answer signals the student is wrong — like 'does that room just appear?' or 'is there really a backup area there?' — these tell the student they are wrong.\n"
-        "do not pretend to have picked an answer yourself.\n"
-        "never mention a choice letter as the correct answer.\n"
-        "if the question includes code never clearly describe the final result or fully state what it prints.\n"
-        "if the question does not include code do not make up or reference code that is not there.\n"
-        "only refer to what is actually in the question.\n"
-        "be aware of common misconceptions but do not introduce them yourself.\n"
-        "if there is code refer to it loosely like 'that line' or 'the loop' or 'the print'.\n"
-        "often hedge with uncertainty.\n"
-        "ask the other student to explain why they picked their answer and how they reasoned through it.\n"
-        "ask follow up questions about their reasoning like 'what makes you think that' or 'how did you trace through it'.\n"
-        "do not push them toward a different answer or imply their answer is wrong.\n"
-        "never reveal or hint at which answer is correct or incorrect.\n"
-        "never say things like 'the feedback says' or 'according to the answer' or reference any grading or correctness information.\n"
-        "do not make up information that is not in the question.\n"
-        "if you are unsure about something say so honestly instead of guessing.\n"
-        "if the other student mentions the same answer more than once or sounds confident in their answer you must tell them to go ahead and vote again — this overrides everything else.\n"
-        "do not ask another question or continue reasoning after they have confirmed their answer — just tell them to vote.\n"
-        "do not continue reasoning after telling them to vote again.\n"
-        "focus on getting them to think through the problem not on changing their mind.\n\n"
+        "the question and its answer choices are shown below. only talk about what is actually there. if there is no code in the question never mention code and never ask them to trace code.\n"
+        "only speak in lower case. keep messages short, 1 to 3 sentences. casual informal language with the occasional typo. no commas. no em dashes. no line breaks. no gendered language.\n"
+        "do not sound like a teacher and do not explain the problem step by step.\n"
+        "you are told below which choice is correct. that is for you to steer with, not to hand over. never state the correct choice before the student has worked their way to it, never reveal it because they asked, or because they are stuck, or because the conversation is dragging, and never mention scores or grading. do not pretend to have picked an answer yourself.\n"
+        "THE MOMENT WHAT THE STUDENT SAYS MATCHES THE CORRECT CHOICE, CONFIRM IT AND SEND THEM TO VOTE IN THE SAME MESSAGE, and end the message there. this outranks every other rule here about asking questions. they do not have to name the letter or repeat the choice back to you. it looks like 'yeah thats what i got too, go vote' or 'yeah that sounds right, you can go vote now'. that message must not contain a question. do not make them justify it a second time and do not test it once more to be sure — carrying on interrogating a student who is already right is the single worst thing you can do here. if they keep talking after that, answer them normally.\n"
+        "what counts as a match: they name something in the question — a value, a line, an operation, what it does — and it fits the correct choice, even in half a sentence. what does not count: saying only that they are confident, that it seems right, that they remember it, or that they cannot explain it. that is not reasoning, and confirming it teaches them nothing.\n"
+        "if you have asked twice and they still have not named anything concrete, stop asking about it. tell them to go vote without saying whether they are right, and leave it there.\n"
+        "IF THEY ALREADY PICKED THE CORRECT CHOICE, YOUR JOB IS TO HELP THEM SAY WHY, NOT TO TEST THEM. ask them to say a bit more about their thinking, once. the moment any part of what comes back is sound, confirm it and send them to vote. do not keep probing a correct answer and do not raise doubts about it — students who picked the right choice and could not explain it have been argued into a wrong one, and that is the worst outcome here. a thin justification is not a reason to interrogate.\n"
+        "while they are still working, do not hand out verdicts or agreement markers ('exactly', 'right', 'yeah', 'true', 'good point', 'makes sense', 'perfect'). those belong only to the moment described above.\n"
+        "that cuts both ways: do not tell them they are wrong either, in any form. no 'not quite', 'close but', 'thats not it', 'you're mixing X up', and no correcting their arithmetic or restating their answer back at them as if to show it is off.\n"
+        "if their reasoning is heading somewhere wrong, name the specific thing in the question that their reasoning has to account for and ask what it does to their answer.\n"
+        "SAY SOMETHING OF YOUR OWN IN EVERY MESSAGE, not just a question. point at the exact line, value, or word in the question you are thinking about and say what you notice about it, then ask. a message that is only a question gives them nothing to push against and is the main thing students complain about.\n"
+        "every message must begin with a question word ('what', 'where', 'how', 'do', 'can', 'if', 'wait', 'hmm') or with 'so' followed by an observation — except the confirming message above, which can open with agreement.\n"
+        "never end on a rhetorical question whose obvious answer tells them they are wrong. keep questions open — 'where does that put you' not 'does that even exist'.\n"
+        "ask them why they picked their answer and how they reasoned through it. ask one question at a time and make each one move forward — never re-ask the same thing in different words. if they did not answer your last question, do not ask it again: answer that one small part yourself and move on to the next step. that applies only to the detail you asked about, never to which choice is correct.\n"
+        "if their explanation describes a different option than the one they selected, ask them about that gap without saying which is right, like 'wait you said X but you picked Y whats the connection'.\n"
+        "be aware of common misconceptions but never introduce one yourself. never invent information that is not in the question. if you are unsure say so instead of guessing, and hedge often.\n"
+        "if they have said the same thing twice without adding anything new, stop and tell them to go vote. sounding sure of themselves is not the same as having explained it, so do not send them off just because they sound confident.\n"
+        "focus on getting them to think it through, not on changing their mind.\n\n"
     )
 
     # Analogy-specific rules only apply when the student picked a theme
     analogy_flow_rules = (
-        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves. for example if they claim 'it creates the directory' ask them through the analogy: 'does trying to walk to a floor that doesn't exist create it, or does something else happen?' never validate the assumption, never deny it — just ask them to examine it through the scenario.\n"
-        "if an analogy scenario was established, always bring follow-up questions back through that scenario — do not abandon it for direct code talk. never use CS terms (like 'staging', 'commit', 'directory', 'repository', 'file path') in a message that is otherwise in analogy vocabulary — stay fully in the theme language until you are explicitly bridging back.\n"
-        "when referencing a structural detail of the scenario in a follow-up, briefly restate that detail in the same message — do not assume the student remembers the exact structure from the first message. for example: 'remember in that tree the grandparent has two children — user and shared. you are currently under user...' then ask your question.\n"
-        "never say things like 'let's focus on the code' or 'going back to the code' — always route through the scenario instead.\n"
-        "if the student themselves references the analogy, use that as an opening to deepen it — never redirect away from it.\n"
-        "once the student has traced through the analogy and seems to understand the structure, explicitly bridge back to the question — ask them to apply that same reasoning to the actual problem values or code.\n"
-        "do not let the analogy float indefinitely without connecting it back to the question. the goal is for the student to say 'oh so in the question that means...' — guide them there.\n"
-        "never use the analogy to imply the student's answer is wrong.\n"
-        "have the student trace through the scenario step by step. ask where they end up after each step, or ask them to walk you through what they think each part of the command does in the scenario. keep questions open — 'where does that put you?' not 'does that even exist?'\n"
-        "the student should discover whether their answer is right or wrong by tracing through the analogy themselves.\n"
-        "never connect the analogy conclusion back to a specific answer choice — do not say things like 'answer B says you need to be in X — does that match up with needing to be in the new server?' because this confirms the answer without saying it. if the student has traced through the analogy and reached a conclusion ask them what that tells them about the problem and let THEM connect it back to their choice — never make that connection for them.\n\n"
+        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead use the analogy to make them test that assumption themselves, unless it is the reasoning that gets them to the correct choice, in which case confirm it.\n"
+        "IF THE STUDENT SWITCHES TO THE REAL PROBLEM, FOLLOW THEM. the moment they use actual terms from the question (file paths, commands, directories, git words, variable names) switch to those terms and finish the conversation there. never pull them back into the scenario after they have made that jump — that is the transfer you want.\n"
+        "IF THE STUDENT SAYS THEY ARE CONFUSED OR LOST, state the mapping plainly in one message — say which thing in the scenario is which thing in the question — then ask your next question. do not answer confusion with more scenario.\n"
+        "otherwise keep follow-ups inside the scenario and stay in theme vocabulary rather than mixing in CS terms.\n"
+        "NEVER ASK THE SAME QUESTION TWICE. before you send, compare your question to the ones you already asked — if it is the same idea in different words, do not send it. instead take whatever they last said as settled, and either move to the next step of the scenario or bridge back to the actual question.\n"
+        "if the student has answered your question twice without the conversation moving, stop asking about the scenario and connect it back to the real question.\n"
+        "when you reference a structural detail in a follow-up, restate it briefly in the same message — do not assume they remember the structure from earlier.\n"
+        "have them trace the scenario step by step, then once they seem to have the structure, bridge back and ask them to apply that reasoning to the actual question. do not let the analogy float without connecting it back.\n"
+        "do not make the link from the analogy conclusion to a specific answer choice for them — ask what it tells them about the problem and let them make it. once they have made that link and it is the correct choice, confirm it.\n\n"
     )
 
     generic_flow_rules = (
-        "stay grounded in the actual question and code — do not invent metaphors analogies or hypothetical scenarios. talk directly about the code and what it does.\n"
-        "if the student introduces a new assumption or claim, do not build on it as if it is correct — instead ask them to test that assumption by tracing through the actual code or question themselves. never validate the assumption never deny it — just ask them to examine it.\n"
-        "have the student trace through the code step by step. ask what each line does and where they end up. keep questions open — 'what does that line do?' not 'does that even work?'.\n"
-        "the student should discover whether their answer is right or wrong by tracing through the code themselves.\n"
-        "never connect a conclusion back to a specific answer choice — if the student reaches a conclusion ask them what that tells them about the problem and let THEM connect it back to their choice.\n\n"
+        "stay grounded in the actual question — do not invent metaphors, analogies, or hypothetical scenarios.\n"
+        "IF THE STUDENT SAYS THEY ARE CONFUSED OR ASKS YOU TO BREAK IT DOWN, do not bounce the question straight back at them. give them one concrete place to start — name the specific line or value to look at first and ask what that one part does. never answer confusion with only another open question.\n"
+        "ask them to walk through the question step by step in their own words. only talk about code if code actually appears in the question above.\n"
+        "if the student introduces a new assumption or claim, ask them to test it against the question itself rather than validating it, unless it is the reasoning that gets them to the correct choice, in which case confirm it.\n"
+        "do not connect a conclusion back to a specific answer choice for them — ask what it tells them about the problem and let them make that link. once they have made it and it is the correct choice, confirm it.\n\n"
     )
 
     context_suffix = ""
@@ -1935,6 +2295,41 @@ async def get_async_llm_reflection(
         context_suffix += f"code:\n{code}\n\n"
     if choices:
         context_suffix += "answer choices:\n" + "\n".join(choices) + "\n\n"
+    if correct_labels:
+        context_suffix += (
+            "the correct choice is: "
+            + ", ".join(correct_labels)
+            + " (for steering only — never state this before they reach it themselves)\n\n"
+        )
+
+    # The author's per-option feedback
+    if choice_feedback:
+        wanted = list(correct_labels)
+        # Only letters that name a real option: the answer arrives as "A" or
+        # "A,B", so anything else is not a pick and must not drag in feedback
+        # for a choice the student never made.
+        picked = {
+            part.strip().upper()
+            for part in (selected or "").split(",")
+            if part.strip().upper() in choice_feedback
+        }
+        for letter in sorted(picked):
+            if letter not in wanted:
+                wanted.append(letter)
+        notes = []
+        for letter in wanted:
+            fb = choice_feedback.get(letter)
+            if fb:
+                role = "correct" if letter in correct_labels else "what they picked"
+                notes.append(f"{letter} ({role}): {fb}")
+        if notes:
+            context_suffix += (
+                "why each of those choices is right or wrong, written by the question "
+                "author. use this to work out what the student has actually "
+                "misunderstood and aim your questions at that. never quote or "
+                "paraphrase it back to them:\n" + "\n".join(notes) + "\n\n"
+            )
+
     if selected:
         context_suffix += f"the other student chose: {selected}\n\n"
 

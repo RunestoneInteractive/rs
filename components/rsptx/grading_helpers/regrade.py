@@ -5,8 +5,10 @@ from sqlalchemy import and_, select
 
 from rsptx.db.async_session import async_session
 from rsptx.db.crud import (
-    fetch_assignment_scores,
+    count_reading_activities,
+    fetch_assignment_scores_with_points,
     fetch_deadline_exception,
+    fetch_first_interaction,
     fetch_grade,
     fetch_question_grade,
     fetch_users_for_course,
@@ -21,22 +23,26 @@ from rsptx.db.models import (
     QuestionValidator,
     SelectedQuestion,
 )
-from rsptx.lti1p3.core import attempt_lti1p3_score_update
+from rsptx.grading_helpers.comments import (
+    AUTOGRADE_COMMENT,
+    is_autograder_comment,
+)
+from rsptx.data_types.autograde import effective_autograde
+from rsptx.grading_helpers.lti_push import attempt_lti_score_updates
 from rsptx.logging import rslogger
 from rsptx.grading_helpers.answer_tables import (  # noqa: F401  (re-exported)
     CODE_TABLE_TYPES,
     QTYPE_TO_TABLE,
     UNITTEST_TABLE,
     answer_table_for as _answer_table_for,
+    interaction_events_for,
 )
 from rsptx.grading_helpers.scoring import (
+    capped_question_total,
     score_answer_values,
     score_peer_values,
     PEER_SCORE_SENTINEL,
 )
-
-
-MANUAL_COMMENT = "autograded"
 
 
 class RegradeOptions(BaseModel):
@@ -45,6 +51,7 @@ class RegradeOptions(BaseModel):
     overwrite_manual: bool = False
     enforce_deadline: bool = True
     recompute_totals: bool = True
+    resend_all_scores_via_lti: bool = False
     which_to_grade_override: Optional[str] = None
 
 
@@ -145,6 +152,168 @@ async def _score_row(
     return score
 
 
+async def _regrade_interaction_question(
+    item: RegradeDiffItem,
+    question_type: str,
+    events: set,
+    sid: str,
+    div_id: str,
+    scoring_div_id: str,
+    course: CoursesValidator,
+    aq,
+    assignment: AssignmentValidator,
+    options: RegradeOptions,
+    dry_run: bool,
+) -> RegradeDiffItem:
+    """Re-grade a question that records interaction rather than an answer.
+
+    Videos and polls have no answer table, so the submissions are the
+    ``useinfo`` rows themselves.  ``which_to_grade`` is meaningless here --
+    every interaction is worth the same -- so the only question is whether the
+    student interacted at all before the deadline.
+    """
+    from rsptx.db.crud import fetch_interaction_useinfo, is_interaction_event
+
+    rows = await fetch_interaction_useinfo(
+        scoring_div_id, course.course_name, events, sid=sid
+    )
+    # Drop the acts that are not real student activity.  A video logs "ready" as
+    # soon as its player is built, and rows logged before this was understood
+    # are still in useinfo -- a re-grade must not turn them into credit.
+    rows = [r for r in rows if is_interaction_event(r.event, r.act)]
+
+    if options.enforce_deadline:
+        accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
+        deadline = _effective_deadline(assignment, accommodation)
+        if deadline is not None:
+            rows = [
+                r for r in rows if r.timestamp is not None and r.timestamp <= deadline
+            ]
+
+    if not rows:
+        item.skipped = "no_submission"
+        return item
+
+    new_score = score_answer_values(
+        how_to_score=effective_autograde(question_type, aq.autograde),
+        max_score=aq.points or 0,
+        correct=None,
+        percent=None,
+    )
+    if new_score == PEER_SCORE_SENTINEL or new_score is None:
+        # Peer policies are not offered for these types; treat as unscorable
+        # rather than writing a sentinel string into the grade.
+        new_score = 0
+    item.new_score = float(new_score)
+
+    if not dry_run:
+        await _upsert_autograde(sid, course.course_name, div_id, new_score)
+    return item
+
+
+async def _regrade_code_interaction(
+    item: RegradeDiffItem,
+    sid: str,
+    div_id: str,
+    scoring_div_id: str,
+    course: CoursesValidator,
+    aq,
+    assignment: AssignmentValidator,
+    options: RegradeOptions,
+    dry_run: bool,
+) -> RegradeDiffItem:
+    """Re-grade a code question (activecode, codelens) scored on interaction.
+
+    These have an answer table, but it is only written for some interactions
+    -- a unit test result, a codelens answer -- so a program with no unit tests
+    never reaches it; its runs are only in the log.  Scored on interaction, any
+    touch counts, as it did for the legacy autograder, so the question is just
+    whether the student's first interaction came before the deadline, which
+    ``user_interactions`` answers without scanning ``useinfo``.
+    """
+    first = await fetch_first_interaction(course.course_name, sid, scoring_div_id)
+    if first is not None and options.enforce_deadline:
+        accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
+        deadline = _effective_deadline(assignment, accommodation)
+        if deadline is not None and first > deadline:
+            first = None
+    if first is None:
+        item.skipped = "no_submission"
+        return item
+
+    new_score = score_answer_values(
+        how_to_score=aq.autograde,
+        max_score=aq.points or 0,
+        correct=None,
+        percent=None,
+    )
+    item.new_score = float(new_score)
+
+    if not dry_run:
+        await _upsert_autograde(sid, course.course_name, div_id, new_score)
+    return item
+
+
+async def _regrade_reading_question(
+    item: RegradeDiffItem,
+    sid: str,
+    question: QuestionValidator,
+    aq,
+    course: CoursesValidator,
+    assignment: AssignmentValidator,
+    options: RegradeOptions,
+    dry_run: bool,
+) -> RegradeDiffItem:
+    """Re-grade a reading: a whole page, scored on how much of it was done.
+
+    A reading has no answer of its own.  What it has is
+    ``activities_required``: do that many of the activities on the page and the
+    reading is worth its full points, otherwise nothing.  That is the rule the
+    reader sees in the progress bar while they read, and the rule the legacy
+    autograder applied (``rs_grading.py``); the page itself counts as one of
+    the activities, done as soon as they open it.
+
+    Scoring this server side is what lets an instructor grade a reading at all
+    after the fact.  Reading credit is otherwise only ever awarded by the
+    browser as the student reads, so a student who did the reading late -- the
+    browser refuses to score them once the deadline has passed -- could never
+    be given the points without the instructor typing them in by hand.  A
+    re-grade with the deadline off now picks them up.  See issue #1493.
+    """
+    deadline = None
+    if options.enforce_deadline:
+        accommodation = await fetch_deadline_exception(course.id, sid, assignment.id)
+        deadline = _effective_deadline(assignment, accommodation)
+
+    completed = await count_reading_activities(
+        chapter=question.chapter,
+        subchapter=question.subchapter,
+        base_course=course.base_course,
+        course_name=course.course_name,
+        sid=sid,
+        deadline=deadline,
+    )
+
+    if completed == 0:
+        # The student never opened the page (or not before the deadline).
+        # Leave whatever grade they have alone rather than writing a zero, the
+        # same as a question with no submissions.
+        item.skipped = "no_submission"
+        return item
+
+    required = aq.activities_required or 0
+    new_score = float(aq.points or 0) if completed >= required else 0.0
+    rslogger.debug(
+        f"Reading {question.name} for {sid}: {completed} of {required} "
+        f"activities -> {new_score}"
+    )
+    item.new_score = new_score
+
+    if not dry_run:
+        await _upsert_autograde(sid, course.course_name, question.name, new_score)
+    return item
+
+
 async def regrade_one(
     course: CoursesValidator,
     sid: str,
@@ -170,7 +339,7 @@ async def regrade_one(
         if (
             existing is not None
             and existing.score is not None
-            and existing.comment != MANUAL_COMMENT
+            and not is_autograder_comment(existing.comment)
             and not options.overwrite_manual
         ):
             item.skipped = "manual"
@@ -188,6 +357,50 @@ async def regrade_one(
                 real_q = await fetch_question(resolved)
                 if real_q:
                     scoring_type = real_q.question_type
+
+        # A reading is a page, not a question: there is no answer to score, so
+        # it has to be handled before the no_table bail-out below -- otherwise
+        # every reading on the assignment is silently skipped and the re-grade
+        # preview shows the whole class going back to "no score".
+        if scoring_type == "page":
+            return await _regrade_reading_question(
+                item, sid, question, aq, course, assignment, options, dry_run
+            )
+
+        # Videos and polls keep their submissions in useinfo, not an answer
+        # table, so they have to be handled before the no_table bail-out below --
+        # otherwise every one of them is silently skipped.
+        events = interaction_events_for(scoring_type)
+        if events:
+            return await _regrade_interaction_question(
+                item,
+                scoring_type,
+                events,
+                sid,
+                div_id,
+                scoring_div_id,
+                course,
+                aq,
+                assignment,
+                options,
+                dry_run,
+            )
+
+        if scoring_type in CODE_TABLE_TYPES and aq.autograde in (
+            "interact",
+            "interaction",
+        ):
+            return await _regrade_code_interaction(
+                item,
+                sid,
+                div_id,
+                scoring_div_id,
+                course,
+                aq,
+                assignment,
+                options,
+                dry_run,
+            )
 
         tbl, table_name = _answer_table_for(scoring_type)
         if tbl is None:
@@ -269,12 +482,12 @@ async def _upsert_autograde(
                     course_name=course_name,
                     div_id=div_id,
                     score=score,
-                    comment=MANUAL_COMMENT,
+                    comment=AUTOGRADE_COMMENT,
                 )
             )
         else:
             row.score = score
-            row.comment = MANUAL_COMMENT
+            row.comment = AUTOGRADE_COMMENT
 
 
 def apply_threshold_score(
@@ -323,11 +536,15 @@ async def _recompute_total_for_user(
     whichever course the student currently has *active*, which is not
     necessarily the one being graded: the roster comes from ``user_courses``, so
     it includes students who have since moved on to another course. Scoring off
-    the active course made ``fetch_assignment_scores`` match no ``question_grades``
+    the active course made ``fetch_assignment_scores_with_points`` match no ``question_grades``
     rows at all and silently rolled the total up to 0.
 
     With ``dry_run`` the would-be total is computed and reported but nothing is
-    written and no LTI score is pushed.
+    written.
+
+    This does not push to the LMS: the caller batches the returned changes and
+    pushes them together (see ``_push_total_changes``), so the LTI version and
+    credentials are resolved once instead of once per student.
 
     With ``only_existing`` a student who has no ``grades`` row yet is left alone
     instead of having one created at 0. Normal grading wants the row created;
@@ -345,10 +562,10 @@ async def _recompute_total_for_user(
     if grade is None and only_existing:
         return TotalChange(sid=user.username, skipped_no_grade_row=True)
 
-    res = await fetch_assignment_scores(assignment.id, course_name, user.username)
-    total = 0
-    for row in res:
-        total += row.score or 0
+    res = await fetch_assignment_scores_with_points(
+        assignment.id, course_name, user.username
+    )
+    total = capped_question_total(res)
 
     total = apply_threshold_score(total, assignment.points, assignment.threshold_pct)
     change = TotalChange(
@@ -370,8 +587,59 @@ async def _recompute_total_for_user(
             manual_total=False,
         )
     await upsert_grade(new_grade)
-    await attempt_lti1p3_score_update(user.id, assignment.id, total)
     return change
+
+
+async def _push_total_changes(
+    course: CoursesValidator,
+    assignment: AssignmentValidator,
+    changes: List[TotalChange],
+    user_map: Dict[str, AuthUserValidator],
+    push_unchanged: bool = False,
+    instructor_triggered: bool = False,
+    force: bool = False,
+) -> None:
+    """Send the totals that moved to the course's LMS, in one batch.
+
+    Only students whose total actually changed are pushed. Recomputing a whole
+    roster typically moves a handful of grades, and the LMS call is one HTTP
+    round trip per student with no batch form in either LTI version -- so
+    pushing unconditionally, as this used to, meant hundreds of calls to say
+    nothing.
+
+    The trade-off is that a push which fails is never retried on its own: a
+    later recompute sees the total as unchanged and skips it. ``push_unchanged``
+    is the repair hatch for that -- it resends every student's current total,
+    including manually pinned ones, so an instructor can force the LMS back into
+    agreement with the Runestone gradebook.
+
+    Students with no ``grades`` row are always skipped; there is no score to
+    send.
+    """
+    # Never publish hidden grades, even when an instructor forces passback.
+    if not assignment.released:
+        return
+
+    updates = []
+    for c in changes:
+        if c.skipped_no_grade_row:
+            continue
+        if c.skipped_manual and not push_unchanged:
+            continue
+        if not (c.changed or push_unchanged):
+            continue
+        user = user_map.get(c.sid)
+        if user is not None:
+            updates.append((user.id, c.new_score))
+
+    if updates:
+        await attempt_lti_score_updates(
+            assignment,
+            course.id,
+            updates,
+            force=force,
+            instructor_triggered=instructor_triggered,
+        )
 
 
 async def recompute_totals_detail(
@@ -380,6 +648,8 @@ async def recompute_totals_detail(
     sids: Optional[List[str]] = None,
     dry_run: bool = False,
     only_existing: bool = False,
+    instructor_triggered: bool = False,
+    push_unchanged: bool = False,
 ) -> List[TotalChange]:
     """Recompute assignment totals for the given students and report what moved.
 
@@ -388,6 +658,10 @@ async def recompute_totals_detail(
     run would do. With ``only_existing`` students who have no ``grades`` row are
     reported as skipped rather than having one created. Students whose roll-up
     raises are logged and omitted.
+
+    Totals that moved are pushed to the course's LMS in a single batch once the
+    recompute finishes; ``push_unchanged`` resends every student's total instead
+    (see ``_push_total_changes``).
     """
     users = await fetch_users_for_course(course.course_name)
     user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
@@ -411,6 +685,17 @@ async def recompute_totals_detail(
             )
         except Exception as e:  # pragma: no cover - defensive
             rslogger.error(f"recompute totals failed sid={user.username}: {e}")
+
+    if not dry_run:
+        await _push_total_changes(
+            course,
+            assignment,
+            changes,
+            user_map,
+            push_unchanged=push_unchanged,
+            instructor_triggered=instructor_triggered,
+            force=instructor_triggered,
+        )
     return changes
 
 
@@ -418,15 +703,26 @@ async def recompute_totals_for(
     course: CoursesValidator,
     assignment: AssignmentValidator,
     sids: Optional[List[str]] = None,
+    instructor_triggered: bool = False,
+    push_unchanged: bool = False,
 ) -> int:
-    """Recompute assignment totals (and push LTI 1.3 scores) for the given
-    students. When ``sids`` is empty/None every student in the course is
-    recomputed. Returns the number of students processed.
+    """Recompute assignment totals (and push the ones that moved to the course's
+    LMS) for the given students. When ``sids`` is empty/None every student in
+    the course is recomputed. Returns the number of students processed.
 
-    This is used by the manual multi-grade flow, where individual grades are
-    written through ``POST /grade`` (which does not itself recompute totals).
+    This is used by the manual grading flow: ``POST /grade`` calls it after
+    writing each question grade, and the grader's bulk ``POST /recompute_totals``
+    calls it for a whole set of students at once.
     """
-    return len(await recompute_totals_detail(course, assignment, sids))
+    return len(
+        await recompute_totals_detail(
+            course,
+            assignment,
+            sids,
+            instructor_triggered=instructor_triggered,
+            push_unchanged=push_unchanged,
+        )
+    )
 
 
 async def regrade_batch(
@@ -436,12 +732,14 @@ async def regrade_batch(
     assignment: AssignmentValidator,
     options: RegradeOptions,
     dry_run: bool = False,
+    instructor_triggered: bool = False,
 ) -> RegradeReport:
     """Run a re-grade over the student x question matrix.
 
     ``questions`` is a list of ``(QuestionValidator, AssignmentQuestion)`` tuples.
     When ``dry_run`` is true nothing is written to the database; the returned
     report contains the before/after diff so the UI can preview the operation.
+    Resending via LTI recomputes totals, then pushes unchanged totals too.
     """
     report = RegradeReport()
     # Recompute the total for every student we regraded, not just the ones whose
@@ -473,17 +771,33 @@ async def regrade_batch(
             elif item.new_score != item.old_score:
                 report.changed += 1
 
-    if not dry_run and options.recompute_totals and processed_sids:
+    if (
+        not dry_run
+        and (options.recompute_totals or options.resend_all_scores_via_lti)
+        and processed_sids
+    ):
         users = await fetch_users_for_course(course.course_name)
         user_map: Dict[str, AuthUserValidator] = {u.username: u for u in users}
+        changes: List[TotalChange] = []
         for sid in processed_sids:
             user = user_map.get(sid)
             if user is not None:
                 try:
-                    await _recompute_total_for_user(
-                        user, assignment, course.course_name
+                    changes.append(
+                        await _recompute_total_for_user(
+                            user, assignment, course.course_name
+                        )
                     )
                 except Exception as e:  # pragma: no cover - defensive
                     rslogger.error(f"recompute totals failed sid={sid}: {e}")
+        await _push_total_changes(
+            course,
+            assignment,
+            changes,
+            user_map,
+            push_unchanged=options.resend_all_scores_via_lti,
+            force=instructor_triggered or options.resend_all_scores_via_lti,
+            instructor_triggered=instructor_triggered,
+        )
 
     return report

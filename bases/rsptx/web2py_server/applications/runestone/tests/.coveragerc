@@ -1,8 +1,0 @@
-[run]
-omit =
-    applications/runestone/controllers/appadmin.py
-    applications/runestone/controllers/everyday.py
-    applications/runestone/controllers/feed.py
-
-[html]
-directory = applications/runestone/tests/htmlcov

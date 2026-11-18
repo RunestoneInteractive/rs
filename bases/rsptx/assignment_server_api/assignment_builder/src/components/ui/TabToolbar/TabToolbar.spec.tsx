@@ -17,7 +17,11 @@ describe("TabToolbar", () => {
 
   it("renders the leading element before the title", () => {
     renderWithMantine(
-      <TabToolbar title="Choose from book" count={0} leading={<button type="button">Back</button>} />
+      <TabToolbar
+        title="Choose from book"
+        count={0}
+        leading={<button type="button">Back</button>}
+      />
     );
 
     const back = screen.getByRole("button", { name: "Back" });

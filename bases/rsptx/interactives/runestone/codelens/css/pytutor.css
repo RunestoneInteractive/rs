@@ -209,7 +209,7 @@ div.ExecutionVisualizer textarea#vizDescriptionEditor {
 
 
 div.ExecutionVisualizer #errorOutput {
-  color: #e93f34; /* should match brightRed JavaScript variable */
+  color: #E32519; /* should match brightRed JavaScript variable */
   font-size: 12pt;
   padding: 2px;
   line-height: 1.5em;
@@ -272,7 +272,7 @@ div.ExecutionVisualizer .retval {
 }
 
 div.ExecutionVisualizer .stackFrame .retval {
-  color: #e93f34; /* highlight non-zombie stack frame return values -
+  color: #E32519; /* highlight non-zombie stack frame return values -
                      should match brightRed JavaScript variable */
 }
 
@@ -296,7 +296,7 @@ div.ExecutionVisualizer table.tupleTbl td.tupleHeader {
   padding-top: 2px;
   padding-bottom: 3px;
   font-size: 8pt;
-  color: #777;
+  color: #727272;
   text-align: left;
   border-left: 1px solid #555555;
 }
@@ -759,7 +759,7 @@ div.ExecutionVisualizer div#rawUserInputDiv {
   width: 95%;
   margin: 5px auto;
   text-align: center;
-  border: 1px #e93f34 solid;
+  border: 1px #E32519 solid;
 }
 
 /* for pyCrazyMode */
@@ -778,7 +778,7 @@ div.ExecutionVisualizer .pycrazy-highlight-cur {
   /* aligned slightly higher than border-bottom */
   /*
   text-decoration: none;
-  border-bottom: 1px solid #e93f34;
+  border-bottom: 1px solid #E32519;
   */
 }
 

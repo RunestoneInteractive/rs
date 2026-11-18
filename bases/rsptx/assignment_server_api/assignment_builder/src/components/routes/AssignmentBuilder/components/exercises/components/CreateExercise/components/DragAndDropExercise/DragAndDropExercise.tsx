@@ -26,13 +26,13 @@ import { DEFAULT_INCORRECT_FEEDBACK, buildQuestionJson } from "@/utils/questionJ
 
 import { DRAG_AND_DROP_STEP_VALIDATORS } from "../../config/stepConfigs";
 import { useBaseExercise } from "../../hooks/useBaseExercise";
+import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
+import { ExerciseLayout } from "../../shared/ExerciseLayout";
 import {
   ConnectionList,
   connectionExistsBetween,
   makeConnectionLabelResolver
 } from "../../shared/connections";
-import { useExerciseStepNavigation } from "../../hooks/useExerciseStepNavigation";
-import { ExerciseLayout } from "../../shared/ExerciseLayout";
 import { ExerciseComponentProps } from "../../types/ExerciseTypes";
 import { validateCommonFields } from "../../utils/validation";
 
@@ -289,14 +289,12 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
   const handleRemoveRightBlock = useCallback(
     (id: string) => {
       const hasConnections = (formData.correctAnswers || []).some(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        ([_, targetId]) => targetId === id
+        ([, targetId]) => targetId === id
       );
 
       if (hasConnections) {
         const updatedConnections = (formData.correctAnswers || []).filter(
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          ([_, targetId]) => targetId !== id
+          ([, targetId]) => targetId !== id
         );
 
         updateFormData("correctAnswers", updatedConnections);
@@ -443,8 +441,7 @@ export const DragAndDropExercise: FC<ExerciseComponentProps> = ({
     ).size;
 
     const connectedRightItems = new Set(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (formData.correctAnswers || []).map(([_, targetId]) => targetId)
+      (formData.correctAnswers || []).map(([, targetId]) => targetId)
     ).size;
 
     const leftConnectionPercentage =

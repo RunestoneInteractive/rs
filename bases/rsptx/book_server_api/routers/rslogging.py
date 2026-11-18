@@ -11,9 +11,9 @@
 # Standard library
 # ----------------
 import json
+import os
 import re
 from typing import Optional
-
 
 # Third-party imports
 # -------------------
@@ -52,7 +52,8 @@ from rsptx.db.crud import (
     fetch_user_chapter_progress,
     fetch_user_sub_chapter_progress,
     fetch_user,
-    is_server_feedback,
+    INTERACTION_ONLY_EVENTS,
+    is_interaction_event,
     update_sub_chapter_progress,
     update_user_state,
 )
@@ -146,8 +147,18 @@ async def log_book_event(
     rslogger.debug(useinfo_entry)
     idx = await create_useinfo_entry(useinfo_entry)
     response_dict = dict(timestamp=entry.timestamp)
-    if entry.event in EVENT2TABLE or entry.event == "selectquestion":
-        create_answer_table = True and entry.event != "selectquestion"
+    if (
+        entry.event in EVENT2TABLE
+        or entry.event in INTERACTION_ONLY_EVENTS
+        or entry.event == "selectquestion"
+    ):
+        # ``selectquestion`` and the interaction-only events (video, poll) have no
+        # answer table -- the useinfo row written above is the whole record -- but
+        # they still need to reach the scorer below.
+        create_answer_table = (
+            entry.event != "selectquestion"
+            and entry.event not in INTERACTION_ONLY_EVENTS
+        )
         if entry.event == "unittest":
             # info we need looks like: "act":"percent:100.0:passed:2:failed:0"
             if not re.match(r"^percent:\d+(\.\d+)?:passed:\d+:failed:\d+$", entry.act):
@@ -179,20 +190,31 @@ async def log_book_event(
         if create_answer_table:
             rcd = runestone_component_dict[EVENT2TABLE[entry.event]]
             valid_table = rcd.validator.from_orm(entry)  # type: ignore
-            # Do server-side grading if needed.
-            if feedback := await is_server_feedback(entry.div_id, user.course_name):
-                # The grader should also be defined if there's feedback.
-                assert rcd.grader
-                response_dict.update(await rcd.grader(valid_table, feedback))
-
             ans_idx = await create_answer_table_entry(valid_table, entry.event)
             rslogger.debug(ans_idx)
-        if entry.event != "timedExam" and entry.event != "selectquestion":
+        if entry.event in INTERACTION_ONLY_EVENTS:
+            # Only score acts that represent real student activity; a video logs
+            # a "ready" event as soon as the player is built, and that must not
+            # earn credit for loading the page.
+            if is_interaction_event(entry.event, entry.act):
+                scoreSpec = await grade_submission(user, entry)
+                response_dict.update(scoreSpec.model_dump())
+        elif entry.event != "timedExam" and entry.event != "selectquestion":
             scoreSpec = await grade_submission(user, entry)
             response_dict.update(scoreSpec.model_dump())
 
     if idx:
-        return make_json_response(status=status.HTTP_201_CREATED, detail=response_dict)
+        # ``detail`` doubles as the score spec for the book JS. Events that are never
+        # graded -- ``view_toggle``, ``selectquestion``, ``parsonsMove`` and friends --
+        # used to come back as a bare ``{"timestamp": ...}``, which is truthy, so the
+        # client tried to render a score update for an ungraded event and threw. Send
+        # nothing at all when there is no score (or grader feedback) to report, so the
+        # client can tell the two apart. See issue #1393.
+        scored = len(response_dict) > 1
+        return make_json_response(
+            status=status.HTTP_201_CREATED,
+            detail=response_dict if scored else None,
+        )
     else:
         return make_json_response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -276,6 +298,8 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
     useinfo_dict = data.model_dump()
     edit_distance = useinfo_dict.pop("editDist", None)
     cps = useinfo_dict.pop("changesPerSecond", None)
+    assignment_id = useinfo_dict.pop("assignment_id", None)
+    selector_id = useinfo_dict.pop("selector_id", None)
     useinfo_dict["course_id"] = useinfo_dict.pop("course")
     utcnow = canonical_utcnow()
     useinfo_dict["timestamp"] = utcnow
@@ -289,6 +313,23 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
             useinfo_dict["event"] = "activecode"
 
     await create_useinfo_entry(UseinfoValidation(**useinfo_dict))
+
+    # A run is the only record of work on a program with no unit tests, so a
+    # question scored on interaction has to be graded here; nothing reaches
+    # ``log_book_event`` for it. ``grade_submission`` ignores runs for every
+    # other scoring policy and waits for the ``unittest`` event instead.
+    score_spec = await grade_submission(
+        request.state.user,
+        LogItemIncoming(
+            event=useinfo_dict["event"],
+            act=useinfo_dict["act"],
+            div_id=data.div_id,
+            course_name=data.course,
+            sid=data.sid,
+            assignment_id=assignment_id,
+            selector_id=selector_id,
+        ),
+    )
 
     # Now add an entry to the code table - in the code table we use the name
     # acid (activecode id) instead of div_id -- just to be difficult
@@ -319,7 +360,16 @@ async def runlog(request: Request, response: Response, data: LogRunIncoming):
                     ],
                 )
 
-    return make_json_response(status=status.HTTP_201_CREATED)
+    # As with ``log_book_event``, ``detail`` carries a score spec only when the run
+    # was graded, so the client can update the score shown on an assignment page.
+    run_scored = score_spec.assigned and score_spec.how_to_score in (
+        "interact",
+        "interaction",
+    )
+    return make_json_response(
+        status=status.HTTP_201_CREATED,
+        detail=score_spec.model_dump() if run_scored else None,
+    )
 
 
 async def same_class(user1: AuthUserValidator, user2: str) -> bool:
@@ -586,8 +636,13 @@ async def create_upload_file(request: Request, file: UploadFile, div_id: str):
 
     contents = await file.read()  # these contents are bytes not a string
 
+    # The filename is shown back to instructors in the grader, so keep only
+    # characters that are safe both in an S3 key and in HTML.
+    filename = os.path.basename(file.filename or "")
+    filename = re.sub(r"[^A-Za-z0-9._-]", "_", filename).lstrip(".") or "upload"
+
     # create the file Key
-    fkey = f"{request.state.user.course_name}/{div_id}/{request.state.user.username}/{file.filename}"
+    fkey = f"{request.state.user.course_name}/{div_id}/{request.state.user.username}/{filename}"
     rslogger.debug(f"file key = {fkey} bucket = {settings.bucket}")
     client.put_object(
         Bucket=settings.bucket,
@@ -597,7 +652,7 @@ async def create_upload_file(request: Request, file: UploadFile, div_id: str):
         Metadata={"x-amz-meta-my-key": "your-value"},
     )
 
-    return {"filename": file.filename}
+    return {"filename": filename}
 
 
 @router.post("/update_reading_score")
@@ -665,13 +720,16 @@ async def get_source_code(
     if db_result:
         # Found data, unpack desired fields
         file_contents = db_result.main_code
+        is_binary = db_result.is_binary
         if db_result.filename:
             filename = db_result.filename
     else:
         file_contents = None
+        is_binary = None
 
     response_bundle = {
         "filename": filename,
         "file_contents": file_contents,
+        "is_binary": is_binary,
     }
     return make_json_response(detail=response_bundle)

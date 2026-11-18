@@ -1,10 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { renderHook, act } from "@testing-library/react";
-import { Provider } from "react-redux";
-import React from "react";
-
 import { datasetSlice, datasetActions } from "@store/dataset/dataset.logic";
+import { renderHook, act } from "@testing-library/react";
+import React from "react";
+import { Provider } from "react-redux";
+
 import { getExerciseColorScheme } from "@/config/exerciseTypes";
+
 import { useExerciseTypes } from "./useExerciseTypes";
 
 function makeWrapper(store: ReturnType<typeof makeStore>) {
@@ -45,6 +46,7 @@ describe("useExerciseTypes", () => {
     const { result } = renderHook(() => useExerciseTypes(), { wrapper: makeWrapper(store) });
 
     const values = result.current.map((e) => e.value);
+
     expect(values).not.toContain("webwork");
     expect(values).toContain("mchoice");
     expect(values).toContain("fitb");

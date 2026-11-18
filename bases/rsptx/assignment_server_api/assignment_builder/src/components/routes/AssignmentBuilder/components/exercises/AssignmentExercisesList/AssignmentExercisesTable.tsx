@@ -15,22 +15,21 @@ import {
 } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { RefCallback, useMemo, useState } from "react";
 
-import { useExercisesSelector } from "@/hooks/useExercisesSelector";
-
 import { difficultyOptions } from "@/config/exerciseTypes";
+import { useExercisesSelector } from "@/hooks/useExercisesSelector";
 import { useJwtUser } from "@/hooks/useJwtUser";
 import { useSelectedAssignment } from "@/hooks/useSelectedAssignment";
 import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
-import { Exercise, supportedExerciseTypesToEdit } from "@/types/exercises";
+import { Exercise } from "@/types/exercises";
+import { isExerciseEditable } from "@/utils/exercise";
 
 import { CopyExerciseModal } from "../components/CopyExercise/CopyExerciseModal";
 import { EditDropdownValueHeader } from "../components/EditAllExercises/EditDropdownValueHeader";
 import { EditInputValueHeader } from "../components/EditAllExercises/EditInputValueHeader";
 import { ExercisePreviewModal } from "../components/ExercisePreview/ExercisePreviewModal";
 
-import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
-
 import styles from "./AssignmentExercisesTable.module.css";
+import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
 
 const ASYNC_MODE_OPTIONS = (hasApiKey: boolean) => [
   { value: "Standard", label: "Standard" },
@@ -114,7 +113,7 @@ const AsyncModeHeader = ({ hasApiKey }: { hasApiKey: boolean }) => {
               allowDeselect={false}
               comboboxProps={{ withinPortal: false }}
             />
-            <Text size="xs" c="dimmed">
+            <Text size="xs" c="var(--rs-text)">
               {rowCount === 1 ? "Applies to 1 exercise" : `Applies to ${rowCount} exercises`}
             </Text>
             <Group justify="space-between">
@@ -188,10 +187,7 @@ export const AssignmentExercisesTable = ({
   const [copyModalVisible, setCopyModalVisible] = useState(false);
   const [selectedExerciseForCopy, setSelectedExerciseForCopy] = useState<Exercise | null>(null);
 
-  const getIsEditable = (exercise: Exercise) =>
-    exercise.owner === username &&
-    supportedExerciseTypesToEdit.includes(exercise.question_type) &&
-    !!exercise.question_json;
+  const getIsEditable = (exercise: Exercise) => isExerciseEditable(exercise, username);
 
   const handleCopyClick = (exercise: Exercise) => {
     setSelectedExerciseForCopy(exercise);
@@ -277,7 +273,7 @@ export const AssignmentExercisesTable = ({
                 aria-label="Edit exercise"
                 onClick={() => {
                   setCurrentEditExercise(row);
-                  setViewMode("edit");
+                  setViewMode("edit", { exerciseId: String(row.question_id) });
                 }}
               >
                 <Icon name="pencil" />
@@ -315,7 +311,7 @@ export const AssignmentExercisesTable = ({
             <div className={styles.name} title={row.name || row.title}>
               {row.name || row.title}
             </div>
-            <div className={styles.sub} title={row.qnumber || undefined}>
+            <div className={styles.sub} title={row.qnumber}>
               {row.qnumber}
             </div>
           </div>
@@ -420,6 +416,8 @@ export const AssignmentExercisesTable = ({
     }
 
     return baseColumns;
+    // TODO(eslint): Audit the complete dependency list without changing current behavior.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleMouseDown, handleChange, startItemId, showAsyncColumn, hasApiKey, username]);
 
   return (

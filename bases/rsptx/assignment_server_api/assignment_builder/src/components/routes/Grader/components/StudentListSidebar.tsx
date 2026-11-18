@@ -1,8 +1,10 @@
-import { Button, Progress, TextInput } from "@mantine/core";
+import { Button, Checkbox, Popover, Progress, TextInput, VisuallyHidden } from "@mantine/core";
+import { GraderStudentAnswer, LateStudent } from "@store/grader/grader.logic.api";
 import React, { useMemo, useRef } from "react";
 
 import { Icon } from "@/components/ui/Icon";
-import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
+import { formatInTimezone } from "@/utils/courseTimezone";
+import { parseUTCDate } from "@/utils/date";
 
 import {
   getQuestionProgress,
@@ -10,8 +12,10 @@ import {
   statusColor,
   statusIcon,
   statusLabel,
+  studentDisplayName,
   StudentGradingStatus
 } from "../state/graderSelectors";
+
 import styles from "./StudentListSidebar.module.css";
 
 interface Props {
@@ -19,40 +23,99 @@ interface Props {
   question?: { autograde?: string };
   activeSid?: string;
   dirtySids?: ReadonlySet<string>;
+  lateStudentsBySid?: ReadonlyMap<string, LateStudent>;
+  assignmentDueDate?: string | null;
+  courseTimezone?: string;
+  deadlineEnforced?: boolean;
   onSelect: (sid: string) => void;
-  hideGraded: boolean;
-  onToggleHideGraded: (v: boolean) => void;
+  hideFullCredit: boolean;
+  onToggleHideFullCredit: (v: boolean) => void;
+  hideUnanswered: boolean;
+  onToggleHideUnanswered: (v: boolean) => void;
 }
-
-const studentName = (s: GraderStudentAnswer) =>
-  `${s.first_name || ""} ${s.last_name || ""}`.trim() || s.sid;
 
 export const StudentListSidebar: React.FC<Props> = ({
   answers,
   question,
   activeSid,
   dirtySids,
+  lateStudentsBySid,
+  assignmentDueDate,
+  courseTimezone = "UTC",
+  deadlineEnforced,
   onSelect,
-  hideGraded,
-  onToggleHideGraded
+  hideFullCredit,
+  onToggleHideFullCredit,
+  hideUnanswered,
+  onToggleHideUnanswered
 }) => {
+  const listInstructionsId = "grader-student-list-instructions";
   const [filter, setFilter] = React.useState("");
+  const [filtersOpened, setFiltersOpened] = React.useState(false);
+  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const progress = useMemo(
     () => getQuestionProgress(answers, question, { dirtySids }),
     [answers, question, dirtySids]
   );
+  const activeFilterCount = Number(hideFullCredit) + Number(hideUnanswered);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
+
     return answers.filter((a) => {
-      const status = getStudentStatus(a, question, { dirtySids });
-      if (hideGraded && (status === "graded" || status === "autograded")) return false;
+      if (hideFullCredit && a.score != null && a.score >= a.max_points) return false;
+      if (hideUnanswered && a.attempts === 0) return false;
       if (!q) return true;
-      return studentName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
+      return studentDisplayName(a).toLowerCase().includes(q) || a.sid.toLowerCase().includes(q);
     });
-  }, [answers, filter, hideGraded, question, dirtySids]);
+  }, [answers, filter, hideFullCredit, hideUnanswered]);
 
   const listRef = useRef<HTMLUListElement | null>(null);
+  const focusableSid = filtered.some((answer) => answer.sid === activeSid)
+    ? activeSid
+    : filtered[0]?.sid;
+
+  const handleOptionKeyDown = (event: React.KeyboardEvent<HTMLLIElement>, sid: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(sid);
+      return;
+    }
+
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+
+    const options = Array.from(
+      listRef.current?.querySelectorAll<HTMLElement>("[role='option']") ?? []
+    );
+    const currentIndex = options.indexOf(event.currentTarget);
+
+    if (currentIndex < 0 || options.length === 0) return;
+
+    event.preventDefault();
+
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? options.length - 1
+          : event.key === "ArrowDown"
+            ? Math.min(currentIndex + 1, options.length - 1)
+            : Math.max(currentIndex - 1, 0);
+    const nextOption = options[nextIndex];
+    const nextSid = nextOption.dataset.sid;
+
+    nextOption.focus();
+    if (nextSid && nextSid !== sid) onSelect(nextSid);
+  };
+
+  const handleFilterKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Escape" || !filtersOpened) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setFiltersOpened(false);
+    filterButtonRef.current?.focus();
+  };
 
   return (
     <aside className={styles.sidebar} data-tour="grader-student-sidebar" aria-label="Students">
@@ -63,6 +126,15 @@ export const StudentListSidebar: React.FC<Props> = ({
             {progress.graded + progress.autograded} / {progress.total}
           </span>
         </div>
+        {assignmentDueDate && (
+          <div className={styles.deadline} title="Assignment deadline in the course timezone">
+            <Icon name="calendar" size={13} />
+            <span>
+              Deadline: <strong>{formatUtcInTimezone(assignmentDueDate, courseTimezone)}</strong>
+              {deadlineEnforced === false && " (not enforced)"}
+            </span>
+          </div>
+        )}
         <Progress
           value={progress.donePct}
           size={4}
@@ -82,47 +154,104 @@ export const StudentListSidebar: React.FC<Props> = ({
           <TextInput
             value={filter}
             onChange={(e) => setFilter(e.currentTarget.value)}
-            placeholder="Filter…"
+            placeholder="Search students…"
+            aria-label="Search students"
             leftSection={<Icon name="search" size={14} />}
             size="xs"
           />
-          <Button
-            variant={hideGraded ? "filled" : "default"}
-            size="xs"
-            fullWidth
-            leftSection={<Icon name={hideGraded ? "filter-fill" : "filter"} size={13} />}
-            onClick={() => onToggleHideGraded(!hideGraded)}
-            aria-label="Hide already-graded students"
+          <Popover
+            width="target"
+            position="bottom-start"
+            shadow="md"
+            opened={filtersOpened}
+            onChange={setFiltersOpened}
           >
-            {hideGraded ? "Hide graded" : "All students"}
-          </Button>
+            <Popover.Target>
+              <Button
+                ref={filterButtonRef}
+                variant={activeFilterCount > 0 ? "light" : "default"}
+                size="xs"
+                fullWidth
+                leftSection={
+                  <Icon name={activeFilterCount > 0 ? "filter-fill" : "filter"} size={13} />
+                }
+                aria-label={`Student filters, ${activeFilterCount} active`}
+                onClick={() => setFiltersOpened((opened) => !opened)}
+                onKeyDown={handleFilterKeyDown}
+              >
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Button>
+            </Popover.Target>
+            <Popover.Dropdown onKeyDown={handleFilterKeyDown}>
+              <div className={styles.filterOptions}>
+                <Checkbox
+                  checked={hideFullCredit}
+                  onChange={(e) => onToggleHideFullCredit(e.currentTarget.checked)}
+                  label="Hide students with full credit"
+                  size="xs"
+                />
+                <Checkbox
+                  checked={hideUnanswered}
+                  onChange={(e) => onToggleHideUnanswered(e.currentTarget.checked)}
+                  label="Hide students with no submission"
+                  size="xs"
+                />
+              </div>
+            </Popover.Dropdown>
+          </Popover>
         </div>
       </header>
 
-      <ul ref={listRef} role="listbox" className={styles.list}>
+      <VisuallyHidden
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="student-filter-status"
+      >
+        {filtered.length} of {answers.length} students shown.
+      </VisuallyHidden>
+      <VisuallyHidden id={listInstructionsId}>
+        Use Up and Down Arrow keys to move between students. Use Home or End to jump to the first or
+        last student.
+      </VisuallyHidden>
+      <ul
+        ref={listRef}
+        role="listbox"
+        aria-label="Students"
+        aria-describedby={listInstructionsId}
+        className={styles.list}
+      >
         {filtered.length === 0 && <li className={styles.empty}>No students match the filter.</li>}
         {filtered.map((a) => {
           const status = getStudentStatus(a, question, { dirtySids });
           const active = a.sid === activeSid;
+          const lateStudent = lateStudentsBySid?.get(a.sid);
+          const late = lateStudent != null;
+          const lateTitle = lateStudent ? getLateWorkTitle(lateStudent, courseTimezone) : undefined;
+
           return (
             <li
               key={a.sid}
               role="option"
               aria-selected={active}
+              data-sid={a.sid}
               data-tour={active ? "grader-active-student" : undefined}
-              className={`${styles.item} ${active ? styles.active : ""}`}
+              title={lateTitle}
+              className={`${styles.item} ${active ? styles.active : ""} ${late ? styles.late : ""}`}
               onClick={() => onSelect(a.sid)}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onSelect(a.sid);
-                }
-              }}
+              tabIndex={a.sid === focusableSid ? 0 : -1}
+              onKeyDown={(event) => handleOptionKeyDown(event, a.sid)}
             >
               <StatusDot status={status} />
               <div className={styles.itemBody}>
-                <div className={styles.itemName}>{studentName(a)}</div>
+                <div className={styles.itemNameRow}>
+                  <div className={styles.itemName}>{studentDisplayName(a)}</div>
+                  {late && (
+                    <span className={styles.lateBadge} title={lateTitle}>
+                      Late
+                    </span>
+                  )}
+                </div>
                 <div className={styles.itemMeta}>
                   <span className={styles.itemSid}>{a.sid}</span>
                   <span>·</span>
@@ -136,6 +265,21 @@ export const StudentListSidebar: React.FC<Props> = ({
       </ul>
     </aside>
   );
+};
+
+const formatUtcInTimezone = (value: string, timeZone: string): string =>
+  formatInTimezone(parseUTCDate(value), timeZone);
+
+const getLateWorkTitle = (student: LateStudent, timeZone: string): string => {
+  const extension = student.extension_days
+    ? `\nExtension: ${student.extension_days} day${student.extension_days === 1 ? "" : "s"}`
+    : "";
+
+  return [
+    "Late work",
+    `Effective deadline: ${formatUtcInTimezone(student.effective_due_date, timeZone)}${extension}`,
+    `First activity after deadline: ${formatUtcInTimezone(student.first_late_activity_at, timeZone)}`
+  ].join("\n");
 };
 
 const StatusDot: React.FC<{ status: StudentGradingStatus }> = ({ status }) => (

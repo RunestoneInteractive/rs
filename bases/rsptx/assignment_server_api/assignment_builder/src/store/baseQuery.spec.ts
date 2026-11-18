@@ -12,6 +12,7 @@ vi.mock("@components/ui/notify", () => ({
 
 vi.mock("@reduxjs/toolkit/query", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@reduxjs/toolkit/query")>();
+
   return {
     ...actual,
     fetchBaseQuery: vi.fn(() => mockInnerBaseQuery)
@@ -29,6 +30,7 @@ describe("baseQueryWithErrorHandlers", () => {
 
   it("returns the result from baseQuery when there is no error", async () => {
     const expectedResult = { data: { id: 1 } };
+
     mockInnerBaseQuery.mockResolvedValue(expectedResult);
 
     const { baseQueryWithErrorHandlers } = await import("@store/baseQuery");
@@ -42,9 +44,11 @@ describe("baseQueryWithErrorHandlers", () => {
     const unauthorizedResult = {
       error: { status: HttpStatusCode.UNAUTHORIZED, data: "Unauthorized" }
     };
+
     mockInnerBaseQuery.mockResolvedValue(unauthorizedResult);
 
     const { baseQueryWithErrorHandlers } = await import("@store/baseQuery");
+
     await baseQueryWithErrorHandlers("/protected-endpoint", mockApi, mockExtraOptions);
 
     expect(notify.error).toHaveBeenCalledWith({
@@ -63,6 +67,7 @@ describe("baseQueryWithErrorHandlers", () => {
     mockInnerBaseQuery.mockResolvedValue({ error: { status, data: "boom" } });
 
     const { baseQueryWithErrorHandlers } = await import("@store/baseQuery");
+
     await baseQueryWithErrorHandlers("/some-endpoint", mockApi, mockExtraOptions);
 
     expect(notify.error).toHaveBeenCalledWith({
@@ -78,6 +83,7 @@ describe("baseQueryWithErrorHandlers", () => {
     });
 
     const { baseQueryWithErrorHandlers } = await import("@store/baseQuery");
+
     await baseQueryWithErrorHandlers("/a", mockApi, mockExtraOptions);
     await baseQueryWithErrorHandlers("/b", mockApi, mockExtraOptions);
 
@@ -90,6 +96,7 @@ describe("baseQueryWithErrorHandlers", () => {
     const errorResult = {
       error: { status: HttpStatusCode.FORBIDDEN, data: "Forbidden" }
     };
+
     mockInnerBaseQuery.mockResolvedValue(errorResult);
 
     const { baseQueryWithErrorHandlers } = await import("@store/baseQuery");
@@ -104,10 +111,12 @@ describe("baseQueryWithErrorHandlers", () => {
 
   it("passes the args, api, and extraOptions through to the inner baseQuery", async () => {
     const successResult = { data: "ok" };
+
     mockInnerBaseQuery.mockResolvedValue(successResult);
 
     const args = { url: "/test", method: "POST", body: { foo: "bar" } };
     const { baseQueryWithErrorHandlers } = await import("@store/baseQuery");
+
     await baseQueryWithErrorHandlers(args, mockApi, mockExtraOptions);
 
     expect(mockInnerBaseQuery).toHaveBeenCalledWith(args, mockApi, mockExtraOptions);

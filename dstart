@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 service-name (book, assignment, author, runestone)"
+    echo "Usage: $0 service-name (book, assignment, author, admin)"
     echo "This script starts a single service in the rs folder in development mode"
     echo "It will watch for changes to files and restart itself.  You can use pdb and set_trace()"
     echo "to debug your code."
@@ -31,7 +31,7 @@ if [[ "$SERVICE" == "all" || "$SERVICE" == "stopall" ]]; then
     lsof -t -i tcp:8100 | xargs kill
     lsof -t -i tcp:8101 | xargs kill
     lsof -t -i tcp:8102 | xargs kill
-    lsof -t -i tcp:8103 | xargs kill
+    lsof -t -i tcp:8104 | xargs kill
     # wait for the servers to stop
     sleep 5
 fi
@@ -41,7 +41,7 @@ if [ "$SERVICE" == "all" ]; then
     uvicorn rsptx.book_server_api.main:app --host 0.0.0.0 --port 8100 --reload &
     uvicorn rsptx.assignment_server_api.core:app --host 0.0.0.0 --port 8101 --reload &
     uvicorn rsptx.author_server_api.main:app --host 0.0.0.0 --port 8102 --reload &
-    python bases/rsptx/web2py_server/web2py.py --no-gui --password "<recycle>" --ip 0.0.0.0 --port 8103 &
+    uvicorn rsptx.admin_server_api.core:app --host 0.0.0.0 --port 8104 --reload &
 fi
 
 
@@ -64,10 +64,12 @@ if [ "$SERVICE" == "author" ]; then
     exit 0
 fi
 
-if [ "$SERVICE" == "runestone" ]; then
-    echo "Starting the web2py service on port 8103"
-    cd bases/rsptx/web2py_server
-    python web2py.py --no-gui --password "<recycle>" --ip 0.0.0.0 --port 8103
+# The admin server answers every URL no other server claims (see its
+# routers/root.py), so the dev proxy needs it running for anything that is not
+# /ns, /assignment or /author to resolve.
+if [ "$SERVICE" == "admin" ]; then
+    echo "Starting the admin service on port 8104"
+    uvicorn rsptx.admin_server_api.core:app --host 0.0.0.0 --port 8104 --reload
     exit 0
 fi
 

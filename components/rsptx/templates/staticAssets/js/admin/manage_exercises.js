@@ -1,5 +1,5 @@
 /* Editorial page (admin/editor/manage_exercises.html).
-   Delete a flagged question, or clear its flag and leave it in the book.
+   Edit or delete a flagged question, or clear its flag and leave it in the book.
    showAlert/postJSON come from admin/common.js. */
 
 function removeCard(cardId) {
@@ -59,3 +59,66 @@ function clearFlag(qname, baseCourse, cardId) {
         `Cleared the review flag on ${qname}.`
     );
 }
+
+async function saveQuestionEdit(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    let questionJson;
+
+    try {
+        questionJson = JSON.parse(form.elements.question_json.value);
+    } catch (error) {
+        showAlert(`Question JSON is invalid: ${error.message}`, "error");
+        return;
+    }
+
+    if (questionJson === null || Array.isArray(questionJson) || typeof questionJson !== "object") {
+        showAlert("Question JSON must be an object.", "error");
+        return;
+    }
+
+    if (typeof window.regenerateEditorialQuestionHtml !== "function") {
+        showAlert("The Assignment Builder HTML generator is unavailable. Reload and try again.", "error");
+        return;
+    }
+
+    let htmlsrc;
+
+    try {
+        htmlsrc = window.regenerateEditorialQuestionHtml({
+            name: form.dataset.questionName,
+            questionType: form.dataset.questionType,
+            questionJson,
+            currentHtml: document.getElementById("question-current-html").value,
+        });
+    } catch (error) {
+        showAlert(`Could not regenerate question HTML: ${error.message}`, "error");
+        return;
+    }
+
+    try {
+        const data = await postJSON(
+            `/admin/editor/questions/${form.dataset.questionId}/edit`,
+            {
+                question_json: questionJson,
+                htmlsrc,
+            }
+        );
+        if (data.detail && data.detail.status === "Success") {
+            window.location.assign("/admin/editor/manage_exercises");
+            return;
+        }
+        const message = (data.detail && data.detail.message) || "Unknown error";
+        showAlert(message, "error");
+    } catch (error) {
+        showAlert(`Request failed: ${error.message}`, "error");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const editForm = document.getElementById("editorial-edit-form");
+
+    if (editForm) {
+        editForm.addEventListener("submit", saveQuestionEdit);
+    }
+});

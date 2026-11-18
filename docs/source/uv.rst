@@ -3,7 +3,7 @@
 Development Environment Pre-Requisites
 =======================================
 
-Make sure you have Python installed.  We use 3.13 in production and 3.13 in development.  The web2py server still uses 3.10.  Earlier versions of python are not tested regularly and are not recommended.  macOS is fully supported as well as Ubuntu.  Ubuntu 24.04 comes with Python 3.12 and will likely work just fine.  We jumped from 3.11 to 3.13 so please let us know if 3.12 works without issue. The docker containers are self contained so even on Ubuntu 24.04 they will be fine.
+Make sure you have Python installed.  We use 3.13 in production and 3.13 in development.  Earlier versions of python are not tested regularly and are not recommended.  macOS is fully supported as well as Ubuntu.  Ubuntu 24.04 comes with Python 3.12 and will likely work just fine.  We jumped from 3.11 to 3.13 so please let us know if 3.12 works without issue. The docker containers are self contained so even on Ubuntu 24.04 they will be fine.
 
 uv
 --
@@ -43,43 +43,43 @@ and run ``uv run poly info``. You should see something like this:
 .. code:: shell
 
    projects: 8
-   components: 21
-   bases: 9
+   components: 22
+   bases: 8
    development: 1
 
 
-     brick                   admin_server   assignment_server   author_server   book_server   dash_server   runestone   rsmanage   w2p_login_assign_gr…   development  
- ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
-  .ruff_cache                  -                 -                 -              -             -            -          -                -                  -       
-  analytics                    -                 ✔                 -              -             -            -          -                -                  -       
-  auth                         ✔                 ✔                 ✔              ✔             -            -          -                -                  ✔       
-  build_tools                  -                 -                 ✔              -             -            ✔          ✔                -                  ✔       
-  cl_utils                     -                 -                 -              -             -            ✔          ✔                ✔                  ✔       
-  configuration                ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
-  data_extract                 -                 -                 ✔              -             -            -          ✔                -                  ✔       
-  data_types                   ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  -       
-  db                           ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
-  endpoint_validators          ✔                 ✔                 ✔              -             -            -          -                -                  -       
-  exceptions                   ✔                 ✔                 ✔              ✔             -            -          -                ✔                  ✔       
-  forms                        -                 -                 ✔              -             -            -          -                -                  ✔       
-  grading_helpers              -                 ✔                 -              ✔             -            -          -                -                  -       
-  logging                      ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
-  lp_sim_builder               -                 ✔                 -              ✔             -            -          -                -                  ✔       
-  lti1p3                       ✔                 ✔                 -              ✔             -            -          -                ✔                  ✔       
-  practice                     -                 -                 -              ✔             -            -          -                -                  ✔       
-  response_helpers             ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
-  templates                    ✔                 ✔                 ✔              ✔             -            -          -                -                  ✔       
-  validation                   ✔                 ✔                 ✔              ✔             -            ✔          ✔                ✔                  ✔       
-  visualization                -                 -                 ✔              -             -            -          -                -                  ✔       
-  admin_server_api             ✔                 -                 -              -             -            -          -                -                  ✔       
-  assignment_server_api        -                 ✔                 -              -             -            -          -                -                  ✔       
-  author_server_api            -                 -                 ✔              -             -            -          -                -                  ✔       
-  book_server_api              -                 -                 -              ✔             -            -          -                -                  ✔       
-  dash_server_api              -                 -                 -              -             ✔            -          -                -                  ✔       
-  interactives                 -                 -                 -              -             -            -          -                -                  -       
-  library_server               -                 -                 -              -             -            -          -                -                  -       
-  rsmanage                     -                 -                 -              -             -            -          ✔                -                  ✔       
-  web2py_server                -                 -                 -              -             -            -          -                ✔                  ✔       
+  brick                   admin_server   assignment_server   author_server   book_server   dash_server   runestone   rsadmin   rsmanage   development
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  .ruff_cache                  -                 -                 -              -             -            -          -         -            -
+  analytics                    -                 ✔                 -              -             -            -          -         -            -
+  auth                         ✔                 ✔                 ✔              ✔             -            -          -         -            -
+  build_tools                  -                 -                 ✔              -             -            -          ✔         ✔            -
+  cl_utils                     -                 -                 -              -             -            -          ✔         ✔            -
+  configuration                ✔                 ✔                 ✔              ✔             -            -          ✔         ✔            -
+  data_extract                 -                 -                 ✔              -             -            -          ✔         ✔            -
+  data_types                   ✔                 ✔                 ✔              ✔             -            -          ✔         ✔            -
+  db                           ✔                 ✔                 ✔              ✔             -            -          ✔         ✔            -
+  endpoint_validators          ✔                 ✔                 ✔              -             -            -          -         -            -
+  exceptions                   ✔                 ✔                 ✔              ✔             -            -          -         -            -
+  forms                        -                 -                 ✔              -             -            -          -         -            -
+  grading_helpers              -                 ✔                 -              ✔             -            -          -         -            -
+  logging                      ✔                 ✔                 ✔              ✔             -            -          ✔         ✔            -
+  lp_sim_builder               -                 ✔                 -              ✔             -            -          -         -            -
+  lti1p1                       ✔                 -                 -              -             -            -          -         -            -
+  lti1p3                       ✔                 ✔                 -              ✔             -            -          -         -            -
+  practice                     -                 -                 -              ✔             -            -          -         -            -
+  response_helpers             ✔                 ✔                 ✔              ✔             -            -          ✔         ✔            -
+  templates                    ✔                 ✔                 ✔              ✔             -            -          -         -            -
+  validation                   ✔                 ✔                 ✔              ✔             -            -          ✔         ✔            -
+  visualization                -                 -                 ✔              -             -            -          -         -            -
+  admin_server_api             ✔                 -                 -              -             -            -          -         -            -
+  assignment_server_api        -                 ✔                 -              -             -            -          -         -            -
+  author_server_api            -                 -                 ✔              -             -            -          -         -            -
+  book_server_api              -                 -                 -              ✔             -            -          -         -            -
+  dash_server_api              -                 -                 -              -             ✔            -          -         -            -
+  interactives                 -                 -                 -              -             -            -          -         -            -
+  library_server               -                 -                 -              -             -            -          -         -            -
+  rsmanage                     -                 -                 -              -             -            -          ✔         ✔            -
 
 
 This tells you we have 8 projects. There may be more if we haven't kept
@@ -108,10 +108,12 @@ Let's discuss each of the projects at a high level to start
 with. Then you can find detailed documentation for each project in their
 project folder.
 
-**w2p_login_assign_grader** This is a legacy project that uses the
-web2py framework and currently supports - login, assignments, grading,
-and basic student analytics. We are actively working to migrate each of
-those pieces into its own project.
+**admin_server** The admin server is a FastAPI application that owns
+authentication (login, registration, password reset), the instructor
+interface, LTI 1.1 and 1.3 launches, and the site's front door: any URL no
+other server claims lands here. It replaced the legacy web2py server, which
+was removed from the monorepo in August 2026 — see the ``legacy-web2py`` tag
+if you need to look at that code.
 
 **book_server** The book server is as FastAPI web application that
 serves the pages of each textbook to students and handles the API calls
@@ -134,10 +136,13 @@ submissions. It is used by instructors to create and manage assignments
 for their courses. It also provides an API for the book server to
 retrieve assignments and submissions for students.
 
-**dash_server** This is a new, modern take on the original student
-dashboard, but it will scale up to support very large classes. You can
-work on this 100% in python without needing to know css or javascript as
-it uses the Dash / Plotly framework.
+**dash_server** Instructor visualizations built with Dash / Plotly,
+served under ``/dash/``. Each visualization is a page with its own route,
+and slow work runs as Dash background callbacks in a Celery worker (the
+``dash_worker`` service) so large classes do not time out. You can work on
+this 100% in python without needing to know css or javascript. Its data
+comes from the ``question_outcomes`` component, which needs only SQLAlchemy
+and pandas.
 
 **rsmanage** This is a command line program for managing courses, users,
 and many other aspects of the Runestone system. It is mostly useful for

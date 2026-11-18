@@ -69,10 +69,7 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
               <SegmentedControl
                 value={grader}
                 data={graderOptions}
-                onChange={(value) => {
-                  onGraderChange(value as "line" | "dag");
-                  if (value === "dag") onAdaptiveChange(false);
-                }}
+                onChange={(value) => onGraderChange(value as "line" | "dag")}
                 size="xs"
               />
             </div>
@@ -138,20 +135,12 @@ export const ParsonsOptions: FC<ParsonsOptionsProps> = ({
             <span className={styles.optionSectionTitle}>Toggles</span>
           </div>
           <div className={styles.togglesGroup}>
-            <div
-              className={`${styles.toggleItem} ${grader === "dag" ? styles.toggleItemDisabled : ""}`}
-            >
-              <Tooltip
-                label={
-                  grader === "dag" ? "Disabled when using DAG grader" : "Enable adaptive feedback"
-                }
-                position="top"
-              >
+            <div className={styles.toggleItem}>
+              <Tooltip label="Enable adaptive feedback" position="top">
                 <Checkbox
                   id="adaptive-opt"
                   checked={adaptive}
                   onChange={(e) => onAdaptiveChange(e.currentTarget.checked)}
-                  disabled={grader === "dag"}
                   label="Adaptive"
                 />
               </Tooltip>

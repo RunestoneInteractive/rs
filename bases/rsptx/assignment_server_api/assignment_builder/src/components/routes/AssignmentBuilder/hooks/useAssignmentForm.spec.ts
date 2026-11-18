@@ -1,6 +1,8 @@
 import { renderHook, act } from "@testing-library/react";
-import { useAssignmentForm } from "./useAssignmentForm";
+
 import { Assignment } from "@/types/assignment";
+
+import { useAssignmentForm } from "./useAssignmentForm";
 
 const makeAssignment = (overrides: Partial<Assignment> = {}): Assignment => ({
   id: 1,
@@ -18,6 +20,7 @@ const makeAssignment = (overrides: Partial<Assignment> = {}): Assignment => ({
   nopause: false,
   time_limit: null,
   peer_async_visible: false,
+  async_study: false,
   kind: "Regular",
   exercises: [],
   all_assignments: [],
@@ -223,6 +226,7 @@ describe("useAssignmentForm", () => {
 
       expect(onAssignmentUpdate).toHaveBeenCalled();
       const calledWith = onAssignmentUpdate.mock.calls[onAssignmentUpdate.mock.calls.length - 1][0];
+
       expect(calledWith.points).toBe(99);
     });
 

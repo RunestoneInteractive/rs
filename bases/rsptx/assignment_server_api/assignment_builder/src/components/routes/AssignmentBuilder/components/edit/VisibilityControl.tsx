@@ -1,4 +1,4 @@
-import { Radio } from "@mantine/core";
+import { Radio, VisuallyHidden } from "@mantine/core";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { Assignment } from "@/types/assignment";
@@ -6,9 +6,8 @@ import { convertDateToISO, formatUTCDateLocaleString, parseUTCDate } from "@/uti
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
 
-import { getVisibilityMode, VisibilityMode } from "./visibilityMode";
-
 import styles from "./VisibilityControl.module.css";
+import { getVisibilityMode, VisibilityMode } from "./visibilityMode";
 
 interface VisibilityControlProps {
   control: Control<Assignment>;
@@ -212,7 +211,7 @@ export const VisibilityControl = ({ control, watch, setValue }: VisibilityContro
       <Radio.Group
         value={visibilityMode}
         onChange={(mode) => handleModeChange(mode as VisibilityMode)}
-        aria-label="Visibility"
+        label={<VisuallyHidden>Visibility</VisuallyHidden>}
       >
         <div className={styles.cards}>
           {VISIBILITY_OPTIONS.map((option) => (

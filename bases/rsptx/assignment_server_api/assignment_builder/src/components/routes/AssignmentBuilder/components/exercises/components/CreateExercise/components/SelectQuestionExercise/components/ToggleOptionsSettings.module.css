@@ -1,43 +1,43 @@
 .container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    background: var(--rs-surface);
-    border-radius: var(--rs-radius-md);
-    border: 1px solid var(--rs-border-solid);
-    padding: 1rem;
-    box-shadow: var(--rs-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--rs-surface);
+  border-radius: var(--rs-radius-md);
+  border: 1px solid var(--rs-border-solid);
+  padding: 1rem;
+  box-shadow: var(--rs-shadow-sm);
 }
 
 .header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .title {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--rs-neutral-800);
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--rs-neutral-800);
 }
 
 .description {
-    margin: 0;
-    color: var(--rs-text-muted);
-    line-height: 1.6;
-    font-size: 0.95rem;
+  margin: 0;
+  color: var(--rs-text-muted);
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 .optionsSection {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 @media (max-width: 640px) {
-    .container {
-        padding: 1rem;
-        gap: 1rem;
-    }
+  .container {
+    padding: 1rem;
+    gap: 1rem;
+  }
 }

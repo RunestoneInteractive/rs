@@ -59,7 +59,13 @@ const getDefaultFormData = (): Partial<CreateExerciseFormType> => ({
 const generatePreview = (data: Partial<CreateExerciseFormType>, pollType: PollType): string => {
   const optionStrings = (data.optionList || []).map((opt) => opt.choice);
 
-  return generatePollPreview(data.statement || "", optionStrings, data.name || "", pollType);
+  return generatePollPreview(
+    data.statement || "",
+    optionStrings,
+    data.name || "",
+    pollType,
+    data.results
+  );
 };
 
 export const PollExercise: FC<BaseExerciseProps> = ({
@@ -236,6 +242,7 @@ export const PollExercise: FC<BaseExerciseProps> = ({
             options={(formData.optionList || []) as PollOption[]}
             scaleMax={scaleMax}
             questionName={formData.name ?? ""}
+            results={formData.results}
           />
         );
       default:

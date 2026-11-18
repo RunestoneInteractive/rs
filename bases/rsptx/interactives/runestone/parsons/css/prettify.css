@@ -1,3 +1,46 @@
+/* Google code-prettify's palette, used by the parsons blocks.  The stock
+   values are light-mode ink (#000/#008/#800/...) which sat on the dark
+   canvas at 1.6:1 in dark mode, so they are mapped onto the shared --syn*
+   theme variables from common/css/variables.less.  This file is imported
+   inside .ptx-runestone-container / .runestone-sphinx, so a theme selector
+   here would never match -- variables are the only way to vary these. */
+/* The block itself, not just its token spans: <code class="prettyprint">
+   carried a black color that sat on the dark canvas at 1.6:1.  Typed as
+   element+class so it outranks the book template's own `code` styling. */
+code.prettyprint,
+pre.prettyprint,
 .prettyprint {
-    .str{color:#080}.kwd{color:#008}.com{color:#800}.typ{color:#606}.lit{color:#066}.pun{color:#660}.pln{color:#000}.tag{color:#008}.atn{color:#606}.atv{color:#080}.dec{color:#606}pre.prettyprint{padding:2px;border:1px solid #888}@media print{.str{color:#060}.kwd{color:#006;font-weight:bold}.com{color:#600;font-style:italic}.typ{color:#404;font-weight:bold}.lit{color:#044}.pun{color:#440}.pln{color:#000}.tag{color:#006;font-weight:bold}.atn{color:#404}.atv{color:#060}}
+    color: var(--synPlain);
+}
+
+.prettyprint {
+
+    .pln { color: var(--synPlain); }
+    .str { color: var(--synString); }
+    .atv { color: var(--synString); }
+    .kwd { color: var(--synKeyword); }
+    .tag { color: var(--synKeyword); }
+    .com { color: var(--synComment); }
+    .typ { color: var(--synClass); }
+    .lit { color: var(--synNumber); }
+    .pun { color: var(--synOperator); }
+    .atn { color: var(--synFunction); }
+    .dec { color: var(--synVariable); }
+
+    pre.prettyprint {
+        padding: 2px;
+        border: 1px solid var(--componentBorderColor, #767676);
+    }
+
+    /* Print is always dark ink on white paper, so it keeps fixed values. */
+    @media print {
+        .pln { color: #000; }
+        .str, .atv { color: #060; }
+        .kwd, .tag { color: #006; font-weight: bold; }
+        .com { color: #600; font-style: italic; }
+        .typ { color: #404; font-weight: bold; }
+        .lit { color: #044; }
+        .pun { color: #440; }
+        .atn { color: #404; }
+    }
 }

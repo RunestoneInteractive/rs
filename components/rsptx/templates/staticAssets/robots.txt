@@ -1,0 +1,11 @@
+User-agent: *
+# Legacy web2py surface -- login, ajax, instructor tooling. Nothing here is
+# useful to a crawler and most of it 302s to a login page.
+Disallow: /runestone
+# The auth + instructor surface on the new servers.
+Disallow: /admin
+Disallow: /assignment
+Disallow: /author
+Disallow: /cgi-bin
+# Book templates are partials, not pages.
+Disallow: /ns/books/published/*/_templates

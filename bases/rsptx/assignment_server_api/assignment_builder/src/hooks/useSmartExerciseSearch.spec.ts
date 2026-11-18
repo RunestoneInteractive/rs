@@ -1,8 +1,10 @@
+import { setupStore } from "@store/store";
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
 import { Provider } from "react-redux";
+
 import { FilterMatchMode } from "@/types/filterMatchMode";
-import { setupStore } from "@store/store";
+
 import { useSmartExerciseSearch } from "./useSmartExerciseSearch";
 
 const mockQueryResult: {
@@ -32,6 +34,7 @@ vi.mock("@store/exercises/exercises.logic.api", () => ({
 
 vi.mock("@store/assignment/assignment.logic", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@store/assignment/assignment.logic")>();
+
   return {
     ...actual,
     assignmentSelectors: {
@@ -110,6 +113,7 @@ describe("useSmartExerciseSearch", () => {
       const { result } = renderHook(() => useSmartExerciseSearch(), { wrapper });
 
       const globalFilter = result.current.filters.global as { value: unknown; matchMode: string };
+
       expect(globalFilter.value).toBeNull();
       expect(globalFilter.matchMode).toBe(FilterMatchMode.CONTAINS);
     });
@@ -126,6 +130,7 @@ describe("useSmartExerciseSearch", () => {
       });
 
       const nameFilter = result.current.filters.name as { value: unknown };
+
       expect(nameFilter.value).toBe("test");
     });
 
@@ -152,6 +157,7 @@ describe("useSmartExerciseSearch", () => {
       });
 
       const globalFilter = result.current.filters.global as { value: unknown; matchMode: string };
+
       expect(globalFilter.value).toBe("search term");
       expect(globalFilter.matchMode).toBe(FilterMatchMode.CONTAINS);
     });
@@ -277,6 +283,7 @@ describe("useSmartExerciseSearch", () => {
 
     it("returns error when isError is true", () => {
       const fakeError = new Error("fetch failed");
+
       mockQueryResult.isError = true;
       mockQueryResult.error = fakeError;
 

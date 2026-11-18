@@ -12,4 +12,3 @@ export interface AnswerRendererProps {
 
   activeAttemptIndex?: number;
 }
-

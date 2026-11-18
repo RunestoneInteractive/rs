@@ -79,6 +79,9 @@ async def is_author(userid: int) -> bool:
     :rtype: bool
     """
     ed = await fetch_group("author")
+    if ed is None:
+        # No author group has been created in this database, so nobody is one.
+        return False
     row = await fetch_membership(ed.id, userid)
 
     if row:

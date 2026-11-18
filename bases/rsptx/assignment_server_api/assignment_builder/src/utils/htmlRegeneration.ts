@@ -1,22 +1,31 @@
 import { Exercise, QuestionJSON } from "@/types/exercises";
-import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
-import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
-import { generateParsonsPreview } from "@/utils/preview/parsonsPreview";
-import { generateActiveCodePreview } from "@/utils/preview/activeCode";
-import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
-import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
-import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
-import { generatePollPreview } from "@/utils/preview/poll";
-import { generateIframePreview } from "@/utils/preview/iframePreview";
 import { safeJsonParse } from "@/utils/json";
+import {
+  generateActiveCodePreview,
+  pickActiveCodeAdvancedOptions
+} from "@/utils/preview/activeCode";
+import { generateClickableAreaPreview } from "@/utils/preview/clickableArea";
+import { generateDragAndDropPreview } from "@/utils/preview/dndPreview";
+import { generateFillInTheBlankPreview } from "@/utils/preview/fillInTheBlank";
+import { generateIframePreview } from "@/utils/preview/iframePreview";
+import { generateMatchingPreview } from "@/utils/preview/matchingPreview";
+import { generateMultiChoicePreview } from "@/utils/preview/multichoice";
+import { generateParsonsPreview } from "@/utils/preview/parsonsPreview";
+import { generatePollPreview } from "@/utils/preview/poll";
+import { generateSelectQuestionPreview } from "@/utils/preview/selectQuestionPreview";
+import { generateShortAnswerPreview } from "@/utils/preview/shortAnswer";
+
+type HtmlRegenerationExercise = Pick<
+  Exercise,
+  "htmlsrc" | "name" | "question_json" | "question_type"
+>;
 
 /**
  * Regenerates HTML source for a copied exercise with the new name
  * This ensures that IDs and labels in the HTML match the new exercise name
  */
-export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string => {
+export const regenerateHtmlSrc = (exercise: HtmlRegenerationExercise, newName: string): string => {
   try {
-    console.log(exercise);
     const questionJson: QuestionJSON = exercise.question_json
       ? (safeJsonParse(exercise.question_json) as QuestionJSON)
       : {};
@@ -27,7 +36,8 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
           questionJson.statement || "",
           questionJson.optionList || [],
           newName,
-          questionJson.forceCheckboxes
+          questionJson.forceCheckboxes,
+          questionJson.random
         );
 
       case "fillintheblank":
@@ -46,11 +56,16 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
           adaptive: questionJson.adaptive ?? true,
           numbered: questionJson.numbered ?? "left",
           noindent: questionJson.noindent ?? false,
-          questionLabel: newName
+          questionLabel: newName,
+          grader: questionJson.grader,
+          orderMode: questionJson.orderMode,
+          customOrder: questionJson.customOrder,
+          runnable: questionJson.runnable,
+          runnableCode: questionJson.runnableCode,
+          runnableOptions: questionJson.runnableOptions
         });
 
       case "activecode":
-        console.log(questionJson);
         return generateActiveCodePreview(
           questionJson.instructions || "",
           questionJson.language || "python",
@@ -58,12 +73,21 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
           questionJson.starter_code || "",
           questionJson.suffix_code || "",
           newName,
-          questionJson.stdin
+          questionJson.stdin,
+          (questionJson.selectedExistingDataFiles || []).map((acid) => ({ acid })),
+          {
+            enableCodeTailor: questionJson.enableCodeTailor,
+            parsonspersonalize: questionJson.parsonspersonalize,
+            parsonsexample: questionJson.parsonsexample,
+            parsonsPersonalized: questionJson.parsonsPersonalized,
+            enableCodelens: questionJson.enableCodelens
+          },
+          pickActiveCodeAdvancedOptions(questionJson)
         );
 
       case "shortanswer":
         return generateShortAnswerPreview(
-          questionJson.questionText || "",
+          questionJson.statement || questionJson.questionText || "",
           questionJson.attachment || false,
           newName
         );
@@ -90,14 +114,35 @@ export const regenerateHtmlSrc = (exercise: Exercise, newName: string): string =
 
       case "poll":
         return generatePollPreview(
-          questionJson.questionText || "",
+          questionJson.statement || questionJson.questionText || "",
           questionJson.optionList?.map((opt) => opt.choice) || [],
           newName,
-          questionJson.poll_type
+          questionJson.poll_type,
+          questionJson.results
         );
 
       case "iframe":
         return generateIframePreview(questionJson.iframeSrc || "", newName);
+
+      case "clickablearea":
+        return generateClickableAreaPreview(
+          questionJson.questionText || "",
+          newName,
+          questionJson.feedback || "",
+          questionJson.statement || ""
+        );
+
+      case "selectquestion":
+        return generateSelectQuestionPreview({
+          name: newName,
+          questionList: (questionJson.questionList || []).map((questionId) => ({
+            questionId,
+            label: questionJson.questionLabels?.[questionId]
+          })),
+          abExperimentName: questionJson.abExperimentName,
+          toggleOptions: questionJson.toggleOptions,
+          dataLimitBasecourse: questionJson.dataLimitBasecourse
+        });
 
       default:
         // For unsupported types, try to update the name in the existing HTML

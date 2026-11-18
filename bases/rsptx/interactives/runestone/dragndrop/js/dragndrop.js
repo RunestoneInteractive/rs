@@ -31,6 +31,10 @@
 
 import RunestoneBase from "../../common/js/runestonebase.js";
 import { t } from "../../common/js/rsi18n.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 import { DragndropXmlConverter } from "./xmlconversion.js";
 import "../css/dragndrop.less";
 import "./dragndrop-i18n.en.js";
@@ -57,6 +61,7 @@ export default class DragNDrop extends RunestoneBase {
         this.feedback = "";
         this.question = "";
         this.selectedPremise = null;
+        this.activeResponse = null;
         // Number of times the student has submitted a gradeable attempt (one
         // where they have placed enough blocks). Misplaced blocks are only
         // colored red once this reaches MIN_TRIES_FOR_COLOR.
@@ -76,6 +81,9 @@ export default class DragNDrop extends RunestoneBase {
     populate() {
         this.responseArray = [];
         this.premiseArray = [];
+        // Feedback an author attached to an individual premise or response,
+        // keyed by element id: { label, feedback }.
+        this.cardFeedback = {};
         let invisibleErrorDiv = document.createElement("div");
         invisibleErrorDiv.classList.add("ptx-runestone-container");
         document.body.appendChild(invisibleErrorDiv);
@@ -138,13 +146,14 @@ export default class DragNDrop extends RunestoneBase {
      * DragndropXmlConverter) or JSON; both yield the same shape used by
      * matching.js:
      *   { statement, feedback,
-     *     left:  [{id, label}, ...],   // draggables (premises)
-     *     right: [{id, label}, ...],   // dropzones (responses)
+     *     left:  [{id, label, feedback?}, ...],   // draggables (premises)
+     *     right: [{id, label, feedback?}, ...],   // dropzones (responses)
      *     correctAnswers: [[leftId, rightId], ...] }
      * A premise belongs in the dropzone given by its correctAnswers pair, so we
      * use the response id as the shared category. Several premises may map to
      * the same response (many-to-one). A premise that appears in no pair is a
-     * distractor and gets a category that matches no dropzone.
+     * distractor and gets a category that matches no dropzone. A card's
+     * optional feedback is shown when that card ends up in the wrong place.
      */
     populateFromScript(script, invisibleErrorDiv) {
         let data;
@@ -166,6 +175,7 @@ export default class DragNDrop extends RunestoneBase {
         for (let item of data.left || []) {
             let category = premiseCategory[item.id] || "distractor-" + item.id;
             this.makePremise(item.id, item.label, category, invisibleErrorDiv);
+            this.addCardFeedback(item);
         }
         if (this.random) {
             // Shuffle the premiseArray if random is true
@@ -175,9 +185,19 @@ export default class DragNDrop extends RunestoneBase {
             // A response's category is its own id; the premises that belong in
             // it share that category.
             this.makeResponse(item.id, item.label, item.id);
+            this.addCardFeedback(item);
         }
         this.question = data.statement || "";
         this.feedback = data.feedback || "";
+    }
+
+    addCardFeedback(item) {
+        if (item.feedback) {
+            this.cardFeedback[item.id] = {
+                label: item.label,
+                feedback: item.feedback,
+            };
+        }
     }
 
     /*
@@ -196,10 +216,11 @@ export default class DragNDrop extends RunestoneBase {
         replaceSpan.dataset.category = category;
         replaceSpan.dataset.parent_id = this.divid;
         this.premiseArray.push(replaceSpan);
+        this.updatePremiseAriaLabel(replaceSpan);
         this.setDragListeners(replaceSpan);
         // now create an error message for when the premise is dropped in the wrong place
         let errorMessage = document.createElement("div");
-        errorMessage.classList.add("vh-dnd-error");
+        errorMessage.classList.add("visuallyhidden");
         errorMessage.innerHTML =
             "Incorrect drop zone for " + replaceSpan.innerHTML;
         errorMessage.setAttribute("role", "alert");
@@ -251,12 +272,25 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.addEventListener("keydown", (ev) => {
             if (
                 (ev.key === "Escape" || ev.key === "Esc") &&
+                this.closeCardInfo({ restoreFocus: true })
+            ) {
+                ev.preventDefault();
+            } else if (
+                (ev.key === "Escape" || ev.key === "Esc") &&
                 this.selectedPremise
             ) {
                 ev.preventDefault();
                 this.deselectPremise({ restoreFocus: true });
             }
         });
+        // Any other click closes an open card feedback popover; clicks on the
+        // info button or the popover itself don't propagate this far.
+        document.addEventListener("click", () => this.closeCardInfo());
+        this.keyboardInstructionDiv = document.createElement("div");
+        this.keyboardInstructionDiv.classList.add("visuallyhidden");
+        this.keyboardInstructionDiv.setAttribute("aria-live", "polite");
+        this.keyboardInstructionDiv.setAttribute("aria-atomic", "true");
+        this.containerDiv.appendChild(this.keyboardInstructionDiv);
         this.statementDiv = document.createElement("div");
         this.statementDiv.classList.add("cardsort-statement");
         this.statementDiv.classList.add("exercise-statement");
@@ -268,6 +302,11 @@ export default class DragNDrop extends RunestoneBase {
         this.containerDiv.appendChild(this.statementDiv);
         this.dragDropWrapDiv = document.createElement("div"); // Holds the draggables/dropzones, prevents feedback from bleeding in
         this.dragDropWrapDiv.style.display = "block";
+        this.dragDropWrapDiv.classList.add("dragndrop-keyboard-surface");
+        this.dragDropWrapDiv.tabIndex = -1;
+        this.dragDropWrapDiv.addEventListener("keydown", (ev) => {
+            this.handleKeyboardApplicationKeydown(ev);
+        });
         this.containerDiv.appendChild(this.dragDropWrapDiv);
         this.draggableDiv = document.createElement("div");
         this.draggableDiv.classList.add("rsdraggable", "dragzone");
@@ -282,7 +321,10 @@ export default class DragNDrop extends RunestoneBase {
             this.finishSettingUp();
         }
         this.ivp = this.isValidPremise.bind(this);
-        this.queueMathJax(this.containerDiv);
+        this.queueMathJax(this.containerDiv).then(() => {
+            this.disablePremiseMathTabStops();
+            this.updatePremiseAriaLabels();
+        });
     }
 
     finishSettingUp() {
@@ -294,6 +336,8 @@ export default class DragNDrop extends RunestoneBase {
             this.minheight = this.draggableDiv.offsetHeight;
             // Ensure MathJax has completed before adjusting the zone widths
             this.queueMathJax(this.containerDiv).then(() => {
+                this.disablePremiseMathTabStops();
+                this.updatePremiseAriaLabels();
                 this.adjustDragDropWidths();
             });
         }
@@ -337,6 +381,7 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents erros w/appending child
                     this.draggableDiv.appendChild(draggedSpan);
+                    this.updatePremiseAriaLabel(draggedSpan);
                     this.adjustDragDropWidths();
                     this.minheight = this.draggableDiv.offsetHeight;
                     this.dragDropWrapDiv.style.minHeight =
@@ -427,6 +472,50 @@ export default class DragNDrop extends RunestoneBase {
                 }
             }
         }
+        this.updatePremiseAriaLabels();
+    }
+
+    getResponseLabel(response) {
+        if (!response) {
+            return "";
+        }
+        const responseClone = response.cloneNode(true);
+        for (const premise of responseClone.querySelectorAll(
+            ".premise, .draggable-card-info",
+        )) {
+            premise.remove();
+        }
+        return getAccessibleElementText(responseClone);
+    }
+
+    updatePremiseAriaLabel(premise) {
+        // Every move of a premise ends here. Feedback about where it was is
+        // stale once it moves, and its info control would be left behind.
+        let info = this.cardInfoFor(premise);
+        if (info && premise.nextElementSibling !== info) {
+            this.removeCardInfo(premise);
+        }
+        // A premise returned to the left column is no longer misplaced.
+        if (premise.parentElement === this.draggableDiv) {
+            this.clearPremiseIncorrect(premise);
+        }
+        const premiseLabel = getAccessibleElementText(premise);
+        const response = this.responseArray.includes(premise.parentElement)
+            ? premise.parentElement
+            : null;
+        const placementLabel = response
+            ? "placed in " + this.getResponseLabel(response)
+            : "unplaced";
+        premise.setAttribute(
+            "aria-label",
+            premiseLabel + " matching premise, " + placementLabel,
+        );
+    }
+
+    updatePremiseAriaLabels() {
+        for (const premise of this.premiseArray) {
+            this.updatePremiseAriaLabel(premise);
+        }
     }
 
     findPremise(id) {
@@ -481,14 +570,27 @@ export default class DragNDrop extends RunestoneBase {
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
                     this.draggableDiv.appendChild(draggedSpan);
+                    this.updatePremiseAriaLabel(draggedSpan);
                 }
             }.bind(this),
         );
+
+        dgSpan.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            if (this.selectedPremise === dgSpan) {
+                this.deselectPremise();
+            } else {
+                this.selectPremise(dgSpan);
+            }
+        });
 
         // Enter or Space picks up a premise. Pressing the same key again puts
         // it down; Escape is handled at the component level so it also works
         // after focus has moved to a response or button.
         dgSpan.addEventListener("keydown", (ev) => {
+            if (ev.target !== dgSpan) {
+                return;
+            }
             if (ev.key === "Enter" || ev.key === " ") {
                 ev.preventDefault();
                 if (this.selectedPremise === dgSpan) {
@@ -502,20 +604,44 @@ export default class DragNDrop extends RunestoneBase {
             ) {
                 ev.preventDefault();
                 this.movePremiseFocus(dgSpan, ev.key === "ArrowDown");
+            } else if (
+                !this.selectedPremise &&
+                (ev.key === "ArrowLeft" || ev.key === "ArrowRight")
+            ) {
+                ev.preventDefault();
+                this.focusFirstPremiseInColumn(ev.key === "ArrowRight");
             }
         });
     }
 
+    disablePremiseMathTabStops(root = this.containerDiv) {
+        disableMathJaxTabStops(root, [".premise", ".response"]);
+    }
+
     movePremiseFocus(premise, moveDown) {
-        const currentIndex = this.premiseArray.indexOf(premise);
+        const premiseTabOrder = Array.from(
+            this.containerDiv.querySelectorAll(".premise"),
+        ).filter((item) => this.premiseArray.includes(item));
+        const currentIndex = premiseTabOrder.indexOf(premise);
+        if (currentIndex === -1) {
+            return;
+        }
         const targetIndex = Math.max(
             0,
             Math.min(
                 currentIndex + (moveDown ? 1 : -1),
-                this.premiseArray.length - 1,
+                premiseTabOrder.length - 1,
             ),
         );
-        this.premiseArray[targetIndex]?.focus();
+        premiseTabOrder[targetIndex]?.focus();
+    }
+
+    focusFirstPremiseInColumn(rightColumn) {
+        const column = rightColumn ? this.dropZoneDiv : this.draggableDiv;
+        const firstPremise = Array.from(
+            column.querySelectorAll(".premise"),
+        ).find((item) => this.premiseArray.includes(item));
+        firstPremise?.focus();
     }
 
     setDropListeners(dpSpan) {
@@ -524,52 +650,68 @@ export default class DragNDrop extends RunestoneBase {
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
-                if (ev.target.classList.contains("possibleDrop")) {
+                const dropTarget = ev.currentTarget;
+                if (dropTarget.classList.contains("possibleDrop")) {
                     return;
                 }
-                if (ev.target.classList.contains("draggable-drop")) {
-                    ev.target.classList.add("possibleDrop");
+                if (dropTarget.classList.contains("draggable-drop")) {
+                    dropTarget.classList.add("possibleDrop");
                 }
             }.bind(this),
         );
-        dpSpan.addEventListener("dragleave", function (ev) {
-            this.isAnswered = true;
-            ev.preventDefault();
-            if (!ev.target.classList.contains("possibleDrop")) {
-                return;
-            }
-            ev.target.classList.remove("possibleDrop");
-        }.bind(this));
+        dpSpan.addEventListener(
+            "dragleave",
+            function (ev) {
+                this.isAnswered = true;
+                ev.preventDefault();
+                const dropTarget = ev.currentTarget;
+                if (!dropTarget.classList.contains("possibleDrop")) {
+                    return;
+                }
+                dropTarget.classList.remove("possibleDrop");
+            }.bind(this),
+        );
         dpSpan.addEventListener(
             "drop",
             function (ev) {
                 this.isAnswered = true;
                 ev.preventDefault();
                 this.setPointerDragActive(false);
-                if (ev.target.classList.contains("possibleDrop")) {
-                    ev.target.classList.remove("possibleDrop");
+                const dropTarget = ev.currentTarget;
+                if (dropTarget.classList.contains("possibleDrop")) {
+                    dropTarget.classList.remove("possibleDrop");
                 }
                 var data = ev.dataTransfer.getData("draggableID");
                 var draggedSpan = document.getElementById(data);
                 if (
-                    ev.target.classList.contains("draggable-drop") &&
-                    !this.strangerDanger(draggedSpan) &&
-                    !this.premiseArray.includes(ev.target) // don't drop on another premise!
+                    dropTarget.classList.contains("draggable-drop") &&
+                    !this.strangerDanger(draggedSpan)
                 ) {
                     // Make sure element isn't already there--prevents errors w/appending child
-                    ev.target.appendChild(draggedSpan);
+                    dropTarget.appendChild(draggedSpan);
+                    this.updatePremiseAriaLabel(draggedSpan);
                     // log a drop event
                     this.logBookEvent({
                         event: "dragNdrop-drop",
                         div_id: this.divid,
-                        act: `${data} -> ${ev.target.id}`,
+                        act: `${data} -> ${dropTarget.id}`,
                     });
                 }
                 this.queueMathJax(this.containerDiv).then(() => {
+                    this.disablePremiseMathTabStops();
+                    this.updatePremiseAriaLabels();
                     this.adjustDragDropWidths();
                 });
             }.bind(this),
         );
+
+        dpSpan.addEventListener("click", (ev) => {
+            if (!this.selectedPremise || ev.target.closest(".premise")) {
+                return;
+            }
+            ev.preventDefault();
+            this.placeSelectedPremise(dpSpan);
+        });
 
         // Add keyboard navigation for dropping premises
         dpSpan.addEventListener("keydown", (ev) => {
@@ -596,17 +738,145 @@ export default class DragNDrop extends RunestoneBase {
         // Moving focus with Tab or Shift+Tab previews the selected premise in
         // the newly focused response, just as the vertical arrow keys do.
         dpSpan.addEventListener("focus", () => {
-            if (
-                this.selectedPremise &&
-                this.selectedPremise.parentElement !== dpSpan
-            ) {
-                this.moveSelectedPremise(dpSpan, dpSpan.id);
+            if (this.selectedPremise) {
+                this.setActiveResponse(dpSpan);
             }
         });
     }
 
     setPointerDragActive(active) {
         this.containerDiv.classList.toggle("pointer-drag-active", active);
+    }
+
+    announceKeyboardInstruction(message) {
+        if (this.keyboardInstructionDiv) {
+            this.keyboardInstructionDiv.textContent = message;
+        }
+    }
+
+    enterKeyboardApplicationMode(premise) {
+        if (!this.dragDropWrapDiv) {
+            return;
+        }
+        const premiseLabel = getAccessibleElementText(premise);
+        this.dragDropWrapDiv.tabIndex = 0;
+        this.dragDropWrapDiv.setAttribute("role", "application");
+        this.dragDropWrapDiv.setAttribute(
+            "aria-label",
+            `Drag and drop placement for ${premiseLabel}`,
+        );
+        if (this.activeResponse) {
+            this.dragDropWrapDiv.setAttribute(
+                "aria-activedescendant",
+                this.activeResponse.id,
+            );
+        }
+        this.announceKeyboardInstruction(
+            `Moving ${premiseLabel}. Use arrow keys to choose a target, Enter to place, or Escape to cancel.`,
+        );
+        this.dragDropWrapDiv.focus();
+    }
+
+    exitKeyboardApplicationMode() {
+        if (!this.dragDropWrapDiv) {
+            return;
+        }
+        this.dragDropWrapDiv.removeAttribute("role");
+        this.dragDropWrapDiv.removeAttribute("aria-label");
+        this.dragDropWrapDiv.removeAttribute("aria-activedescendant");
+        this.dragDropWrapDiv.tabIndex = -1;
+    }
+
+    focusKeyboardApplicationSurface() {
+        if (this.selectedPremise && this.dragDropWrapDiv) {
+            this.dragDropWrapDiv.focus();
+        }
+    }
+
+    setActiveResponse(response, { movePremise = true } = {}) {
+        if (!response) {
+            return;
+        }
+        this.activeResponse = response;
+        if (this.dragDropWrapDiv && this.selectedPremise) {
+            this.dragDropWrapDiv.setAttribute(
+                "aria-activedescendant",
+                response.id,
+            );
+        }
+        if (
+            movePremise &&
+            this.selectedPremise &&
+            this.selectedPremise.parentElement !== response
+        ) {
+            this.moveSelectedPremise(response, response.id);
+        }
+    }
+
+    moveActiveResponse({ moveBackward = false, wrap = false } = {}) {
+        if (!this.selectedPremise || this.responseArray.length === 0) {
+            return;
+        }
+        const offset = moveBackward ? -1 : 1;
+        const currentIndex = this.responseArray.indexOf(this.activeResponse);
+        let targetIndex;
+        if (currentIndex === -1) {
+            targetIndex = moveBackward ? this.responseArray.length - 1 : 0;
+        } else {
+            targetIndex = currentIndex + offset;
+        }
+        if (wrap) {
+            targetIndex =
+                (targetIndex + this.responseArray.length) %
+                this.responseArray.length;
+        } else {
+            targetIndex = Math.max(
+                0,
+                Math.min(targetIndex, this.responseArray.length - 1),
+            );
+        }
+        this.setActiveResponse(this.responseArray[targetIndex]);
+        this.focusKeyboardApplicationSurface();
+    }
+
+    handleKeyboardApplicationKeydown(ev) {
+        if (ev.target !== this.dragDropWrapDiv || !this.selectedPremise) {
+            return;
+        }
+        if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.placeSelectedPremise(
+                this.activeResponse || this.responseArray[0],
+            );
+        } else if (ev.key === "Escape" || ev.key === "Esc") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.deselectPremise({ restoreFocus: true });
+        } else if (ev.key === "Tab") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.moveActiveResponse({ moveBackward: ev.shiftKey, wrap: true });
+        } else if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.moveActiveResponse({
+                moveBackward: ev.key === "ArrowUp",
+                wrap: false,
+            });
+        } else if (ev.key === "ArrowLeft") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.returnSelectedPremise();
+            this.focusKeyboardApplicationSurface();
+        } else if (ev.key === "ArrowRight") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            this.moveSelectedPremiseRight(
+                this.activeResponse || this.responseArray[0],
+            );
+            this.focusKeyboardApplicationSurface();
+        }
     }
 
     moveResponseFocus(response, moveBackward) {
@@ -637,6 +907,7 @@ export default class DragNDrop extends RunestoneBase {
         }
 
         const response = this.responseArray[targetIndex];
+        this.activeResponse = response;
         if (response !== premise.parentElement) {
             this.moveSelectedPremise(response, response.id);
         }
@@ -649,6 +920,7 @@ export default class DragNDrop extends RunestoneBase {
             return;
         }
         this.moveSelectedPremise(this.draggableDiv, "dragzone");
+        this.announceKeyboardInstruction("Returned to unplaced list.");
     }
 
     moveSelectedPremiseRight(response) {
@@ -664,7 +936,11 @@ export default class DragNDrop extends RunestoneBase {
         if (!premise || premise.parentElement === destination) {
             return;
         }
+        if (this.responseArray.includes(destination)) {
+            this.activeResponse = destination;
+        }
         destination.appendChild(premise);
+        this.updatePremiseAriaLabel(premise);
         this.isAnswered = true;
         this.logBookEvent({
             event: "dragNdrop-drop",
@@ -672,6 +948,8 @@ export default class DragNDrop extends RunestoneBase {
             act: `${premise.id} -> ${destinationName}`,
         });
         this.queueMathJax(this.containerDiv).then(() => {
+            this.disablePremiseMathTabStops();
+            this.updatePremiseAriaLabels();
             this.adjustDragDropWidths();
         });
     }
@@ -679,6 +957,12 @@ export default class DragNDrop extends RunestoneBase {
     placeSelectedPremise(response) {
         const premise = this.selectedPremise;
         if (!premise || this.strangerDanger(premise)) {
+            return;
+        }
+
+        if (premise.parentElement === this.draggableDiv) {
+            this.deselectPremise();
+            premise.focus();
             return;
         }
 
@@ -692,13 +976,17 @@ export default class DragNDrop extends RunestoneBase {
         this.selectedPremise = premise;
         premise.classList.add("selected");
         premise.setAttribute("aria-pressed", "true");
-        this.updateKeyboardNavigation();
         const currentResponse = this.responseArray.includes(
             premise.parentElement,
         )
             ? premise.parentElement
             : this.responseArray[0];
-        currentResponse?.focus();
+        this.activeResponse = currentResponse || null;
+        this.updateKeyboardNavigation();
+        if (currentResponse && premise.parentElement !== currentResponse) {
+            this.moveSelectedPremise(currentResponse, currentResponse.id);
+        }
+        this.enterKeyboardApplicationMode(premise);
     }
 
     deselectPremise({ restoreFocus = false } = {}) {
@@ -709,6 +997,8 @@ export default class DragNDrop extends RunestoneBase {
         premise.classList.remove("selected");
         premise.setAttribute("aria-pressed", "false");
         this.selectedPremise = null;
+        this.activeResponse = null;
+        this.exitKeyboardApplicationMode();
         this.updateKeyboardNavigation();
         if (restoreFocus) {
             premise.focus();
@@ -783,14 +1073,14 @@ export default class DragNDrop extends RunestoneBase {
         }
         for (let premise of this.premiseArray) {
             // Clear any incorrect highlighting left over from a previous check
-            premise.classList.remove("drop-incorrect");
-            premise.setAttribute("aria-invalid", "false");
-            premise.removeAttribute("aria-errormessage");
+            this.clearPremiseIncorrect(premise);
             this.draggableDiv.appendChild(premise);
         }
+        this.updatePremiseAriaLabels();
         this.answerState = {};
         // Start the "3 tries before red" cycle over after a reset
         this.tries = 0;
+        this.clearCardInfo();
         this.feedBackDiv.style.display = "none";
         this.adjustDragDropWidths();
         this.minheight = this.draggableDiv.offsetHeight;
@@ -806,9 +1096,17 @@ export default class DragNDrop extends RunestoneBase {
     /*===========================
     == Evaluation and feedback ==
     ===========================*/
+    // The responses in their on-screen order. The dropzone column also holds
+    // the info controls of responses with feedback, so skip anything else.
+    placedResponses() {
+        return Array.from(this.dropZoneDiv.children).filter((el) =>
+            this.responseArray.includes(el),
+        );
+    }
+
     getAllCategories() {
         this.categories = [];
-        for (let response of this.dropZoneDiv.childNodes) {
+        for (let response of this.placedResponses()) {
             this.categories.push(response.dataset.category);
         }
         return this.categories;
@@ -826,7 +1124,7 @@ export default class DragNDrop extends RunestoneBase {
         // i.e. blocks that are not meant to be placed.
         let distractorNum = 0;
 
-        for (let response of this.dropZoneDiv.childNodes) {
+        for (let response of this.placedResponses()) {
             // ignore drop zone children that aren't premises
             for (let premise of Array.from(response.childNodes).filter(
                 this.ivp,
@@ -845,7 +1143,7 @@ export default class DragNDrop extends RunestoneBase {
             }
         }
         for (let premise of Array.from(this.draggableDiv.childNodes).filter(
-            (node) => node.nodeType !== Node.TEXT_NODE,
+            this.ivp,
         )) {
             if (categories.indexOf(premise.dataset.category) == -1) {
                 this.correctNum++;
@@ -915,16 +1213,22 @@ export default class DragNDrop extends RunestoneBase {
         }
         await this.logBookEvent(data);
     }
+    clearPremiseIncorrect(premise) {
+        premise.classList.remove("drop-incorrect");
+        premise.setAttribute("aria-invalid", "false");
+        premise.removeAttribute("aria-errormessage");
+        document
+            .getElementById(premise.id + "_error")
+            ?.classList.add("visuallyhidden");
+    }
     clearIncorrectHighlights() {
         // Remove the red "drop-incorrect" highlighting and related a11y
         // attributes from every placed premise.
-        for (let response of this.dropZoneDiv.childNodes) {
+        for (let response of this.placedResponses()) {
             for (let premise of Array.from(response.childNodes).filter(
                 this.ivp,
             )) {
-                premise.classList.remove("drop-incorrect");
-                premise.setAttribute("aria-invalid", "false");
-                premise.removeAttribute("aria-errormessage");
+                this.clearPremiseIncorrect(premise);
             }
         }
     }
@@ -936,6 +1240,7 @@ export default class DragNDrop extends RunestoneBase {
         // sure it is shown again whenever we render feedback.
         this.feedBackDiv.style.display = "";
         this.feedBackDiv.style.visibility = "visible";
+        this.clearCardInfo();
 
         // Requirement 1: don't give any correctness feedback until the student
         // has attempted to place all the blocks that belong in a dropzone.
@@ -955,7 +1260,7 @@ export default class DragNDrop extends RunestoneBase {
         // Requirement 2: only color the misplaced blocks red once the student
         // has had at least MIN_TRIES_FOR_COLOR gradeable tries.
         let showColors = this.tries >= MIN_TRIES_FOR_COLOR;
-        for (let response of this.dropZoneDiv.childNodes) {
+        for (let response of this.placedResponses()) {
             // iterate over all the premises in the response
             for (let premise of Array.from(response.childNodes).filter(
                 this.ivp,
@@ -973,11 +1278,9 @@ export default class DragNDrop extends RunestoneBase {
                     );
                     document
                         .getElementById(premise.id + "_error")
-                        .classList.remove("vh-dnd-error");
+                        .classList.remove("visuallyhidden");
                 } else {
-                    premise.classList.remove("drop-incorrect");
-                    premise.setAttribute("aria-invalid", "false");
-                    premise.removeAttribute("aria-errormessage");
+                    this.clearPremiseIncorrect(premise);
                 }
             }
         }
@@ -996,15 +1299,156 @@ export default class DragNDrop extends RunestoneBase {
                 this.dragNum,
                 this.unansweredNum,
             );
-            // this.feedback comes from the author (a hint maybe)
+            // this.feedback comes from the author (a hint maybe).
+            // Typeset once the delayed write has put the feedback's math in place.
             setTimeout(() => {
                 this.feedBackDiv.innerHTML = `<div class="para">${msgIncorrect}</div> ${this.feedback}`;
+                this.queueMathJax(this.feedBackDiv);
             }, 10);
+            // Feedback on individual cards says which cards are wrong, so like
+            // the red coloring it waits for MIN_TRIES_FOR_COLOR tries.
+            if (showColors) {
+                this.addCardInfo();
+            }
             this.feedBackDiv.className =
                 "alert alert-danger draggable-feedback exercise-content";
         }
-        this.queueMathJax(this.feedBackDiv);
     }
+    /*
+     * Cards that are out of place: a premise that is not in the response it
+     * belongs in (or a distractor that was placed), and a response whose
+     * contents are wrong.
+     */
+    misplacedCards() {
+        let cards = [];
+        for (let premise of this.premiseArray) {
+            let parent = premise.parentElement;
+            let placedIn = this.responseArray.includes(parent) ? parent : null;
+            let isDistractor = !this.responseArray.some(
+                (r) => r.dataset.category == premise.dataset.category,
+            );
+            let misplaced = placedIn
+                ? placedIn.dataset.category != premise.dataset.category
+                : !isDistractor;
+            if (misplaced) cards.push(premise);
+        }
+        for (let response of this.responseArray) {
+            if (!this.isCorrectDrop(response)) cards.push(response);
+        }
+        return cards;
+    }
+
+    /*
+     * Give every misplaced card that has author feedback an info button (a
+     * disclosure) that shows the feedback in a popover below the card. Cards
+     * have role=button, and a button nested in one is hidden from screen
+     * readers, so the control is a sibling of the card instead: a zero height
+     * box that CSS draws onto the card. A premise's comes after it, at its
+     * bottom-right corner. A response's comes before it, at its top-right
+     * corner beside its label, clear of the last premise placed in it.
+     */
+    addCardInfo() {
+        for (let card of this.misplacedCards()) {
+            let entry = this.cardFeedback[card.id];
+            if (!entry) continue;
+            let info = document.createElement("div");
+            info.classList.add("draggable-card-info");
+            info.dataset.card = card.id;
+            let button = document.createElement("button");
+            button.type = "button";
+            button.classList.add("draggable-card-info-button");
+            let cardLabel = this.premiseArray.includes(card)
+                ? getAccessibleElementText(card)
+                : this.getResponseLabel(card);
+            button.setAttribute(
+                "aria-label",
+                t("msg_dragndrop_card_feedback", cardLabel.trim()),
+            );
+            button.title = t("msg_dragndrop_card_feedback_tip");
+            button.setAttribute("aria-expanded", "false");
+            button.setAttribute("aria-controls", card.id + "_info");
+            button.innerHTML = '<span aria-hidden="true">i</span>';
+            button.addEventListener("click", (ev) => {
+                // Inside a response, a click would otherwise place the
+                // selected premise.
+                ev.stopPropagation();
+                this.toggleCardInfo(card);
+            });
+            let popover = document.createElement("div");
+            popover.id = card.id + "_info";
+            popover.classList.add("draggable-card-info-popover");
+            popover.hidden = true;
+            popover.innerHTML = entry.feedback;
+            popover.addEventListener("click", (ev) => ev.stopPropagation());
+            info.append(button, popover);
+            card.classList.add("has-card-info");
+            if (this.premiseArray.includes(card)) {
+                card.after(info);
+            } else {
+                info.classList.add("for-response");
+                card.before(info);
+            }
+            this.queueMathJax(popover);
+        }
+    }
+
+    cardInfoFor(card) {
+        if (!this.containerDiv) return null;
+        return Array.from(
+            this.containerDiv.querySelectorAll(".draggable-card-info"),
+        ).find((info) => info.dataset.card === card.id);
+    }
+
+    removeCardInfo(card) {
+        this.cardInfoFor(card)?.remove();
+        card.classList.remove("has-card-info");
+    }
+
+    clearCardInfo() {
+        for (let info of this.containerDiv.querySelectorAll(
+            ".draggable-card-info",
+        )) {
+            info.remove();
+        }
+        for (let card of this.containerDiv.querySelectorAll(".has-card-info")) {
+            card.classList.remove("has-card-info");
+        }
+    }
+
+    // Open or close a card's feedback popover. Returns false if it has none.
+    toggleCardInfo(card) {
+        let info = this.cardInfoFor(card);
+        if (!info) return false;
+        let popover = info.querySelector(".draggable-card-info-popover");
+        let opening = popover.hidden;
+        this.closeCardInfo();
+        popover.hidden = !opening;
+        info.classList.toggle("open", opening);
+        info.querySelector("button").setAttribute(
+            "aria-expanded",
+            String(opening),
+        );
+        return true;
+    }
+
+    // Close any open popover, optionally moving focus back to its button if
+    // focus was inside it. Returns true if one was open.
+    closeCardInfo({ restoreFocus = false } = {}) {
+        let closed = false;
+        for (let info of this.containerDiv.querySelectorAll(
+            ".draggable-card-info.open",
+        )) {
+            let button = info.querySelector("button");
+            let hadFocus = info.contains(document.activeElement);
+            info.classList.remove("open");
+            info.querySelector(".draggable-card-info-popover").hidden = true;
+            button.setAttribute("aria-expanded", "false");
+            if (restoreFocus && hadFocus) button.focus();
+            closed = true;
+        }
+        return closed;
+    }
+
     /*===================================
     === Checking/restoring from storage ===
     ===================================*/
@@ -1075,7 +1519,7 @@ export default class DragNDrop extends RunestoneBase {
         if (data.answer === undefined) {
             // If we didn't load from the server, we must generate the data
             this.answerState = {};
-            for (let response of this.dropZoneDiv.childNodes) {
+            for (let response of this.placedResponses()) {
                 this.answerState[response.id] = [];
                 for (let premise of response.childNodes) {
                     if (

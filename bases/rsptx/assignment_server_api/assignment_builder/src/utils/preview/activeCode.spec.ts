@@ -38,32 +38,38 @@ describe("generateActiveCodePreview", () => {
   describe("basic structure", () => {
     it("returns HTML containing the runestone activecode wrapper", () => {
       const html = call();
+
       expect(html).toContain('class="runestone explainer ac_section ');
       expect(html).toContain('data-component="activecode"');
     });
 
     it("embeds the sanitized name as the element id", () => {
       const html = call();
+
       expect(html).toContain('id="my-exercise"');
     });
 
     it("embeds the original name as the data-question_label", () => {
       const html = call();
+
       expect(html).toContain('data-question_label="my-exercise"');
     });
 
     it("renders the instructions inside the question div", () => {
       const html = call();
+
       expect(html).toContain("<p>Write a function.</p>");
     });
 
     it("sets the data-lang attribute to the provided language", () => {
       const html = call();
+
       expect(html).toContain('data-lang="python"');
     });
 
     it("includes prefix, starter, and suffix code separated by the expected delimiters", () => {
       const html = call();
+
       expect(html).toContain("# prefix");
       expect(html).toContain("^^^^");
       expect(html).toContain("pass");
@@ -75,11 +81,13 @@ describe("generateActiveCodePreview", () => {
   describe("name sanitization", () => {
     it("strips special characters from the name when used as id", () => {
       const html = generateActiveCodePreview("Instructions", "python", "", "", "", "hello world!");
+
       expect(html).toContain('id="helloworld"');
     });
 
     it("prepends id_ when name starts with a digit", () => {
       const html = generateActiveCodePreview("Instructions", "python", "", "", "", "123abc");
+
       expect(html).toContain('id="id_123abc"');
     });
   });
@@ -87,16 +95,19 @@ describe("generateActiveCodePreview", () => {
   describe("codelens attribute", () => {
     it("defaults to data-codelens=true when no options are provided", () => {
       const html = call();
+
       expect(html).toContain('data-codelens="true"');
     });
 
     it("sets data-codelens=true when enableCodelens is true", () => {
       const html = call({}, { codeTailorOptions: { enableCodelens: true } });
+
       expect(html).toContain('data-codelens="true"');
     });
 
     it("sets data-codelens=false when enableCodelens is false", () => {
       const html = call({}, { codeTailorOptions: { enableCodelens: false } });
+
       expect(html).toContain('data-codelens="false"');
     });
   });
@@ -104,21 +115,25 @@ describe("generateActiveCodePreview", () => {
   describe("stdin attribute", () => {
     it("does not include data-stdin when stdin is undefined", () => {
       const html = call();
+
       expect(html).not.toContain("data-stdin");
     });
 
     it("does not include data-stdin when stdin is an empty string", () => {
       const html = call({}, { stdin: "" });
+
       expect(html).not.toContain("data-stdin");
     });
 
     it("does not include data-stdin when stdin is whitespace only", () => {
       const html = call({}, { stdin: "   " });
+
       expect(html).not.toContain("data-stdin");
     });
 
     it("includes data-stdin with the provided value when stdin has content", () => {
       const html = call({}, { stdin: "hello input" });
+
       expect(html).toContain('data-stdin="hello input"');
     });
   });
@@ -126,16 +141,19 @@ describe("generateActiveCodePreview", () => {
   describe("data file attribute", () => {
     it("does not include data-datafile when selectedDataFiles is undefined", () => {
       const html = call();
+
       expect(html).not.toContain("data-datafile");
     });
 
     it("does not include data-datafile when selectedDataFiles is empty", () => {
       const html = call({}, { selectedDataFiles: [] });
+
       expect(html).not.toContain("data-datafile");
     });
 
     it("includes a single acid in data-datafile", () => {
       const html = call({}, { selectedDataFiles: [{ acid: "file1.csv" }] });
+
       expect(html).toContain('data-datafile="file1.csv"');
     });
 
@@ -146,6 +164,7 @@ describe("generateActiveCodePreview", () => {
           selectedDataFiles: [{ acid: "file1.csv" }, { acid: "file2.csv" }, { acid: "file3.csv" }]
         }
       );
+
       expect(html).toContain('data-datafile="file1.csv,file2.csv,file3.csv"');
     });
   });
@@ -161,6 +180,7 @@ describe("generateActiveCodePreview", () => {
           }
         }
       );
+
       expect(html).not.toContain("data-parsonspersonalize");
       expect(html).not.toContain("data-parsonsexample");
     });
@@ -175,6 +195,7 @@ describe("generateActiveCodePreview", () => {
           }
         }
       );
+
       expect(html).not.toContain("data-parsonspersonalize");
     });
 
@@ -188,6 +209,7 @@ describe("generateActiveCodePreview", () => {
           }
         }
       );
+
       expect(html).toContain('data-parsonspersonalize="movable"');
       expect(html).toContain('data-parsonsexample="LLM-example"');
     });
@@ -203,6 +225,7 @@ describe("generateActiveCodePreview", () => {
           }
         }
       );
+
       expect(html).toContain('data-parsonspersonalize="partial"');
       expect(html).toContain('data-parsonsexample="my-example"');
     });
@@ -218,7 +241,113 @@ describe("generateActiveCodePreview", () => {
           }
         }
       );
+
       expect(html).toContain('data-parsonsexample="LLM-example"');
+    });
+  });
+
+  describe("advanced options from books", () => {
+    const withOptions = (advanced: Parameters<typeof generateActiveCodePreview>[9]) =>
+      generateActiveCodePreview(
+        "",
+        "cpp",
+        "",
+        "int main() {",
+        "",
+        "ac",
+        undefined,
+        undefined,
+        undefined,
+        advanced
+      );
+
+    it("writes nothing extra when no option is set", () => {
+      expect(withOptions({})).toBe(
+        generateActiveCodePreview("", "cpp", "", "int main() {", "", "ac")
+      );
+    });
+
+    it("writes each option as its textarea attribute", () => {
+      const html = withOptions({
+        timeLimit: 1000,
+        compileArgs: "['-std=c++17', '-Wall']",
+        addFiles: ["add_h", "add_cpp"],
+        includes: ["first", "second"],
+        highlightLines: "1-2,5",
+        autoRun: true,
+        hideCode: false,
+        caption: 'Say "hi"'
+      });
+
+      expect(html).toContain("data-timelimit=1000");
+      expect(html).toContain(`data-compileargs="['-std=c++17', '-Wall']"`);
+      expect(html).toContain('data-add-files="add_h,add_cpp"');
+      expect(html).toContain('data-include="first second"');
+      expect(html).toContain('data-highlight-lines="1-2,5"');
+      expect(html).toContain('data-autorun="yes"');
+      expect(html).not.toContain("data-hidecode");
+      expect(html).toContain('data-caption="Say &quot;hi&quot;"');
+    });
+
+    it("puts visible code and io tests where activecode.js looks for them", () => {
+      const html = withOptions({
+        visible_prefix_code: "#include <iostream>",
+        visible_suffix_code: "}",
+        iotests: [{ input: "1\n", out: "*\n" }],
+        filename: "main.cpp"
+      });
+
+      expect(html).toContain('data-filename="main.cpp"');
+      expect(html).toContain(
+        '\n^^^^\n#include &lt;iostream>\n^^^!\nint main() {\n===!\n}\n====\n\n===iotests===\n[{"input":"1\\n","out":"*\\n"}]\n</textarea>'
+      );
+    });
+  });
+
+  describe("escaping the code", () => {
+    const codeOf = (html: string): string =>
+      (
+        new DOMParser()
+          .parseFromString(html, "text/html")
+          .querySelector("textarea") as HTMLTextAreaElement
+      ).value;
+
+    it("reads back exactly the code it was given", () => {
+      const starter = 'return str.replaceAll(">", "&gt;").replaceAll("<", "&lt;");';
+      const html = generateActiveCodePreview(
+        "",
+        "java",
+        'String a = "&amp;";',
+        starter,
+        'assert "</textarea>" != null;',
+        "ac"
+      );
+      const code = codeOf(html);
+
+      expect(code).toContain(starter);
+      expect(code).toContain('String a = "&amp;";');
+      expect(code).toContain('assert "</textarea>" != null;');
+    });
+
+    it("escapes visible code and io tests too", () => {
+      const html = generateActiveCodePreview(
+        "",
+        "cpp",
+        "",
+        "x",
+        "",
+        "ac",
+        undefined,
+        undefined,
+        undefined,
+        {
+          visible_prefix_code: "// &lt;",
+          iotests: [{ input: "", out: "a < b & c" }]
+        }
+      );
+
+      expect(codeOf(html)).toContain("// &lt;\n^^^!");
+      expect(codeOf(html)).toContain('"out":"a < b & c"');
     });
   });
 });

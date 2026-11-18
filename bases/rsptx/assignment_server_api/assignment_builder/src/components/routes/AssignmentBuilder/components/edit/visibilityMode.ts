@@ -10,10 +10,10 @@ export const getVisibilityMode = (
   visibleOn: string | null | undefined,
   hiddenOn: string | null | undefined
 ): VisibilityMode => {
+  if (visibleOn && hiddenOn) {
+    return "scheduled_period";
+  }
   if (!visible) {
-    if (visibleOn && hiddenOn) {
-      return "scheduled_period";
-    }
     if (visibleOn) {
       return "scheduled_visible";
     }

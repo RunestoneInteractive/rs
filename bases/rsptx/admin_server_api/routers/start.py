@@ -28,6 +28,7 @@ templates = get_shared_templates()
 async def get_started(request: Request):
     """Wayfinding page: pick who you are, then follow the steps to your first book."""
     return templates.TemplateResponse(
+        request,
         "get_started.html",
         {
             "request": request,

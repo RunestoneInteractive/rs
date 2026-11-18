@@ -1,5 +1,6 @@
-import { renderWithMantine } from "@/test/renderWithMantine";
 import { fireEvent, screen } from "@testing-library/react";
+
+import { renderWithMantine } from "@/test/renderWithMantine";
 
 import { ImportQuestionJsonModal } from "./ImportQuestionJsonModal";
 

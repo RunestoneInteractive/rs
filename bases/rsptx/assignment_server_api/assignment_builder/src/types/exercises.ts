@@ -2,6 +2,8 @@ import { BlankWithFeedback } from "@components/routes/AssignmentBuilder/componen
 
 import { SelectedDataFile } from "@/types/datafile";
 import { FilterMatchMode } from "@/types/filterMatchMode";
+import { ActiveCodeAdvancedOptions } from "@/utils/preview/activeCode";
+import { ParsonsRunnableOptions } from "@/utils/preview/parsonsPreview";
 import { ParsonsBlock } from "@/utils/preview/parsonsPreview";
 
 export const supportedExerciseTypesToEdit = [
@@ -68,6 +70,10 @@ export type Exercise = {
   owner: string;
   tags: string;
   num: number;
+  chapter_num?: number;
+  sub_chapter_num?: number;
+  chapter_name?: string;
+  sub_chapter_name?: string;
   numQuestions: number;
   required: boolean;
   title: string;
@@ -88,8 +94,8 @@ export type QuestionJSON = Partial<{
   attachment: boolean;
   statement: string;
   optionList: Option[];
-  left: { id: string; label: string }[];
-  right: { id: string; label: string }[];
+  left: { id: string; label: string; feedback?: string }[];
+  right: { id: string; label: string; feedback?: string }[];
   correctAnswers: string[][];
   feedback: string;
   blocks: ParsonsBlock[];
@@ -98,7 +104,11 @@ export type QuestionJSON = Partial<{
   poll_type: string;
   scale_min: number;
   scale_max: number;
+  // poll: who sees the results, "all" (students too) or "instructor"
+  results: PollResults;
   forceCheckboxes: boolean;
+  // mchoice: show the answers in a random order
+  random: boolean;
   questionList: string[];
   questionLabels: Record<string, string>;
   abExperimentName: string;
@@ -120,7 +130,13 @@ export type QuestionJSON = Partial<{
   grader: "line" | "dag";
   orderMode: "random" | "custom";
   customOrder: number[];
-}>;
+  runnable: boolean;
+  runnableCode: string;
+  runnableOptions: ParsonsRunnableOptions;
+}> &
+  ActiveCodeAdvancedOptions;
+
+export type PollResults = "instructor" | "all";
 
 export type CreateExerciseFormType = Omit<Exercise, "question_json"> & QuestionJSON;
 

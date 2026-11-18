@@ -18,6 +18,10 @@ COPY projects/caddy/Caddyfile /etc/caddy/Caddyfile
 # (mirrors what projects/nginx/Dockerfile does for nginx).
 COPY components/rsptx/templates/staticAssets /srv/staticAssets
 
+# Maintenance page, served while the flag file in /srv/maintenance-flag exists
+# (a host bind mount, see docker-compose.yml and the @maintenance block).
+COPY projects/caddy/maintenance.html /srv/maintenance/index.html
+
 # This image is an alternative to projects/nginx. It performs identical routing
 # but uses Caddy so HTTPS works out of the box - automatic Let's Encrypt for a
 # real domain, or a locally-trusted cert for dev. See projects/caddy/Caddyfile

@@ -167,3 +167,98 @@ async def test_results_are_ordered_by_term_start(dated_courses):
     rows = await fetch_courses_by_start_date(since=datetime.date(2019, 1, 1))
     dates = [c.term_start_date for c in rows]
     assert dates == sorted(dates)
+
+
+# ---------------------------------------------------------------------------
+# is_course_instructor -- the redis-cached instructor check
+# ---------------------------------------------------------------------------
+
+
+class _FakeRedis:
+    """Just enough of redis.asyncio for the instructor cache."""
+
+    def __init__(self, fail=False):
+        self.store = {}
+        self.fail = fail
+
+    async def get(self, key):
+        if self.fail:
+            from redis.exceptions import ConnectionError
+
+            raise ConnectionError("redis is down")
+        return self.store.get(key)
+
+    async def set(self, key, value, ex=None):
+        self.store[key] = value.encode()
+
+    async def delete(self, key):
+        self.store.pop(key, None)
+
+
+@pytest.fixture(scope="session")
+async def instructor_cache_courses(init_test_db):
+    """Two courses of our own, so instructor rows here touch no other test."""
+    made = []
+    for name in ("instructor_cache_a", "instructor_cache_b", "instructor_cache_c"):
+        made.append(
+            await create_course(
+                CoursesValidator(
+                    course_name=name,
+                    base_course="overview",
+                    term_start_date=datetime.date(2026, 1, 1),
+                    login_required=False,
+                    allow_pairs=False,
+                    downloads_enabled=False,
+                    courselevel="",
+                    institution="Test University",
+                    new_server=True,
+                )
+            )
+        )
+    return made
+
+
+async def test_is_course_instructor_uncached(test_user, instructor_cache_courses):
+    """With no cache (the test config) the answer comes from the database."""
+    from rsptx.db.crud import create_course_instructor, is_course_instructor
+
+    course_id = instructor_cache_courses[2].id
+    assert await is_course_instructor(test_user.id, course_id) is False
+    await create_course_instructor(course_id, test_user.id)
+    assert await is_course_instructor(test_user.id, course_id) is True
+
+
+async def test_is_course_instructor_cache_invalidated_by_writers(
+    test_user, instructor_cache_courses, monkeypatch
+):
+    """A cached answer is served until a writer clears it."""
+    from rsptx.db.crud import course as course_crud
+
+    fake = _FakeRedis()
+    monkeypatch.setattr(course_crud, "_instructor_cache", lambda: fake)
+    course_id = instructor_cache_courses[0].id
+
+    assert await course_crud.is_course_instructor(test_user.id, course_id) is False
+    key = course_crud._instructor_key(test_user.id, course_id)
+    assert fake.store[key] == b"0"
+
+    await course_crud.create_instructor_course_entry(test_user.id, course_id)
+    assert key not in fake.store
+    assert await course_crud.is_course_instructor(test_user.id, course_id) is True
+    assert fake.store[key] == b"1"
+
+    await course_crud.delete_course_instructor(course_id, test_user.id)
+    assert key not in fake.store
+    assert await course_crud.is_course_instructor(test_user.id, course_id) is False
+
+
+async def test_is_course_instructor_falls_back_when_redis_fails(
+    test_user, instructor_cache_courses, monkeypatch
+):
+    """A redis outage must not turn into an error or a wrong answer."""
+    from rsptx.db.crud import course as course_crud
+
+    monkeypatch.setattr(course_crud, "_instructor_cache", lambda: _FakeRedis(True))
+    course_id = instructor_cache_courses[1].id
+    await course_crud.create_course_instructor(course_id, test_user.id)
+    assert await course_crud.is_course_instructor(test_user.id, course_id) is True

@@ -6,12 +6,15 @@ Reports are generated as background tasks; results are stored in Redis
 so any server in the cluster can serve the polling responses.
 """
 
+import asyncio
+import datetime
 import json
 import uuid
 from typing import Optional
 
 import pandas as pd
 import redis as redis_lib
+from redis import asyncio as aioredis
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -22,12 +25,22 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
-from sqlalchemy import create_engine
 
 from rsptx.auth.session import auth_manager
+from rsptx.db.sync_session import engine
 from rsptx.configuration import settings
+from rsptx.data_types.answer_storage import (
+    CODE_TABLE_TYPES,
+    IFRAME_QUESTION_TYPES,
+    QTYPE_TO_TABLE,
+)
+from rsptx.data_types.interactions import PAGE_KEY_PREFIX
+from rsptx.db.crud import fetch_all_course_attributes, fetch_deadline_exception
 from rsptx.endpoint_validators import instructor_role_required, with_course
+from rsptx.grading_helpers.comments import display_comment
 from rsptx.logging import rslogger
+from rsptx.response_helpers import prepare_question_htmlsrc
+from rsptx.response_helpers.core import get_webpack_static_imports
 from rsptx.templates import format_course_datetime, get_shared_templates
 
 # ---------------------------------------------------------------------------
@@ -64,9 +77,43 @@ def _format_duedate(value, course_timezone: Optional[str]) -> str:
 
 TASK_TTL_SECONDS = 1800  # 30 minutes
 
+# One client of each flavour per process, built on first use. ``from_url``
+# constructs a *new* connection pool every time it is called, so calling it per
+# request leaked a pool -- and its sockets -- on every poll of a running report.
+# Both clients are internally pooled and safe to share.
+_sync_client: Optional[redis_lib.Redis] = None
+_async_client: Optional[aioredis.Redis] = None
+
 
 def _get_redis() -> redis_lib.Redis:
-    return redis_lib.from_url(settings.redis_uri, decode_responses=True)
+    """Return the shared blocking client; only use it from a worker thread."""
+    global _sync_client
+    if _sync_client is None:
+        _sync_client = redis_lib.from_url(settings.redis_uri, decode_responses=True)
+    return _sync_client
+
+
+def _get_async_redis() -> aioredis.Redis:
+    """Return the shared asyncio client, for use from request handlers.
+
+    The blocking client's ``get``/``set`` are ordinary socket round trips. Called
+    from an ``async def`` handler they stall the event loop, and the two
+    result-polling endpoints are hit every second or two for the whole life of a
+    report -- once per instructor watching one.
+    """
+    global _async_client
+    if _async_client is None:
+        _async_client = aioredis.from_url(settings.redis_uri, decode_responses=True)
+    return _async_client
+
+
+def _to_csv(records: list, na_rep: str) -> str:
+    """Render cached report records as CSV.
+
+    Blocking (pandas); call via ``asyncio.to_thread``. A full-course report is
+    a wide table -- one column per student -- so this is not free.
+    """
+    return pd.DataFrame(records).to_csv(index=False, na_rep=na_rep)
 
 
 def _task_key(task_id: str) -> str:
@@ -77,8 +124,14 @@ def _set_task(r: redis_lib.Redis, task_id: str, payload: dict) -> None:
     r.set(_task_key(task_id), json.dumps(payload), ex=TASK_TTL_SECONDS)
 
 
-def _get_task(r: redis_lib.Redis, task_id: str) -> Optional[dict]:
-    raw = r.get(_task_key(task_id))
+async def _aset_task(key: str, payload: dict) -> None:
+    """Store a task payload under the already-built ``key``."""
+    await _get_async_redis().set(key, json.dumps(payload), ex=TASK_TTL_SECONDS)
+
+
+async def _aget_task(key: str) -> Optional[dict]:
+    """Read a task payload, or None if it never existed or has expired."""
+    raw = await _get_async_redis().get(key)
     if raw is None:
         return None
     return json.loads(raw)
@@ -126,8 +179,6 @@ def _build_report(
     """Run in a BackgroundTask. Writes result JSON to Redis."""
     r = _get_redis()
     try:
-        engine = create_engine(settings.dburl)
-
         if tablekind == "correctcount":
             data = _make_correct_count(engine, course_name, base_course, chapter)
         else:
@@ -141,16 +192,23 @@ def _build_report(
         _set_task(r, task_id, {"status": "error", "message": str(exc)})
 
 
-def _chapter_clause_for_useinfo(chapter: str) -> str:
+def _chapter_clause(column: str, chapter: str, params: dict) -> str:
+    """Return a bound ``and <column> = %(chapter)s`` fragment, or ``""`` for all.
+
+    The chapter label arrives in a request body, so it is bound as a parameter
+    rather than interpolated: the previous ``f"and chapter = \'{chapter}\'"``
+    put caller-supplied text straight into the SQL.
+
+    :param column: the qualified column to compare, e.g. ``questions.chapter``.
+    :param chapter: the requested chapter label, or ``"all"``.
+    :param params: the query's parameter dict; mutated to carry ``chapter``.
+    :return: a SQL fragment to splice into the query.
+    :rtype: str
+    """
     if chapter == "all":
         return ""
-    return f"and chapter = '{chapter}'"
-
-
-def _chapter_clause_for_chapters(chapter: str, chap_labs: list) -> str:
-    if chapter == "all":
-        return ""
-    return f"and chapters.chapter_label = '{chapter}'"
+    params["chapter"] = chapter
+    return f"and {column} = %(chapter)s"
 
 
 def _student_label(last_name: str, first_name: str, username: str) -> str:
@@ -197,6 +255,38 @@ def _pad_with_enrolled(pt: pd.DataFrame, labels: list, fill_value) -> pd.DataFra
     return pt[sorted(pt.columns, key=lambda col: str(col).lower())]
 
 
+# The aggregate and pivot index for each table kind. The aggregation runs in
+# PostgreSQL rather than in pandas because the un-aggregated form of this query
+# returns one row per recorded click: for a large course that is millions of
+# rows, and building/pivoting that DataFrame holds the GIL for seconds at a
+# time. A worker thread holding the GIL stalls the event loop just as surely as
+# blocking on it directly -- which is exactly what the pool monitor reports as
+# loop lag. Aggregating first turns the result into one row per
+# (student, subchapter), which is what the report actually displays.
+#
+# The rows come from user_interactions, one per (student, item) with the
+# interaction count and first/last times already summarized, rather than from
+# useinfo's raw click log.
+_ACTIVITY_AGGREGATES = {
+    "sccount": ("count(distinct ui.div_id)", ["chapter", "subchapter"], False),
+    "dividmin": (
+        "min(ui.first_interaction)",
+        ["chapter", "subchapter", "div_id"],
+        True,
+    ),
+    "dividmax": (
+        "max(ui.last_interaction)",
+        ["chapter", "subchapter", "div_id"],
+        True,
+    ),
+}
+_DEFAULT_ACTIVITY_AGGREGATE = (
+    "sum(ui.interactions)",
+    ["chapter", "subchapter", "div_id"],
+    False,
+)
+
+
 def _make_activity_table(
     engine,
     course_name: str,
@@ -206,56 +296,49 @@ def _make_activity_table(
     tz_offset_hours: float,
 ) -> list:
     """Builds sccount / dividmin / dividmax pivot tables."""
-    ch_clause = _chapter_clause_for_useinfo(chapter)
+    agg_expr, idxlist, is_timestamp = _ACTIVITY_AGGREGATES.get(
+        tablekind, _DEFAULT_ACTIVITY_AGGREGATE
+    )
+    params = {"base_course": base_course, "course_name": course_name}
+    ch_clause = _chapter_clause("questions.chapter", chapter, params)
 
+    # div_id is only in the index for the per-exercise tables; leaving it out of
+    # the GROUP BY for sccount is what collapses the result to one row per
+    # subchapter per student.
+    extra_group = ", ui.div_id" if "div_id" in idxlist else ""
+
+    # The student label, the LTI-anonymous filter and the timezone shift all used
+    # to be per-row pandas work over the raw click log. In SQL they cost nothing.
     data = pd.read_sql_query(
         f"""
-        select sid, first_name, last_name, useinfo.timestamp, div_id, chapter, subchapter
-        from useinfo
-        join questions on div_id = name and base_course = %(base_course)s {ch_clause}
-        join auth_user on username = useinfo.sid
-        where useinfo.course_id = %(course_name)s and active = 'T'
+        select auth_user.last_name || ', ' || auth_user.first_name
+                   || ' (' || ui.sid || ')' as sid,
+               questions.chapter, questions.subchapter{extra_group},
+               {agg_expr} as value
+        from user_interactions ui
+        join questions on ui.div_id = questions.name
+                      and questions.base_course = %(base_course)s {ch_clause}
+        join auth_user on auth_user.username = ui.sid
+        where ui.course_name = %(course_name)s
+          and auth_user.active = 'T'
+          and auth_user.username !~ '^[0-9]{{38,}}@'
+        group by 1, questions.chapter, questions.subchapter{extra_group}
         """,
         engine,
-        params={"base_course": base_course, "course_name": course_name},
-        parse_dates=["timestamp"],
+        params=params,
+        parse_dates=["value"] if is_timestamp else None,
     )
-
-    # Remove LTI anonymous users (38+ digit @ usernames)
-    data = data[~data.sid.str.contains(r"^\d{38,}@", regex=True)]
-
-    # Apply timezone offset
-    tdoff = pd.Timedelta(hours=tz_offset_hours)
-    data["timestamp"] = data["timestamp"].map(lambda x: x - tdoff)
-
-    # Build student label — must match _student_label(), which is used to
-    # backfill students with no recorded activity.
-    data["sid"] = (
-        data["last_name"] + ", " + data["first_name"] + " (" + data["sid"] + ")"
-    )
-
-    if tablekind == "sccount":
-        values = "div_id"
-        afunc = "nunique"
-        idxlist = ["chapter", "subchapter"]
-    elif tablekind == "dividmin":
-        values = "timestamp"
-        afunc = "min"
-        idxlist = ["chapter", "subchapter", "div_id"]
-    elif tablekind == "dividmax":
-        values = "timestamp"
-        afunc = "max"
-        idxlist = ["chapter", "subchapter", "div_id"]
-    else:
-        values = "timestamp"
-        afunc = "count"
-        idxlist = ["chapter", "subchapter", "div_id"]
 
     if data.empty:
         rslogger.warning(f"Empty dataframe for subchapoverview {course_name}/{chapter}")
         return []
 
-    pt = data.pivot_table(index=idxlist, values=values, columns="sid", aggfunc=afunc)
+    # Vectorized, and over the aggregated frame rather than every click.
+    if is_timestamp:
+        data["value"] = data["value"] - pd.Timedelta(hours=tz_offset_hours)
+
+    # One row per (index, student) already, so "first" simply reshapes.
+    pt = data.pivot_table(index=idxlist, values="value", columns="sid", aggfunc="first")
 
     if pt.empty:
         return []
@@ -274,10 +357,8 @@ def _make_activity_table(
     )
 
     # Pull chapter/subchapter ordering info
-    if chapter == "all":
-        ch_join_clause = ""
-    else:
-        ch_join_clause = f"and chapters.chapter_label = '{chapter}'"
+    cmap_params = {"base_course": base_course}
+    ch_join_clause = _chapter_clause("chapters.chapter_label", chapter, cmap_params)
 
     cmap = pd.read_sql_query(
         f"""
@@ -288,7 +369,7 @@ def _make_activity_table(
         order by chapter_num, sub_chapter_num
         """,
         engine,
-        params={"base_course": base_course},
+        params=cmap_params,
     )
 
     act_count = pd.read_sql_query(
@@ -363,40 +444,51 @@ def _make_correct_count(
     chapter: str,
 ) -> list:
     """Builds the correctcount pivot table from all answer tables."""
-    union_parts = "\n    union\n    ".join(
-        f"(select div_id, sid, correct, percent from {tbl} where course_name = %(course_name)s)"
+    # Both the ``correct`` test and the chapter filter used to run in pandas,
+    # after every answer row in the course had been pulled out of eight tables
+    # and joined to ``questions``. Pushing them -- and the de-duplication and the
+    # count -- into SQL turns a frame with one row per submission into one row
+    # per (subchapter, student). See ``_ACTIVITY_AGGREGATES`` for why the size of
+    # that frame is what the admin server's loop lag was really about.
+    params = {"course_name": course_name, "base_course": base_course}
+    ch_clause = _chapter_clause("questions.chapter", chapter, params)
+
+    # ``union all`` rather than ``union``: the ``select distinct`` below subsumes
+    # the cross-table de-duplication the old query paid for twice.
+    union_parts = "\n            union all\n            ".join(
+        f"(select div_id, sid, percent from {tbl}"
+        f" where course_name = %(course_name)s and correct = 'T')"
         for tbl in ANSWER_TABLES
     )
     df = pd.read_sql_query(
         f"""
-        select div_id, sid, correct, percent, chapter, subchapter
+        select subchapter as chapter_label, sid, count(*) as n
         from (
+            select distinct T.div_id, T.sid, T.percent,
+                   questions.chapter, questions.subchapter
+            from (
             {union_parts}
-        ) as T
-        join questions on div_id = name and base_course = %(base_course)s
+            ) as T
+            join questions on T.div_id = questions.name
+                          and questions.base_course = %(base_course)s {ch_clause}
+        ) as d
+        group by 1, 2
         """,
         engine,
-        params={"course_name": course_name, "base_course": base_course},
+        params=params,
     )
 
-    if chapter == "all":
-        correct = df[df.correct == "T"]
-    else:
-        correct = df[(df.correct == "T") & (df.chapter == chapter)]
-
-    correct = correct.drop_duplicates()
-
-    if correct.empty:
+    if df.empty:
         return []
 
-    mtbl = correct.pivot_table(
-        index="subchapter",
+    # One row per (subchapter, student) already, so this only reshapes.
+    mtbl = df.pivot_table(
+        index="chapter_label",
         columns="sid",
-        values="correct",
-        aggfunc="count",
+        values="n",
+        aggfunc="sum",
         fill_value=0,
-    )
-    mtbl = mtbl.reset_index().rename(columns={"subchapter": "chapter_label"})
+    ).reset_index()
     mtbl.sort_values("chapter_label", inplace=True)
 
     # Ensure all enrolled students appear (even those with 0 correct)
@@ -433,7 +525,7 @@ def _build_student_detail(
     tdoff = pd.Timedelta(hours=tz_offset_hours)
 
     # ------------------------------------------------------------------
-    # 1. Activity from useinfo (every click this student made)
+    # 1. Activity from user_interactions (this student's clicks, summarized)
     # ------------------------------------------------------------------
     # Use a DISTINCT subquery on questions so that if a div_id appears more
     # than once in the questions table (duplicate rows or multi-chapter entries)
@@ -441,19 +533,19 @@ def _build_student_detail(
     # the plain JOIN fans out and inflates count(*) / sum() values.
     activity = pd.read_sql_query(
         """
-        select useinfo.div_id, q.chapter, q.subchapter,
-               count(*) as clicks,
-               min(useinfo.timestamp) as first_visit,
-               max(useinfo.timestamp) as last_visit
-        from useinfo
+        select ui.div_id, q.chapter, q.subchapter,
+               sum(ui.interactions) as clicks,
+               min(ui.first_interaction) as first_visit,
+               max(ui.last_interaction) as last_visit
+        from user_interactions ui
         join (
             select distinct name, chapter, subchapter
             from questions
             where base_course = %(base_course)s
-        ) q on useinfo.div_id = q.name
-        where useinfo.course_id = %(course_name)s and useinfo.sid = %(sid)s
-        group by useinfo.div_id, q.chapter, q.subchapter
-        order by q.chapter, q.subchapter, useinfo.div_id
+        ) q on ui.div_id = q.name
+        where ui.course_name = %(course_name)s and ui.sid = %(sid)s
+        group by ui.div_id, q.chapter, q.subchapter
+        order by q.chapter, q.subchapter, ui.div_id
         """,
         engine,
         params={"base_course": base_course, "course_name": course_name, "sid": sid},
@@ -462,8 +554,10 @@ def _build_student_detail(
 
     # Apply timezone offset
     if not activity.empty:
-        activity["first_visit"] = activity["first_visit"].map(lambda x: x - tdoff)
-        activity["last_visit"] = activity["last_visit"].map(lambda x: x - tdoff)
+        # Vectorized: ``.map(lambda ...)`` over a datetime column is a Python
+        # call per row, and every one of them holds the GIL.
+        activity["first_visit"] = activity["first_visit"] - tdoff
+        activity["last_visit"] = activity["last_visit"] - tdoff
 
     # ------------------------------------------------------------------
     # 2. Answers from all graded answer tables
@@ -645,6 +739,24 @@ def _build_student_detail(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_chapters(base_course: str) -> list:
+    """Return the chapter list for ``base_course``.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+    """
+    chapters_df = pd.read_sql_query(
+        """
+        select chapter_name, chapter_label
+        from chapters
+        where course_id = %(base_course)s
+        order by chapter_num
+        """,
+        engine,
+        params={"base_course": base_course},
+    )
+    return chapters_df.to_dict(orient="records")
+
+
 @router.get("/subchapoverview", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
@@ -654,18 +766,7 @@ async def get_subchapoverview(
     course=None,
 ):
     """Serve the chapter overview report shell page."""
-    engine = create_engine(settings.dburl)
-    chapters_df = pd.read_sql_query(
-        """
-        select chapter_name, chapter_label
-        from chapters
-        where course_id = %(base_course)s
-        order by chapter_num
-        """,
-        engine,
-        params={"base_course": course.base_course},
-    )
-    chapters = chapters_df.to_dict(orient="records")
+    chapters = await asyncio.to_thread(_fetch_chapters, course.base_course)
 
     context = {
         "request": request,
@@ -676,7 +777,9 @@ async def get_subchapoverview(
         "student_page": False,
         "settings": settings,
     }
-    return templates.TemplateResponse("admin/analytics/subchapoverview.html", context)
+    return templates.TemplateResponse(
+        request, "admin/analytics/subchapoverview.html", context
+    )
 
 
 @router.post("/subchapoverview/generate")
@@ -715,8 +818,7 @@ async def generate_subchapoverview(
         )
 
     task_id = str(uuid.uuid4())
-    r = _get_redis()
-    _set_task(r, task_id, {"status": "pending"})
+    await _aset_task(_task_key(task_id), {"status": "pending"})
 
     background_tasks.add_task(
         _build_report,
@@ -743,8 +845,7 @@ async def get_subchapoverview_result(
     user=Depends(auth_manager),
 ):
     """Poll Redis for the status/result of a previously submitted report task."""
-    r = _get_redis()
-    payload = _get_task(r, task_id)
+    payload = await _aget_task(_task_key(task_id))
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -763,16 +864,14 @@ async def download_subchapoverview_csv(
     course=None,
 ):
     """Stream the cached report as a CSV download."""
-    r = _get_redis()
-    payload = _get_task(r, task_id)
+    payload = await _aget_task(_task_key(task_id))
     if payload is None or payload.get("status") != "complete":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found, not yet complete, or expired",
         )
 
-    df = pd.DataFrame(payload["data"])
-    csv_content = df.to_csv(index=False, na_rep=" ")
+    csv_content = await asyncio.to_thread(_to_csv, payload["data"], " ")
 
     filename = f"data_for_{course.course_name}.csv"
     return StreamingResponse(
@@ -795,13 +894,6 @@ def _set_ao_task(r: redis_lib.Redis, task_id: str, payload: dict) -> None:
     r.set(_ao_task_key(task_id), json.dumps(payload), ex=TASK_TTL_SECONDS)
 
 
-def _get_ao_task(r: redis_lib.Redis, task_id: str) -> Optional[dict]:
-    raw = r.get(_ao_task_key(task_id))
-    if raw is None:
-        return None
-    return json.loads(raw)
-
-
 # ---------------------------------------------------------------------------
 # Assignment Overview — background report generation
 # ---------------------------------------------------------------------------
@@ -816,7 +908,6 @@ def _build_assignment_report(
     """Run in a BackgroundTask. Builds per-question stats for an assignment."""
     r = _get_redis()
     try:
-        engine = create_engine(settings.dburl)
         data = _make_assignment_table(
             engine, assignment_id, course_name, tz_offset_hours
         )
@@ -830,6 +921,60 @@ def _build_assignment_report(
             f"assignmentoverview background task {task_id} failed: {exc}"
         )
         _set_ao_task(r, task_id, {"status": "error", "message": str(exc)})
+
+
+def _reading_interactions(
+    engine, course_name: str, reading_ids: list, sid: Optional[str] = None
+) -> pd.DataFrame:
+    """Interaction counts for the readings (``page`` questions) in an assignment.
+
+    A reading's own name is never logged.  What a student does with a reading
+    is open the page -- tracked in ``user_interactions`` under the page's
+    ``page_interaction_key``, ``page:<chapter>/<subchapter>`` -- and work the
+    activities on it.  Both count here, with the same activities the reading
+    progress bar counts: from the book source, not optional.
+
+    Returns one row per (sid, reading) with the columns of the main
+    interactions query.  Blocking (pandas); call from a worker thread.
+    """
+    columns = ["sid", "div_id", "interactions", "first_interaction", "last_interaction"]
+    if not reading_ids:
+        return pd.DataFrame(columns=columns)
+    sid_clause = "AND ui.sid = %(sid)s" if sid else ""
+    return pd.read_sql_query(
+        f"""
+        WITH pages AS (
+            SELECT q.name, q.base_course, q.chapter, q.subchapter,
+                   '{PAGE_KEY_PREFIX}' || q.chapter || '/' || q.subchapter AS key
+            FROM questions q
+            WHERE q.id = ANY(%(reading_ids)s)
+        ),
+        items AS (
+            SELECT p.name, p.key AS div_id FROM pages p
+            UNION
+            SELECT p.name, a.name
+            FROM questions a
+            JOIN pages p
+              ON a.base_course = p.base_course
+             AND a.chapter = p.chapter
+             AND a.subchapter = p.subchapter
+            WHERE a.from_source = 'T'
+              AND (a.optional = 'F' OR a.optional IS NULL)
+              AND a.question_type <> 'page'
+        )
+        SELECT ui.sid, i.name AS div_id,
+               SUM(ui.interactions) AS interactions,
+               MIN(ui.first_interaction) AS first_interaction,
+               MAX(ui.last_interaction) AS last_interaction
+        FROM user_interactions ui
+        JOIN items i ON i.div_id = ui.div_id
+        WHERE ui.course_name = %(course_name)s {sid_clause}
+        GROUP BY ui.sid, i.name
+        """,
+        engine,
+        params={"course_name": course_name, "reading_ids": reading_ids, "sid": sid},
+        parse_dates=["first_interaction", "last_interaction"],
+    )
 
 
 def _make_assignment_table(
@@ -851,7 +996,7 @@ def _make_assignment_table(
     # 1. Questions in this assignment
     questions = pd.read_sql_query(
         """
-        SELECT q.name AS div_id, q.question_type,
+        SELECT q.id AS question_id, q.name AS div_id, q.question_type,
                aq.points, aq.sorting_priority
         FROM assignment_questions aq
         JOIN questions q ON q.id = aq.question_id
@@ -864,7 +1009,7 @@ def _make_assignment_table(
     if questions.empty:
         return []
 
-    div_ids = tuple(questions["div_id"].tolist())
+    div_ids = questions["div_id"].tolist()
 
     # 2. Enrolled students (non-LTI, non-instructor)
     enrolled = pd.read_sql_query(
@@ -891,29 +1036,27 @@ def _make_assignment_table(
     ]
     n_enrolled = len(enrolled)
 
-    # 3. Interaction data from useinfo
+    # 3. Interaction data from user_interactions
     interactions = pd.read_sql_query(
         """
-        SELECT sid, div_id,
-               COUNT(*) AS interactions,
-               MIN(timestamp) AS first_interaction,
-               MAX(timestamp) AS last_interaction
-        FROM useinfo
-        WHERE course_id = %(course_name)s
-          AND div_id IN %(div_ids)s
-        GROUP BY sid, div_id
+        SELECT sid, div_id, interactions, first_interaction, last_interaction
+        FROM user_interactions
+        WHERE course_name = %(course_name)s
+          AND div_id = ANY(%(div_ids)s)
         """,
         engine,
         params={"course_name": course_name, "div_ids": div_ids},
         parse_dates=["first_interaction", "last_interaction"],
     )
+    reading_ids = questions.loc[
+        questions["question_type"] == "page", "question_id"
+    ].tolist()
+    readings = _reading_interactions(engine, course_name, reading_ids)
+    if not readings.empty:
+        interactions = pd.concat([interactions, readings], ignore_index=True)
     if not interactions.empty:
-        interactions["first_interaction"] = interactions["first_interaction"].map(
-            lambda x: x - tdoff
-        )
-        interactions["last_interaction"] = interactions["last_interaction"].map(
-            lambda x: x - tdoff
-        )
+        interactions["first_interaction"] = interactions["first_interaction"] - tdoff
+        interactions["last_interaction"] = interactions["last_interaction"] - tdoff
 
     # 4. Per-question scores from question_grades (use grades table as primary source)
     scores = pd.read_sql_query(
@@ -921,7 +1064,7 @@ def _make_assignment_table(
         SELECT sid, div_id, score
         FROM question_grades
         WHERE course_name = %(course_name)s
-          AND div_id IN %(div_ids)s
+          AND div_id = ANY(%(div_ids)s)
         """,
         engine,
         params={"course_name": course_name, "div_ids": div_ids},
@@ -1095,7 +1238,7 @@ def _build_assignment_student_detail(
 
     questions = pd.read_sql_query(
         """
-        SELECT q.name AS div_id, q.question_type,
+        SELECT q.id AS question_id, q.name AS div_id, q.question_type,
                aq.points AS max_points, aq.sorting_priority
         FROM assignment_questions aq
         JOIN questions q ON q.id = aq.question_id
@@ -1108,31 +1251,31 @@ def _build_assignment_student_detail(
     if questions.empty:
         return []
 
-    div_ids = tuple(questions["div_id"].tolist())
+    div_ids = questions["div_id"].tolist()
 
     interactions = pd.read_sql_query(
         """
-        SELECT div_id,
-               COUNT(*) AS interactions,
-               MIN(timestamp) AS first_interaction,
-               MAX(timestamp) AS last_interaction
-        FROM useinfo
-        WHERE course_id = %(course_name)s
+        SELECT div_id, interactions, first_interaction, last_interaction
+        FROM user_interactions
+        WHERE course_name = %(course_name)s
           AND sid = %(sid)s
-          AND div_id IN %(div_ids)s
-        GROUP BY div_id
+          AND div_id = ANY(%(div_ids)s)
         """,
         engine,
         params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
         parse_dates=["first_interaction", "last_interaction"],
     )
+    reading_ids = questions.loc[
+        questions["question_type"] == "page", "question_id"
+    ].tolist()
+    readings = _reading_interactions(engine, course_name, reading_ids, sid=sid)
+    if not readings.empty:
+        interactions = pd.concat(
+            [interactions, readings.drop(columns="sid")], ignore_index=True
+        )
     if not interactions.empty:
-        interactions["first_interaction"] = interactions["first_interaction"].map(
-            lambda x: x - tdoff
-        )
-        interactions["last_interaction"] = interactions["last_interaction"].map(
-            lambda x: x - tdoff
-        )
+        interactions["first_interaction"] = interactions["first_interaction"] - tdoff
+        interactions["last_interaction"] = interactions["last_interaction"] - tdoff
 
     scores = pd.read_sql_query(
         """
@@ -1140,7 +1283,7 @@ def _build_assignment_student_detail(
         FROM question_grades
         WHERE course_name = %(course_name)s
           AND sid = %(sid)s
-          AND div_id IN %(div_ids)s
+          AND div_id = ANY(%(div_ids)s)
         """,
         engine,
         params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
@@ -1202,6 +1345,25 @@ def _build_assignment_student_detail(
 # ---------------------------------------------------------------------------
 
 
+def _fetch_assignments(course_name: str) -> list:
+    """Return the non-peer assignments for ``course_name``, newest due first.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+    """
+    assignments_df = pd.read_sql_query(
+        """
+        SELECT a.id, a.name, a.duedate, a.points
+        FROM assignments a
+        JOIN courses c ON c.id = a.course
+        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
+        ORDER BY a.duedate DESC NULLS LAST
+        """,
+        engine,
+        params={"course_name": course_name},
+    )
+    return assignments_df.to_dict(orient="records")
+
+
 @router.get("/assignmentoverview", response_class=HTMLResponse)
 @instructor_role_required()
 @with_course()
@@ -1216,19 +1378,7 @@ async def get_assignmentoverview(
     If ``assignment_id`` is supplied as a query parameter the template will
     pre-select that assignment and auto-generate the report on page load.
     """
-    engine = create_engine(settings.dburl)
-    assignments_df = pd.read_sql_query(
-        """
-        SELECT a.id, a.name, a.duedate, a.points
-        FROM assignments a
-        JOIN courses c ON c.id = a.course
-        WHERE c.course_name = %(course_name)s and a.is_peer = 'F'
-        ORDER BY a.duedate DESC NULLS LAST
-        """,
-        engine,
-        params={"course_name": course.course_name},
-    )
-    assignments = assignments_df.to_dict(orient="records")
+    assignments = await asyncio.to_thread(_fetch_assignments, course.course_name)
     # Convert Timestamps to strings for template rendering. duedate is stored
     # as naive UTC, so it has to be shifted into the course timezone before the
     # date is taken -- a late-evening deadline lands on the following day in
@@ -1247,7 +1397,7 @@ async def get_assignmentoverview(
         "settings": settings,
     }
     return templates.TemplateResponse(
-        "admin/analytics/assignmentoverview.html", context
+        request, "admin/analytics/assignmentoverview.html", context
     )
 
 
@@ -1278,8 +1428,7 @@ async def generate_assignmentoverview(
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
     task_id = str(uuid.uuid4())
-    r = _get_redis()
-    _set_ao_task(r, task_id, {"status": "pending"})
+    await _aset_task(_ao_task_key(task_id), {"status": "pending"})
 
     background_tasks.add_task(
         _build_assignment_report,
@@ -1306,8 +1455,7 @@ async def get_assignmentoverview_result(
     user=Depends(auth_manager),
 ):
     """Poll Redis for the status/result of an assignment report task."""
-    r = _get_redis()
-    payload = _get_ao_task(r, task_id)
+    payload = await _aget_task(_ao_task_key(task_id))
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1326,21 +1474,288 @@ async def download_assignmentoverview_csv(
     course=None,
 ):
     """Stream the cached assignment report as a CSV download."""
-    r = _get_redis()
-    payload = _get_ao_task(r, task_id)
+    payload = await _aget_task(_ao_task_key(task_id))
     if payload is None or payload.get("status") != "complete":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found, not yet complete, or expired",
         )
-    df = pd.DataFrame(payload["data"])
-    csv_content = df.to_csv(index=False, na_rep="")
+    csv_content = await asyncio.to_thread(_to_csv, payload["data"], "")
     filename = f"assignment_report_{course.course_name}.csv"
     return StreamingResponse(
         iter([csv_content]),
         media_type="application/vnd.ms-excel",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+def _load_assignment_student_detail(
+    sid: str,
+    assignment_id: int,
+    course,
+    tz_offset_hours: float,
+    extension_days: Optional[int],
+) -> tuple:
+    """Gather everything the per-student assignment drilldown renders.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``. ``duedate`` is
+    returned raw -- the caller formats it, since that needs the course timezone.
+    ``assignment["deadline"]`` is this student's deadline: the due date plus
+    their extension, as naive UTC, or None when the assignment has no due date.
+
+    :return: ``(student, assignment, detail, total_score, questions)``
+    :rtype: tuple
+    :raises HTTPException: if the student does not exist, or the assignment
+        does not exist in ``course``.
+    """
+    course_name = course.course_name
+    student_row = pd.read_sql_query(
+        """
+        SELECT username, first_name, last_name, email
+        FROM auth_user WHERE username = %(sid)s LIMIT 1
+        """,
+        engine,
+        params={"sid": sid},
+    )
+    if student_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Student '{sid}' not found",
+        )
+    student = student_row.iloc[0].to_dict()
+
+    assignment_row = pd.read_sql_query(
+        """
+        SELECT id, name, duedate, points
+        FROM assignments
+        WHERE id = %(assignment_id)s AND course = %(course_id)s
+        LIMIT 1
+        """,
+        engine,
+        params={"assignment_id": assignment_id, "course_id": course.id},
+    )
+    if assignment_row.empty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Assignment {assignment_id} not found",
+        )
+    assignment = assignment_row.iloc[0].to_dict()
+    duedate = assignment.get("duedate")
+    if duedate is None or pd.isna(duedate):
+        assignment["deadline"] = None
+    else:
+        assignment["deadline"] = pd.Timestamp(duedate).to_pydatetime() + (
+            datetime.timedelta(days=extension_days or 0)
+        )
+
+    detail = _build_assignment_student_detail(
+        engine, assignment_id, course_name, sid, tz_offset_hours
+    )
+
+    # Total assignment grade from grades table
+    total_grade_row = pd.read_sql_query(
+        """
+        SELECT g.score
+        FROM grades g
+        JOIN auth_user u ON u.id = g.auth_user
+        WHERE u.username = %(sid)s AND g.assignment = %(assignment_id)s
+        LIMIT 1
+        """,
+        engine,
+        params={"sid": sid, "assignment_id": assignment_id},
+    )
+    total_score = None
+    if not total_grade_row.empty:
+        raw = total_grade_row.iloc[0]["score"]
+        if raw is not None and pd.notna(raw):
+            total_score = round(float(raw), 2)
+
+    questions = _assignment_question_sources(assignment_id, course, sid)
+    scores = {row["Question"]: row["Score"] for row in detail}
+    comments = _question_grade_comments(
+        course_name, sid, [q["name"] for q in questions]
+    )
+    deadline = assignment["deadline"]
+    for q in questions:
+        q["score"] = scores.get(q["name"], "")
+        q["comment"] = comments.get(q["name"], "")
+        last = _last_answer_time(course, sid, q) if deadline else None
+        q["late"] = last is not None and last > deadline
+        if q["answer_type"] in IFRAME_QUESTION_TYPES:
+            q["splice_state"] = _splice_states(course, sid, q, deadline)
+
+    return student, assignment, detail, total_score, questions
+
+
+def _question_grade_comments(course_name: str, sid: str, div_ids: list) -> dict:
+    """The instructor's comment on each of ``sid``'s question grades, by div_id.
+
+    Bookkeeping words such as ``autograded`` are left out: they are not meant
+    for a reader, and the grade dialog would otherwise offer them for editing.
+    """
+    if not div_ids:
+        return {}
+    rows = pd.read_sql_query(
+        """
+        SELECT div_id, comment FROM question_grades
+        WHERE course_name = %(course_name)s AND sid = %(sid)s
+          AND div_id = ANY(%(div_ids)s)
+        """,
+        engine,
+        params={"course_name": course_name, "sid": sid, "div_ids": div_ids},
+    )
+    return {
+        row.div_id: display_comment(row.comment) or ""
+        for row in rows.itertuples(index=False)
+    }
+
+
+def _assignment_question_sources(assignment_id: int, course, sid: str) -> list:
+    """The assignment's questions, in order, with the HTML to render each one.
+
+    Readings are left out: they have no component to show an answer in. A
+    selectquestion asks the server for the *viewer's* question, so it is
+    replaced here by the question ``sid`` was actually shown.
+    """
+    rows = pd.read_sql_query(
+        """
+        SELECT q.name, q.question_type, q.htmlsrc, aq.points,
+               sel.name AS selected_name, sel.htmlsrc AS selected_htmlsrc,
+               sel.question_type AS selected_type
+        FROM assignment_questions aq
+        JOIN questions q ON q.id = aq.question_id
+        LEFT JOIN selected_questions sq
+          ON q.question_type = 'selectquestion'
+         AND sq.selector_id = q.name AND sq.sid = %(sid)s
+        LEFT JOIN LATERAL (
+            SELECT name, htmlsrc, question_type FROM questions
+            WHERE name = sq.selected_id
+            ORDER BY base_course = %(base_course)s DESC
+            LIMIT 1
+        ) sel ON true
+        WHERE aq.assignment_id = %(assignment_id)s
+          AND q.question_type <> 'page'
+        ORDER BY aq.sorting_priority
+        """,
+        engine,
+        params={
+            "assignment_id": assignment_id,
+            "sid": sid,
+            "base_course": course.base_course,
+        },
+    )
+    questions = []
+    for row in rows.itertuples(index=False):
+        htmlsrc = row.htmlsrc
+        selected = None
+        answer_type = row.question_type
+        if row.question_type == "selectquestion":
+            # Not yet shown one: there is no answer to show.
+            selected = row.selected_name
+            htmlsrc = row.selected_htmlsrc
+            answer_type = row.selected_type
+        questions.append(
+            {
+                "name": row.name,
+                "question_type": row.question_type,
+                "selected": selected,
+                "answer_type": answer_type,
+                "points": None if pd.isna(row.points) else int(row.points),
+                "htmlsrc": prepare_question_htmlsrc(htmlsrc, course),
+            }
+        )
+    return questions
+
+
+def _splice_states(course, sid: str, question: dict, deadline) -> dict:
+    """``sid``'s saved state for an iframe (SPLICE) question.
+
+    Returns ``{"latest": ..., "beforeDeadline": ...}``, each the stored state
+    blob or None. The page hands it to the SPLICE wrapper so the activity
+    replays the *student's* work; left to itself the wrapper asks the server
+    for the logged-in user's state, which here is the instructor's.
+    """
+    params = {
+        "sid": sid,
+        "course_name": course.course_name,
+        "div_id": question["selected"] or question["name"],
+        "deadline": deadline,
+    }
+
+    def last_state(before_deadline: bool):
+        cutoff = "AND timestamp <= %(deadline)s" if before_deadline else ""
+        result = pd.read_sql_query(
+            f"""
+            SELECT answer::text FROM splice_answers
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s {cutoff}
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1
+            """,
+            engine,
+            params=params,
+        )
+        if result.empty or result.iat[0, 0] is None:
+            return None
+        return json.loads(result.iat[0, 0])
+
+    latest = last_state(False)
+    before = last_state(True) if deadline is not None else latest
+    return {"latest": latest, "beforeDeadline": before}
+
+
+def _last_answer_time(course, sid: str, question: dict) -> Optional[datetime.datetime]:
+    """When ``sid`` last submitted an answer to ``question``, as naive UTC.
+
+    Read from the answer table, plus the code table for code questions, since
+    ``user_interactions`` also counts activity that is not an answer. A type
+    with no answer table (khanex, video, ...) falls back to it.
+    """
+    div_id = question["selected"] or question["name"]
+    qtype = question["answer_type"]
+    params = {
+        "sid": sid,
+        "course_name": course.course_name,
+        "course_id": course.id,
+        "div_id": div_id,
+    }
+    queries = []
+    if qtype in QTYPE_TO_TABLE:
+        # Table names come from a fixed map, never from the request.
+        queries.append(f"""
+            SELECT max(timestamp) FROM {QTYPE_TO_TABLE[qtype]}
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s
+            """)
+    if qtype in CODE_TABLE_TYPES:
+        queries.append("""
+            SELECT max(timestamp) FROM code
+            WHERE sid = %(sid)s AND course_id = %(course_id)s
+              AND acid = %(div_id)s
+            """)
+    if not queries:
+        queries.append("""
+            SELECT last_interaction FROM user_interactions
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+              AND div_id = %(div_id)s
+            """)
+    times = []
+    for query in queries:
+        result = pd.read_sql_query(query, engine, params=params)
+        if not result.empty and pd.notna(result.iat[0, 0]):
+            times.append(pd.Timestamp(result.iat[0, 0]).to_pydatetime())
+    return max(times) if times else None
+
+
+def _safe_webpack_imports(course) -> dict:
+    """The book's webpack assets, which turn each question's HTML into a live
+    component; a missing build degrades to unrendered questions, not an error.
+    """
+    try:
+        return get_webpack_static_imports(course)
+    except Exception as e:
+        rslogger.warning(f"No webpack assets for {course.base_course}: {e}")
+        return {"css": [], "js": []}
 
 
 @router.get("/assignmentoverview/student", response_class=HTMLResponse)
@@ -1362,12 +1777,55 @@ async def get_assignment_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    engine = create_engine(settings.dburl)
+    exception = await fetch_deadline_exception(course.id, sid, assignment_id)
+    student, assignment, detail, total_score, questions = await asyncio.to_thread(
+        _load_assignment_student_detail,
+        sid,
+        assignment_id,
+        course,
+        tz_offset_hours,
+        exception.duedate,
+    )
+    course_attrs = await fetch_all_course_attributes(course.id)
+    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
 
+    context = {
+        "request": request,
+        "user": user,
+        "course": course,
+        "student": student,
+        "assignment": assignment,
+        "detail_json": json.dumps(detail),
+        "total_score": total_score,
+        "questions": questions,
+        "extension_days": exception.duedate or 0,
+        "wp_imports": _safe_webpack_imports(course),
+        "latex_preamble": course_attrs.get("latex_macros", ""),
+        "is_instructor": True,
+        "student_page": False,
+        "settings": settings,
+    }
+    return templates.TemplateResponse(
+        request, "admin/analytics/assignment_student_detail.html", context
+    )
+
+
+def _load_student_detail(sid: str, course, tz_offset_hours: float) -> tuple:
+    """Gather everything the student drilldown page renders.
+
+    Blocking (pandas + psycopg2); call via ``asyncio.to_thread``.
+
+    :return: ``(student, data, answer_groups)``
+    :rtype: tuple
+    :raises HTTPException: if the student does not exist.
+    """
+    # Basic student info
     student_row = pd.read_sql_query(
         """
-        SELECT username, first_name, last_name, email
-        FROM auth_user WHERE username = %(sid)s LIMIT 1
+        select username, first_name, last_name, email
+        from auth_user
+        where username = %(sid)s
+        limit 1
         """,
         engine,
         params={"sid": sid},
@@ -1379,59 +1837,100 @@ async def get_assignment_student_detail(
         )
     student = student_row.iloc[0].to_dict()
 
-    assignment_row = pd.read_sql_query(
+    data = _build_student_detail(
+        engine,
+        course_name=course.course_name,
+        base_course=course.base_course,
+        sid=sid,
+        tz_offset_hours=tz_offset_hours,
+    )
+    answer_groups = _student_answer_groups(course, sid, data["exercise_detail"])
+    return student, data, answer_groups
+
+
+def _student_answer_groups(course, sid: str, exercise_detail: list) -> list:
+    """Every question ``sid`` has worked on in ``course``, with the HTML to
+    render it, grouped by subchapter in book order.
+
+    :return: ``[{"chapter", "subchapter", "questions": [...]}, ...]``, each
+        question shaped like those of ``_assignment_question_sources`` plus
+        the student's ``attempts`` and ``correct`` from ``exercise_detail``.
+    """
+    rows = pd.read_sql_query(
         """
-        SELECT id, name, duedate, points
-        FROM assignments WHERE id = %(assignment_id)s LIMIT 1
+        SELECT q.name, q.question_type, q.htmlsrc,
+               coalesce(ch.chapter_name, q.chapter) AS chapter_name,
+               coalesce(sc.sub_chapter_name, q.subchapter) AS subchapter_name,
+               sel.name AS selected_name, sel.htmlsrc AS selected_htmlsrc,
+               sel.question_type AS selected_type
+        FROM (
+            SELECT DISTINCT div_id FROM user_interactions
+            WHERE sid = %(sid)s AND course_name = %(course_name)s
+        ) ui
+        JOIN questions q
+          ON q.name = ui.div_id AND q.base_course = %(base_course)s
+        LEFT JOIN LATERAL (
+            SELECT id, chapter_name, chapter_num FROM chapters
+            WHERE course_id = q.base_course AND chapter_label = q.chapter
+            ORDER BY id LIMIT 1
+        ) ch ON true
+        LEFT JOIN LATERAL (
+            SELECT sub_chapter_name, sub_chapter_num FROM sub_chapters
+            WHERE chapter_id = ch.id AND sub_chapter_label = q.subchapter
+            ORDER BY id LIMIT 1
+        ) sc ON true
+        LEFT JOIN selected_questions sq
+          ON q.question_type = 'selectquestion'
+         AND sq.selector_id = q.name AND sq.sid = %(sid)s
+        LEFT JOIN LATERAL (
+            SELECT name, htmlsrc, question_type FROM questions
+            WHERE name = sq.selected_id
+            ORDER BY base_course = %(base_course)s DESC
+            LIMIT 1
+        ) sel ON true
+        WHERE q.question_type <> 'page'
+        ORDER BY ch.chapter_num NULLS LAST, q.chapter,
+                 sc.sub_chapter_num NULLS LAST, q.subchapter, q.id
         """,
         engine,
-        params={"assignment_id": assignment_id},
+        params={
+            "sid": sid,
+            "course_name": course.course_name,
+            "base_course": course.base_course,
+        },
     )
-    if assignment_row.empty:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Assignment {assignment_id} not found",
-        )
-    assignment = assignment_row.iloc[0].to_dict()
-    assignment["duedate"] = _format_duedate(assignment.get("duedate"), course.timezone)
-
-    detail = _build_assignment_student_detail(
-        engine, assignment_id, course.course_name, sid, tz_offset_hours
-    )
-
-    # Total assignment grade from grades table
-    total_grade_row = pd.read_sql_query(
-        """
-        SELECT g.score
-        FROM grades g
-        JOIN auth_user u ON u.id = g.auth_user
-        WHERE u.username = %(sid)s AND g.assignment = %(assignment_id)s
-        LIMIT 1
-        """,
-        engine,
-        params={"sid": sid, "assignment_id": assignment_id},
-    )
-    total_score = None
-    if not total_grade_row.empty:
-        raw = total_grade_row.iloc[0]["score"]
-        if raw is not None and pd.notna(raw):
-            total_score = round(float(raw), 2)
-
-    context = {
-        "request": request,
-        "user": user,
-        "course": course,
-        "student": student,
-        "assignment": assignment,
-        "detail_json": json.dumps(detail),
-        "total_score": total_score,
-        "is_instructor": True,
-        "student_page": False,
-        "settings": settings,
-    }
-    return templates.TemplateResponse(
-        "admin/analytics/assignment_student_detail.html", context
-    )
+    stats = {row["Exercise"]: row for row in exercise_detail}
+    worked_on = set(rows["name"])
+    groups = []
+    for row in rows.itertuples(index=False):
+        htmlsrc = row.htmlsrc
+        selected = None
+        answer_type = row.question_type
+        if row.question_type == "selectquestion":
+            if row.selected_name in worked_on:
+                # Already listed under its own name and subchapter.
+                continue
+            # Not yet shown one: there is no answer to show.
+            selected = row.selected_name
+            htmlsrc = row.selected_htmlsrc
+            answer_type = row.selected_type
+        stat = stats.get(row.name, {})
+        q = {
+            "name": row.name,
+            "question_type": row.question_type,
+            "selected": selected,
+            "answer_type": answer_type,
+            "attempts": stat.get("Attempts", 0),
+            "correct": stat.get("Correct", ""),
+            "htmlsrc": prepare_question_htmlsrc(htmlsrc, course),
+        }
+        if answer_type in IFRAME_QUESTION_TYPES:
+            q["splice_state"] = _splice_states(course, sid, q, None)
+        key = (row.chapter_name, row.subchapter_name)
+        if not groups or (groups[-1]["chapter"], groups[-1]["subchapter"]) != key:
+            groups.append({"chapter": key[0], "subchapter": key[1], "questions": []})
+        groups[-1]["questions"].append(q)
+    return groups
 
 
 @router.get("/student_detail", response_class=HTMLResponse)
@@ -1458,33 +1957,10 @@ async def get_student_detail(
         except Exception:
             rslogger.warning("Could not parse RS_info cookie for tz_offset")
 
-    engine = create_engine(settings.dburl)
-
-    # Basic student info
-    student_row = pd.read_sql_query(
-        """
-        select username, first_name, last_name, email
-        from auth_user
-        where username = %(sid)s
-        limit 1
-        """,
-        engine,
-        params={"sid": sid},
+    student, data, answer_groups = await asyncio.to_thread(
+        _load_student_detail, sid, course, tz_offset_hours
     )
-    if student_row.empty:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Student '{sid}' not found",
-        )
-    student = student_row.iloc[0].to_dict()
-
-    data = _build_student_detail(
-        engine,
-        course_name=course.course_name,
-        base_course=course.base_course,
-        sid=sid,
-        tz_offset_hours=tz_offset_hours,
-    )
+    course_attrs = await fetch_all_course_attributes(course.id)
 
     context = {
         "request": request,
@@ -1493,8 +1969,13 @@ async def get_student_detail(
         "student": student,
         "subchapter_summary_json": json.dumps(data["subchapter_summary"]),
         "exercise_detail_json": json.dumps(data["exercise_detail"]),
+        "answer_groups": answer_groups,
+        "wp_imports": _safe_webpack_imports(course),
+        "latex_preamble": course_attrs.get("latex_macros", ""),
         "is_instructor": True,
         "student_page": False,
         "settings": settings,
     }
-    return templates.TemplateResponse("admin/analytics/student_detail.html", context)
+    return templates.TemplateResponse(
+        request, "admin/analytics/student_detail.html", context
+    )

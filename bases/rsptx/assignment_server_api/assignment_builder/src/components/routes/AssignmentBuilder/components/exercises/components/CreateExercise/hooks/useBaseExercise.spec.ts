@@ -57,6 +57,7 @@ describe("useBaseExercise", () => {
   describe("initial state", () => {
     it("returns default form data when no initialData is provided", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       expect(result.current.formData).toMatchObject(makeDefaultFormData());
     });
 
@@ -65,6 +66,7 @@ describe("useBaseExercise", () => {
         initialData: { statement: "Custom question", points: 5 }
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       expect(result.current.formData.statement).toBe("Custom question");
       expect(result.current.formData.points).toBe(5);
       expect(result.current.formData.chapter).toBe("");
@@ -72,11 +74,13 @@ describe("useBaseExercise", () => {
 
     it("starts at step 0", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       expect(result.current.activeStep).toBe(0);
     });
 
     it("initializes isSaving as false", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       expect(result.current.isSaving).toBe(false);
     });
 
@@ -84,16 +88,19 @@ describe("useBaseExercise", () => {
       const { result } = renderHook(() =>
         useBaseExercise(makeProps({ steps: [{ label: "A" }, { label: "B" }, { label: "C" }] }))
       );
+
       expect(result.current.stepsVisited).toEqual({ 0: false, 1: false, 2: false });
     });
 
     it("initializes questionInteracted as false", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       expect(result.current.questionInteracted).toBe(false);
     });
 
     it("initializes settingsInteracted as false", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       expect(result.current.settingsInteracted).toBe(false);
     });
 
@@ -105,6 +112,7 @@ describe("useBaseExercise", () => {
       });
       const { result } = renderHook(() => useBaseExercise(props));
       const options = result.current.formData.optionList as Array<{ choice: string; id: string }>;
+
       expect(options[0].id).toMatch(/^option-/);
       expect(options[1].id).toBe("existing-id");
     });
@@ -112,6 +120,7 @@ describe("useBaseExercise", () => {
     it("handles missing optionList without error", () => {
       const props = makeProps({ initialData: { statement: "No options" } });
       const { result } = renderHook(() => useBaseExercise(props));
+
       expect(result.current.formData.optionList).toEqual([]);
     });
   });
@@ -119,6 +128,7 @@ describe("useBaseExercise", () => {
   describe("updateFormData", () => {
     it("updates a single field in formData", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.updateFormData("statement", "Updated question");
       });
@@ -128,6 +138,7 @@ describe("useBaseExercise", () => {
     it("preserves other fields when updating one field", () => {
       const props = makeProps({ initialData: { points: 5, statement: "original" } });
       const { result } = renderHook(() => useBaseExercise(props));
+
       act(() => {
         result.current.updateFormData("statement", "changed");
       });
@@ -138,6 +149,7 @@ describe("useBaseExercise", () => {
   describe("handleSettingsChange", () => {
     it("merges partial settings into formData", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.handleSettingsChange({ points: 10, difficulty: 5 });
       });
@@ -147,6 +159,7 @@ describe("useBaseExercise", () => {
 
     it("sets settingsInteracted to true", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.handleSettingsChange({ points: 3 });
       });
@@ -157,6 +170,7 @@ describe("useBaseExercise", () => {
   describe("handleQuestionChange", () => {
     it("updates the statement field", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.handleQuestionChange("New content");
       });
@@ -165,6 +179,7 @@ describe("useBaseExercise", () => {
 
     it("sets questionInteracted to true", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.handleQuestionChange("content");
       });
@@ -176,12 +191,14 @@ describe("useBaseExercise", () => {
     it("returns true when validateStep returns true", () => {
       const props = makeProps({ validateStep: () => true });
       const { result } = renderHook(() => useBaseExercise(props));
+
       expect(result.current.isCurrentStepValid()).toBe(true);
     });
 
     it("returns false when validateStep returns false", () => {
       const props = makeProps({ validateStep: () => false });
       const { result } = renderHook(() => useBaseExercise(props));
+
       expect(result.current.isCurrentStepValid()).toBe(false);
     });
 
@@ -189,6 +206,7 @@ describe("useBaseExercise", () => {
       const validateStep = vi.fn().mockReturnValue(true);
       const props = makeProps({ validateStep });
       const { result } = renderHook(() => useBaseExercise(props));
+
       result.current.isCurrentStepValid();
       expect(validateStep).toHaveBeenCalledWith(0, expect.any(Object));
     });
@@ -198,6 +216,7 @@ describe("useBaseExercise", () => {
     it("increments activeStep when current step is valid", () => {
       const props = makeProps({ validateStep: () => true });
       const { result } = renderHook(() => useBaseExercise(props));
+
       act(() => {
         result.current.goToNextStep();
       });
@@ -207,6 +226,7 @@ describe("useBaseExercise", () => {
     it("does not increment activeStep when current step is invalid", () => {
       const props = makeProps({ validateStep: () => false });
       const { result } = renderHook(() => useBaseExercise(props));
+
       act(() => {
         result.current.goToNextStep();
       });
@@ -216,6 +236,7 @@ describe("useBaseExercise", () => {
     it("marks the current step as visited when advancing", () => {
       const props = makeProps({ validateStep: () => true });
       const { result } = renderHook(() => useBaseExercise(props));
+
       act(() => {
         result.current.goToNextStep();
       });
@@ -225,6 +246,7 @@ describe("useBaseExercise", () => {
     it("does not mark step as visited when step is invalid", () => {
       const props = makeProps({ validateStep: () => false });
       const { result } = renderHook(() => useBaseExercise(props));
+
       act(() => {
         result.current.goToNextStep();
       });
@@ -236,6 +258,7 @@ describe("useBaseExercise", () => {
     it("decrements activeStep when not at first step", () => {
       const props = makeProps({ validateStep: () => true });
       const { result } = renderHook(() => useBaseExercise(props));
+
       act(() => {
         result.current.goToNextStep();
       });
@@ -247,6 +270,7 @@ describe("useBaseExercise", () => {
 
     it("does not go below step 0", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.goToPrevStep();
       });
@@ -264,6 +288,7 @@ describe("useBaseExercise", () => {
         generatePreview: (data) => `<p>${data.statement}</p>`
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -282,6 +307,7 @@ describe("useBaseExercise", () => {
         }
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -301,6 +327,7 @@ describe("useBaseExercise", () => {
         initialData: { statement: "Q1", points: 2 }
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -320,6 +347,7 @@ describe("useBaseExercise", () => {
       });
       const props = makeProps({ validateForm: () => [], onSave });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -334,6 +362,7 @@ describe("useBaseExercise", () => {
         onSave
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -348,6 +377,7 @@ describe("useBaseExercise", () => {
         steps: [{ label: "S1" }, { label: "S2" }]
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -357,6 +387,7 @@ describe("useBaseExercise", () => {
     it("sets questionInteracted and settingsInteracted to true on validation failure", async () => {
       const props = makeProps({ validateForm: () => ["error"] });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -372,6 +403,7 @@ describe("useBaseExercise", () => {
         getDefaultFormData: () => ({ statement: "", chapter: "", question_type: "mchoice" })
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -386,6 +418,7 @@ describe("useBaseExercise", () => {
         getDefaultFormData: () => ({ statement: "", chapter: "", question_type: "mchoice" })
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -399,6 +432,7 @@ describe("useBaseExercise", () => {
       const onSave = vi.fn().mockRejectedValue(new Error("network error"));
       const props = makeProps({ validateForm: () => [], onSave });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -414,6 +448,7 @@ describe("useBaseExercise", () => {
         generatePreview: () => "<p>preview</p>"
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       await act(async () => {
         await result.current.handleSave();
       });
@@ -424,11 +459,13 @@ describe("useBaseExercise", () => {
   describe("isDirty", () => {
     it("starts clean", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       expect(result.current.isDirty).toBe(false);
     });
 
     it("becomes dirty after updateFormData", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.updateFormData("statement", "changed");
       });
@@ -437,6 +474,7 @@ describe("useBaseExercise", () => {
 
     it("becomes dirty after handleQuestionChange", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.handleQuestionChange("typed");
       });
@@ -445,6 +483,7 @@ describe("useBaseExercise", () => {
 
     it("becomes dirty after handleSettingsChange", () => {
       const { result } = renderHook(() => useBaseExercise(makeProps()));
+
       act(() => {
         result.current.handleSettingsChange({ points: 7 });
       });
@@ -504,6 +543,7 @@ describe("useBaseExercise", () => {
         (p: UseBaseExerciseProps<TestFormData>) => useBaseExercise(p),
         { initialProps: props }
       );
+
       act(() => {
         result.current.goToNextStep();
       });
@@ -519,6 +559,7 @@ describe("useBaseExercise", () => {
         onFormReset: undefined
       });
       const { result } = renderHook(() => useBaseExercise(props));
+
       expect(result.current.activeStep).toBe(0);
     });
   });

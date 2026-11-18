@@ -1,6 +1,6 @@
-import { assignmentExerciseApi } from "./assignmentExercise.logic.api";
-
 import type { Exercise } from "@/types/exercises";
+
+import { assignmentExerciseApi } from "./assignmentExercise.logic.api";
 
 const makeExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
   id: 1,
@@ -45,6 +45,7 @@ describe("assignmentExerciseApi", () => {
 
     it("exposes expected endpoint names", () => {
       const endpointNames = Object.keys(assignmentExerciseApi.endpoints);
+
       expect(endpointNames).toContain("getExercises");
       expect(endpointNames).toContain("updateAssignmentQuestions");
       expect(endpointNames).toContain("removeAssignmentExercises");
@@ -59,6 +60,7 @@ describe("assignmentExerciseApi", () => {
     it("reducer returns non-null initial state", () => {
       const reducer = assignmentExerciseApi.reducer;
       const state = reducer(undefined, { type: "@@INIT" });
+
       expect(state).toBeDefined();
       expect(typeof state).toBe("object");
     });
@@ -73,12 +75,14 @@ describe("assignmentExerciseApi", () => {
       const response = { detail: { exercises } };
 
       const transform = (r: typeof response) => r.detail.exercises;
+
       expect(transform(response)).toEqual(exercises);
     });
 
     it("returns empty array when exercises list is empty", () => {
       const response = { detail: { exercises: [] } };
       const transform = (r: typeof response) => r.detail.exercises;
+
       expect(transform(response)).toEqual([]);
     });
   });
@@ -124,6 +128,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return [{ type: "Exercises" }];
           return [];
         };
+
         expect(invalidatesTags(undefined, noError)).toEqual([{ type: "Exercises" }]);
       });
 
@@ -135,6 +140,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return [{ type: "Exercises" }];
           return [];
         };
+
         expect(invalidatesTags(undefined, withError)).toEqual([]);
       });
     });
@@ -148,6 +154,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return [{ type: "Exercises" }];
           return [];
         };
+
         expect(invalidatesTags(undefined, noError)).toEqual([{ type: "Exercises" }]);
       });
 
@@ -159,6 +166,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return [{ type: "Exercises" }];
           return [];
         };
+
         expect(invalidatesTags(undefined, withError)).toEqual([]);
       });
     });
@@ -169,6 +177,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return ["Exercises"];
           return [];
         };
+
         expect(invalidatesTags(undefined, noError)).toEqual(["Exercises"]);
       });
 
@@ -177,6 +186,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return ["Exercises"];
           return [];
         };
+
         expect(invalidatesTags(undefined, withError)).toEqual([]);
       });
     });
@@ -187,6 +197,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return ["Exercises"];
           return [];
         };
+
         expect(invalidatesTags(undefined, noError)).toEqual(["Exercises"]);
       });
 
@@ -195,6 +206,7 @@ describe("assignmentExerciseApi", () => {
           if (!error) return ["Exercises"];
           return [];
         };
+
         expect(invalidatesTags(undefined, withError)).toEqual([]);
       });
     });
@@ -203,41 +215,49 @@ describe("assignmentExerciseApi", () => {
   describe("exported hooks", () => {
     it("exports useGetExercisesQuery as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useGetExercisesQuery).toBe("function");
     });
 
     it("exports useUpdateAssignmentQuestionsMutation as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useUpdateAssignmentQuestionsMutation).toBe("function");
     });
 
     it("exports useRemoveAssignmentExercisesMutation as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useRemoveAssignmentExercisesMutation).toBe("function");
     });
 
     it("exports useReorderAssignmentExercisesMutation as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useReorderAssignmentExercisesMutation).toBe("function");
     });
 
     it("exports useUpdateAssignmentExercisesMutation as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useUpdateAssignmentExercisesMutation).toBe("function");
     });
 
     it("exports useValidateQuestionNameMutation as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useValidateQuestionNameMutation).toBe("function");
     });
 
     it("exports useCopyQuestionMutation as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useCopyQuestionMutation).toBe("function");
     });
 
     it("exports useHasApiKeyQuery as a function", async () => {
       const mod = await import("./assignmentExercise.logic.api");
+
       expect(typeof mod.useHasApiKeyQuery).toBe("function");
     });
   });

@@ -4,6 +4,7 @@ Smoke tests for the top-level crud module (create_initial_courses_users, etc.).
 The detailed per-domain tests live in test_user.py, test_course.py,
 test_rslogging.py, test_question.py, and test_assignment.py.
 """
+
 import pytest
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")

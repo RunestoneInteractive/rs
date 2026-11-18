@@ -1,8 +1,8 @@
 import { Center, Checkbox, Loader, TextInput } from "@mantine/core";
-import React, { useMemo, useState } from "react";
+import { RosterStudent, useGetCourseRosterQuery } from "@store/grader/grader.logic.api";
+import React, { useId, useMemo, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
-import { RosterStudent, useGetCourseRosterQuery } from "@store/grader/grader.logic.api";
 
 import styles from "../Grader.module.css";
 
@@ -15,6 +15,7 @@ interface StudentMultiSelectProps {
 
 const displayName = (s: RosterStudent) => {
   const name = `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim();
+
   return name ? `${name} (${s.username})` : s.username;
 };
 
@@ -26,14 +27,17 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
 }) => {
   const { data: roster, isLoading, isError } = useGetCourseRosterQuery();
   const [search, setSearch] = useState("");
+  const searchInputId = useId();
 
   const students = useMemo(() => {
     const list = roster ?? [];
+
     return [...list].sort((a, b) => displayName(a).localeCompare(displayName(b)));
   }, [roster]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+
     if (!term) return students;
     return students.filter((s) => displayName(s).toLowerCase().includes(term));
   }, [students, search]);
@@ -54,9 +58,11 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
   const toggleAllFiltered = () => {
     if (allFilteredSelected) {
       const remove = new Set(filtered.map((s) => s.username));
+
       onChange(selected.filter((u) => !remove.has(u)));
     } else {
       const merged = new Set(selected);
+
       filtered.forEach((s) => merged.add(s.username));
       onChange(Array.from(merged));
     }
@@ -65,7 +71,7 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
   return (
     <div className={styles.multiSelectRoot}>
       <div className={`${styles.sectionCardHead} ${styles.multiSelectHead}`}>
-        <label className={styles.fieldHint}>
+        <label className={styles.fieldHint} htmlFor={searchInputId}>
           {label}
           {selected.length > 0 && (
             <span className={styles.textSubtle}> &middot; {selected.length} selected</span>
@@ -76,6 +82,7 @@ export const StudentMultiSelect: React.FC<StudentMultiSelectProps> = ({
         </button>
       </div>
       <TextInput
+        id={searchInputId}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
         placeholder="Search students…"

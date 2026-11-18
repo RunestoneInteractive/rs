@@ -1,35 +1,37 @@
 # generate imports
 import datetime
+from difflib import SequenceMatcher
 from typing import Optional, List, Dict, Any
+import redis.asyncio as aioredis
+from redis.exceptions import RedisError
 from sqlalchemy import select, func, and_, delete, update
 from ..models import (
+    Base,
     Courses,
     UserCourse,
     AuthUser,
     CoursesValidator,
     AuthUserValidator,
-    Assignment,
-    AssignmentQuestion,
     CourseInstructor,
     CourseInstructorValidator,
     CourseAttribute,
+    CourseLtiMap,
+    CoursePractice,
+    PracticeGrade,
+    SubChapterTaught,
+    UserState,
+    UserSubChapterProgress,
     UserTopicPractice,
     UserTopicPracticeCompletion,
     UserTopicPracticeFeedback,
-    Useinfo,
-    TimedExam,
-    MchoiceAnswers,
-    FitbAnswers,
-    DragndropAnswers,
-    ClickableareaAnswers,
-    ParsonsAnswers,
-    ShortanswerAnswers,
+    UserTopicPracticeLog,
+    UserTopicPracticeSurvey,
     Code,
-    SelectedQuestion,
     QuestionGrade,
-    Grade,
+    Useinfo,
 )
 from ..async_session import async_session
+from rsptx.configuration import settings
 from rsptx.logging import rslogger
 
 
@@ -192,6 +194,108 @@ async def fetch_courses_for_user(
         return course_list
 
 
+# How stale ``user_courses.last_access`` may get. Every logged event would
+# otherwise also update an enrollment row; this keeps it to one write per
+# user and course every few minutes, per worker process.
+_ACCESS_RESOLUTION = datetime.timedelta(minutes=5)
+_ACCESS_CACHE_MAX = 50_000
+_last_recorded_access: Dict[tuple, datetime.datetime] = {}
+
+
+async def record_course_access(
+    sid: str, course_name: str, timestamp: datetime.datetime
+) -> None:
+    """Note that ``sid`` was active in ``course_name`` at ``timestamp``.
+
+    Updates ``user_courses.last_access`` so that questions like "which of my
+    courses have I used lately" never need to scan ``useinfo``. Called for
+    every logged event, so writes are throttled to one per
+    ``_ACCESS_RESOLUTION``; the recorded time can lag by up to that much.
+    Anonymous readers and users not enrolled in the course are ignored.
+
+    :param sid: The username (``useinfo.sid``).
+    :param course_name: The course name (``useinfo.course_id``).
+    :param timestamp: When the activity happened, naive UTC.
+    """
+    if not sid or sid == "Anonymous" or not course_name:
+        return
+    key = (sid, course_name)
+    last = _last_recorded_access.get(key)
+    if last is not None and timestamp - last < _ACCESS_RESOLUTION:
+        return
+    if len(_last_recorded_access) >= _ACCESS_CACHE_MAX:
+        _last_recorded_access.clear()
+    _last_recorded_access[key] = timestamp
+
+    user_id = select(AuthUser.id).where(AuthUser.username == sid).scalar_subquery()
+    course_id = (
+        select(Courses.id).where(Courses.course_name == course_name).scalar_subquery()
+    )
+    stmt = (
+        update(UserCourse)
+        .where(
+            UserCourse.user_id == user_id,
+            UserCourse.course_id == course_id,
+            # Never move it backwards, e.g. when another worker got there first.
+            (UserCourse.last_access.is_(None)) | (UserCourse.last_access < timestamp),
+        )
+        .values(last_access=timestamp)
+        .execution_options(synchronize_session=False)
+    )
+    async with async_session.begin() as session:
+        await session.execute(stmt)
+
+
+async def fetch_course_access_for_user(user_id: int) -> Dict[str, datetime.datetime]:
+    """Return when ``user_id`` was last active in each of their courses.
+
+    :param user_id: The user's ``auth_user.id``.
+    :return: A mapping of course name to ``last_access`` (naive UTC). Courses
+             with no recorded activity are left out.
+    """
+    query = (
+        select(Courses.course_name, UserCourse.last_access)
+        .join(Courses, UserCourse.course_id == Courses.id)
+        .where(UserCourse.user_id == user_id, UserCourse.last_access.is_not(None))
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {row.course_name: row.last_access for row in res}
+
+
+async def fetch_recent_instructor_courses(
+    instructor_id: int, limit: int = 10
+) -> List[Dict[str, Any]]:
+    """Return courses taught by ``instructor_id`` in recent-access order.
+
+    ``user_courses.last_access`` is optional because older instructor/course
+    relationships may not have a matching enrollment row. Those courses are
+    retained and sorted alphabetically after courses with recorded activity.
+    """
+    most_recent_access = func.max(UserCourse.last_access).label("last_access")
+    query = (
+        select(Courses.course_name, most_recent_access)
+        .join(CourseInstructor, CourseInstructor.course == Courses.id)
+        .outerjoin(
+            UserCourse,
+            and_(
+                UserCourse.user_id == instructor_id,
+                UserCourse.course_id == Courses.id,
+            ),
+        )
+        .where(CourseInstructor.instructor == instructor_id)
+        .group_by(Courses.course_name)
+        .order_by(most_recent_access.desc().nulls_last(), Courses.course_name)
+        .limit(limit)
+    )
+    async with async_session() as session:
+        rows = (await session.execute(query)).all()
+        return [
+            {"course_name": row.course_name, "last_access": row.last_access}
+            for row in rows
+        ]
+
+
 #
 async def fetch_users_for_course(course_name: str) -> list[AuthUserValidator]:
     """
@@ -250,6 +354,81 @@ async def delete_user_course_entry(user_id: int, course_id: int) -> None:
 # -----------------------------------------------------------------------
 
 
+# Tables that hold course scoped rows but have **no** foreign key to ``courses``.
+# Nothing stops the course row from going away while these remain, so they do not
+# break the delete -- they just leave orphans behind. They have to be listed by
+# hand because there is no constraint to discover them from.
+#
+# Deliberately *not* listed:
+#
+# - ``invoice_request`` -- a billing record that should outlive the course.
+# - ``selected_questions`` -- keyed only by ``sid``, with no course column at all,
+#   so there is no way to delete just this course's rows. Deleting by student id
+#   (what this function used to do) wipes the student's selected questions in
+#   every *other* course they are enrolled in as well.
+# - ``chapters``, ``source_code``, ``questions``, ``editor_basecourse`` -- their
+#   course columns hold a *base* course name, shared by every derived course.
+_ORPHANS_BY_COURSE_NAME = (
+    QuestionGrade,
+    PracticeGrade,
+    UserState,
+    UserSubChapterProgress,
+    SubChapterTaught,
+    CoursePractice,
+    UserTopicPractice,
+    UserTopicPracticeCompletion,
+    UserTopicPracticeFeedback,
+    UserTopicPracticeLog,
+    UserTopicPracticeSurvey,
+)
+
+_ORPHANS_BY_COURSE_ID = (
+    Code,
+    CourseLtiMap,
+)
+
+
+def _course_reference_deletes(course_id: int, course_name: str) -> list:
+    """
+    Build a DELETE statement for every table with a foreign key to ``courses``.
+
+    These are the rows that actually *block* the delete: none of the answer table
+    foreign keys are ``ON DELETE CASCADE``, so a single leftover row anywhere
+    makes ``DELETE FROM courses`` fail. Deriving the list from the model metadata
+    instead of writing it out by hand means a table added later is cleaned up
+    automatically rather than silently breaking course deletion. (That is exactly
+    how this broke: ``codelens``, ``matching``, ``unittest``, ``webwork``,
+    ``splice``, ``microparsons`` and ``lp`` answers were added after the
+    hand-written list and never got added to it.)
+
+    :param course_id: int, the ``courses.id`` of the course being deleted
+    :param course_name: str, the ``courses.course_name`` of the course
+    :return: list of DELETE statements, children before parents
+    """
+    statements = []
+    # ``sorted_tables`` is parents first; reverse it so children are deleted first.
+    for table in reversed(Base.metadata.sorted_tables):
+        if table.name == Courses.__tablename__:
+            # The self reference (base_course) -- handled by the base course guard.
+            continue
+        for fk in table.foreign_keys:
+            if fk.column.table.name != Courses.__tablename__:
+                continue
+            if fk.column.name == "course_name":
+                statements.append(delete(table).where(fk.parent == course_name))
+            elif fk.column.name == "id":
+                statements.append(delete(table).where(fk.parent == course_id))
+            else:
+                # Unknown target column: better to fail loudly than to leave a
+                # row behind that will block the delete with a confusing error.
+                raise RuntimeError(
+                    f"{table.name}.{fk.parent.name} references an unexpected "
+                    f"courses column ({fk.column.name}); "
+                    "delete_course_completely needs updating"
+                )
+    return statements
+
+
 async def delete_course_completely(course_name: str) -> bool:
     """
     Completely delete a course and all associated data.
@@ -260,203 +439,113 @@ async def delete_course_completely(course_name: str) -> bool:
     - All student enrollments in the course
     - All assignments and grades
     - All course sections
-    - Student progress data (useinfo, timed_exam, etc.)
+    - Student progress data (useinfo, timed_exam, all answer tables, etc.)
     - Course customizations and settings
     - LTI integrations
 
+    Students in the course are not deleted; they are moved to the base course
+    and marked inactive.
+
+    Raises a ``RuntimeError`` describing the problem if the course cannot be
+    deleted, so the caller can show the instructor something more useful than
+    "it failed".
+
     :param course_name: str, the name of the course to delete
-    :return: bool, True if deletion was successful
+    :return: bool, True if the course was deleted, False if it did not exist
     """
-    try:
-        async with async_session.begin() as session:
-            # First, get the course information
-            course_query = select(Courses).where(Courses.course_name == course_name)
-            course_result = await session.execute(course_query)
-            course = course_result.scalar_one_or_none()
+    # A single transaction: if any step fails, nothing is deleted.
+    async with async_session.begin() as session:
+        course_result = await session.execute(
+            select(Courses).where(Courses.course_name == course_name)
+        )
+        course = course_result.scalar_one_or_none()
 
-            if not course:
-                rslogger.warning(f"Course {course_name} not found for deletion")
-                return False
+        if not course:
+            rslogger.warning(f"Course {course_name} not found for deletion")
+            return False
 
-            course_id = course.id
-            rslogger.info(
-                f"Starting deletion of course: {course_name} (ID: {course_id})"
-            )
+        course_id = course.id
+        rslogger.info(f"Starting deletion of course: {course_name} (ID: {course_id})")
 
-            # Delete in order to respect foreign key constraints
-
-            # 1. Delete student progress and activity data
-            rslogger.info("Deleting student activity data...")
-
-            # Delete useinfo records
-            await session.execute(
-                delete(Useinfo).where(Useinfo.course_id == course_name)
-            )
-
-            # Delete timed exam records
-            await session.execute(
-                delete(TimedExam).where(TimedExam.course_name == course_name)
-            )
-
-            # Delete multiple choice answers
-            await session.execute(
-                delete(MchoiceAnswers).where(MchoiceAnswers.course_name == course_name)
-            )
-
-            # Delete fill-in-the-blank answers
-            await session.execute(
-                delete(FitbAnswers).where(FitbAnswers.course_name == course_name)
-            )
-
-            # Delete drag and drop answers
-            await session.execute(
-                delete(DragndropAnswers).where(
-                    DragndropAnswers.course_name == course_name
-                )
-            )
-
-            # Delete clickable area answers
-            await session.execute(
-                delete(ClickableareaAnswers).where(
-                    ClickableareaAnswers.course_name == course_name
-                )
-            )
-
-            # Delete parsons answers
-            await session.execute(
-                delete(ParsonsAnswers).where(ParsonsAnswers.course_name == course_name)
-            )
-
-            # Delete short answer responses
-            await session.execute(
-                delete(ShortanswerAnswers).where(
-                    ShortanswerAnswers.course_name == course_name
-                )
-            )
-
-            # Delete coding answers
-            await session.execute(delete(Code).where(Code.course_id == course_id))
-
-            # Note: PollAnswer model not found in imports, skipping poll responses deletion
-            # await session.execute(delete(PollAnswer).where(PollAnswer.course_name == course_name))
-
-            # Delete selected questions for this course's students
-            # This is more complex as we need to find students in the course first
-            student_query = select(AuthUser.username).where(
-                AuthUser.course_id == course_id
-            )
-            student_result = await session.execute(student_query)
-            student_usernames = [
-                username for username in student_result.scalars().all()
-            ]
-
-            if student_usernames:
-                await session.execute(
-                    delete(SelectedQuestion).where(
-                        SelectedQuestion.sid.in_(student_usernames)
+        # A base course backs every course derived from it, plus its library
+        # entry, questions and chapters. Deleting one through this path would
+        # either fail on the self reference or quietly break other people's
+        # courses, so refuse rather than half-delete it.
+        if course.base_course == course_name:
+            derived_result = await session.execute(
+                select(func.count())
+                .select_from(Courses)
+                .where(
+                    and_(
+                        Courses.base_course == course_name,
+                        Courses.course_name != course_name,
                     )
                 )
-
-            # 2. Delete grading and assignment data
-            rslogger.info("Deleting grades and assignments...")
-
-            # Delete question grades for students in this course
-            await session.execute(
-                delete(QuestionGrade).where(QuestionGrade.course_name == course_name)
             )
-
-            # Delete assignment grades for students in this course
-            assignment_query = select(Assignment.id).where(
-                Assignment.course == course_id
-            )
-            assignment_result = await session.execute(assignment_query)
-            assignment_ids = [aid for aid in assignment_result.scalars().all()]
-
-            if assignment_ids:
-                await session.execute(
-                    delete(Grade).where(Grade.assignment.in_(assignment_ids))
+            derived_count = derived_result.scalar_one()
+            raise RuntimeError(
+                f"'{course_name}' is a base course"
+                + (
+                    f" with {derived_count} course(s) derived from it"
+                    if derived_count
+                    else ""
                 )
-
-            # Delete assignment questions
-            if assignment_ids:
-                await session.execute(
-                    delete(AssignmentQuestion).where(
-                        AssignmentQuestion.assignment_id.in_(assignment_ids)
-                    )
-                )
-
-            # Delete assignments
-            await session.execute(
-                delete(Assignment).where(Assignment.course == course_id)
+                + ". Base courses cannot be deleted from this page."
             )
 
-            # 3. Delete course instructor relationships
-            rslogger.info("Deleting instructor relationships...")
-            await session.execute(
-                delete(CourseInstructor).where(CourseInstructor.course == course_id)
-            )
-
-            # 4. Delete course attributes/settings
-            rslogger.info("Deleting course settings...")
-            await session.execute(
-                delete(CourseAttribute).where(CourseAttribute.course_id == course_id)
-            )
-
-            # 5. Delete practice/flashcard data
-            rslogger.info("Deleting practice data...")
-            await session.execute(
-                delete(UserTopicPractice).where(
-                    UserTopicPractice.course_name == course_name
+        # Where the students land once the course is gone. Read it inside this
+        # transaction rather than through fetch_base_course(), which opens a
+        # second connection while this one holds locks.
+        base_result = await session.execute(
+            select(Courses).where(
+                and_(
+                    Courses.course_name == course.base_course,
+                    Courses.base_course == course.base_course,
                 )
             )
-            await session.execute(
-                delete(UserTopicPracticeCompletion).where(
-                    UserTopicPracticeCompletion.course_name == course_name
-                )
-            )
-            await session.execute(
-                delete(UserTopicPracticeFeedback).where(
-                    UserTopicPracticeFeedback.course_name == course_name
-                )
+        )
+        base_course = base_result.scalars().one_or_none()
+        if base_course is None:
+            raise RuntimeError(
+                f"Base course '{course.base_course}' for '{course_name}' is missing; "
+                "cannot move students out of the course."
             )
 
-            # 7. Update student enrollments - move them to a default course or mark them inactive
-            rslogger.info("Updating student enrollments...")
-            # Instead of deleting users, we'll move them to a default "orphaned" course
-            # or set their course_id to None/default
-            base_course = await fetch_base_course(course.base_course)
-            # Option 1: Set course_id to None (they become unenrolled)
-            await session.execute(
-                update(AuthUser)
-                .where(AuthUser.course_id == course_id)
-                .values(
-                    course_id=base_course.id,
-                    course_name=base_course.course_name,
-                    active="F",
-                )
+        # 1. Move students out of the course before it disappears. auth_user has
+        #    no foreign key to courses, so this is bookkeeping rather than a
+        #    constraint requirement, but it has to happen while we still know
+        #    which students were enrolled.
+        rslogger.info("Updating student enrollments...")
+        await session.execute(
+            update(AuthUser)
+            .where(AuthUser.course_id == course_id)
+            .values(
+                course_id=base_course.id,
+                course_name=base_course.course_name,
+                active="F",
             )
+        )
 
-            # Option 2: Alternative - move to a default "orphaned students" course
-            # This would require creating such a course first
-            # default_course_query = select(Courses).where(Courses.course_name == "orphaned_students")
-            # default_course = await session.execute(default_course_query)
-            # if default_course.scalar_one_or_none():
-            #     await session.execute(
-            #         update(AuthUser)
-            #         .where(AuthUser.course_id == course_id)
-            #         .values(course_id=default_course.scalar_one().id)
-            #     )
+        # 2. Everything with a foreign key to courses. This is the part that must
+        #    be exhaustive -- anything missed blocks the final delete.
+        rslogger.info("Deleting rows that reference the course...")
+        for stmt in _course_reference_deletes(course_id, course_name):
+            await session.execute(stmt)
 
-            # 8. Finally, delete the course itself
-            rslogger.info("Deleting course record...")
-            await session.execute(delete(Courses).where(Courses.id == course_id))
+        # 3. Course scoped rows with no foreign key. These would not block the
+        #    delete, but leaving them behind orphans data forever.
+        rslogger.info("Deleting course scoped data with no foreign key...")
+        for model in _ORPHANS_BY_COURSE_NAME:
+            await session.execute(delete(model).where(model.course_name == course_name))
+        for model in _ORPHANS_BY_COURSE_ID:
+            await session.execute(delete(model).where(model.course_id == course_id))
 
-            rslogger.info(f"Successfully deleted course: {course_name}")
-            return True
+        # 4. Finally the course itself.
+        rslogger.info("Deleting course record...")
+        await session.execute(delete(Courses).where(Courses.id == course_id))
 
-    except Exception as e:
-        rslogger.error(f"Error deleting course {course_name}: {e}")
-        return False
+        rslogger.info(f"Successfully deleted course: {course_name}")
+        return True
 
 
 async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
@@ -475,6 +564,7 @@ async def delete_course_instructor(course_id: int, instructor_id: int) -> None:
     async with async_session() as session:
         await session.execute(stmt)
         await session.commit()
+    await _forget_instructor(instructor_id, course_id)
 
 
 async def create_course_instructor(course_id: int, instructor_id: int) -> None:
@@ -488,6 +578,7 @@ async def create_course_instructor(course_id: int, instructor_id: int) -> None:
     new_entry = CourseInstructor(course=course_id, instructor=instructor_id)
     async with async_session.begin() as session:
         session.add(new_entry)
+    await _forget_instructor(instructor_id, course_id)
 
 
 async def update_course_settings(course_id: int, setting: str, value: str) -> None:
@@ -654,6 +745,74 @@ async def fetch_instructor_courses(
         return course_list
 
 
+# Instructor status cache
+# -----------------------
+# Nearly every instructor-gated endpoint asks "is this user an instructor for
+# this course?", and the answer almost never changes, so keep it in redis. The
+# writers below clear the entry for the pair they change; the TTL bounds how
+# long a change made outside this module (raw SQL, a legacy server) goes unseen.
+INSTRUCTOR_CACHE_TTL = 300
+
+_redis: Optional[aioredis.Redis] = None
+
+
+def _instructor_cache() -> Optional[aioredis.Redis]:
+    # The test suite rebuilds its database, reusing user and course ids, so a
+    # shared redis would hand one test another test's answer.
+    if settings.server_config == "test":
+        return None
+    global _redis
+    if _redis is None:
+        _redis = aioredis.from_url(settings.redis_uri)
+    return _redis
+
+
+def _instructor_key(user_id: int, course_id: int) -> str:
+    return f"is_instructor:{user_id}:{course_id}"
+
+
+async def _forget_instructor(user_id: int, course_id: int) -> None:
+    r = _instructor_cache()
+    if r is None:
+        return
+    try:
+        await r.delete(_instructor_key(user_id, course_id))
+    except RedisError as e:
+        rslogger.warning(f"instructor cache delete failed: {e}")
+
+
+async def is_course_instructor(user_id: int, course_id: int) -> bool:
+    """
+    Return True if ``user_id`` is an instructor for ``course_id``.
+
+    Answers come from redis when possible; a redis failure falls back to the
+    database rather than failing the request.
+
+    :param user_id: int, the auth_user id
+    :param course_id: int, the course id
+    :return: bool
+    """
+    r = _instructor_cache()
+    key = _instructor_key(user_id, course_id)
+    if r is not None:
+        try:
+            cached = await r.get(key)
+            if cached is not None:
+                return cached == b"1"
+        except RedisError as e:
+            rslogger.warning(f"instructor cache read failed: {e}")
+            r = None
+
+    result = len(await fetch_instructor_courses(user_id, course_id)) > 0
+
+    if r is not None:
+        try:
+            await r.set(key, "1" if result else "0", ex=INSTRUCTOR_CACHE_TTL)
+        except RedisError as e:
+            rslogger.warning(f"instructor cache write failed: {e}")
+    return result
+
+
 async def fetch_course_instructors(
     course_name: Optional[str] = None,
 ) -> List[AuthUserValidator]:
@@ -695,6 +854,7 @@ async def create_instructor_course_entry(iid: int, cid: int) -> CourseInstructor
         if ci is None:
             ci = CourseInstructor(course=cid, instructor=iid)
             session.add(ci)
+    await _forget_instructor(iid, cid)
     return ci
 
 
@@ -716,6 +876,50 @@ async def fetch_course_students(course_id: int) -> List[AuthUserValidator]:
     return student_list
 
 
+async def fetch_course_enrollment_stats(
+    course_id: int, course_name: str
+) -> Dict[str, Any]:
+    """
+    Summarize enrollment and activity for a single course.
+
+    Counting rather than fetching matters here: a caller that only wants the
+    number of students should not pull every student row across the wire.
+
+    :param course_id: int, the ``courses.id`` of the course
+    :param course_name: str, the ``courses.course_name`` of the course
+    :return: dict with ``enrolled``, ``active`` (auth_user.active is true),
+        ``with_activity`` (distinct students with a useinfo row) and
+        ``last_activity`` (most recent useinfo timestamp, or None)
+    """
+    # ``active`` is a Web2PyBoolean ('T'/'F'), so compare it to True rather than
+    # using is_(), which would render SQL postgres will not accept for a CHAR(1).
+    is_active = AuthUser.active == True  # noqa: E712
+    enrollment_query = (
+        select(
+            func.count(UserCourse.user_id),
+            func.count(UserCourse.user_id).filter(is_active),
+        )
+        .select_from(UserCourse)
+        .join(AuthUser, AuthUser.id == UserCourse.user_id)
+        .where(UserCourse.course_id == course_id)
+    )
+    # useinfo.course_id holds the course *name* -- see the note on the model.
+    activity_query = select(
+        func.count(func.distinct(Useinfo.sid)), func.max(Useinfo.timestamp)
+    ).where(Useinfo.course_id == course_name)
+
+    async with async_session() as session:
+        enrolled, active = (await session.execute(enrollment_query)).one()
+        with_activity, last_activity = (await session.execute(activity_query)).one()
+
+    return dict(
+        enrolled=enrolled,
+        active=active,
+        with_activity=with_activity,
+        last_activity=last_activity,
+    )
+
+
 async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
     """
     Retrieve a list of courses that share the same base course.
@@ -730,16 +934,159 @@ async def fetch_basecourse_courses(base_course: str) -> List[CoursesValidator]:
     return course_list
 
 
-async def fetch_courses_by_institution(institution: str) -> List[CoursesValidator]:
+# Words that carry no distinguishing information in an institution name. Almost
+# every school has one of these, so matching on them alone makes "Luther College"
+# look like "Nazareth College".
+_INSTITUTION_STOPWORDS = frozenset(
+    {
+        "a",
+        "academy",
+        "and",
+        "at",
+        "campus",
+        "center",
+        "central",
+        "city",
+        "college",
+        "community",
+        "county",
+        "for",
+        "high",
+        "in",
+        "inc",
+        "institute",
+        "institution",
+        "junior",
+        "of",
+        "polytechnic",
+        "public",
+        "school",
+        "seminary",
+        "state",
+        "technical",
+        "technology",
+        "the",
+        "university",
+    }
+)
+
+# Abbreviations readers type instead of the full word.
+_INSTITUTION_ABBREVIATIONS = {
+    "u": "university",
+    "univ": "university",
+    "uni": "university",
+    "coll": "college",
+    "cc": "community college",
+    "hs": "high school",
+    "st": "saint",
+    "&": "and",
+}
+
+
+def _normalize_institution(name: str) -> List[str]:
+    """
+    Lower-case an institution name, drop punctuation, and expand common
+    abbreviations, returning the resulting token list.
+    """
+    cleaned = "".join(ch if ch.isalnum() else " " for ch in name.lower())
+    tokens = []
+    for token in cleaned.split():
+        tokens.extend(_INSTITUTION_ABBREVIATIONS.get(token, token).split())
+    return tokens
+
+
+def _acronym(tokens: List[str]) -> str:
+    """Initials of ``tokens``, skipping the short connectors ("mit", "unc")."""
+    return "".join(
+        t[0] for t in tokens if t not in {"of", "the", "at", "and", "for", "in"}
+    )
+
+
+def _tokens_match(needle_token: str, candidate_token: str) -> bool:
+    """
+    True when two single tokens name the same thing: identical, one a prefix of
+    the other ("mass" / "massachusetts"), or close enough to be a typo.
+    """
+    if needle_token == candidate_token:
+        return True
+    if len(needle_token) >= 4 and candidate_token.startswith(needle_token):
+        return True
+    if len(candidate_token) >= 4 and needle_token.startswith(candidate_token):
+        return True
+    if min(len(needle_token), len(candidate_token)) >= 4:
+        # 0.8 is about "one transposed or wrong letter in a six-letter word"
+        # ("luthar"/"luther"), while still rejecting "iowa"/"idaho".
+        return SequenceMatcher(None, needle_token, candidate_token).ratio() >= 0.8
+    return False
+
+
+def institution_match_score(needle: str, candidate: str) -> float:
+    """
+    Score how well the institution the reader typed (``needle``) matches a
+    course's stored institution (``candidate``), from 0.0 (no match) to 1.0.
+
+    Scoring is token-based rather than whole-string: what matters is whether the
+    *distinctive* words the reader typed all turn up in the candidate, so
+    "Luther" matches "Luther College" but not "Nazareth College".
+
+    :param needle: str, the institution name the reader typed
+    :param candidate: str, the institution name stored on a course
+    :return: float, the match score in [0.0, 1.0]
+    """
+    needle_tokens = _normalize_institution(needle)
+    candidate_tokens = _normalize_institution(candidate)
+    if not needle_tokens or not candidate_tokens:
+        return 0.0
+
+    # An acronym for the whole name ("MIT", "UNC") won't survive token matching.
+    if len(needle_tokens) == 1 and len(needle_tokens[0]) >= 2:
+        if needle_tokens[0] == _acronym(candidate_tokens):
+            return 1.0
+
+    needle_key = [t for t in needle_tokens if t not in _INSTITUTION_STOPWORDS]
+    candidate_key = [t for t in candidate_tokens if t not in _INSTITUTION_STOPWORDS]
+
+    if not needle_key:
+        # The reader typed only generic words ("community college"). Nothing
+        # distinctive to match on, so fall back to whole-string similarity.
+        return SequenceMatcher(
+            None, " ".join(needle_tokens), " ".join(candidate_tokens)
+        ).ratio()
+
+    matched = sum(
+        1 for nt in needle_key if any(_tokens_match(nt, ct) for ct in candidate_key)
+    )
+    coverage = matched / len(needle_key)
+    if coverage < 1.0:
+        # Partial coverage is only a match when the reader typed several words
+        # and most of them landed, e.g. "Univ of Illinois Urbana" vs
+        # "University of Illinois at Urbana-Champaign".
+        return coverage * 0.8
+
+    # Every distinctive word matched, so this is a match no matter how much else
+    # the candidate's name carries ("Luther" has to find "Luther College,
+    # Decorah IA"). Extra words only cost rank, never the match itself, so an
+    # exact name sorts above one that merely contains what was typed.
+    extra = len(candidate_key) - matched
+    return max(0.8, 1.0 - 0.05 * extra)
+
+
+async def fetch_courses_by_institution(
+    institution: str, threshold: float = 0.75, limit: int = 20
+) -> List[CoursesValidator]:
     """
     Return courses whose institution fuzzy-matches the given string and whose
     term_start_date is within the last 9 months (i.e. active or recently started).
-    Uses Python difflib so no pg_trgm extension is required.
+    Matching is done in Python (see :func:`institution_match_score`) so no
+    pg_trgm extension is required.
 
     :param institution: str, the institution name to match
+    :param threshold: float, the minimum match score to include a course
+    :param limit: int, the maximum number of courses to return
     :return: List[CoursesValidator]
     """
-    from difflib import SequenceMatcher
+    if not institution.strip():
+        return []
 
     cutoff = datetime.date.today() - datetime.timedelta(days=275)  # ~9 months
     query = select(Courses).where(
@@ -749,14 +1096,28 @@ async def fetch_courses_by_institution(institution: str) -> List[CoursesValidato
         res = await session.execute(query)
         all_courses = res.scalars().fetchall()
 
-    needle = institution.lower()
     matches = []
     seen = set()
     for course in all_courses:
-        ratio = SequenceMatcher(None, needle, course.institution.lower()).ratio()
-        if ratio >= 0.6 and course.course_name not in seen:
+        if course.course_name in seen:
+            continue
+        score = institution_match_score(institution, course.institution)
+        if score >= threshold:
             seen.add(course.course_name)
-            matches.append((ratio, CoursesValidator.from_orm(course)))
+            # Negate the date so "latest first" sorts alongside the ascending
+            # course_name in a single key. The query filters on term_start_date,
+            # so it can't be None here, but don't let a bad row raise.
+            start = course.term_start_date or datetime.date.min
+            matches.append(
+                (
+                    -score,
+                    -start.toordinal(),
+                    course.course_name,
+                    CoursesValidator.from_orm(course),
+                )
+            )
 
-    matches.sort(key=lambda x: x[0], reverse=True)
-    return [c for _, c in matches[:20]]
+    # Best match first, then the most recent term, then course_name so the
+    # ordering is stable run to run.
+    matches.sort(key=lambda x: x[:3])
+    return [c for *_, c in matches[:limit]]

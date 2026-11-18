@@ -18,7 +18,7 @@ turned into reusable functions that are defined in this file.
 import datetime
 import hashlib
 import json
-from typing import Dict, Optional, Any
+from typing import Optional
 import traceback
 
 # Third-party imports
@@ -30,16 +30,15 @@ from starlette.requests import Request
 
 # Local application imports
 # -------------------------
+from rsptx.data_types.answer_storage import INTERACTION_ACTS  # noqa: F401
 from rsptx.logging import rslogger
 from ..async_session import async_session
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.db.models import (
     AuthUserValidator,
-    Courses,
     CoursesValidator,
     DomainApprovals,
     InvoiceRequest,
-    Question,
     TraceBack,
     APIToken,
     APITokenValidator,
@@ -67,44 +66,33 @@ EVENT2TABLE = {
     "SPLICE.getState": "splice_answers",
 }
 
+# Events that can be graded but have no answer table: there is nothing to store
+# beyond the ``useinfo`` row, because the interaction *is* the submission. These
+# live next to ``EVENT2TABLE`` because the two together define the set of events
+# the scorer knows about -- an event in neither is logged and nothing more.
+INTERACTION_ONLY_EVENTS = {"video", "poll", "quizly", "khanex"}
 
-# Server-side grading
-# -------------------
-# Return the feedback associated with this question if this question should be graded on the server instead of on the client; otherwise, return None.
-async def is_server_feedback(div_id: str, course: str) -> Optional[Dict[str, Any]]:
+# The acts that count as a genuine student interaction live in
+# ``rsptx.data_types.answer_storage`` so that readers outside the db layer (the
+# dash server) can share them; see ``INTERACTION_ACTS`` there.
+
+
+def is_interaction_event(event: str, act: str) -> bool:
+    """Return True when ``event``/``act`` is an interaction-only submission that
+    should be scored.
+
+    :param event: the ``event`` field of a ``LogItemIncoming``.
+    :param act: the ``act`` field, which for videos carries a ``:``-separated
+        payload such as ``play:12.5``.
+    :return: True if this is an interaction-only event whose act represents real
+        student activity.
     """
-    Check if server feedback is available for the given div id (div_id) and course name (course).
-    If server feedback is available and login is required, return the decoded feedback.
-
-    :param div_id: str, the id of the div element
-    :param course: str, the name of the course
-    :return: Optional[Dict[str, Any]], a dictionary representing the decoded feedback (if available)
-    """
-    # Get the information about this question.
-    query = (
-        select(Question, Courses)
-        .where(Question.name == div_id)
-        .join(Courses, Question.base_course == Courses.base_course)
-        .where(Courses.course_name == course)
-    )
-    async with async_session() as session:
-        query_results = (await session.execute(query)).first()
-
-        # Get the feedback, if it exists.
-        feedback = query_results and query_results.Question.feedback
-        # If there's feedback and a login is required (necessary for server-side grading), return the decoded feedback.
-        try:
-            if feedback and query_results.Courses.login_required:
-                # Decode the feedback from JSON.
-                return json.loads(feedback)
-        except json.JSONDecodeError as e:
-            rslogger.error(
-                f"Failed to decode feedback for div_id {div_id} in course {course}: {e}"
-            )
-            # If decoding fails, we log the error and return None.
-            return None
-        # Otherwise, grade on the client.
-        return None
+    if event not in INTERACTION_ONLY_EVENTS:
+        return False
+    allowed = INTERACTION_ACTS.get(event)
+    if allowed is None:
+        return True
+    return (act or "").split(":")[0] in allowed
 
 
 # Development and Testing Utils
@@ -195,18 +183,16 @@ async def create_traceback(exc: Exception, request: Request, host: str):
             dl.append(dict(name=name, local_vars=local_vars))
             curr = curr.tb_next
         rslogger.debug(f"{dl[-2:]=}")
-
+        local_vars_json = []
         # Keep the last few frames' locals as JSON. The values are arbitrary
         # runtime objects, so serialize with ``default=repr`` (and round-trip
         # through json so the column gets a plain structure, never raw objects).
-        try:
-            local_vars_json = json.loads(json.dumps(dl[-2:], default=repr))
-        except (TypeError, ValueError):
-            local_vars_json = [
-                {"name": d["name"], "local_vars": repr(d["local_vars"])}
-                for d in dl[-2:]
-            ]
-
+        for frame in dl:
+            for k, v in frame["local_vars"].items():
+                try:
+                    local_vars_json.append(json.dumps(v))
+                except (TypeError, ValueError):
+                    local_vars_json.append(json.dumps(repr(v)))
         # if the request is a post get the form data or json
         pb = ""
         if request.method == "POST":

@@ -1,8 +1,4 @@
 import { Button, Center, Checkbox, Loader, Modal, Stepper } from "@mantine/core";
-import { ColumnDef } from "@tanstack/react-table";
-import React, { useEffect, useMemo, useState } from "react";
-
-import { DataGrid } from "@/components/ui/DataGrid";
 import {
   GraderQuestionStats,
   RegradeReport,
@@ -10,7 +6,10 @@ import {
   useRegradeMutation,
   useRegradePreviewMutation
 } from "@store/grader/grader.logic.api";
+import { ColumnDef } from "@tanstack/react-table";
+import React, { useEffect, useMemo, useState } from "react";
 
+import { DataGrid } from "@/components/ui/DataGrid";
 import stepperStyles from "@/components/ui/WizardStepper.module.css";
 
 import styles from "../Grader.module.css";
@@ -54,6 +53,7 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
   const [overwriteManual, setOverwriteManual] = useState(false);
   const [enforceDeadline, setEnforceDeadline] = useState(true);
   const [recomputeTotals, setRecomputeTotals] = useState(true);
+  const [resendAllScoresViaLti, setResendAllScoresViaLti] = useState(false);
 
   const [preview, { isLoading: previewing }] = useRegradePreviewMutation();
   const [run, { isLoading: running }] = useRegradeMutation();
@@ -79,6 +79,7 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
     if (visible) {
       setStep(1);
       setReport(null);
+      setResendAllScoresViaLti(false);
     }
   }, [visible]);
 
@@ -94,17 +95,20 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
     sids: selectedSids,
     overwrite_manual: overwriteManual,
     enforce_deadline: enforceDeadline,
-    recompute_totals: recomputeTotals
+    recompute_totals: recomputeTotals,
+    resend_all_scores_via_lti: resendAllScoresViaLti
   });
 
   const toPreview = async () => {
     const res = await preview(buildRequest()).unwrap();
+
     setReport(res);
     setStep(2);
   };
 
   const doRun = async () => {
     const res = await run(buildRequest()).unwrap();
+
     setReport(res);
     onComplete?.(res);
     close();
@@ -122,6 +126,7 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
       title="Regrade selected questions"
       opened={visible}
       onClose={close}
+      closeButtonProps={{ "aria-label": "Close regrade selected questions dialog" }}
       size="720px"
       centered
     >
@@ -139,8 +144,8 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
 
           {!hasGradeable && (
             <div className={styles.calloutWarning}>
-              None of the selected questions can be auto-graded. Use <strong>Multi-grade</strong> to
-              grade them by hand.
+              None of the selected questions can be auto-graded. Use <strong>Grade manually</strong>{" "}
+              to grade them by hand.
             </div>
           )}
 
@@ -173,6 +178,17 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
               checked={recomputeTotals}
               onChange={(e) => setRecomputeTotals(e.currentTarget.checked)}
               label="Recompute assignment totals and push to the LMS"
+              disabled={resendAllScoresViaLti}
+            />
+            <Checkbox
+              checked={resendAllScoresViaLti}
+              onChange={(e) => {
+                const checked = e.currentTarget.checked;
+
+                setResendAllScoresViaLti(checked);
+                if (checked) setRecomputeTotals(true);
+              }}
+              label="Resend all scores via LTI (force update even unchanged)"
             />
           </div>
         </div>
@@ -192,6 +208,9 @@ export const RegradeWizard: React.FC<RegradeWizardProps> = ({
                 {report.skipped_manual} manual skipped &middot; {report.no_submission} no submission
                 &middot; {report.errors} errors
               </div>
+              {resendAllScoresViaLti && (
+                <p>Existing assignment totals will be resent via LTI, even if unchanged.</p>
+              )}
               <DataGrid<RegradeItem>
                 data={previewRows}
                 columns={PREVIEW_COLUMNS}

@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
 import { renderWithMantine, screen } from "@/test/renderWithMantine";
-
 import { Exercise } from "@/types/exercises";
 
 import { COPY_EXERCISE_TOAST_COPY, CopyExerciseModal } from "./CopyExerciseModal";

@@ -1,6 +1,6 @@
 import logging
 import datetime
-from typing import List
+from typing import Iterable, List, Optional
 from sqlalchemy import select, and_, func, text
 
 from ..models import (
@@ -15,27 +15,51 @@ from ..models import (
 from ..async_session import async_session
 from rsptx.validation import schemas
 from .crud import EVENT2TABLE
+from .course import record_course_access
+from .interactions import interaction_key_for, upsert_interaction
 
 rslogger = logging.getLogger(__name__)
 
 
 # useinfo
 # -------
-async def create_useinfo_entry(log_entry: UseinfoValidation) -> UseinfoValidation:
-    """Add a row to the ``useinfo`` table.
+async def create_useinfo_entry(
+    log_entry: UseinfoValidation, interaction_key: Optional[str] = None
+) -> UseinfoValidation:
+    """Add a row to the ``useinfo`` table, and record the interaction in
+    ``user_interactions``.
 
     :param log_entry: Log entries contain a timestamp, an event, details about the event, a student id, and the identifier of the book element that was interacted with.
     :type log_entry: UseinfoValidation
+    :param interaction_key: the tracker key to record this event under, when
+        it is not ``log_entry.div_id``.  A page view must pass its
+        ``page_interaction_key``; without one it is not recorded, since its
+        div_id is a URL path.
     :return: A representation of the row inserted.
     :rtype: UseinfoValidation
     """
+    key = interaction_key or interaction_key_for(
+        log_entry.event, log_entry.act, log_entry.sid, log_entry.div_id
+    )
     async with async_session.begin() as session:
         new_entry = Useinfo(**log_entry.dict())
         rslogger.debug(f"timestamp = {log_entry.timestamp} ")
         rslogger.debug(f"New Entry = {new_entry}")
         rslogger.debug(f"session = {session}")
         session.add(new_entry)
+        if key and log_entry.course_id and log_entry.sid != "Anonymous":
+            # Same transaction, so no second pool checkout per logged event.
+            await upsert_interaction(
+                session, log_entry.course_id, key, log_entry.sid, log_entry.timestamp
+            )
     rslogger.debug(new_entry)
+    try:
+        await record_course_access(
+            log_entry.sid, log_entry.course_id, log_entry.timestamp
+        )
+    except Exception as e:
+        # Losing a last-access update is fine; losing the log entry is not.
+        rslogger.error(f"Failed to record course access for {log_entry.sid}: {e}")
     return UseinfoValidation.from_orm(new_entry)
 
 
@@ -133,34 +157,6 @@ async def fetch_code_for_sid(sid: str, course_id: int) -> List[CodeValidator]:
         return [CodeValidator.from_orm(x) for x in res.scalars().fetchall()]
 
 
-async def fetch_last_course_access(sid: str, start_date: datetime.datetime) -> dict:
-    """Return the most recent access time for each course a user has visited.
-
-    Looks at the ``useinfo`` table for rows belonging to ``sid`` since
-    ``start_date`` and returns, for each course, the latest timestamp seen.
-    Used to sort a user's course list so recently-used courses appear first.
-
-    :param sid: The student id (username) whose activity to inspect.
-    :type sid: str
-    :param start_date: Only consider activity at or after this time.
-    :type start_date: datetime.datetime
-    :return: A mapping of ``course_id`` (the course name) to the most recent
-             access ``timestamp``.
-    :rtype: dict
-    """
-    query = (
-        select(
-            Useinfo.course_id,
-            func.max(Useinfo.timestamp).label("last_acc"),
-        )
-        .where((Useinfo.sid == sid) & (Useinfo.timestamp > start_date))
-        .group_by(Useinfo.course_id)
-    )
-    async with async_session() as session:
-        res = await session.execute(query)
-        return {row.course_id: row.last_acc for row in res}
-
-
 async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
     """
     Find the last answer for each student and then aggregate those answers to provide a summary of poll
@@ -175,12 +171,10 @@ async def fetch_poll_summary(div_id: str, course_name: str) -> List[tuple]:
              of students who chose that response.
     :rtype: List[tuple]
     """
-    query = text(
-        """select act, count(*) from useinfo
+    query = text("""select act, count(*) from useinfo
         join (select sid, max(id) mid
         from useinfo where event='poll' and div_id = :div_id and course_id = :course_name group by sid) as T
-        on id = T.mid group by act"""
-    )
+        on id = T.mid group by act""")
 
     async with async_session() as session:
         rows = await session.execute(
@@ -272,11 +266,47 @@ async def fetch_last_answer_table_entry(
             )
         )
         .order_by(tbl.timestamp.desc())
+        .limit(1)
     )
     async with async_session() as session:
         res = await session.execute(query)
         rslogger.debug(f"res = {res}")
         return rcd.validator.from_orm(res.scalars().first())  # type: ignore
+
+
+async def fetch_interaction_useinfo(
+    div_id: str,
+    course_name: str,
+    events: Iterable[str],
+    sid: Optional[str] = None,
+) -> List[Useinfo]:
+    """Fetch the ``useinfo`` rows that record students interacting with a
+    question that has no answer table -- a video or a poll.
+
+    For these questions the useinfo row *is* the submission, so this is the
+    equivalent of reading an answer table: the grader and the re-grader both go
+    through here rather than querying ``useinfo`` themselves.  Callers still
+    have to filter the rows through ``is_interaction_event`` to drop the acts
+    that are not real student activity (a video logs ``ready`` as soon as its
+    player is built).
+
+    :param div_id: the question's ``name``/``div_id``.
+    :param course_name: the course to restrict to (``useinfo.course_id``).
+    :param events: the useinfo ``event`` values that count for this question.
+    :param sid: restrict to a single student; omit for the whole course.
+    :return: matching rows, oldest first.
+    """
+    clauses = [
+        Useinfo.div_id == div_id,
+        Useinfo.course_id == course_name,
+        Useinfo.event.in_(list(events)),
+    ]
+    if sid is not None:
+        clauses.append(Useinfo.sid == sid)
+    query = select(Useinfo).where(and_(*clauses)).order_by(Useinfo.timestamp.asc())
+    async with async_session() as session:
+        res = await session.execute(query)
+        return list(res.scalars())
 
 
 async def fetch_last_poll_response(sid: str, course_name: str, poll_id: str) -> str:

@@ -64,7 +64,10 @@ class FastAPIRequest(Request):
         self._cookies = request_obj.cookies if cookies is None else cookies
         self._session = request_obj.session if session is None else session
 
-        is_https = request_obj.url.scheme.lower() == "https"
+        is_https = (
+            request_obj.url.scheme.lower() == "https"
+            or "https" in request_obj.headers.get("x-forwarded-proto", "").lower()
+        )
         self._request_is_secure = (
             is_https if request_is_secure is None else request_is_secure
         )

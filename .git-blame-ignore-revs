@@ -1,0 +1,3 @@
+# Style-only reformats; use with: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Reformat with black 26
+04ed43033377673e5ff60c55f6054087a83cf3d7

@@ -16,20 +16,20 @@ import {
   Tooltip,
   UnstyledButton
 } from "@mantine/core";
+import { useHasApiKeyQuery } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import classNames from "classnames";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 
 import { useExercisesSelector } from "@/hooks/useExercisesSelector";
+import { useRouteHeadingFocus } from "@/hooks/useRouteHeadingFocus";
 import { Assignment, KindOfAssignment } from "@/types/assignment";
 
 import { DateTimePicker } from "../../../../ui/DateTimePicker";
-
-import { CourseTimezoneNotice } from "./CourseTimezoneNotice";
-
 import { AssignmentReadings } from "../reading/AssignmentReadings";
-import { VisibilityControl } from "./VisibilityControl";
 
 import styles from "./AssignmentEdit.module.css";
+import { CourseTimezoneNotice } from "./CourseTimezoneNotice";
+import { VisibilityControl } from "./VisibilityControl";
 
 const YES_NO_OPTIONS = [
   { label: "Yes", value: "true" },
@@ -71,6 +71,11 @@ export const AssignmentEdit = ({
   setValue
 }: AssignmentEditProps) => {
   const { isExercisesError, isExercisesLoading } = useExercisesSelector();
+  const headingRef = useRouteHeadingFocus(
+    `${window.location.pathname}:${isExercisesLoading ? "loading" : "ready"}`
+  );
+  // The study setting is meaningless outside a course set up to run one, so it should not confuse instructors
+  const { data: { asyncConditionsEnabled = false } = {} } = useHasApiKeyQuery();
 
   if (isExercisesError) {
     return <ErrorState title="Couldn't load this assignment" message="Refresh the page." />;
@@ -98,7 +103,7 @@ export const AssignmentEdit = ({
 
   const renderDetailsSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Details</h3>
+      <h2 className={styles.sectionTitle}>Details</h2>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="edit-assignment-name">Assignment name</label>
@@ -126,15 +131,14 @@ export const AssignmentEdit = ({
                 {...field}
                 id="edit-assignment-description"
                 value={field.value || ""}
-                autosize
-                minRows={4}
+                rows={4}
                 placeholder="What is this assignment about?"
               />
             )}
           />
         </div>
         <div className={styles.field}>
-          <label>Assignment type</label>
+          <span className={styles.controlLabel}>Assignment type</span>
           <Controller
             name="kind"
             control={control}
@@ -157,7 +161,7 @@ export const AssignmentEdit = ({
 
   const renderScheduleSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Schedule</h3>
+      <h2 className={styles.sectionTitle}>Schedule</h2>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="edit-due-date">Due date</label>
@@ -214,7 +218,7 @@ export const AssignmentEdit = ({
 
   const renderScoringSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Scoring</h3>
+      <h2 className={styles.sectionTitle}>Scoring</h2>
       <div className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="edit-points">Points</label>
@@ -240,10 +244,10 @@ export const AssignmentEdit = ({
 
   const renderBehaviorSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Behavior</h3>
+      <h2 className={styles.sectionTitle}>Behavior</h2>
       <div className={styles.fields}>
         <div className={styles.settingRow}>
-          <label>Allow pause</label>
+          <span className={styles.controlLabel}>Allow pause</span>
           <Controller
             name="nopause"
             control={control}
@@ -259,7 +263,7 @@ export const AssignmentEdit = ({
           />
         </div>
         <div className={styles.settingRow}>
-          <label>Allow feedback</label>
+          <span className={styles.controlLabel}>Allow feedback</span>
           <Controller
             name="nofeedback"
             control={control}
@@ -280,10 +284,10 @@ export const AssignmentEdit = ({
 
   const renderPeerSection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Peer settings</h3>
+      <h2 className={styles.sectionTitle}>Peer settings</h2>
       <div className={styles.fields}>
         <div className={styles.settingRow}>
-          <label>Show async peer</label>
+          <span className={styles.controlLabel}>Show async peer</span>
           <Controller
             name="peer_async_visible"
             control={control}
@@ -298,13 +302,31 @@ export const AssignmentEdit = ({
             )}
           />
         </div>
+        {asyncConditionsEnabled && (
+          <div className={styles.settingRow}>
+            <span className={styles.controlLabel}>Randomize study conditions</span>
+            <Controller
+              name="async_study"
+              control={control}
+              render={({ field }) => (
+                <SegmentedControl
+                  value={String(field.value ?? false)}
+                  onChange={(value) => field.onChange(value === "true")}
+                  data={YES_NO_OPTIONS}
+                  size="sm"
+                  aria-label="Randomize study conditions"
+                />
+              )}
+            />
+          </div>
+        )}
       </div>
     </Paper>
   );
 
   const renderVisibilitySection = () => (
     <Paper className={styles.section}>
-      <h3 className={styles.sectionTitle}>Visibility</h3>
+      <h2 className={styles.sectionTitle}>Visibility</h2>
       <VisibilityControl control={control} watch={watch} setValue={setValue} />
     </Paper>
   );
@@ -318,7 +340,7 @@ export const AssignmentEdit = ({
 
     return (
       <Paper className={styles.section}>
-        <h3 className={styles.sectionTitle}>LTI 1.1 link</h3>
+        <h2 className={styles.sectionTitle}>LTI 1.1 link</h2>
         <div className={styles.fields}>
           <div className={styles.field}>
             <label htmlFor="lti-link">
@@ -415,7 +437,7 @@ export const AssignmentEdit = ({
               >
                 <Icon name="arrow-left" />
               </ActionIcon>
-              <h1 className={styles.assignmentName} title={selectedAssignment?.name}>
+              <h1 ref={headingRef} className={styles.assignmentName} tabIndex={-1}>
                 {selectedAssignment?.name}
               </h1>
             </Group>

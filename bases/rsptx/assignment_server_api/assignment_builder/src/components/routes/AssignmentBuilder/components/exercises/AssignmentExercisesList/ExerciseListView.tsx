@@ -4,10 +4,9 @@ import { DraggingExerciseColumns } from "@/types/components/editableTableCell";
 import { Exercise } from "@/types/exercises";
 
 import { AssignmentExercisesTable } from "./AssignmentExercisesTable";
+import styles from "./ExerciseListView.module.css";
 import { ExercisesToolbar } from "./ExercisesToolbar";
 import { SetCurrentEditExercise, ViewModeSetter, MouseUpHandler } from "./types";
-
-import styles from "./ExerciseListView.module.css";
 
 interface ExerciseListViewProps {
   globalFilter: string;

@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { useGraderPrefs, GraderPrefs } from "./useGraderPrefs";
 
 const STORAGE_KEY = "rs-grader-prefs-v1";
@@ -10,14 +11,17 @@ describe("useGraderPrefs", () => {
 
   it("returns default prefs when localStorage is empty", () => {
     const { result } = renderHook(() => useGraderPrefs());
+
     expect(result.current.prefs).toEqual({ autoAdvance: false });
   });
 
   it("reads persisted prefs from localStorage on mount", () => {
     const saved: GraderPrefs = { autoAdvance: true };
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 
     const { result } = renderHook(() => useGraderPrefs());
+
     expect(result.current.prefs.autoAdvance).toBe(true);
   });
 
@@ -25,6 +29,7 @@ describe("useGraderPrefs", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({}));
 
     const { result } = renderHook(() => useGraderPrefs());
+
     expect(result.current.prefs).toEqual({ autoAdvance: false });
   });
 
@@ -32,6 +37,7 @@ describe("useGraderPrefs", () => {
     localStorage.setItem(STORAGE_KEY, "not-valid-json{{{");
 
     const { result } = renderHook(() => useGraderPrefs());
+
     expect(result.current.prefs).toEqual({ autoAdvance: false });
   });
 
@@ -53,6 +59,7 @@ describe("useGraderPrefs", () => {
     });
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+
     expect(stored).toEqual({ autoAdvance: true });
   });
 
@@ -79,6 +86,7 @@ describe("useGraderPrefs", () => {
 
   it("reacts to a storage event with the matching key by reloading prefs", () => {
     const { result } = renderHook(() => useGraderPrefs());
+
     expect(result.current.prefs.autoAdvance).toBe(false);
 
     act(() => {

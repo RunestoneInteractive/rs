@@ -1,7 +1,7 @@
+import { notify } from "@components/ui/notify";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { assignmentExerciseApi } from "@store/assignmentExercise/assignmentExercise.logic.api";
 import { baseQuery } from "@store/baseQuery";
-import { notify } from "@components/ui/notify";
 
 import { DetailResponse } from "@/types/api";
 import {

@@ -5,7 +5,8 @@ export const generateMultiChoicePreview = (
   questionTitle: string,
   options: Option[],
   questionName: string,
-  forceCheckboxes?: boolean
+  forceCheckboxes?: boolean,
+  random?: boolean
 ): string => {
   const safeId = sanitizeId(questionName);
   const optionsHTML = options
@@ -23,11 +24,12 @@ export const generateMultiChoicePreview = (
 
   const correctAnswersCount = options.filter((opt) => opt.correct).length;
   const multipleAnswers = forceCheckboxes || correctAnswersCount > 1 ? "true" : "false";
+  const randomAttr = random ? ' data-random="yes"' : "";
 
   return `<div class="runestone ">
     <ul 
      data-component="multiplechoice"
-     data-question_label="${safeId}" data-multipleanswers="${multipleAnswers}"  id="${safeId}"  style="visibility: hidden;">
+     data-question_label="${safeId}" data-multipleanswers="${multipleAnswers}"${randomAttr}  id="${safeId}"  style="visibility: hidden;">
     <p>${questionTitle}</p>
 ${optionsHTML}
     </ul>

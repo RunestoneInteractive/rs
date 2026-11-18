@@ -14,6 +14,7 @@
 # ----------------
 import datetime
 import os
+from collections import Counter
 import re
 import shutil
 import subprocess
@@ -32,7 +33,7 @@ import pretext.project
 
 # import xml.etree.ElementTree as ET
 
-from sqlalchemy import create_engine, Table, MetaData, and_, update
+from sqlalchemy import create_engine, Table, MetaData, and_, null, update
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
@@ -42,6 +43,7 @@ from rsptx.configuration import settings
 from rsptx.db.models import Library, LibraryValidator
 from rsptx.db.crud import update_source_code_sync
 from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.build_tools.question_json import convert_question
 
 
 # Return the synchronous database URL for the current SERVER_CONFIG.
@@ -586,6 +588,9 @@ def manifest_data_to_db(course_name, manifest_path):
     Arguments:
         course_name {string} -- Name of the course (should be a base course)
         manifest_path {path} -- path to runestone-manifest.xml file
+
+    Returns a Counter of ``(question_type, stored)`` pairs: how many questions
+    of each type did or did not get a ``question_json``.
     """
     try:
         DBURL = get_dburl()
@@ -617,6 +622,8 @@ def manifest_data_to_db(course_name, manifest_path):
     _set_course_attributes(sess, db_context, course_name, manifest_path)
 
     sess.commit()
+    _log_question_json_stats(db_context)
+    return db_context.get("question_json_stats", Counter())
 
 
 def _initialize_db_context(engine, sess, course_name, manifest_path):
@@ -715,6 +722,19 @@ def _process_appendices(sess, db_context, course_name, manifest_path):
             _handle_datafile(el, course_name)
 
 
+def _title_text(el):
+    """Return the plain text of a manifest ``<title>`` element.
+
+    Titles can contain markup (``<code>``, ``<dfn>``, ...), so ``el.text`` only
+    gives the text before the first child -- "The <code>Node</code> Class"
+    would come back as "The ".  Use the full string value of the element with
+    whitespace collapsed instead.
+    """
+    if el is None:
+        return ""
+    return " ".join(el.xpath("string()").split())
+
+
 def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name):
     """Process a single chapter and return its database ID."""
     rslogger.info(
@@ -724,17 +744,23 @@ def _process_single_chapter(sess, db_context, chapter, chap_counter, course_name
     if not cnum_text:
         cnum = chap_counter
     else:
-        cnum = int(cnum_text)
+        try:
+            cnum = int(cnum_text)
+        except ValueError:
+            rslogger.warning(
+                f"Chapter number '{cnum_text}' is not an integer. Using counter {chap_counter} instead."
+            )
+            cnum = chap_counter
 
     rslogger.debug(
-        f"{chapter.tag} {chapter.find('./id').text} {chapter.find('./title').text}"
+        f"{chapter.tag} {chapter.find('./id').text} {_title_text(chapter.find('./title'))}"
     )
 
     ins = (
         db_context["chapters"]
         .insert()
         .values(
-            chapter_name=f"{cnum} {chapter.find('./title').text}",
+            chapter_name=_title_text(chapter.find("./title")),
             course_id=course_name,
             chapter_label=chapter.find("./id").text,
             chapter_num=cnum,
@@ -791,7 +817,13 @@ def _process_single_subchapter(
         # strip off the chapter number and just keep the subchapter number
         if "." in scnum_text:
             scnum_text = scnum_text.split(".")[1]
-        scnum = int(scnum_text.strip())
+        try:
+            scnum = int(scnum_text.strip())
+        except ValueError:
+            rslogger.warning(
+                f"Subchapter number '{scnum_text}' is not an integer. Using counter {subchap_counter} instead."
+            )
+            scnum = subchap_counter
     else:
         scnum = subchap_counter
 
@@ -801,14 +833,7 @@ def _process_single_subchapter(
     if not chap_xmlid:
         rslogger.error(f"Missing id tag in subchapter {subchapter}")
 
-    # Build subchapter title
-    titletext = subchapter.find("./title").text
-    if not titletext:
-        rslogger.debug(f"constructing title for subchapter {chap_xmlid}")
-        titletext = " ".join(
-            [ET.tostring(y).decode("utf8") for y in subchapter.findall("./title/*")]
-        )
-    titletext = f"{scnum} {titletext.strip()}"
+    titletext = _title_text(subchapter.find("./title"))
 
     # Insert subchapter
     ins = (
@@ -933,9 +958,7 @@ def _process_single_timed_assignment(
     rslogger.info(
         f"Processing timed assignment subchapter {subchapter.find('./id').text if subchapter.find('./id') is not None else 'Unknown'}"
     )
-    titletext = subchapter.find("./title")
-    if titletext is not None:
-        titletext = titletext.text.strip()
+    titletext = _title_text(subchapter.find("./title"))
     if not titletext:
         titletext = "Timed Assignment"
     timed_id = subchapter.attrib.get("id", None)
@@ -980,6 +1003,8 @@ def _process_single_timed_assignment(
         if qtype == "webwork" and el is not None:
             dbtext = ET.tostring(el).decode("utf8")
 
+        question_json = _question_json_for(qtype, el, question, idchild, db_context)
+
         # Build question data
         if parent is not None:
             subchap_label = parent.find("./id").text
@@ -1002,6 +1027,7 @@ def _process_single_timed_assignment(
             practice="F",
             author=db_context["author"],
             owner=db_context["owner"],
+            question_json=_sql_json(question_json),
         )
 
         # Insert or update question
@@ -1013,14 +1039,37 @@ def _process_single_timed_assignment(
 
 def _add_page_question(sess, db_context, chapter, subchapter, course_name):
     """Add a page entry to the questions table for this chapter/subchapter."""
-    name = f"{chapter.find('./title').text}/{subchapter.find('./title').text}"
+    name = (
+        f"{_title_text(chapter.find('./title'))}/"
+        f"{_title_text(subchapter.find('./title'))}"
+    )
+    chap_label = chapter.find("./id").text
+    subchap_label = subchapter.find("./id").text
 
+    # Match on the name first: (name, base_course) is unique, so any other
+    # row we picked would collide with this one when renamed.  Otherwise fall
+    # back to the chapter/subchapter labels, so a changed title renames the
+    # existing row instead of orphaning it (and any reading assignments that
+    # point at it).  This also repairs rows named by older builds that
+    # truncated titles containing markup, e.g. "Linear Linked Structures/The".
+    # Older builds could leave several page rows for one label (a title change
+    # inserted a new row), which is why the label lookup can't go first.
     res = sess.execute(
         text(
-            "select * from questions where name = :name and base_course = :course_name"
+            "select id from questions where name = :name "
+            "and base_course = :course_name order by id limit 1"
         ),
         dict(name=name, course_name=course_name),
     ).first()
+    if not res:
+        res = sess.execute(
+            text(
+                "select id from questions where base_course = :course_name "
+                "and question_type = 'page' and chapter = :chapter "
+                "and subchapter = :subchapter order by id limit 1"
+            ),
+            dict(course_name=course_name, chapter=chap_label, subchapter=subchap_label),
+        ).first()
 
     valudict = dict(
         base_course=course_name,
@@ -1028,8 +1077,8 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         timestamp=datetime.datetime.now(),
         is_private="F",
         question_type="page",
-        subchapter=subchapter.find("./id").text,
-        chapter=chapter.find("./id").text,
+        subchapter=subchap_label,
+        chapter=chap_label,
         from_source="T",
         author=db_context["author"],
         owner=db_context["owner"],
@@ -1039,18 +1088,164 @@ def _add_page_question(sess, db_context, chapter, subchapter, course_name):
         ins = (
             db_context["questions"]
             .update()
-            .where(
-                and_(
-                    db_context["questions"].c.name == name,
-                    db_context["questions"].c.base_course == course_name,
-                )
-            )
+            .where(db_context["questions"].c.id == res.id)
             .values(**valudict)
         )
     else:
         ins = db_context["questions"].insert().values(**valudict)
 
     sess.execute(ins)
+
+
+def merge_duplicate_page_questions(conn, base_course=None):
+    """Collapse duplicate ``page`` questions down to one row per subchapter.
+
+    Builds before the page lookup matched on chapter/subchapter labels inserted
+    a new page row whenever a subchapter's title changed, leaving the old row
+    behind.  For each ``(base_course, chapter, subchapter)`` with more than one
+    page row this keeps the most recently written row (the one the build
+    currently names), moves everything that points at the others onto it, and
+    deletes them.  Deleting alone is not safe: assignment_questions,
+    question_tags and competency all cascade on delete, so a plain delete would
+    silently drop readings from instructors' assignments.
+
+    Reading grades are keyed by the page's *name* in question_grades, so those
+    are renamed too, except where the student already has a grade under the
+    kept name; those are left in place and counted as conflicts.
+
+    Runs inside the caller's transaction and does not commit, so a dry run is
+    just a rollback.  Returns one dict per duplicate group describing what was
+    (or would be) changed.
+    """
+    params = {}
+    course_filter = ""
+    if base_course:
+        course_filter = "and base_course = :base_course"
+        params["base_course"] = base_course
+    groups = conn.execute(
+        text(
+            "select base_course, chapter, subchapter from questions "
+            f"where question_type = 'page' {course_filter} "
+            "group by base_course, chapter, subchapter having count(*) > 1 "
+            "order by base_course, chapter, subchapter"
+        ),
+        params,
+    ).fetchall()
+
+    report = []
+    for group in groups:
+        rows = conn.execute(
+            text(
+                "select id, name, timestamp from questions "
+                "where question_type = 'page' and base_course = :base_course "
+                "and chapter = :chapter and subchapter = :subchapter"
+            ),
+            dict(
+                base_course=group.base_course,
+                chapter=group.chapter,
+                subchapter=group.subchapter,
+            ),
+        ).fetchall()
+        rows = sorted(
+            rows,
+            key=lambda r: (r.timestamp or datetime.datetime.min, r.id),
+            reverse=True,
+        )
+        keep, drops = rows[0], rows[1:]
+        entry = dict(
+            base_course=group.base_course,
+            chapter=group.chapter,
+            subchapter=group.subchapter,
+            keep_id=keep.id,
+            keep_name=keep.name,
+            dropped=[],
+        )
+        for drop in drops:
+            ids = dict(keep=keep.id, drop=drop.id)
+            # An assignment holding both rows keeps only the kept one.
+            aq_dup = conn.execute(
+                text(
+                    "delete from assignment_questions where question_id = :drop "
+                    "and assignment_id in (select assignment_id from "
+                    "assignment_questions where question_id = :keep)"
+                ),
+                ids,
+            ).rowcount
+            aq_moved = conn.execute(
+                text(
+                    "update assignment_questions set question_id = :keep "
+                    "where question_id = :drop"
+                ),
+                ids,
+            ).rowcount
+            conn.execute(
+                text(
+                    "delete from question_tags where question_id = :drop "
+                    "and tag_id in (select tag_id from question_tags "
+                    "where question_id = :keep)"
+                ),
+                ids,
+            )
+            tags_moved = conn.execute(
+                text(
+                    "update question_tags set question_id = :keep "
+                    "where question_id = :drop"
+                ),
+                ids,
+            ).rowcount
+            conn.execute(
+                text(
+                    "delete from competency where question = :drop "
+                    "and competency in (select competency from competency "
+                    "where question = :keep)"
+                ),
+                ids,
+            )
+            comp_moved = conn.execute(
+                text(
+                    "update competency set question = :keep, "
+                    "question_name = :keep_name where question = :drop"
+                ),
+                dict(ids, keep_name=keep.name),
+            ).rowcount
+            gparams = dict(old=drop.name, new=keep.name, base_course=group.base_course)
+            in_book = (
+                "course_name in (select course_name from courses "
+                "where base_course = :base_course)"
+            )
+            grades_moved = conn.execute(
+                text(
+                    "update question_grades set div_id = :new "
+                    f"where div_id = :old and {in_book} "
+                    "and not exists (select 1 from question_grades g2 "
+                    "where g2.div_id = :new "
+                    "and g2.course_name = question_grades.course_name "
+                    "and g2.sid = question_grades.sid)"
+                ),
+                gparams,
+            ).rowcount
+            grades_conflict = conn.execute(
+                text(
+                    "select count(*) from question_grades "
+                    f"where div_id = :old and {in_book}"
+                ),
+                gparams,
+            ).scalar()
+            conn.execute(text("delete from questions where id = :drop"), ids)
+            entry["dropped"].append(
+                dict(
+                    id=drop.id,
+                    name=drop.name,
+                    assignment_questions_moved=aq_moved,
+                    assignment_questions_deduped=aq_dup,
+                    tags_moved=tags_moved,
+                    competencies_moved=comp_moved,
+                    grades_moved=grades_moved,
+                    grades_conflict=grades_conflict,
+                )
+            )
+        report.append(entry)
+    return report
 
 
 def _process_questions(sess, db_context, chapter, subchapter, course_name):
@@ -1092,18 +1287,29 @@ def _process_single_question(
             idchild = dynamic.attrib["id"]
             qtype = dynamic.attrib["data-component"]
     if qtype == "doenet":
-        # rewrite the url in the dbtext to use the course name in the path
+        # Rewrite the url in the dbtext to use the course name (base course) in
+        # the path. This src is baked in at build time and copied verbatim
+        # whenever the question is later linked/copied into a different course
+        # (e.g. via assignment import or exercise search), so it keeps pointing
+        # at this base course forever. mode=browsing tells serve_page to render
+        # it anonymously, which skips the "active course doesn't match the URL"
+        # redirect to the change-course page -- safe here because grading is
+        # driven entirely by the outer page's own session via postMessage, and
+        # base courses are never login_required.
         dbtext = re.sub(
             r'(<iframe.*?)src="(.*?.html)"',
-            rf'\1 src="/ns/books/published/{course_name}/\2"',
+            rf'\1 src="/ns/books/published/{course_name}/\2?mode=browsing"',
             dbtext,
         )
     optional = "T" if ("optional" in question.attrib or qtype == "datafile") else "F"
+    question_json = _question_json_for(qtype, el, question, idchild, db_context)
     practice = _determine_practice_flag(qtype, el)
     autograde = _determine_autograde(dbtext)
 
     # Fix image URLs
     dbtext = _fix_image_urls(dbtext, db_context, course_name)
+    if question_json is not None:
+        question_json = _fix_image_urls_in_json(question_json, db_context, course_name)
 
     # Build question data
     sbc = subchapter.find("./id").text
@@ -1125,6 +1331,7 @@ def _process_single_question(
         practice=practice,
         author=db_context["author"],
         owner=db_context["owner"],
+        question_json=_sql_json(question_json),
     )
     # Insert or update question
     namekey = old_ww_id if old_ww_id else idchild
@@ -1155,20 +1362,76 @@ def _extract_question_metadata(question, dbtext):
             idchild = el.attrib.get("id", "fix_me")
 
     # Determine question type
-    try:
+    if el is None:
+        qtype = "unknown"
+    elif "data-component" in el.attrib:
         qtype = el.attrib["data-component"]
         if qtype == "codelens":
-            id_el = el.find("./*[@class='pytutorVisualizer']")
-            idchild = id_el.attrib["id"]
+            # The element carrying data-component may not have the id; the id we
+            # want lives on the pytutorVisualizer div somewhere inside it.
+            pt_id = _find_pytutor_id(el)
+            if pt_id:
+                idchild = pt_id
+            elif idchild == "fix_me":
+                rslogger.error(
+                    "no pytutorVisualizer id found for codelens question: "
+                    f"\n{ET.tostring(question).decode('utf8')}"
+                )
         qtype = QT_MAP.get(qtype, qtype)
-    except Exception:
-        if el is not None:
-            qtype = "webwork"
-            # Note: dbtext will be updated with ET.tostring(el) in the calling function if needed
-        else:
-            qtype = "unknown"
+    else:
+        qtype = "webwork"
+        # Note: dbtext will be updated with ET.tostring(el) in the calling function if needed
 
     return el, idchild, old_ww_id, qtype
+
+
+def _question_json_for(qtype, el, question, name, db_context):
+    """Return the question_json for a question, or None.
+
+    Only a lossless conversion is stored: the assignment builder regenerates
+    a question's HTML from its question_json when it is copied or edited, so
+    anything the JSON can't represent would be lost. Returning None also
+    clears a question_json left by an earlier build of the book.
+    """
+    conversion = convert_question(qtype, el, question.find("./htmlsrc"))
+    if conversion is None:
+        return None
+    stats = db_context.setdefault("question_json_stats", Counter())
+    stats[qtype, conversion.lossless] += 1
+    if conversion.lossless:
+        return conversion.question_json
+    rslogger.debug(
+        f"No question_json for {name}: {'; '.join(conversion.losses) or 'not converted'}"
+    )
+    return None
+
+
+def _sql_json(value):
+    # A JSON column stores Python None as the JSON value null; we want NULL.
+    return null() if value is None else value
+
+
+def _log_question_json_stats(db_context):
+    stats = db_context.get("question_json_stats", Counter())
+    for qtype in sorted({qtype for qtype, _ in stats}):
+        stored = stats[qtype, True]
+        total = stored + stats[qtype, False]
+        rslogger.info(f"question_json stored for {stored} of {total} {qtype}")
+
+
+def _find_pytutor_id(el):
+    """Find the id of the pytutorVisualizer div inside a codelens question.
+
+    The class attribute may hold more than one class (e.g.
+    ``class="pytutorVisualizer exercise-interactive"``) so match on the class
+    token rather than the whole attribute.
+    """
+    for child in el.iter():
+        classes = child.attrib.get("class", "").split()
+        if any(c.lower() == "pytutorvisualizer" for c in classes):
+            if "id" in child.attrib:
+                return child.attrib["id"]
+    return None
 
 
 def _determine_practice_flag(qtype, el):
@@ -1207,6 +1470,20 @@ def _fix_image_urls(dbtext, db_context, course_name):
         f"""src="/ns/books/published/{course_name}/generated""", dbtext
     )
     return dbtext
+
+
+def _fix_image_urls_in_json(value, db_context, course_name):
+    """Apply ``_fix_image_urls`` to every string in a ``question_json`` value."""
+    if isinstance(value, str):
+        return _fix_image_urls(value, db_context, course_name)
+    if isinstance(value, list):
+        return [_fix_image_urls_in_json(v, db_context, course_name) for v in value]
+    if isinstance(value, dict):
+        return {
+            k: _fix_image_urls_in_json(v, db_context, course_name)
+            for k, v in value.items()
+        }
+    return value
 
 
 def _upsert_question(sess, db_context, namekey, valudict, course_name):
@@ -1254,12 +1531,14 @@ def _handle_datafile(el, course_name):
 
     filename = el.attrib.get("data-filename", el.attrib["id"])
     id = el.attrib["id"]
+    is_binary = el.attrib.get("data-isbinary") == "true"
 
     update_source_code_sync(
         acid=id,
         course_id=course_name,
         main_code=file_contents,
         filename=filename,
+        is_binary=is_binary,
     )
 
 

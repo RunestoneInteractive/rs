@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+
 import { userSlice, userActions, userSelectors } from "./userLogic";
 
 const buildStore = (preloadedState?: { user: { isAuthorized: boolean } }) =>

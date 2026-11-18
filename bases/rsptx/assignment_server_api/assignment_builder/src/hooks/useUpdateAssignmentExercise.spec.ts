@@ -1,3 +1,4 @@
+import { notify } from "@components/ui/notify";
 import { renderHook, act } from "@testing-library/react";
 import { vi, beforeEach } from "vitest";
 
@@ -26,8 +27,6 @@ vi.mock("@store/assignmentExercise/assignmentExercise.logic.api", () => ({
 vi.mock("@/hooks/useSelectedAssignment", () => ({
   useSelectedAssignment: () => ({ selectedAssignment: mockSelectedAssignment })
 }));
-
-import { notify } from "@components/ui/notify";
 
 import {
   getExercisesUpdateMessage,
@@ -58,11 +57,13 @@ describe("useUpdateAssignmentExercise", () => {
 
   it("returns updateAssignmentExercises function", () => {
     const { result } = renderHook(() => useUpdateAssignmentExercise());
+
     expect(typeof result.current.updateAssignmentExercises).toBe("function");
   });
 
   it("exposes the mutation loading state as isUpdating", () => {
     const { result } = renderHook(() => useUpdateAssignmentExercise());
+
     expect(result.current.isUpdating).toBe(true);
   });
 
@@ -222,6 +223,7 @@ describe("useUpdateAssignmentExercise", () => {
     });
 
     const message = vi.mocked(notify.success).mock.calls[0][0];
+
     expect(message).toBe("Added 1, removed 2 exercises");
     expect(message).not.toContain("\n");
   });
@@ -243,10 +245,12 @@ describe("useUpdateAssignmentExercise", () => {
 
   it("returns the mutation response on success", async () => {
     const mutationResponse = { data: { updated: true } };
+
     mockUpdateAssignmentExercisesPut.mockResolvedValue(mutationResponse);
     const { result } = renderHook(() => useUpdateAssignmentExercise());
 
     let returnValue: any;
+
     await act(async () => {
       returnValue = await result.current.updateAssignmentExercises({
         isReading: false,
@@ -263,6 +267,7 @@ describe("useUpdateAssignmentExercise", () => {
     const { result } = renderHook(() => useUpdateAssignmentExercise());
 
     let returnValue: any;
+
     await act(async () => {
       returnValue = await result.current.updateAssignmentExercises({
         isReading: false,

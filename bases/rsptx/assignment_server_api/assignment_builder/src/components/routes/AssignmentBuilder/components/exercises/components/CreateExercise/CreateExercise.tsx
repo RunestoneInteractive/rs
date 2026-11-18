@@ -11,6 +11,7 @@ import { buildQuestionJson, mergeQuestionJsonWithDefaults } from "@/utils/questi
 import { ExerciseFactory } from "./components/ExerciseFactory";
 import { ExerciseTypeSelect } from "./components/ExerciseTypeSelect";
 import { ImportQuestionJsonModal } from "./components/ImportQuestionJsonModal";
+import styles from "./shared/styles/CreateExercise.module.css";
 
 interface CreateExerciseProps {
   onCancel: () => void;
@@ -156,7 +157,7 @@ export const CreateExercise = ({
   }
 
   return (
-    <Stack gap="sm">
+    <Stack gap="sm" className={styles.formStack}>
       {isEdit && (
         <Group justify="flex-end">
           <Button

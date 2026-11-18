@@ -1,10 +1,13 @@
 import { ReactNode } from "react";
 
+import { Toolbar } from "../Toolbar/Toolbar";
+
 import styles from "./TabToolbar.module.css";
 
 interface TabToolbarProps {
   title: string;
   count: number;
+  headingLevel?: 2 | 3;
   scrolled?: boolean;
   leading?: ReactNode;
   titleExtra?: ReactNode;
@@ -14,20 +17,27 @@ interface TabToolbarProps {
 export const TabToolbar = ({
   title,
   count,
+  headingLevel = 3,
   scrolled = false,
   leading,
   titleExtra,
   children
 }: TabToolbarProps) => {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
+
   return (
-    <div className={styles.toolbar} data-scrolled={scrolled || undefined}>
-      <div className={styles.titleGroup}>
-        {leading}
-        <h3 className={styles.title}>{title}</h3>
-        <span className={styles.countBadge}>{count}</span>
-        {titleExtra}
-      </div>
-      <div className={styles.actions}>{children}</div>
-    </div>
+    <Toolbar
+      className={styles.toolbar}
+      data-scrolled={scrolled || undefined}
+      start={
+        <div className={styles.titleGroup}>
+          {leading}
+          <Heading className={styles.title}>{title}</Heading>
+          <span className={styles.countBadge}>{count}</span>
+          {titleExtra}
+        </div>
+      }
+      end={children}
+    />
   );
 };

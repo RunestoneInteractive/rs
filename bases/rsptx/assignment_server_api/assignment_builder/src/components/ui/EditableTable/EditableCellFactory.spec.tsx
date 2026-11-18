@@ -12,9 +12,7 @@ vi.mock("@/hooks/useTableDropdownOptions", () => ({
   })
 }));
 
-const renderFactory = (
-  overrides: Partial<React.ComponentProps<typeof EditableCellFactory>> = {}
-) =>
+const renderFactory = (overrides: Partial<React.ComponentProps<typeof EditableCellFactory>> = {}) =>
   renderWithMantine(
     <EditableCellFactory
       fieldName="points"

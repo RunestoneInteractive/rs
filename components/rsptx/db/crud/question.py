@@ -1,5 +1,8 @@
-from typing import List, Optional, Tuple, Dict
+import re
+import inspect
+from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 
 from ..models import (
@@ -58,6 +61,41 @@ async def fetch_question(
         return QuestionValidator.from_orm(res.scalars().first())
 
 
+async def fetch_questions_by_name(
+    names: Iterable[str], basecourse: Optional[str] = None
+) -> Dict[str, QuestionValidator]:
+    """
+    Fetch several questions at once, keyed by their name (div_id).
+
+    Callers that have a list of div_ids -- the grader resolving a page full of
+    ``selectquestion`` wrappers, for instance -- would otherwise issue one
+    query per question.
+
+    ``(base_course, name)`` is the unique pair, so a name can in principle
+    appear in more than one book; when ``basecourse`` is given a row from that
+    book wins, otherwise the first row found is used.
+
+    :param names: the question names (div_ids) to look up
+    :param basecourse: str, the base course to prefer (optional)
+    :return: a mapping of question name to QuestionValidator
+    """
+    wanted = [n for n in set(names) if n]
+    if not wanted:
+        return {}
+
+    query = select(Question).where(Question.name.in_(wanted))
+    async with async_session() as session:
+        res = await session.execute(query)
+        found: Dict[str, QuestionValidator] = {}
+        for q in res.scalars():
+            if q.name in found and (
+                not basecourse or found[q.name].base_course == basecourse
+            ):
+                continue
+            found[q.name] = QuestionValidator.from_orm(q)
+        return found
+
+
 async def fetch_question_by_id(question_id: int) -> Optional[QuestionValidator]:
     """
     Fetch a single question row by its primary key ``id``.
@@ -100,17 +138,36 @@ async def fetch_flagged_questions(base_course: str) -> List[QuestionValidator]:
         return [QuestionValidator.from_orm(x) for x in res.scalars().fetchall()]
 
 
+async def fetch_assigned_question_ids(question_ids: Iterable[int]) -> Set[int]:
+    """Return the question ids that are referenced by at least one assignment."""
+    ids = set(question_ids)
+    if not ids:
+        return set()
+
+    query = select(AssignmentQuestion.question_id).where(
+        AssignmentQuestion.question_id.in_(ids)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return set(res.scalars().all())
+
+
 async def delete_question_by_name(name: str, base_course: str) -> int:
     """
-    Delete a question identified by its name (div_id) within a base course.
-    ``(base_course, name)`` is unique, so at most one row is removed.
+    Delete an unassigned question identified by its name (div_id) within a base
+    course. ``(base_course, name)`` is unique, so at most one row is removed.
 
     :param name: str, the name (div_id) of the question
     :param base_course: str, the base course the question belongs to
     :return: int, the number of rows deleted
     """
+    assigned = (
+        select(AssignmentQuestion.id)
+        .where(AssignmentQuestion.question_id == Question.id)
+        .exists()
+    )
     stmt = delete(Question).where(
-        (Question.name == name) & (Question.base_course == base_course)
+        (Question.name == name) & (Question.base_course == base_course) & ~assigned
     )
 
     async with async_session.begin() as session:
@@ -273,6 +330,8 @@ async def search_exercises(
             if not filter_data:
                 continue
 
+            if not hasattr(filter_data, "get"):
+                continue
             # Get filter value and mode
             filter_value = filter_data.get("value")
             filter_mode = filter_data.get("matchMode", "contains")
@@ -463,6 +522,33 @@ async def fetch_question_count_per_subchapter(
     return resd
 
 
+async def fetch_question_grades_for(
+    sid: str, course_name: str, qids: Iterable[str]
+) -> Dict[str, QuestionGradeValidator]:
+    """
+    Retrieve a student's QuestionGrade entries for several questions at once.
+
+    :param sid: str, the student id
+    :param course_name: str, the course name
+    :param qids: the question ids (div_ids)
+    :return: a dict mapping div_id to its QuestionGradeValidator; questions
+        with no grade are absent
+    """
+    qids = list(qids)
+    if not qids:
+        return {}
+    query = select(QuestionGrade).where(
+        (QuestionGrade.sid == sid)
+        & (QuestionGrade.course_name == course_name)
+        & (QuestionGrade.div_id.in_(qids))
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return {
+            row.div_id: QuestionGradeValidator.from_orm(row) for row in res.scalars()
+        }
+
+
 async def fetch_question_grade(sid: str, course_name: str, qid: str):
     """
     Retrieve the QuestionGrade entry for the given sid, course_name, and qid.
@@ -533,9 +619,97 @@ async def create_question_grade_entry(
         async with async_session.begin() as session:
             session.add(new_qg)
     except (IntegrityError, UniqueViolationError) as e:
-        rslogger.error(f"IntegrityError: {e} id = {new_qg.id}")
+        # get the name of the function that called me
+        caller = inspect.stack()[1].function
+        rslogger.error(f"IntegrityError: {e} id = {new_qg.id} called from {caller}")
         return None
     return QuestionGradeValidator.from_orm(new_qg)
+
+
+#: Comments meaning the autograder, not a person, set the score; a blank
+#: comment counts too. Mirrors ``rsptx.grading_helpers.comments`` (importing it
+#: here would be circular), and test_question.py checks that the two agree.
+AUTOGRADER_COMMENTS = ("autograded", "ungraded")
+
+#: How an autograded score meets a row that is already there:
+#: ``first`` keeps the existing score, ``last`` replaces it, and ``best``
+#: replaces it only when the new score is higher, or the old one is above
+#: ``max_score``.
+GradePolicy = Literal["first", "last", "best"]
+
+
+async def upsert_question_grade_entry(
+    sid: str,
+    course_name: str,
+    qid: str,
+    grade: float,
+    policy: GradePolicy,
+    max_score: Optional[float] = None,
+) -> Tuple[Optional[QuestionGradeValidator], bool]:
+    """
+    Store an autograded score for (sid, course_name, qid) in one statement.
+
+    The grader used to look the row up and then insert or update it. Two
+    submissions arriving together both found no row, both inserted, and the
+    second failed on the unique index and lost its score. ``INSERT ... ON
+    CONFLICT`` makes the decision inside the database, so concurrent saves
+    cannot collide.
+
+    A row a person graded by hand is never overwritten, whatever the policy.
+
+    The conflict target is the column list rather than an index name, because
+    production's unique index (``user_divid_course_idx``) is not named the way
+    ``models.py`` names it (``question_grades_key``).
+
+    :return: ``(row, written)``: the row as it stands after the statement, and
+        whether this call wrote it. When ``written`` is False the row holds
+        the score that won: the first answer, a better answer, or a hand grade.
+    """
+    stmt = pg_insert(QuestionGrade).values(
+        sid=sid,
+        course_name=course_name,
+        div_id=qid,
+        score=grade,
+        comment="autograded",
+    )
+    key = [QuestionGrade.sid, QuestionGrade.course_name, QuestionGrade.div_id]
+    if policy == "first":
+        stmt = stmt.on_conflict_do_nothing(index_elements=key)
+    else:
+        autograded = func.coalesce(
+            func.lower(func.trim(QuestionGrade.comment)), ""
+        ).in_(("",) + AUTOGRADER_COMMENTS)
+        allowed = autograded
+        if policy == "best":
+            improves = or_(
+                QuestionGrade.score.is_(None),
+                QuestionGrade.score < stmt.excluded.score,
+            )
+            if max_score is not None:
+                # A stale score above this assignment's maximum is replaced,
+                # not kept as the best; see grade_submission.
+                improves = or_(improves, QuestionGrade.score > max_score)
+            allowed = and_(autograded, improves)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=key,
+            set_={"score": stmt.excluded.score, "comment": stmt.excluded.comment},
+            where=allowed,
+        )
+    stmt = stmt.returning(QuestionGrade)
+
+    async with async_session.begin() as session:
+        res = await session.execute(stmt)
+        row = res.scalars().one_or_none()
+        if row is not None:
+            return QuestionGradeValidator.from_orm(row), True
+        res = await session.execute(
+            select(QuestionGrade).where(
+                (QuestionGrade.sid == sid)
+                & (QuestionGrade.course_name == course_name)
+                & (QuestionGrade.div_id == qid)
+            )
+        )
+        return QuestionGradeValidator.from_orm(res.scalars().one_or_none()), False
 
 
 async def update_question_grade_entry(
@@ -706,6 +880,24 @@ async def update_question(question: QuestionValidator) -> QuestionValidator:
     return question
 
 
+def _natural_sort_key(value: Optional[str]) -> List[Tuple[int, object]]:
+    """Key for natural ordering of exercise numbers like "Q3.10.1" or "Exercise 3.1.2".
+
+    Splits the string into alternating text/number chunks so numeric runs compare
+    numerically instead of character-by-character (e.g. "3.2.1" sorts before "3.10.1",
+    where a plain string sort would put "3.10.1" first). Each chunk is tagged with a
+    type flag so chunks of different types never get compared directly, which would
+    otherwise raise a TypeError.
+    """
+    if not value:
+        return [(1, "")]
+    return [
+        (0, int(chunk)) if chunk.isdigit() else (1, chunk.lower())
+        for chunk in re.split(r"(\d+)", value)
+        if chunk
+    ]
+
+
 async def fetch_questions_for_chapter_subchapter(
     base_course: str,
     skipreading: bool = False,
@@ -808,6 +1000,15 @@ async def fetch_questions_for_chapter_subchapter(
             del q.question
             questions[c.chapter_label][sc.sub_chapter_label].append(q)
 
+        # The SQL query above orders by Question.qnumber as a plain string, which
+        # sorts "3.10.1" before "3.2.1". Re-sort each subchapter's questions with a
+        # natural sort key so multi-part exercise numbers order the way a human expects.
+        for chapter_questions in questions.values():
+            for subchapter_questions in chapter_questions.values():
+                subchapter_questions.sort(
+                    key=lambda q: _natural_sort_key(q.qnumber or q.name)
+                )
+
         # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
         # This is the structure that is used by the React TreeTable component
         def find_page_id(chapter, subchapter):
@@ -830,6 +1031,10 @@ async def fetch_questions_for_chapter_subchapter(
                             "num": chapters[chapter]["sub_chapters"][subchapter][
                                 "sub_chapter_num"
                             ],
+                            "chapter_num": chapters[chapter]["chapter_num"],
+                            "sub_chapter_num": chapters[chapter]["sub_chapters"][
+                                subchapter
+                            ]["sub_chapter_num"],
                             "chapter": chapter,
                             "subchapter": subchapter,
                             "id": find_page_id(chapter, subchapter),
@@ -842,7 +1047,16 @@ async def fetch_questions_for_chapter_subchapter(
                             ),
                         },
                         "children": [
-                            {"key": q.name, "data": q.dict()}
+                            {
+                                "key": q.name,
+                                "data": {
+                                    **q.dict(),
+                                    "chapter_num": chapters[chapter]["chapter_num"],
+                                    "sub_chapter_num": chapters[chapter][
+                                        "sub_chapters"
+                                    ][subchapter]["sub_chapter_num"],
+                                },
+                            }
                             for q in questions[chapter][subchapter]
                         ],
                     }
@@ -853,6 +1067,7 @@ async def fetch_questions_for_chapter_subchapter(
                     "data": {
                         "title": chapters[chapter]["chapter_name"],
                         "num": chapters[chapter]["chapter_num"],
+                        "chapter_num": chapters[chapter]["chapter_num"],
                     },
                     "children": subs,
                 }

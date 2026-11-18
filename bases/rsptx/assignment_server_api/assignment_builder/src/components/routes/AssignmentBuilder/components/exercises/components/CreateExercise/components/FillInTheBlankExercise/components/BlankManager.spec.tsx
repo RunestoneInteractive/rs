@@ -1,8 +1,10 @@
-import { renderWithMantine } from "@/test/renderWithMantine";
 import { fireEvent, screen } from "@testing-library/react";
 
-import { BlankManager } from "./BlankManager";
+import { renderWithMantine } from "@/test/renderWithMantine";
+
 import { GraderType, type BlankWithFeedback } from "../types";
+
+import { BlankManager } from "./BlankManager";
 
 vi.mock("@components/ui/Regex/RegexEditor", () => ({
   RegexEditor: () => <div data-testid="regex-editor" />

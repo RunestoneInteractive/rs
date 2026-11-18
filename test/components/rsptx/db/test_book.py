@@ -93,3 +93,22 @@ async def test_interacted_activities_are_marked(progress_page):
     # logged under the page's path -- so the page entry is always 0. The client
     # counts the page as attempted on its own.
     assert counts["page"] == 0
+
+
+async def test_fetch_user_chapter_progress_for(test_user):
+    """The bulk fetch returns progress keyed by chapter label for this user only."""
+    from rsptx.db.crud import (
+        create_user_chapter_progress_entry,
+        fetch_user_chapter_progress_for,
+    )
+
+    await create_user_chapter_progress_entry(test_user, "bulk_chap_a", 1)
+    await create_user_chapter_progress_entry(test_user, "bulk_chap_b", 0)
+
+    progress = await fetch_user_chapter_progress_for(
+        test_user, ["bulk_chap_a", "bulk_chap_b", "bulk_chap_none"]
+    )
+    assert set(progress) == {"bulk_chap_a", "bulk_chap_b"}
+    assert progress["bulk_chap_a"].status == 1
+    assert progress["bulk_chap_b"].status == 0
+    assert await fetch_user_chapter_progress_for(test_user, []) == {}

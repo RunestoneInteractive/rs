@@ -6,7 +6,7 @@
 # individual targets can be built with:
 # docker buildx bake --file docker-bake.hcl rs-jobe
 # docker buildx bake --file docker-bake.hcl rs-book
-# docker buildx bake --file docker-bake.hcl rs-runestone
+# docker buildx bake --file docker-bake.hcl rs-book
 # docker buildx bake --file docker-bake.hcl rs-assignment
 # docker buildx bake --file docker-bake.hcl rs-nginx
 # docker buildx bake --file docker-bake.hcl rs-nginx-dstart-dev
@@ -14,9 +14,15 @@
 # docker buildx bake --file docker-bake.hcl rs-author
 # docker buildx bake --file docker-bake.hcl rs-worker
 # docker buildx bake --file docker-bake.hcl rs-admin
+# docker buildx bake --file docker-bake.hcl rs-dash
 
-# Note that bake does not leave the images locally, it only pushes them to the registry.
-# You still need to pull or build them locally the old way during development.
+# By itself bake does not leave the images locally, it only pushes them to the registry.
+# Add --load (as `uv run build bake` does) to also load them into the local image store:
+#   docker buildx bake --file docker-bake.hcl --push --load rs-book
+# Because every target is multi-platform, --load requires Docker's containerd image store
+# (Docker Desktop: Settings > General > "Use containerd for pulling and storing images").
+# With the classic store it fails with "docker exporter does not currently support
+# exporting manifest lists".
 
 variable "VERSION" {
     default = "latest"
@@ -26,7 +32,6 @@ group "default" {
     targets = [
     "rs-jobe",
     "rs-book",
-    "rs-runestone",
     "rs-assignment",
     "rs-nginx",
     "rs-nginx-dstart-dev",
@@ -34,6 +39,7 @@ group "default" {
     "rs-author",
     "rs-worker",
     "rs-admin",
+    "rs-dash",
   ]
 }
 
@@ -48,13 +54,6 @@ target "rs-book" {
     context    = "./projects/book_server"
     platforms  = ["linux/amd64", "linux/arm64"]
     tags       = ["ghcr.io/runestoneinteractive/rs-book:latest", "ghcr.io/runestoneinteractive/rs-book:${VERSION}"]
-    push       = true
-}
-
-target "rs-runestone" {
-    context    = "./projects/w2p_login_assign_grade"
-    platforms  = ["linux/amd64", "linux/arm64"]
-    tags       = ["ghcr.io/runestoneinteractive/rs-runestone:latest", "ghcr.io/runestoneinteractive/rs-runestone:${VERSION}"]
     push       = true
 }
 
@@ -116,6 +115,13 @@ target "rs-admin" {
     dockerfile = "Dockerfile"
     platforms  = ["linux/amd64", "linux/arm64"]
     tags       = ["ghcr.io/runestoneinteractive/rs-admin:latest", "ghcr.io/runestoneinteractive/rs-admin:${VERSION}"]
+    push       = true
+}
+
+target "rs-dash" {
+    context    = "./projects/dash_server"
+    platforms  = ["linux/amd64", "linux/arm64"]
+    tags       = ["ghcr.io/runestoneinteractive/rs-dash:latest", "ghcr.io/runestoneinteractive/rs-dash:${VERSION}"]
     push       = true
 }
 

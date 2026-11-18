@@ -22,6 +22,10 @@
 "use strict";
 
 import RunestoneBase from "../../common/js/runestonebase.js";
+import {
+    disableMathJaxTabStops,
+    getAccessibleElementText,
+} from "../../common/js/mathjax-a11y.js";
 import { t } from "../../common/js/rsi18n.js";
 import {
     getDataValue,
@@ -98,6 +102,13 @@ export default class Parsons extends RunestoneBase {
         this.checkCount = 0;
         this.numDistinct = 0;
         this.hasSolved = false;
+        // Only trim trailing whitespace here. A leading trim() would strip real
+        // leading indentation off the first line of the first block whenever the
+        // <pre> tag's own leading newline has already been consumed by the browser's
+        // HTML parser (a well-known <pre> quirk), silently de-indenting only the
+        // first block relative to every other block. Blank leading/trailing lines
+        // within a block are still discarded further down, per block.
+        // - Note - reverted the above after request from barbarer trimEnd -> trim
         this.initializeLines(fulltext.trim());
         this.initializeView();
         this.caption = "Parsons";
@@ -188,11 +199,155 @@ export default class Parsons extends RunestoneBase {
         }
         this.options = options;
     }
+    getBlockLabel(block) {
+        return getAccessibleElementText(block.view) || t("msg_parson_block");
+    }
+
+    isIncorrectBlock(block) {
+        return (
+            block.view.classList.contains("incorrectPosition") ||
+            block.view.classList.contains("indentLeft") ||
+            block.view.classList.contains("indentRight")
+        );
+    }
+
+    getKeyboardBlockLocation(block) {
+        const inSource = block.inSourceArea();
+        const blocks = inSource
+            ? this.enabledSourceBlocks()
+            : this.enabledAnswerBlocks();
+        const position = blocks.indexOf(block) + 1;
+        const location = [
+            t(
+                inSource
+                    ? "msg_parson_keyboard_unplaced_position"
+                    : "msg_parson_keyboard_answer_position",
+                position,
+                blocks.length,
+            ),
+        ];
+
+        if (!inSource && this.usesIndentation()) {
+            location.push(
+                t(
+                    block.indent === 1
+                        ? "msg_parson_keyboard_tab_in"
+                        : "msg_parson_keyboard_tabs_in",
+                    block.indent,
+                ),
+            );
+        }
+
+        const pairedBin = block.pairedBin();
+        if (pairedBin !== -1) {
+            const options = this.blocks.filter(
+                (candidate) =>
+                    candidate.enabled() && candidate.pairedBin() === pairedBin,
+            );
+            if (options.length > 1) {
+                location.push(
+                    t(
+                        "msg_parson_keyboard_options",
+                        options.indexOf(block) + 1,
+                        options.length,
+                    ),
+                );
+            }
+        }
+
+        return location.join(". ") + ".";
+    }
+
+    updateBlockAriaLabel(block) {
+        const label = [this.getBlockLabel(block)];
+        if (this.isIncorrectBlock(block)) {
+            label.push(t("msg_parson_incorrect"));
+        }
+        block.view.setAttribute("aria-label", label.join(". "));
+    }
+
+    updateBlockAriaLabels() {
+        this.blocks.forEach((block) => this.updateBlockAriaLabel(block));
+    }
+
+    showMessage(message, className = "alert alert-info") {
+        this.messageDiv.style.visibility = "visible";
+        this.messageDiv.setAttribute("class", className);
+        this.messageDiv.replaceChildren();
+        const messageVersion = (this.messageVersion || 0) + 1;
+        this.messageVersion = messageVersion;
+        setTimeout(() => {
+            if (this.messageVersion === messageVersion) {
+                this.messageDiv.innerHTML = message;
+            }
+        }, 10);
+    }
+
+    showKeyboardEntryHint() {
+        this.keyboardTip.innerHTML = t("msg_parson_enter_activate");
+        this.keyboardTip.style.display = "";
+        // Drop and re-add the class (with a reflow in between) so the attention
+        // animation replays every time the user tabs back onto the problem.
+        this.keyboardTip.classList.remove("parsons-entry-hint");
+        void this.keyboardTip.offsetWidth;
+        this.keyboardTip.classList.add("parsons-entry-hint");
+        this.sourceLabel.style.display = "none";
+        this.answerLabel.style.display = "none";
+    }
+
+    hideKeyboardEntryHint() {
+        this.keyboardTip.innerHTML = t("msg_parson_arrow_navigate");
+        this.keyboardTip.style.display = "none";
+        this.keyboardTip.classList.remove("parsons-entry-hint");
+        this.sourceLabel.style.display = "";
+        this.answerLabel.style.display = "";
+    }
+
+    disableBlockMathTabStops() {
+        disableMathJaxTabStops(this.outerDiv, [".block"]);
+    }
+
+    observeMathJaxSpeech() {
+        if (
+            this.mathJaxSpeechObserver ||
+            typeof MutationObserver === "undefined"
+        ) {
+            return;
+        }
+
+        this.mathJaxSpeechObserver = new MutationObserver((mutations) => {
+            const changedBlocks = new Set();
+            for (const mutation of mutations) {
+                const block = mutation.target.closest?.(".block");
+                if (block) {
+                    changedBlocks.add(block);
+                }
+            }
+            if (changedBlocks.size === 0) return;
+
+            this.disableBlockMathTabStops();
+            changedBlocks.forEach((view) => {
+                const block = this.blocks.find((item) => item.view === view);
+                if (block) this.updateBlockAriaLabel(block);
+            });
+        });
+        this.mathJaxSpeechObserver.observe(this.outerDiv, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["data-semantic-speech-none"],
+        });
+    }
+
     // Based on what is specified in the original HTML, create the HTML view
     initializeView() {
         this.outerDiv = document.createElement("div");
         this.outerDiv.classList.add("parsons");
         this.outerDiv.id = this.counterId;
+        this.outerDiv.addEventListener(
+            "keydown",
+            (event) => this.handleKeyboardMovementKeydown(event),
+            true,
+        );
         // parsons-text exists in source, make sure it has exercise-statement class
         let parsonsTextDiv = this.containerDiv.querySelector(".parsons-text");
         if (
@@ -212,6 +367,55 @@ export default class Parsons extends RunestoneBase {
             "aria-describedby",
             this.counterId + "-tip",
         );
+        this.sortContainerDiv.tabIndex = 0;
+        this.sortContainerDiv.setAttribute("role", "button");
+        this.sortContainerDiv.setAttribute(
+            "aria-label",
+            t("msg_parson_keyboard_entry_label"),
+        );
+        this.sortContainerDiv.addEventListener("focus", () => {
+            if (
+                !this.keyboardInputActive &&
+                this.sortContainerDiv.matches(":focus-visible")
+            ) {
+                this.showKeyboardEntryHint();
+            }
+        });
+        this.sortContainerDiv.addEventListener("keydown", (event) => {
+            if (
+                event.target === this.sortContainerDiv &&
+                (event.key === "Enter" || event.key === " ")
+            ) {
+                this.startKeyboardInteraction();
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        });
+        this.sortContainerDiv.addEventListener("click", (event) => {
+            if (event.target === this.sortContainerDiv) {
+                this.startKeyboardInteraction();
+            }
+        });
+        this.keyboardApplication = document.createElement("div");
+        this.keyboardApplication.classList.add("parsons-keyboard-application");
+        this.keyboardApplication.setAttribute("role", "application");
+        this.keyboardApplication.tabIndex = -1;
+        this.keyboardApplication.addEventListener("blur", () => {
+            if (this.keyboardInputActive) {
+                this.cancelKeyboardMovement();
+            }
+        });
+        this.sortContainerDiv.addEventListener("blur", (event) => {
+            if (
+                this.keyboardInputActive &&
+                event.relatedTarget !== this.keyboardApplication
+            ) {
+                this.cancelKeyboardMovement();
+            } else if (!this.keyboardInputActive) {
+                this.hideKeyboardEntryHint();
+            }
+        });
+        this.sortContainerDiv.appendChild(this.keyboardApplication);
         this.outerDiv.appendChild(this.sortContainerDiv);
         this.sourceRegionDiv = document.createElement("div");
         this.sourceRegionDiv.id = this.counterId + "-sourceRegion";
@@ -675,6 +879,7 @@ export default class Parsons extends RunestoneBase {
             this.answerArea.appendChild(block.view);
         }
         this.blocks = blocks;
+        this.observeMathJaxSpeech();
         // If present, disable some blocks
         var disabled = options.disabled;
         if (disabled !== undefined) {
@@ -688,7 +893,11 @@ export default class Parsons extends RunestoneBase {
         // Determine how much indent should be possible in the answer area
         var indent = 0;
         if (!this.noindent) {
-            if (this.options.language == "natural") {
+            if (
+                this.options.language == "natural" ||
+                this.options.language == "math" ||
+                this.options.language == "text"
+            ) {
                 indent = this.solutionIndent();
             } else {
                 indent = Math.max(0, this.solutionIndent());
@@ -762,25 +971,17 @@ export default class Parsons extends RunestoneBase {
         // Pass 1: render math (if needed) and measure natural width of each block
         const isMath =
             this.options.language == "natural" ||
-            this.options.language == "math";
+            this.options.language == "math" ||
+            this.options.language == "text";
         for (i = 0; i < blocks.length; i++) {
             const item = blocks[i].view;
             if (isMath) {
-                if (typeof runestoneMathReady !== "undefined") {
-                    await runestoneMathReady.then(
-                        async () => await self.queueMathJax(item),
-                    );
-                } else {
-                    if (
-                        typeof MathJax !== "undefined" &&
-                        typeof MathJax.startup !== "undefined"
-                    ) {
-                        await self.queueMathJax(item);
-                    }
-                }
+                await self.queueMathJax(item);
             }
             areaWidth = Math.max(areaWidth, item.getBoundingClientRect().width);
         }
+        this.disableBlockMathTabStops();
+        this.updateBlockAriaLabels();
         // Pass 2: apply uniform width to all blocks, then measure heights
         for (i = 0; i < blocks.length; i++) {
             const item = blocks[i].view;
@@ -897,163 +1098,160 @@ export default class Parsons extends RunestoneBase {
         let self = this;
         if (
             this.options.language == "natural" ||
-            this.options.language == "math"
+            this.options.language == "math" ||
+            this.options.language == "text"
         ) {
-            if (
-                typeof MathJax !== "undefined" &&
-                typeof MathJax.startup !== "undefined"
-            ) {
-                // Since aQueue is the same AutoQueue instance that processes the per-block items,
-                // enqueueing outerDiv directly guarantees it runs after all per-block items
-                // already in the queue have been typeset. The .then() then fires with all
-                // blocks fully rendered at their final heights.
-                self.aQueue.enqueue(self.outerDiv).then(() => {
-                    // Recalculate areaWidth and areaHeight from all blocks (source + answer)
-                    // now that MathJax has rendered to final dimensions.
-                    var newAreaWidth = 0;
-                    var newAreaHeight = 20;
-                    var height_add = self.options.numbered != undefined ? 1 : 0;
-                    var sourceBlocks = self.sourceBlocks();
-                    var answerBlocks = self.answerBlocks();
-                    var allBlocks = sourceBlocks.concat(answerBlocks);
+            // MathJax typesets in call order, so this runs after the
+            // per-block items have reached their final layout.
+            self.queueMathJax(self.outerDiv).then(() => {
+                // Recalculate areaWidth and areaHeight from all blocks (source + answer)
+                // now that MathJax has rendered to final dimensions.
+                var newAreaWidth = 0;
+                var newAreaHeight = 20;
+                var height_add = self.options.numbered != undefined ? 1 : 0;
+                var sourceBlocks = self.sourceBlocks();
+                var answerBlocks = self.answerBlocks();
+                var allBlocks = sourceBlocks.concat(answerBlocks);
 
-                    // First pass: find max natural width across all blocks
-                    for (var i = 0; i < allBlocks.length; i++) {
-                        var blockViewEl = allBlocks[i].view;
-                        blockViewEl.style.width = ""; // release fixed width to get natural width
-                        var bvStyle = getComputedStyle(blockViewEl);
-                        var bvWidth =
-                            blockViewEl.getBoundingClientRect().width +
-                            parseFloat(bvStyle.marginLeft || 0) +
-                            parseFloat(bvStyle.marginRight || 0);
-                        newAreaWidth = Math.max(newAreaWidth, bvWidth);
+                // First pass: find max natural width across all blocks
+                for (var i = 0; i < allBlocks.length; i++) {
+                    var blockViewEl = allBlocks[i].view;
+                    blockViewEl.style.width = ""; // release fixed width to get natural width
+                    var bvStyle = getComputedStyle(blockViewEl);
+                    var bvWidth =
+                        blockViewEl.getBoundingClientRect().width +
+                        parseFloat(bvStyle.marginLeft || 0) +
+                        parseFloat(bvStyle.marginRight || 0);
+                    newAreaWidth = Math.max(newAreaWidth, bvWidth);
+                }
+
+                var baseWidth = newAreaWidth - 22;
+                var answerWidth =
+                    newAreaWidth +
+                    self.indent * self.options.pixelsPerIndent -
+                    22;
+
+                // Second pass: apply correct width and accumulate height
+                for (var i = 0; i < allBlocks.length; i++) {
+                    var blockEl = allBlocks[i].view;
+                    blockEl.style.width = baseWidth + "px";
+                    var bStyle = getComputedStyle(blockEl);
+                    var outerH =
+                        blockEl.getBoundingClientRect().height +
+                        parseFloat(bStyle.marginTop || 0) +
+                        parseFloat(bStyle.marginBottom || 0);
+                    var addition = 3.8;
+                    if (outerH != 38) {
+                        addition = (3.1 * (outerH - 38)) / 21;
                     }
+                    newAreaHeight += outerH + height_add * addition;
+                }
 
-                    var baseWidth = newAreaWidth - 22;
-                    var answerWidth =
-                        newAreaWidth +
-                        self.indent * self.options.pixelsPerIndent -
-                        22;
+                self.areaWidth = newAreaWidth;
+                self.areaHeight = newAreaHeight;
 
-                    // Second pass: apply correct width and accumulate height
-                    for (var i = 0; i < allBlocks.length; i++) {
-                        var blockEl = allBlocks[i].view;
-                        blockEl.style.width = baseWidth + "px";
-                        var bStyle = getComputedStyle(blockEl);
-                        var outerH =
-                            blockEl.getBoundingClientRect().height +
-                            parseFloat(bStyle.marginTop || 0) +
-                            parseFloat(bStyle.marginBottom || 0);
-                        var addition = 3.8;
-                        if (outerH != 38) {
-                            addition = (3.1 * (outerH - 38)) / 21;
-                        }
-                        newAreaHeight += outerH + height_add * addition;
-                    }
+                // Resize source and answer areas
+                self.sourceArea.style.width = newAreaWidth + 2 + "px";
+                self.sourceArea.style.height = newAreaHeight + "px";
+                self.answerArea.style.width =
+                    self.options.pixelsPerIndent * self.indent +
+                    newAreaWidth +
+                    2 +
+                    "px";
+                self.answerArea.style.height = newAreaHeight + "px";
 
-                    self.areaWidth = newAreaWidth;
-                    self.areaHeight = newAreaHeight;
+                // Reposition source blocks
+                var positionTop = 0;
+                for (var i = 0; i < sourceBlocks.length; i++) {
+                    var sv = sourceBlocks[i].view;
+                    sv.style.left = "0px";
+                    sv.style.top = positionTop + "px";
+                    sv.style.width = baseWidth + "px";
+                    sv.style.zIndex = 2;
+                    var svStyle = getComputedStyle(sv);
+                    positionTop +=
+                        sv.getBoundingClientRect().height +
+                        parseFloat(svStyle.marginTop || 0) +
+                        parseFloat(svStyle.marginBottom || 0);
+                }
 
-                    // Resize source and answer areas
-                    self.sourceArea.style.width = newAreaWidth + 2 + "px";
-                    self.sourceArea.style.height = newAreaHeight + "px";
-                    self.answerArea.style.width =
-                        self.options.pixelsPerIndent * self.indent +
-                        newAreaWidth +
-                        2 +
-                        "px";
-                    self.answerArea.style.height = newAreaHeight + "px";
-
-                    // Reposition source blocks
-                    var positionTop = 0;
-                    for (var i = 0; i < sourceBlocks.length; i++) {
-                        var sv = sourceBlocks[i].view;
-                        sv.style.left = "0px";
-                        sv.style.top = positionTop + "px";
-                        sv.style.width = baseWidth + "px";
-                        sv.style.zIndex = 2;
-                        var svStyle = getComputedStyle(sv);
-                        positionTop +=
-                            sv.getBoundingClientRect().height +
-                            parseFloat(svStyle.marginTop || 0) +
-                            parseFloat(svStyle.marginBottom || 0);
-                    }
-
-                    // Reposition paired distractor brackets
-                    for (var i = 0; i < self.pairedBins.length; i++) {
-                        var bin = self.pairedBins[i];
-                        var matching = [];
-                        for (var j = 0; j < sourceBlocks.length; j++) {
-                            if (sourceBlocks[j].matchesBin(bin)) {
-                                matching.push(sourceBlocks[j]);
-                            }
-                        }
-                        var div = self.pairedDivs[i];
-                        if (matching.length == 0) {
-                            div.style.display = "none";
-                        } else {
-                            div.style.display = "";
-                            var height = -5;
-                            var lastView = matching[matching.length - 1].view;
-                            var firstView = matching[0].view;
-                            var lastTop =
-                                parseFloat(getComputedStyle(lastView).top) || 0;
-                            var firstTop =
-                                parseFloat(getComputedStyle(firstView).top) ||
-                                0;
-                            height += lastTop;
-                            height -= firstTop;
-                            var lastStyle = getComputedStyle(lastView);
-                            height +=
-                                lastView.getBoundingClientRect().height +
-                                parseFloat(lastStyle.marginTop || 0) +
-                                parseFloat(lastStyle.marginBottom || 0);
-                            div.style.left = "-6px";
-                            div.style.top = getComputedStyle(firstView).top;
-                            div.style.width = baseWidth + 34 + "px";
-                            div.style.height = height + "px";
-                            div.style.zIndex = 1;
-                            div.style.textIndent = "-30px";
-                            div.style.paddingTop = (height - 70) / 2 + "px";
-                            div.style.overflow = "visible";
-                            div.style.fontSize = "43px";
-                            div.style.verticalAlign = "middle";
-                            div.style.color = "#7e7ee7";
-                            div.innerHTML =
-                                "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
+                // Reposition paired distractor brackets
+                for (var i = 0; i < self.pairedBins.length; i++) {
+                    var bin = self.pairedBins[i];
+                    var matching = [];
+                    for (var j = 0; j < sourceBlocks.length; j++) {
+                        if (sourceBlocks[j].matchesBin(bin)) {
+                            matching.push(sourceBlocks[j]);
                         }
                     }
-
-                    // Reposition answer blocks
-                    positionTop = 0;
-                    for (var i = 0; i < answerBlocks.length; i++) {
-                        var block = answerBlocks[i];
-                        var indent =
-                            block.indent * self.options.pixelsPerIndent;
-                        var bv = block.view;
-                        bv.style.left = indent + "px";
-                        bv.style.top = positionTop + "px";
-                        bv.style.width = answerWidth - indent + "px";
-                        bv.style.zIndex = 2;
-                        var bvStyle2 = getComputedStyle(bv);
-                        positionTop +=
-                            bv.getBoundingClientRect().height +
-                            parseFloat(bvStyle2.marginTop || 0) +
-                            parseFloat(bvStyle2.marginBottom || 0);
+                    var div = self.pairedDivs[i];
+                    if (matching.length == 0) {
+                        div.style.display = "none";
+                    } else {
+                        div.style.display = "";
+                        var height = -5;
+                        var lastView = matching[matching.length - 1].view;
+                        var firstView = matching[0].view;
+                        var lastTop =
+                            parseFloat(getComputedStyle(lastView).top) || 0;
+                        var firstTop =
+                            parseFloat(getComputedStyle(firstView).top) ||
+                            0;
+                        height += lastTop;
+                        height -= firstTop;
+                        var lastStyle = getComputedStyle(lastView);
+                        height +=
+                            lastView.getBoundingClientRect().height +
+                            parseFloat(lastStyle.marginTop || 0) +
+                            parseFloat(lastStyle.marginBottom || 0);
+                        div.style.left = "-6px";
+                        div.style.top = getComputedStyle(firstView).top;
+                        div.style.width = baseWidth + 34 + "px";
+                        div.style.height = height + "px";
+                        div.style.zIndex = 1;
+                        div.style.textIndent = "-30px";
+                        div.style.paddingTop = (height - 70) / 2 + "px";
+                        div.style.overflow = "visible";
+                        div.style.fontSize = "43px";
+                        div.style.verticalAlign = "middle";
+                        div.style.color =
+                            "var(--parsonsLabelColor, #5858e0)";
+                        div.innerHTML =
+                            "<span id='st' style='vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
                     }
-                });
-            }
+                }
+
+                // Reposition answer blocks
+                positionTop = 0;
+                for (var i = 0; i < answerBlocks.length; i++) {
+                    var block = answerBlocks[i];
+                    var indent =
+                        block.indent * self.options.pixelsPerIndent;
+                    var bv = block.view;
+                    bv.style.left = indent + "px";
+                    bv.style.top = positionTop + "px";
+                    bv.style.width = answerWidth - indent + "px";
+                    bv.style.zIndex = 2;
+                    var bvStyle2 = getComputedStyle(bv);
+                    positionTop +=
+                        bv.getBoundingClientRect().height +
+                        parseFloat(bvStyle2.marginTop || 0) +
+                        parseFloat(bvStyle2.marginBottom || 0);
+                }
+            });
         }
     }
-    // Make one block be keyboard accessible
+    // Make the problem, rather than an individual block, keyboard accessible.
     initializeTabIndex() {
-        for (var i = 0; i < this.blocks.length; i++) {
-            var block = this.blocks[i];
-            if (block.enabled()) {
-                block.makeTabIndex();
-                return this;
+        this.sortContainerDiv.tabIndex = 0;
+        for (const block of this.blocks) {
+            if (block.view.classList.contains("disabled")) {
+                block.view.removeAttribute("tabindex");
+            } else {
+                block.view.setAttribute("tabindex", "-1");
             }
         }
+        return this;
     }
     /* =====================================================================
     ==== SERVER COMMUNICATION ==============================================
@@ -1142,7 +1340,7 @@ export default class Parsons extends RunestoneBase {
                         options,
                     );
                 } else {
-                    this.initializeAreas(
+                    await this.initializeAreas(
                         this.blocksFromHash(sourceHash),
                         this.blocksFromHash(answerHash),
                         options,
@@ -1172,7 +1370,7 @@ export default class Parsons extends RunestoneBase {
             // visible when the page loads, so the size is off.  This forces
             // a realignment.
             if (this.isTimed && !this.assessmentTaken) {
-                this.resetView();
+                await this.resetView();
             }
         }
     }
@@ -2023,8 +2221,8 @@ export default class Parsons extends RunestoneBase {
                         this.lastAnswerHash = answerHash;
                     }
                     // if time to offer help
-                    if (this.numDistinct == 3 && !this.gotHelp) {
-                        alert(t("msg_parson_help_info"));
+                    if (this.numDistinct >= 3 && !this.gotHelp) {
+                        this.pendingHelpMessage = t("msg_parson_help_info");
                     } // end if
                 } // end if can help
             } // end if not solved
@@ -2075,10 +2273,12 @@ export default class Parsons extends RunestoneBase {
         var feedbackArea = this.showfeedback === true ? this.messageDiv : null;
         var setFeedback = (className, message) => {
             if (feedbackArea) {
-                feedbackArea.setAttribute("class", className);
-                setTimeout(() => {
-                    feedbackArea.innerHTML = message;
-                }, 10);
+                const helpMessage = this.pendingHelpMessage;
+                this.pendingHelpMessage = undefined;
+                this.showMessage(
+                    helpMessage ? `${message} ${helpMessage}` : message,
+                    className,
+                );
             }
         };
 
@@ -2159,6 +2359,8 @@ export default class Parsons extends RunestoneBase {
             }
             setFeedback("alert alert-danger", t("msg_parson_wrong_order"));
         }
+
+        this.updateBlockAriaLabels();
     }
 
     // Show explanations for blocks after the student solves the exercise
@@ -2301,13 +2503,7 @@ export default class Parsons extends RunestoneBase {
     }
     // Remove this distractors to make the problem easier
     removeDistractor(block) {
-        // Alert the user to what is happening
-        var feedbackArea = this.messageDiv;
-        this.messageDiv.style.visibility = "visible";
-        feedbackArea.setAttribute("class", "alert alert-info");
-        setTimeout(() => {
-            feedbackArea.innerHTML = t("msg_parson_not_solution");
-        }, 10);
+        this.showMessage(t("msg_parson_not_solution"));
         // Stop ability to select
         if (block.lines[0].distractHelptext) {
             block.view.setAttribute("data-toggle", "tooltip");
@@ -2333,8 +2529,8 @@ export default class Parsons extends RunestoneBase {
                     parseInt(getComputedStyle(slideUnderBlock.view).top) || 0;
             }
             var that = this;
-            block.view.style.borderColor = "#000";
-            block.view.style.backgroundColor = "#fff";
+            block.view.style.borderColor = "var(--boxBorderColor, #000)";
+            block.view.style.backgroundColor = "var(--background, #fff)";
             animate(
                 block.view,
                 {
@@ -2385,8 +2581,8 @@ export default class Parsons extends RunestoneBase {
                 },
             );
         } else {
-            block.view.style.borderColor = "#000";
-            block.view.style.backgroundColor = "#fff";
+            block.view.style.borderColor = "var(--boxBorderColor, #000)";
+            block.view.style.backgroundColor = "var(--background, #fff)";
             animate(
                 block.view,
                 {
@@ -2406,13 +2602,7 @@ export default class Parsons extends RunestoneBase {
     }
     // Give the user the indentation
     removeIndentation() {
-        // Alert the user to what is happening
-        var feedbackArea = this.messageDiv;
-        this.messageDiv.style.visibility = "visible";
-        feedbackArea.setAttribute("class", "alert alert-info");
-        setTimeout(() => {
-            feedbackArea.innerHTML = t("msg_parson_provided_indent");
-        }, 10);
+        this.showMessage(t("msg_parson_provided_indent"));
         // Move and resize blocks
         var blockWidth = 200;
         for (var i = 0; i < this.lines.length; i++) {
@@ -2592,8 +2782,6 @@ export default class Parsons extends RunestoneBase {
             if (indexSol > 0) {
                 prevBlock = solutionBlocks[indexSol - 1];
                 indexPrev = answerBlocks.indexOf(prevBlock);
-                //alert("my index " + i + " index prev " + indexPrev);
-
                 // calculate the distance in the answer
                 dist = Math.abs(i - indexPrev);
                 if (dist > maxDist) {
@@ -2611,13 +2799,7 @@ export default class Parsons extends RunestoneBase {
         var answerBlocks = this.answerBlocks();
         var sourceBlocks = this.sourceBlocks();
 
-        // Alert the user to what is happening
-        var feedbackArea = this.messageDiv;
-        this.messageDiv.style.visibility = "visible";
-        feedbackArea.setAttribute("class", "alert alert-info");
-        setTimeout(() => {
-            feedbackArea.innerHTML = t("msg_parson_combined_blocks");
-        }, 10);
+        this.showMessage(t("msg_parson_combined_blocks"));
         var block1 = null;
         var block2 = null;
 
@@ -2684,10 +2866,14 @@ export default class Parsons extends RunestoneBase {
                 {
                     duration: 1000, // 1 seccond
                     start: function () {
-                        block1.view.style.borderColor = "#000";
-                        block1.view.style.backgroundColor = "#fff";
-                        block2.view.style.borderColor = "#000";
-                        block2.view.style.backgroundColor = "#fff";
+                        block1.view.style.borderColor =
+                            "var(--boxBorderColor, #000)";
+                        block1.view.style.backgroundColor =
+                            "var(--background, #fff)";
+                        block2.view.style.borderColor =
+                            "var(--boxBorderColor, #000)";
+                        block2.view.style.backgroundColor =
+                            "var(--background, #fff)";
                         block2.lines[0].index += 1000;
                         that.moving = block2;
                         that.movingX = startX;
@@ -2732,10 +2918,14 @@ export default class Parsons extends RunestoneBase {
                 {
                     duration: 1000,
                     start: function () {
-                        block1.view.style.borderColor = "#000";
-                        block1.view.style.backgroundColor = "#fff";
-                        block2.view.style.borderColor = "#000";
-                        block2.view.style.backgroundColor = "#fff";
+                        block1.view.style.borderColor =
+                            "var(--boxBorderColor, #000)";
+                        block1.view.style.backgroundColor =
+                            "var(--background, #fff)";
+                        block2.view.style.borderColor =
+                            "var(--boxBorderColor, #000)";
+                        block2.view.style.backgroundColor =
+                            "var(--background, #fff)";
                     },
                     complete: function () {
                         block1.consumeBlock(block2);
@@ -2767,22 +2957,15 @@ export default class Parsons extends RunestoneBase {
             distractorToRemove !== undefined &&
             !distractorToRemove.inSourceArea()
         ) {
-            alert(t("msg_parson_remove_incorrect"));
             this.removeDistractor(distractorToRemove);
             this.logMove("removedDistractor-" + distractorToRemove.hash());
         } else {
             var numberOfBlocks = this.numberOfBlocks(false);
             if (numberOfBlocks > 3) {
-                alert(t("msg_parson_will_combine"));
                 this.combineBlocks();
                 this.logMove("combinedBlocks");
             } else {
-                /*else if(this.numberOfBlocks(true) > 3 && distractorToRemove !==  undefined) {
-                           alert("Will remove an incorrect code block from source area");
-                           this.removeDistractor(distractorToRemove);
-                           this.logMove("removedDistractor-" + distractorToRemove.hash());
-                       } */
-                alert(t("msg_parson_three_blocks_left"));
+                this.showMessage(t("msg_parson_three_blocks_left"));
                 this.canHelp = false;
             }
             //if (numberOfBlocks < 5) {
@@ -2801,7 +2984,7 @@ export default class Parsons extends RunestoneBase {
         //}
         // if less than 3 attempts
         if (this.numDistinct < 3) {
-            alert(t("msg_parson_atleast_three_attempts"));
+            this.showMessage(t("msg_parson_atleast_three_attempts"));
         }
         // otherwise give help
         else {
@@ -2843,16 +3026,176 @@ export default class Parsons extends RunestoneBase {
     ===================================================================== */
     // When the user has entered the Parsons problem via keyboard mode
     enterKeyboardMode() {
+        this.keyboardTip.innerHTML = t("msg_parson_arrow_navigate");
         this.keyboardTip.style.display = "";
+        // The ongoing navigation tip is a quiet instruction, not a call to act.
+        this.keyboardTip.classList.remove("parsons-entry-hint");
         this.sourceLabel.style.display = "none";
         this.answerLabel.style.display = "none";
-        this.clearFeedback();
     }
+    startKeyboardInteraction() {
+        if (this.keyboardInputActive) {
+            return;
+        }
+        const block =
+            this.enabledAnswerBlocks().find((item) =>
+                this.isIncorrectBlock(item),
+            ) ||
+            this.enabledSourceBlocks()[0] ||
+            this.enabledAnswerBlocks()[0];
+        if (!block) {
+            return;
+        }
+        this.enterKeyboardMode();
+        this.textFocus = block;
+        this.textMove = false;
+        block.makeTabIndex();
+        block.view.classList.add("down");
+        this.enterKeyboardNavigationMode(block, true);
+    }
+
+    enterKeyboardNavigationMode(block, includeInstructions = false) {
+        this.keyboardInputActive = true;
+        const label = [
+            t("msg_parson_keyboard_selected", this.getBlockLabel(block)),
+        ];
+        if (this.isIncorrectBlock(block)) {
+            label.push(t("msg_parson_incorrect"));
+        }
+        label.push(this.getKeyboardBlockLocation(block));
+        this.keyboardApplication.setAttribute(
+            "aria-label",
+            includeInstructions
+                ? t("msg_parson_keyboard_instructions") + " " + label.join(". ")
+                : label.join(". "),
+        );
+        this.keyboardApplication.focus();
+    }
+
+    enterKeyboardMovementMode(block) {
+        this.keyboardMovementMode = true;
+        this.keyboardInputActive = true;
+        this.keyboardApplication.setAttribute(
+            "aria-label",
+            this.getKeyboardBlockLocation(block),
+        );
+        this.keyboardApplication.focus();
+    }
+
+    exitKeyboardMovementMode() {
+        this.keyboardMovementMode = false;
+        if (this.textFocus) {
+            this.enterKeyboardNavigationMode(this.textFocus);
+        }
+    }
+
+    cancelKeyboardMovement(returnFocusToEntry = false) {
+        const block = this.textFocus;
+        this.keyboardMovementMode = false;
+        this.keyboardInputActive = false;
+        this.textMove = false;
+        this.textMoving = false;
+        if (block) {
+            block.view.classList.remove("down", "up");
+        }
+        this.textFocus = undefined;
+        this.exitKeyboardMode();
+        if (returnFocusToEntry) {
+            this.sortContainerDiv.focus();
+        }
+    }
+
+    selectKeyboardBlock(block) {
+        const previousBlock = this.textFocus;
+        if (previousBlock && previousBlock !== block) {
+            previousBlock.view.classList.remove("down", "up");
+        }
+        this.textFocus = block;
+        this.textMove = false;
+        block.makeTabIndex();
+        block.view.classList.add("down");
+        this.enterKeyboardNavigationMode(block);
+    }
+
+    exitKeyboardModeForTab() {
+        this.cancelKeyboardMovement();
+    }
+
+    handleKeyboardMovementKeydown(event) {
+        if (!this.keyboardInputActive || !this.textFocus) {
+            return;
+        }
+        const block = this.textFocus;
+        const wasMoving = this.textMove;
+        const previousParent = block.view.parentElement;
+        const previousIndex = Array.prototype.indexOf.call(
+            previousParent.children,
+            block.view,
+        );
+        const previousIndent = block.indent;
+        switch (event.key) {
+            case "Tab":
+                this.exitKeyboardModeForTab();
+                return;
+            case "ArrowLeft":
+                this.textMove ? block.moveLeft() : block.selectLeft();
+                break;
+            case "ArrowUp":
+                this.textMove ? block.moveUp() : block.selectUp();
+                break;
+            case "ArrowRight":
+                this.textMove ? block.moveRight() : block.selectRight();
+                break;
+            case "ArrowDown":
+                this.textMove ? block.moveDown() : block.selectDown();
+                break;
+            case "Enter":
+            case " ":
+                block.toggleMove();
+                if (!this.textMove) {
+                    this.exitKeyboardMovementMode();
+                }
+                event.preventDefault();
+                event.stopPropagation?.();
+                return;
+            case "Escape":
+            case "Esc":
+                this.cancelKeyboardMovement(true);
+                event.preventDefault();
+                event.stopPropagation?.();
+                return;
+            default:
+                return;
+        }
+        event.preventDefault();
+        event.stopPropagation?.();
+        this.textMoving = false;
+        const placementChanged =
+            wasMoving &&
+            (block.view.parentElement !== previousParent ||
+                block.indent !== previousIndent ||
+                Array.prototype.indexOf.call(
+                    block.view.parentElement.children,
+                    block.view,
+                ) !== previousIndex);
+        if (placementChanged) {
+            this.clearFeedback();
+        }
+        if (this.textMove) {
+            this.enterKeyboardMovementMode(block);
+        } else {
+            this.keyboardApplication.focus();
+        }
+    }
+
     // When the user leaves the Parsons problem via keyboard mode
     exitKeyboardMode() {
-        this.keyboardTip.style.display = "none";
-        this.sourceLabel.style.display = "";
-        this.answerLabel.style.display = "";
+        this.keyboardApplication.removeAttribute("aria-label");
+        this.sortContainerDiv.setAttribute(
+            "aria-label",
+            t("msg_parson_keyboard_entry_label"),
+        );
+        this.hideKeyboardEntryHint();
     }
     /* =====================================================================
     ==== VIEW ==============================================================
@@ -2870,7 +3213,9 @@ export default class Parsons extends RunestoneBase {
             );
         }
         this.messageDiv.style.visibility = "hidden";
+        this.pendingHelpMessage = undefined;
         this.hideBlockExplanations();
+        this.updateBlockAriaLabels();
     }
     // Disable the interface
     async disableInteraction() {
@@ -3090,7 +3435,7 @@ export default class Parsons extends RunestoneBase {
                     div.style.overflow = "visible";
                     div.style.fontSize = "43px";
                     div.style.verticalAlign = "middle";
-                    div.style.color = "#7e7ee7";
+                    div.style.color = "var(--parsonsLabelColor, #5858e0)";
                     div.innerHTML =
                         "<span id= 'st' style = 'vertical-align: middle; font-weight: bold; font-size: 15px'>or</span>{";
                 }
@@ -3273,7 +3618,7 @@ export default class Parsons extends RunestoneBase {
         }
     }
     // Put all the blocks back into the source area, reshuffling as necessary
-    resetView() {
+    async resetView() {
         // Clear everything
         this.clearFeedback();
         // CodeTailor: Hide the Copy Answer Button again
@@ -3329,13 +3674,13 @@ export default class Parsons extends RunestoneBase {
         }
         if (this.options.scaffolding === true) {
             // CodeTailor: initialize the pre-placed Parsons blocks including the settled blocks, if any.
-            this.initializeAreas(
+            await this.initializeAreas(
                 this.blocksFromSource(),
                 this.settledBlocksFromSource(),
                 {},
             );
         } else {
-            this.initializeAreas(this.blocksFromSource(), [], {});
+            await this.initializeAreas(this.blocksFromSource(), [], {});
         }
         this.initializeInteractivity();
         document.body.scrollTop = scrollTop;

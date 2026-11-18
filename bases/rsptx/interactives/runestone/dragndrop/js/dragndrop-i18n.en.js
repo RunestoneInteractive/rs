@@ -9,5 +9,7 @@ load({
             "Please place all of the cards before checking your answer. You have $1 left to place.",
         msg_dragndrop_check_me: "Check me",
         msg_dragndrop_reset: "Reset",
+        msg_dragndrop_card_feedback: "Feedback for $1",
+        msg_dragndrop_card_feedback_tip: "Show feedback",
     },
 });

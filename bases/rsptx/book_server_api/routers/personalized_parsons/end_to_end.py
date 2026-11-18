@@ -8,7 +8,15 @@ from .evaluate_fixed_code import (
 from .generate_parsons_blocks import generate_Parsons_block
 from .get_parsons_code_distractors import generate_code_with_distrator
 from .get_personalized_solution import get_example_solution, get_fixed_code
+from .java_puzzle_blocks import restructure_java_puzzle
 from .personalize_parsons import compare_code, personalize_Parsons_block
+from .subgoal_labels import (
+    attach_labels_to_code,
+    attach_labels_to_puzzle,
+    has_labels,
+    label_texts,
+    strip_comment_lines,
+)
 from .token_compare import code_similarity_score
 
 
@@ -17,21 +25,27 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
     The main API to connect with coach.py when students request help.
     Get personalized Parsons scaffolding artifacts based on the provided buggy code and other parameters.
     Args:
-        api_token: The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language: The programming language of the code
-        dict_buggy_code: A dictionary containing the current buggy code, problem description, unittest code, and a predefined example
+        dict_buggy_code: A dictionary containing the current buggy code, problem description, unittest code, a predefined example, and (optionally) the question's data files
         personalize_level: The level of personalization to apply (e.g., "Solution", "Multiple")
     Returns:
         A tuple containing the final fixed code, the final Parsons block, the solution generation type, and the generation result type.
     """
     problem_description = dict_buggy_code["Problem Description"].replace("\\n", "\n")
-    buggy_code = dict_buggy_code["CF (Code)"].replace("\\n", "\n")
+    # The code fields arrive as real text, so they are used as is: turning
+    # \n escapes into newlines would break every string literal that has one
+    # (e.g. a Java test's String expect = "5\n10\n"), and the broken test
+    # then fails every fix.
+    buggy_code = dict_buggy_code["CF (Code)"]
     # can use a function to extract them in the future
     default_start_code = ""
     default_test_code = ""
-    unittest_code = dict_buggy_code["Unittest_Code"].replace("\\n", "\n")
+    unittest_code = dict_buggy_code["Unittest_Code"]
     # This can be "LLM-example" or a predefined example code
-    predefined_example = dict_buggy_code["Example"].replace("\\n", "\n")
+    predefined_example = dict_buggy_code["Example"]
+    # files the program opens (e.g. datafiles) -- shipped with every test run
+    data_files = dict_buggy_code.get("Data_Files")
     # check if language is java, keep it as it is, otherwise, assign it to "python" as default
     if language.lower() == "java" or language.lower() == "python":
         language = language.lower()
@@ -48,10 +62,17 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
             default_test_code,
             predefined_example,
             unittest_code,
+            data_files=data_files,
         )
         final_fixed_code = cleaned_fixed_code.lstrip()
     else:
         return "Error: invalid personalize_level"
+
+    # Full-line comments -- subgoal labels and commented-out code -- stay out
+    # of block generation, where they would become draggable blocks or
+    # distractor candidates. When the student wrote labels, they are put back
+    # into the finished puzzle below.
+    code_for_blocks = strip_comment_lines(final_fixed_code, language)
 
     if personalize_level == "Solution":
         # generate Parsons puzzles with personalization only at the solution level with paired distractors
@@ -60,10 +81,11 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
             language,
             problem_description,
             buggy_code,
-            final_fixed_code,
+            code_for_blocks,
             default_start_code,
             default_test_code,
             unittest_code,
+            data_files=data_files,
         )
     elif personalize_level == "Multiple":
         # generate Parsons puzzles with personalization at both solution and multiple levels with paired distractors and potentially settled block lines
@@ -72,13 +94,24 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
             language,
             problem_description,
             buggy_code,
-            final_fixed_code,
+            code_for_blocks,
             default_start_code,
             default_test_code,
             unittest_code,
+            data_files=data_files,
         )
     else:
         return "Error: invalid personalize_level"
+
+    if final_Parsons_block != "Correct_Code" and has_labels(buggy_code, language):
+        final_Parsons_block = attach_labels_to_puzzle(
+            final_Parsons_block, final_fixed_code, language
+        )
+
+    # One-line Java blocks leave the puzzle full of identical braces and of
+    # statements the line grader accepts in only one order, so regroup them.
+    if final_Parsons_block != "Correct_Code" and language == "java":
+        final_Parsons_block = restructure_java_puzzle(final_Parsons_block)
 
     return (
         final_fixed_code,
@@ -103,11 +136,12 @@ def request_fixed_code_from_openai(
     situation,
     failure_reason,
     unittest_result,
+    data_files=None,
 ):
     """
     Request a fixed code from GenerativeAI based on the buggy code and other parameters.
     Inputs:
-        api_token (str): The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language (str): The programming language of the code - Python or Java
         problem_description (str): textual question description
         buggy_code (str): The buggy code provided by the student
@@ -121,6 +155,7 @@ def request_fixed_code_from_openai(
         situation (str): The situation for the request, e.g., "a correct answer"
         failure_reason (str): The reason for the failure, e.g., "not correct"
         unittest_result (bool): The result of the unittest evaluation for the buggy code
+        data_files (list): The question's data files the code may open
     Outputs:
         cleaned_fixed_code (str): The cleaned fixed code generated by the LLM
         generation_result_type (str): The type of generation result, e.g., "AI_personalized", "example_more_personalized", "example_solution"
@@ -147,6 +182,7 @@ def request_fixed_code_from_openai(
         default_start_code,
         default_test_code,
         unittest_code,
+        data_files=data_files,
     )
 
     print("this-round-result:", unittest_result, cleaned_fixed_code)
@@ -163,6 +199,16 @@ def request_fixed_code_from_openai(
 
         # For other cases, return the more similar one as the personalized result
         if similarity_personalized >= similarity_most_common:
+            # Testing stripped the comments; restore the student's labels from
+            # the LLM's raw output (it was asked to keep them) and drop the
+            # blank lines the stripped comments left. Only the student's own
+            # labels are kept, not comments the LLM added.
+            cleaned_fixed_code = attach_labels_to_code(
+                cleaned_fixed_code,
+                fixed_code,
+                language,
+                keep=label_texts(buggy_code, language),
+            )
             return cleaned_fixed_code.lstrip(), "AI_personalized"
         else:
             return example_solution.lstrip(), "example_more_personalized"
@@ -189,26 +235,33 @@ def request_fixed_code_from_openai(
             situation="a correct answer",
             failure_reason="not correct",
             unittest_result=False,
+            data_files=data_files,
         )
 
 
 def generate_example_solution(
-    api_token, language, problem_description, unittest_code, predefined_example
+    api_token,
+    language,
+    problem_description,
+    unittest_code,
+    predefined_example,
+    data_files=None,
 ):
     """
     Generate or retrieve an example solution based on the provided parameters.
     Inputs:
-        api_token (str): The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language (str): The programming language of the code - Python or Java
         problem_description (str): textual question description
         unittest_code (str): The unittest code for the question
         predefined_example (str): A predefined example solution or the keyword "LLM-example" to generate one using LLM
+        data_files (list): The question's data files the code may open
     Outputs:
         example_solution (str): The example solution, either generated by LLM or the predefined one
     """
     if predefined_example == "LLM-example":
         example_solution = get_example_solution(
-            api_token, language, problem_description, unittest_code
+            api_token, language, problem_description, unittest_code, data_files
         )
     else:
         example_solution = predefined_example
@@ -225,11 +278,12 @@ def generate_personalized_fixed_code(
     predefined_example,
     unittest_code,
     API_attempt=0,
+    data_files=None,
 ):
     """
     Generate a personalized fixed code based on the buggy code and other parameters.
     Inputs:
-        api_token (str): The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language (str): The programming language of the code - python or java
         problem_description (str): textual question description
         buggy_code (str): The buggy code provided by the student
@@ -238,6 +292,7 @@ def generate_personalized_fixed_code(
         predefined_example (str): A predefined example solution or the keyword "LLM-example" to generate one using LLM
         unittest_code (str): The unittest code for the question
         API_attempt (int): The current API attempt number -- starts from 0 (reserved in case we want to use different API keys in the future)
+        data_files (list): The question's data files the code may open
     Outputs:
         cleaned_fixed_code (str): The cleaned fixed code generated by the LLM
         generation_result_type (str): The type of generation result, e.g., "AI_personalized", "example_more_personalized", "example_solution", "written_code_correct", "empty_beginning"
@@ -251,6 +306,7 @@ def generate_personalized_fixed_code(
             default_start_code,
             default_test_code,
             unittest_case=unittest_code,
+            data_files=data_files,
         )
         if unittest_result is not True:
             # If the code is not correct, we will TRY to get an example solution first
@@ -260,6 +316,7 @@ def generate_personalized_fixed_code(
                 problem_description,
                 unittest_code,
                 predefined_example,
+                data_files=data_files,
             )
 
             try:
@@ -279,6 +336,7 @@ def generate_personalized_fixed_code(
                     situation="",
                     failure_reason="",
                     unittest_result="",
+                    data_files=data_files,
                 )
 
                 return result_personalized
@@ -292,7 +350,12 @@ def generate_personalized_fixed_code(
     # If the code is empty, directly return the example solution
     else:
         example_solution = generate_example_solution(
-            api_token, language, problem_description, unittest_code, predefined_example
+            api_token,
+            language,
+            problem_description,
+            unittest_code,
+            predefined_example,
+            data_files=data_files,
         )
 
         return example_solution.lstrip(), "example_solution"
@@ -307,6 +370,7 @@ def generate_multi_personalized_Parsons_blocks(
     default_start_code,
     default_test_code,
     unittest_code,
+    data_files=None,
 ):
     """
     Generate personalized Parsons blocks based on the student buggy code and fixed code.
@@ -319,6 +383,7 @@ def generate_multi_personalized_Parsons_blocks(
         default_start_code (str): The default starting code for the question, current ""
         default_test_code (str): The default test code for the question, current ""
         unittest_code (str): The unittest code for the question
+        data_files (list): The question's data files the code may open
     Outputs:
         personalized_Parsons_block (str): The generated personalized Parsons block code
     """
@@ -360,6 +425,7 @@ def generate_multi_personalized_Parsons_blocks(
                 default_start_code,
                 default_test_code,
                 unittest_code,
+                data_files=data_files,
             )
             # If the code with distractors passes the unittest, we will remove the distractor from the distractors list
             if unittest_flag:

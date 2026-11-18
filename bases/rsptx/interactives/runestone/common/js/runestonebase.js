@@ -87,12 +87,6 @@ export default class RunestoneBase {
             this.is_toggle = true ? opts.is_toggle : false;
             this.is_select = true ? opts.is_select : false;
         }
-        this.mjelements = [];
-        let self = this;
-        this.mjReady = new Promise(function (resolve, reject) {
-            self.mjresolver = resolve;
-        });
-        this.aQueue = new AutoQueue();
         if (opts && typeof opts.preamble !== "undefined") {
             this.preamble = opts.preamble;
             let y = document.createElement("div");
@@ -103,9 +97,8 @@ export default class RunestoneBase {
             opts.orig.appendChild(y);
             y.id = "ltx_preamble";
             y.style.display = "none";
-            // Add the preamble to the queue object so it can prepend it to
-            // future MathJax processing
-            this.aQueue.preamble = y;
+            // queueMathJax typesets this before the component's own math.
+            this.preambleDiv = y;
         }
 
         this.jsonHeaders = new Headers({
@@ -198,8 +191,9 @@ export default class RunestoneBase {
                 body: JSON.stringify(eventInfo),
             },
         );
+        let response;
         try {
-            var response = await fetch(request);
+            response = await fetch(request);
             if (!response.ok) {
                 if (response.status === 422) {
                     // Get details about why this is unprocesable.
@@ -217,70 +211,85 @@ export default class RunestoneBase {
                     Status: ${response.status}`);
             }
             post_return = await response.json();
-            let scoreSpec = post_return.detail;
-            let gradeBox = null;
-            if (this.selector_id) {
-                let selector_id = this.selector_id.replace(
-                    "-toggleSelectedQuestion",
-                    "",
-                );
-                gradeBox = document.getElementById(`${selector_id}_score`);
-            } else {
-                gradeBox = document.getElementById(`${this.divid}_score`);
-            }
-            if (gradeBox && !this.isTimed && scoreSpec) {
-                this.updateScores(gradeBox, scoreSpec);
-            }
         } catch (e) {
             let detail = "none";
             if (post_return && post_return.detail) {
                 detail = post_return.detail;
             }
+            // ``response`` is unset if fetch itself rejected.
+            let statusCode = response ? response.status : "no response";
             if (eBookConfig.useRunestoneServices) {
                 alert(`Error: Your action was not saved!
                     The error was ${e}
-                    Status Code: ${response.status}
+                    Status Code: ${statusCode}
                     Detail: ${JSON.stringify(detail, null, 4)}.
                     Please report this error!`);
             }
             // send a request to save this error
             console.log(
-                `Error: ${e} Detail: ${detail} Status Code: ${response.status}`,
+                `Error: ${e} Detail: ${detail} Status Code: ${statusCode}`,
             );
+            return post_return;
         }
+        // The log entry is saved. Everything below only updates the score display on
+        // an assignment page; a failure here is a display bug, not a lost submission,
+        // so it must never reach the alert above. See issue #1393.
+        this.showReturnedScore(post_return);
         return post_return;
     }
     // update the score for the question and the total score
     // the presence of the gradeBox is used to determine if we are on an assignment page.
     updateScores(gradeBox, scoreSpec) {
         if (!scoreSpec.assigned || scoreSpec.score === null) {
-            document.getElementById(`${this.divid}_message`).innerHTML =
-                "Score not updated.  Submissions are closed.";
+            // Not every component has a matching message div, and select questions
+            // name theirs after the selector rather than the rendered question.
+            let messageBox = document.getElementById(`${this.divid}_message`);
+            if (messageBox) {
+                messageBox.innerHTML =
+                    "Score not updated.  Submissions are closed.";
+            }
             return;
         }
         let scoreSpan = gradeBox.getElementsByClassName("qscore")[0];
         if (scoreSpan) {
             scoreSpan.innerHTML = scoreSpec.score.toFixed(1);
         }
-        let allScores = document.getElementsByClassName("qscore");
-        let allmax = document.getElementsByClassName("qmaxscore");
-        let total = 0;
-        let max = 0;
-        for (let i = 0; i < allScores.length; i++) {
-            total += parseFloat(allScores[i].innerHTML);
-            max += parseFloat(allmax[i].innerHTML);
-        }
         let totalSpan = document.getElementById("total_score");
-        if (totalSpan) {
-            totalSpan.innerHTML = total.toFixed(1);
-        }
         let maxSpan = document.getElementById("total_max");
-        if (maxSpan) {
-            maxSpan.innerHTML = max;
-        }
         let percentSpan = document.getElementById("total_percent");
-        if (percentSpan) {
-            percentSpan.innerHTML = ((total / max) * 100).toFixed(2);
+        // Each response carries the server's unrounded assignment total,
+        // including reading pages. Never derive it from rounded DOM scores.
+        if (totalSpan && typeof scoreSpec.total_score === "number") {
+            let total = scoreSpec.total_score;
+            totalSpan.innerHTML = total.toFixed(1);
+            if (maxSpan && percentSpan) {
+                let max = parseFloat(maxSpan.innerHTML);
+                if (max > 0) {
+                    percentSpan.innerHTML = ((total / max) * 100).toFixed(2);
+                }
+            }
+        }
+    }
+
+    // Update the score shown on an assignment page from the score spec a logging
+    // endpoint returned in ``detail``. Never throws: the answer is already saved.
+    showReturnedScore(post_return) {
+        try {
+            let scoreSpec = post_return ? post_return.detail : null;
+            // Only graded events come back with a score spec. Ungraded ones --
+            // view_toggle, selectquestion, parsonsMove and friends -- have no score
+            // to report, so there is nothing to update.
+            if (scoreSpec && "assigned" in scoreSpec && !this.isTimed) {
+                let boxId = this.selector_id
+                    ? this.selector_id.replace("-toggleSelectedQuestion", "")
+                    : this.divid;
+                let gradeBox = document.getElementById(`${boxId}_score`);
+                if (gradeBox) {
+                    this.updateScores(gradeBox, scoreSpec);
+                }
+            }
+        } catch (e) {
+            console.error(`Could not update the score display: ${e}`);
         }
     }
 
@@ -302,6 +311,14 @@ export default class RunestoneBase {
         }
         if (typeof eventInfo.errinfo !== "undefined") {
             eventInfo.errinfo = eventInfo.errinfo.toString();
+        }
+        // A run is graded when the question is scored on interaction, which needs
+        // the same assignment and selectquestion context as ``logBookEvent``.
+        if (this.selector_id) {
+            eventInfo.selector_id = this.selector_id;
+        }
+        if (window.assignmentId) {
+            eventInfo.assignment_id = window.assignmentId;
         }
         if (
             eBookConfig.isLoggedIn &&
@@ -340,6 +357,7 @@ export default class RunestoneBase {
                 }
             } else {
                 post_promise = await response.json();
+                this.showReturnedScore(post_promise);
             }
         }
         if (!this.isTimed || eBookConfig.debug) {
@@ -588,35 +606,36 @@ export default class RunestoneBase {
         return `${this.constructor.name}: ${this.divid}`;
     }
 
-    queueMathJax(component) {
-        if (typeof MathJax === "undefined") {
-            console.log("Error -- MathJax is not loaded");
-            return Promise.resolve(null);
-        } else {
-            // See - https://docs.mathjax.org/en/latest/advanced/typeset.html
-            // Per the above we should keep track of the promises and only call this
-            // a second time if all previous promises have resolved.
-            // Create a queue of components
-            // should wait until defaultPageReady is defined
-            // If defaultPageReady is not defined then just enqueue the components.
-            // Once defaultPageReady is defined
-            // the window.runestoneMathReady promise will be fulfilled when the
-            // initial typesetting is complete.
-            if (MathJax.typesetPromise) {
-                if (typeof window.runestoneMathReady !== "undefined") {
-                    return window.runestoneMathReady.then(() =>
-                        this.mjresolver(this.aQueue.enqueue(component)),
-                    );
-                } else {
-                    return this.mjresolver(this.aQueue.enqueue(component));
-                }
-            } else {
-                console.log(`Waiting on MathJax!! ${MathJax.typesetPromise}`);
-                setTimeout(() => this.queueMathJax(component), 200);
-                console.log(`Returning mjready promise: ${this.mjReady}`);
-                return this.mjReady;
-            }
+    /**
+     * Queue MathJax rendering for `component`.
+     *
+     * This is the only MathJax entry point interactive components should use.
+     * It waits for the page's initial MathJax pass when one is configured. The
+     * returned promise always resolves to `null` when MathJax is unavailable
+     * or failed to load, allowing callers to perform their post-render layout
+     * and accessibility work in `.then()` without their own feature checks or
+     * polling. A genuine MathJax typesetting error still rejects the promise.
+     *
+     * MathJax 4 chains `typesetPromise` calls itself, so calls run in the
+     * order they are made (issue #1582). MathJax 3 does not, so for it the
+     * calls are chained here.
+     *
+     * Templates that define `window.runestoneMathReady` must settle it after
+     * either a successful initial typeset or a MathJax load failure.
+     */
+    async queueMathJax(component) {
+        const mathJax = await getMathJax();
+        if (!mathJax) return null;
+        if (this.preambleDiv) {
+            // Typesetting the preamble registers its \newcommand and
+            // \DeclareMathOperator definitions with the TeX input jax.
+            // Those definitions are global and persist for every later
+            // typesetPromise call on the page, so the component does not
+            // need its own copy of the preamble -- see issue #1248, where
+            // prepending a copy put the raw macro source on screen.
+            await typeset(mathJax, [this.preambleDiv]);
         }
+        return typeset(mathJax, [component]);
     }
 
     decorateStatus() {
@@ -650,82 +669,36 @@ export default class RunestoneBase {
     }
 }
 
-// Inspiration and lots of code for this solution come from
-// https://stackoverflow.com/questions/53540348/js-async-await-tasks-queue
-// The idea here is that until MathJax is ready we can just enqueue things
-// once mathjax becomes ready then we can drain the queue and continue as usual.
+// Resolve to the page's MathJax once its initial typesetting pass is done, or
+// to null when MathJax is missing or failed to load.
+async function getMathJax() {
+    // PreTeXt/Runestone pages resolve this after their initial page-level
+    // typesetting pass. Standalone pages can use MathJax's startup promise.
+    const readiness =
+        window.runestoneMathReady ?? globalThis.MathJax?.startup?.promise;
+    if (readiness) {
+        try {
+            await readiness;
+        } catch {
+            return null;
+        }
+    }
 
-class Queue {
-    constructor() {
-        this._items = [];
-    }
-    enqueue(item) {
-        this._items.push(item);
-    }
-    dequeue() {
-        return this._items.shift();
-    }
-    get size() {
-        return this._items.length;
-    }
+    const mathJax = globalThis.MathJax;
+    return typeof mathJax?.typesetPromise === "function" ? mathJax : null;
 }
 
-class AutoQueue extends Queue {
-    constructor() {
-        super();
-        this._pendingPromise = false;
+// MathJax 3 needs overlapping typesetPromise calls chained by the caller.
+let mathJax3Chain = Promise.resolve();
+
+function typeset(mathJax, elements) {
+    if (!mathJax.version?.startsWith("3.")) {
+        return mathJax.typesetPromise(elements);
     }
-
-    enqueue(component) {
-        return new Promise((resolve, reject) => {
-            super.enqueue({ component, resolve, reject });
-            this.dequeue();
-        });
-    }
-
-    async dequeue() {
-        if (this._pendingPromise) return false;
-
-        let item = super.dequeue();
-
-        if (!item) return false;
-        let qq = this;
-        try {
-            this._pendingPromise = true;
-
-            let payload = await window.runestoneMathReady.then(
-                async function () {
-                    console.log(
-                        `MathJax Ready -- dequeing a typesetting run for ${item.component.id} ${qq.preamble?.innerHTML}`,
-                    );
-                    if (qq.preamble) {
-                        // Typesetting the preamble registers its \newcommand and
-                        // \DeclareMathOperator definitions with the TeX input jax.
-                        // Those definitions are global and persist for every later
-                        // typesetPromise call on the page, so the component does not
-                        // need its own copy of the preamble -- see issue #1248, where
-                        // prepending a copy put the raw macro source on screen.
-                        await MathJax.typesetPromise([qq.preamble]);
-                        console.log(
-                            `MathJax typeset the preamble for ${item.component.id}`,
-                        );
-                    }
-                    return await MathJax.typesetPromise([item.component]);
-                },
-            );
-
-            this._pendingPromise = false;
-            item.resolve(payload);
-        } catch (e) {
-            this._pendingPromise = false;
-            item.reject(e);
-        } finally {
-            // If there are more items in the queue, continue processing them
-            this.dequeue();
-        }
-
-        return true;
-    }
+    const run = mathJax3Chain.then(() => mathJax.typesetPromise(elements));
+    // A failed typeset rejects for its caller but must not stall later ones.
+    mathJax3Chain = run.catch(() => {});
+    return run;
 }
 
 window.RunestoneBase = RunestoneBase;

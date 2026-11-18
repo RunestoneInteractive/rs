@@ -11,13 +11,13 @@ export const NodeService = {
       {
         key: "chapter1",
         data: {
-          name: "Getting Started",
+          name: "Getting Started"
         },
         children: [
           {
             key: "subchap1",
             data: {
-              name: "Pretest for the CSA Exam",
+              name: "Pretest for the CSA Exam"
             },
             children: [
               {
@@ -26,37 +26,37 @@ export const NodeService = {
                   name: "Exercise 1.2.1",
                   question_type: "Multiple Choice",
                   autograde: "Yes",
-                  question_json: "",
-                },
-              },
-            ],
-          },
-        ],
+                  question_json: ""
+                }
+              }
+            ]
+          }
+        ]
       },
       {
         key: "1",
         data: {
           name: "Preview 2.1.1",
           question_type: "Parsons",
-          autograde: "Yes",
-        },
+          autograde: "Yes"
+        }
       },
       {
         key: "2",
         data: {
           name: "Exercise 3.1.1",
           question_type: "Active Code",
-          autograde: "No",
-        },
+          autograde: "No"
+        }
       },
       {
         key: "3",
         data: {
           name: "Exercise 3.2.1",
           question_type: "Active Code",
-          autograde: "Yes",
-        },
-      },
+          autograde: "Yes"
+        }
+      }
       // {
       //     key: '4',
       //     data: {
@@ -248,5 +248,5 @@ export const NodeService = {
 
   getTreeNodes() {
     return Promise.resolve(this.getTreeNodesData());
-  },
+  }
 };

@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+
 import { useTableColumnMenu } from "./useTableColumnMenu";
 
 const createMockNode = (name: string, childCount: number, firstChild: object | null = null) => ({
@@ -22,6 +23,7 @@ const createMockEditor = (
           depth,
           node: vi.fn().mockImplementation((d: number) => {
             const index = depth - d;
+
             return mockDepthNodes[index] ?? createMockNode("unknown", 0, null);
           })
         }
@@ -34,32 +36,38 @@ describe("useTableColumnMenu", () => {
   describe("initial state", () => {
     it("returns columnMenuVisible as false on mount", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(result.current.columnMenuVisible).toBe(false);
     });
 
     it("returns columnMenuPosition as { x: 0, y: 0 } on mount", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(result.current.columnMenuPosition).toEqual({ x: 0, y: 0 });
     });
 
     it("returns a columnMenuRef object", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(result.current.columnMenuRef).toBeDefined();
       expect(result.current.columnMenuRef).toHaveProperty("current");
     });
 
     it("exposes setColumnMenuVisible function", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(typeof result.current.setColumnMenuVisible).toBe("function");
     });
 
     it("exposes getColumnCount function", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(typeof result.current.getColumnCount).toBe("function");
     });
 
     it("exposes isLastColumn function", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(typeof result.current.isLastColumn).toBe("function");
     });
   });
@@ -67,6 +75,7 @@ describe("useTableColumnMenu", () => {
   describe("setColumnMenuVisible", () => {
     it("sets columnMenuVisible to true when called with true", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       act(() => {
         result.current.setColumnMenuVisible(true);
       });
@@ -75,6 +84,7 @@ describe("useTableColumnMenu", () => {
 
     it("sets columnMenuVisible to false when called with false after being true", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       act(() => {
         result.current.setColumnMenuVisible(true);
       });
@@ -88,6 +98,7 @@ describe("useTableColumnMenu", () => {
   describe("getColumnCount", () => {
     it("returns 0 when editor is null", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(result.current.getColumnCount()).toBe(0);
     });
 
@@ -96,6 +107,7 @@ describe("useTableColumnMenu", () => {
       const docNode = createMockNode("doc", 1, null);
       const editor = createMockEditor(true, [docNode, paragraphNode]);
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
+
       expect(result.current.getColumnCount()).toBe(0);
     });
 
@@ -104,6 +116,7 @@ describe("useTableColumnMenu", () => {
       const docNode = createMockNode("doc", 1, null);
       const editor = createMockEditor(true, [docNode, tableNode]);
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
+
       expect(result.current.getColumnCount()).toBe(0);
     });
 
@@ -113,6 +126,7 @@ describe("useTableColumnMenu", () => {
       const docNode = createMockNode("doc", 1, null);
       const editor = createMockEditor(true, [docNode, tableNode]);
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
+
       expect(result.current.getColumnCount()).toBe(3);
     });
 
@@ -123,6 +137,7 @@ describe("useTableColumnMenu", () => {
       const docNode = createMockNode("doc", 1, null);
       const editor = createMockEditor(true, [docNode, tableNode, cellNode]);
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
+
       expect(result.current.getColumnCount()).toBe(5);
     });
   });
@@ -134,6 +149,7 @@ describe("useTableColumnMenu", () => {
       const docNode = createMockNode("doc", 1, null);
       const editor = createMockEditor(true, [docNode, tableNode]);
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
+
       expect(result.current.isLastColumn()).toBe(true);
     });
 
@@ -143,11 +159,13 @@ describe("useTableColumnMenu", () => {
       const docNode = createMockNode("doc", 1, null);
       const editor = createMockEditor(true, [docNode, tableNode]);
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
+
       expect(result.current.isLastColumn()).toBe(false);
     });
 
     it("returns false when editor is null (column count is 0)", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
+
       expect(result.current.isLastColumn()).toBe(false);
     });
   });
@@ -157,6 +175,7 @@ describe("useTableColumnMenu", () => {
       const { result } = renderHook(() => useTableColumnMenu(null));
 
       const menuDiv = document.createElement("div");
+
       document.body.appendChild(menuDiv);
 
       Object.defineProperty(result.current.columnMenuRef, "current", {
@@ -170,6 +189,7 @@ describe("useTableColumnMenu", () => {
       });
 
       const outsideElement = document.createElement("div");
+
       document.body.appendChild(outsideElement);
 
       act(() => {
@@ -187,6 +207,7 @@ describe("useTableColumnMenu", () => {
 
       const menuDiv = document.createElement("div");
       const innerButton = document.createElement("button");
+
       menuDiv.appendChild(innerButton);
       document.body.appendChild(menuDiv);
 
@@ -211,10 +232,12 @@ describe("useTableColumnMenu", () => {
 
     it("does not register mousedown listener when menu is not visible", () => {
       const addEventListenerSpy = vi.spyOn(document, "addEventListener");
+
       renderHook(() => useTableColumnMenu(null));
       const mousedownCalls = addEventListenerSpy.mock.calls.filter(
         ([type]) => type === "mousedown"
       );
+
       expect(mousedownCalls.length).toBe(0);
       addEventListenerSpy.mockRestore();
     });
@@ -223,12 +246,14 @@ describe("useTableColumnMenu", () => {
   describe("table header click handler", () => {
     it("sets menu position and shows menu when clicking a th inside a table when editor is active", () => {
       const proseMirrorDiv = document.createElement("div");
+
       proseMirrorDiv.className = "ProseMirror";
 
       const table = document.createElement("table");
       const tbody = document.createElement("tbody");
       const tr = document.createElement("tr");
       const th = document.createElement("th");
+
       th.textContent = "Header";
 
       tr.appendChild(th);
@@ -267,9 +292,11 @@ describe("useTableColumnMenu", () => {
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
 
       const proseMirrorDiv = document.createElement("div");
+
       proseMirrorDiv.className = "ProseMirror";
 
       const paragraph = document.createElement("p");
+
       paragraph.textContent = "Some text";
       proseMirrorDiv.appendChild(paragraph);
       document.body.appendChild(proseMirrorDiv);
@@ -288,12 +315,14 @@ describe("useTableColumnMenu", () => {
       const { result } = renderHook(() => useTableColumnMenu(editor as any));
 
       const proseMirrorDiv = document.createElement("div");
+
       proseMirrorDiv.className = "ProseMirror";
 
       const table = document.createElement("table");
       const tbody = document.createElement("tbody");
       const tr = document.createElement("tr");
       const th = document.createElement("th");
+
       th.textContent = "Header";
 
       tr.appendChild(th);

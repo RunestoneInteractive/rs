@@ -284,6 +284,7 @@ export const Icon: React.FC<IconProps> = ({
   "aria-hidden": ariaHidden = true
 }) => {
   const Cmp = MAP[name];
+
   if (!Cmp) return null;
   return (
     <Cmp

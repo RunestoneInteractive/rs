@@ -1,4 +1,5 @@
 import { APIRequestContext, expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 import { gotoApp } from "../fixtures/appNav";
 import { createCycleAssignment, createCycleMchoice } from "../fixtures/authorAssignment";
@@ -24,6 +25,7 @@ const fetchGradebook = async (request: APIRequestContext): Promise<GradebookPayl
 
   expect(response.ok()).toBe(true);
   const body = (await response.json()) as { detail: GradebookPayload };
+
   return body.detail;
 };
 
@@ -54,12 +56,14 @@ test(
         { id: assignmentId, name: assignmentName },
         { name: divId }
       );
+
       expect(question.id).toBeGreaterThan(0);
 
       await setAssignmentVisible(page, assignmentName);
       await answerMchoiceInBook(book.page, { assignmentId, divId, correct: true });
 
       const gradebook = await fetchGradebook(page.request);
+
       expect(
         gradebook.assignments.some((a) => a.name === assignmentName),
         "scratch assignment missing from the gradebook matrix"
@@ -73,26 +77,71 @@ test(
         "enrolled students missing from the gradebook matrix"
       ).toBeGreaterThan(0);
 
-      await gotoApp(page, "/grader/gradebook");
+      await gotoApp(page, "/gradebook");
 
       await expect(page.getByRole("table", { name: "Gradebook" })).toBeVisible();
       await expect(page.getByText(assignmentName, { exact: false }).first()).toBeVisible();
       await expect(page.getByText("Class average")).toBeVisible();
 
-      const exportLink = page.getByRole("link", { name: /export csv/i });
-      await expect(exportLink).toBeVisible();
+      // Filtering rows by student name, and clearing it again.
+      const studentFilter = page.getByLabel("Filter students by name, username, or email");
+
+      await studentFilter.fill("zzz-no-such-student");
+      await expect(page.getByText("Nothing matches these filters")).toBeVisible();
+      await studentFilter.fill("");
+      await expect(page.getByRole("table", { name: "Gradebook" })).toBeVisible();
+
+      // Clicking a cell drills down into that student's question-by-question
+      // scores for that assignment.
+      const student = gradebook.students.find((s) => s.sid === CYCLE_STUDENTS[0]);
+
+      if (student) {
+        await expect(page.getByRole("link", { name: student.sid, exact: true })).toHaveAttribute(
+          "href",
+          `/assignment/student/studentreport?id=${encodeURIComponent(student.sid)}`
+        );
+        const cell = page.getByRole("button", {
+          name: `Show details for ${student.name} on ${assignmentName}`
+        });
+
+        await cell.scrollIntoViewIfNeeded();
+        await cell.click();
+        await expect(page.getByRole("table", { name: "Question scores" })).toBeVisible();
+        await expect(page.getByText(/Assignment total/)).toBeVisible();
+        await expect(page.getByLabel("Manual total")).toBeVisible();
+        await page.keyboard.press("Escape");
+      }
+
+      await studentFilter.fill(CYCLE_STUDENTS[0]);
+      const assignmentFilter = page.getByLabel("Filter assignment columns by name").first();
+
+      await assignmentFilter.click();
+      await page.getByRole("option", { name: assignmentName }).click();
+      await expect(
+        page.getByText(/Showing 1 of .* students and 1 of .* assignments/)
+      ).toBeVisible();
+
+      const exportButton = page.getByRole("button", { name: /export csv/i });
+
+      await expect(exportButton).toBeVisible();
 
       const downloadPromise = page.waitForEvent("download");
-      await exportLink.click();
-      const download = await downloadPromise;
-      expect(download.suggestedFilename()).toContain(".csv");
 
-      const csv = await page.request.get("/assignment/instructor/grader/gradebook.csv");
-      expect(csv.ok()).toBe(true);
-      expect(csv.headers()["content-type"]).toContain("text/csv");
-      const firstLine = (await csv.text()).split("\n")[0];
-      expect(firstLine).toContain("Student");
-      expect(firstLine).toContain("Total");
+      await exportButton.click();
+      const download = await downloadPromise;
+
+      expect(download.suggestedFilename()).toContain(".csv");
+      const downloadPath = await download.path();
+
+      expect(downloadPath).not.toBeNull();
+      const csv = await readFile(downloadPath as string, "utf8");
+      const lines = csv.trim().split(/\r?\n/);
+
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toContain("Student");
+      expect(lines[0]).toContain(assignmentName);
+      expect(lines[0]).toContain("Total");
+      expect(lines[1]).toContain(CYCLE_STUDENTS[0]);
     } finally {
       if (book) {
         await book.context.close();

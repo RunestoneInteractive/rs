@@ -1,0 +1,15 @@
+.bar {
+  background: var(--rs-brand-50);
+  border: 1px solid var(--rs-border-solid);
+  border-radius: var(--rs-radius-lg);
+  padding: var(--rs-space-2) var(--rs-space-4);
+}
+
+.count {
+  color: var(--rs-brand-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.deleteButton {
+  color: var(--rs-danger-text);
+}

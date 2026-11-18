@@ -7,6 +7,7 @@ import {
 import { InsertFormBridge } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/extensions/InsertFormBridge";
 import { TabIndent } from "@components/routes/AssignmentBuilder/components/exercises/components/TipTap/extensions/TabIndent";
 import { katexMacros } from "@components/routes/AssignmentBuilder/mathMacros";
+import { ActionIcon, Textarea, Tooltip } from "@mantine/core";
 import FontFamily from "@tiptap/extension-font-family";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
@@ -21,7 +22,6 @@ import Youtube from "@tiptap/extension-youtube";
 import { Mark, Node } from "@tiptap/pm/model";
 import { Editor, useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { ActionIcon, Textarea, Tooltip } from "@mantine/core";
 import { FC, useEffect, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
@@ -31,17 +31,18 @@ import "tippy.js/dist/tippy.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "katex/dist/katex.min.css";
 
-import styles from "./ClickableAreaEditor.module.css";
 import tipTapStyles from "../../../TipTap/Editor.module.css";
 import { Command, items } from "../../../TipTap/SlashCommands";
-import { ClickableAreaMark } from "./extensions/ClickableAreaMark";
-import { CustomCodeBlockPrism } from "./extensions/CustomCodeBlockPrism";
-import { CustomCode } from "./extensions/CustomCode";
-import { ClickableArea } from "./types";
-import { useTableColumnMenu } from "../../../TipTap/hooks/useTableColumnMenu";
-import { useTableRowMenu } from "../../../TipTap/hooks/useTableRowMenu";
 import { TableColumnMenu } from "../../../TipTap/components/TableColumnMenu";
 import { TableRowMenu } from "../../../TipTap/components/TableRowMenu";
+import { useTableColumnMenu } from "../../../TipTap/hooks/useTableColumnMenu";
+import { useTableRowMenu } from "../../../TipTap/hooks/useTableRowMenu";
+
+import styles from "./ClickableAreaEditor.module.css";
+import { ClickableAreaMark } from "./extensions/ClickableAreaMark";
+import { CustomCode } from "./extensions/CustomCode";
+import { CustomCodeBlockPrism } from "./extensions/CustomCodeBlockPrism";
+import { ClickableArea } from "./types";
 
 const customStyles = `
   .tippy-box {
@@ -80,6 +81,7 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
 
   useEffect(() => {
     const styleElement = document.createElement("style");
+
     styleElement.textContent = customStyles;
     document.head.appendChild(styleElement);
 
@@ -199,6 +201,7 @@ export const ClickableAreaEditor: FC<ClickableAreaEditorProps> = ({
     content,
     onUpdate: ({ editor: uEditor }) => {
       const html = uEditor.getHTML();
+
       onChange(html);
       extractClickableAreas(uEditor);
     }

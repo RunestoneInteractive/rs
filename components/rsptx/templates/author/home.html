@@ -1,5 +1,12 @@
 {% extends "_base.html" %}
 {% block title %}Runestone Author Server{% endblock %}
+{% block css %}
+<style>
+    #lastlog .log-error { color: #c62828; font-weight: bold; }
+    #lastlog .log-warning { color: #a85400; }
+    #lastlog .log-xmlid { font-weight: bold; }
+</style>
+{% endblock %}
 {% block content %}
 
 <div class="starter-template">

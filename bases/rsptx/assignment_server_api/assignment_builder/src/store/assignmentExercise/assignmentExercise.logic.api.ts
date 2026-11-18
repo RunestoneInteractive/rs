@@ -1,11 +1,11 @@
+import { notify } from "@components/ui/notify";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { assignmentApi } from "@store/assignment/assignment.logic.api";
 import { assignmentExerciseActions } from "@store/assignmentExercise/assignmentExercise.logic";
 import { baseQuery } from "@store/baseQuery";
 import { chooseExercisesActions } from "@store/chooseExercises/chooseExercises.logic";
-import { notify } from "@components/ui/notify";
 
-import { RootState } from "@/state/store";
+import { RootState } from "@/store/rootReducer";
 import { DetailResponse } from "@/types/api";
 import { CreateAssignmentExercisePayload } from "@/types/assignment";
 import {
@@ -84,9 +84,7 @@ export const assignmentExerciseApi = createApi({
             dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
 
             dispatch(
-              assignmentApi.endpoints.getAssignment.initiate(
-                state.assignmentTemp.selectedAssignmentId!
-              )
+              assignmentApi.endpoints.getAssignment.initiate(state.assignment.selectedAssignmentId!)
             );
           })
           .catch(() => {
@@ -163,9 +161,7 @@ export const assignmentExerciseApi = createApi({
             dispatch(assignmentApi.util.invalidateTags(["Assignment", "Assignments"]));
 
             dispatch(
-              assignmentApi.endpoints.getAssignment.initiate(
-                state.assignmentTemp.selectedAssignmentId!
-              )
+              assignmentApi.endpoints.getAssignment.initiate(state.assignment.selectedAssignmentId!)
             );
           })
           .catch(() => {
@@ -180,16 +176,24 @@ export const assignmentExerciseApi = createApi({
         body
       })
     }),
-    hasApiKey: build.query<{ hasApiKey: boolean; asyncLlmModesEnabled: boolean }, void>({
+    hasApiKey: build.query<
+      { hasApiKey: boolean; asyncLlmModesEnabled: boolean; asyncConditionsEnabled: boolean },
+      void
+    >({
       query: () => ({
         method: "GET",
         url: "/assignment/instructor/has_api_key"
       }),
       transformResponse: (
-        response: DetailResponse<{ has_api_key: boolean; async_llm_modes_enabled: boolean }>
+        response: DetailResponse<{
+          has_api_key: boolean;
+          async_llm_modes_enabled: boolean;
+          async_conditions_enabled: boolean;
+        }>
       ) => ({
         hasApiKey: response.detail.has_api_key,
-        asyncLlmModesEnabled: response.detail.async_llm_modes_enabled
+        asyncLlmModesEnabled: response.detail.async_llm_modes_enabled,
+        asyncConditionsEnabled: response.detail.async_conditions_enabled
       })
     }),
     copyQuestion: build.mutation<
@@ -220,10 +224,10 @@ export const assignmentExerciseApi = createApi({
 
             dispatch(assignmentApi.util.invalidateTags(["Assignment"]));
 
-            if (state.assignmentTemp.selectedAssignmentId) {
+            if (state.assignment.selectedAssignmentId) {
               dispatch(
                 assignmentApi.endpoints.getAssignment.initiate(
-                  state.assignmentTemp.selectedAssignmentId
+                  state.assignment.selectedAssignmentId
                 )
               );
             }

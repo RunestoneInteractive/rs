@@ -1,11 +1,13 @@
 import { Button, NumberInput, Switch, Textarea, Tooltip } from "@mantine/core";
+import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 import React, { forwardRef, useImperativeHandle, useRef } from "react";
 
 import { Icon } from "@/components/ui/Icon";
-import { GraderStudentAnswer } from "@store/grader/grader.logic.api";
 
-import { AutoSaveStatus } from "../hooks/useAutoSaveGrade";
 import styles from "../Grader.module.css";
+import { AutoSaveStatus } from "../hooks/useAutoSaveGrade";
+import { studentDisplayName } from "../state/graderSelectors";
+
 import { SaveStatusPill } from "./SaveStatusPill";
 
 interface Props {
@@ -69,15 +71,18 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
   }));
 
   const isDisabled = disabled || !student;
-  const studentName = student
-    ? `${student.first_name || ""} ${student.last_name || ""}`.trim() || student.sid
-    : "No student selected";
+  const studentName = student ? studentDisplayName(student) : "No student selected";
 
   return (
     <div className={styles.gradePane} data-tour="grader-grade-panel">
       <div className={styles.gradePaneHeader}>
         <Icon name="user" size={18} className={styles.gradePaneAvatar} />
-        <div className={styles.gradePaneIdentity}>
+        <div
+          className={styles.gradePaneIdentity}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <div className={styles.gradePaneName}>{studentName}</div>
           <div className={styles.gradePaneMeta}>
             {student ? (
@@ -98,19 +103,20 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       {onAutoAdvanceChange && (
-        <label
+        <Switch
           data-tour="grader-auto-advance"
           className={styles.autoAdvanceToggle}
           title="When on, jumps to the next ungraded student a moment after saving. You can always undo from the toast."
-        >
-          <Switch
-            checked={!!autoAdvance}
-            onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
-            size="xs"
-          />
-          <Icon name="forward" />
-          <span>Auto-advance after save</span>
-        </label>
+          checked={!!autoAdvance}
+          onChange={(e) => onAutoAdvanceChange(e.currentTarget.checked)}
+          size="xs"
+          label={
+            <span className={styles.autoAdvanceLabel}>
+              <Icon name="forward" />
+              <span>Auto-advance after save</span>
+            </span>
+          }
+        />
       )}
 
       <div className={styles.gradePaneNav}>
@@ -142,9 +148,12 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       <div>
-        <label className={styles.fieldLabel}>Points (max {maxPoints})</label>
+        <label className={styles.fieldLabel} htmlFor="grader-points-input">
+          Points (max {maxPoints})
+        </label>
         <div data-tour="grader-points-input" className={styles.scoreRow}>
           <NumberInput
+            id="grader-points-input"
             ref={scoreInputRef}
             value={score}
             onChange={(v) => onScoreChange(typeof v === "number" ? v : 0)}
@@ -159,15 +168,17 @@ export const GradePanel = forwardRef<GradePanelHandle, Props>(function GradePane
       </div>
 
       <div>
-        <label className={styles.fieldLabel}>Comment</label>
+        <label className={styles.fieldLabel} htmlFor="grader-comment-input">
+          Comment
+        </label>
         <Textarea
+          id="grader-comment-input"
           ref={commentRef}
           data-tour="grader-comment-input"
           value={comment}
           onChange={(e) => onCommentChange(e.currentTarget.value)}
           onBlur={onCommentBlur}
-          autosize
-          minRows={4}
+          rows={4}
           disabled={isDisabled}
           placeholder={
             isDisabled

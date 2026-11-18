@@ -56,7 +56,7 @@ export const IframeUrlInput: FC<IframeUrlInputProps> = ({ iframeSrc, onChange })
 
       {iframeSrc && isValidUrl(iframeSrc) && (
         <div className={styles.previewWrapper}>
-          <label className={styles.previewLabel}>Preview</label>
+          <div className={styles.previewLabel}>Preview</div>
           <div className={styles.previewFrame}>
             <iframe
               src={iframeSrc}

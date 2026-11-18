@@ -8,10 +8,17 @@
     min-width: 320px;
 }
 
+/* Generate Report and Download Submissions side by side */
+.control-group--action {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
 /* Stat columns (Interactions, # Correct, etc.) — subtle highlight */
 .ao-stat-cell {
-    background-color: #f8f9fa;
-    color: #555;
+    background-color: var(--rs-color-surface-subtle);
+    color: var(--rs-color-text-subtle);
     font-size: 13px;
     text-align: center;
 }

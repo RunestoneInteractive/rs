@@ -427,6 +427,10 @@ class SourceCode(Base, IdMixin):
     # Filename to use when saving contents to Jobe or trying to include
     # this file in a program. It is OK to reuse the same filename for different
     filename = Column(String(512))
+    # True when the file contents are a base64 binary payload (e.g. a
+    # compiled .jar or .zip), which must be handed to a server (Jobe) verbatim
+    # rather than treated as source.  Text files leave it False.
+    is_binary = Column(Web2PyBoolean, nullable=False)
     # Owner of the datafile (username of the instructor who created it)
     # Used to enforce uniqueness: filename + owner + course_id should be unique
     owner = Column(String(512), index=True)
@@ -565,6 +569,36 @@ class CourseInstructor(Base, IdMixin):
 CourseInstructorValidator: TypeAlias = sqlalchemy_to_pydantic(CourseInstructor)  # type: ignore
 
 
+class CourseGrader(Base, IdMixin):
+    """A user who may grade only through the restricted grader workflow.
+
+    This is intentionally separate from ``CourseInstructor``. Adding a user to
+    this table must not grant access to the existing instructor endpoints,
+    roster, gradebook, or student reports.
+    """
+
+    __tablename__ = "course_grader"
+    __table_args__ = (
+        UniqueConstraint("course_id", "user_id", name="uq_course_grader_course_user"),
+    )
+
+    course_id = Column(
+        Integer,
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("auth_user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+
+CourseGraderValidator: TypeAlias = sqlalchemy_to_pydantic(CourseGrader)  # type: ignore
+
+
 # Enrollments
 # -----------
 #
@@ -572,9 +606,15 @@ CourseInstructorValidator: TypeAlias = sqlalchemy_to_pydantic(CourseInstructor) 
 # all of their enrollments
 class UserCourse(Base, IdMixin):
     __tablename__ = "user_courses"
+    __table_args__ = (Index("user_courses_user_course_idx", "user_id", "course_id"),)
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False)
     course_id = Column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    # When this user last did anything in this course (UTC). Kept current by
+    # ``record_course_access`` as activity is logged, at a few minutes'
+    # resolution, so nothing has to scan ``useinfo`` to answer it. NULL means
+    # no activity since the column was added (backfilled for 30 days).
+    last_access = Column(DateTime, nullable=True)
 
 
 # Assignments and Questions
@@ -639,12 +679,18 @@ class Assignment(Base, IdMixin):
     __tablename__ = "assignments"
     __table_args__ = (
         Index("assignments_name_course_idx", "name", "course", unique=True),
+        # The import browser always asks "which rows in *this* course came from
+        # one of these source assignments", so the course leads the index.
+        Index("assignments_imported_from_idx", "course", "imported_from_assignment_id"),
     )
 
     course = Column(ForeignKey("courses.id", ondelete="CASCADE"), index=True)
     name = Column(String(512), nullable=False)
     points = Column(Integer, default=0)
     released = Column(Web2PyBoolean, nullable=False)
+    # Server-enforced blind grading is opt-in per assignment. NULL is treated as
+    # False so older rows and callers that omit the field remain identified.
+    blind_grading = Column(Web2PyBoolean)
     description = Column(Text)
     duedate = Column(DateTime, nullable=False)
     updated_date = Column(DateTime, nullable=True)
@@ -662,7 +708,31 @@ class Assignment(Base, IdMixin):
     current_index = Column(Integer, default=0)
     enforce_due = Column(Web2PyBoolean)
     peer_async_visible = Column(Web2PyBoolean, default=False)
+    # Enrols this assignment in the async peer instruction study: each student
+    # is randomly assigned one discussion condition and keeps it for every
+    # question here. Only has an effect while the course-level
+    # ``enable_async_conditions`` attribute is on.
+    #
+    # Nullable with no Python-side default, matching ``is_private`` below:
+    # sqlalchemy_to_pydantic hands a column's ``default`` to Pydantic as-is, so
+    # ``default=False`` would make the generated validator reject every caller
+    # that omits the field. The read path treats NULL as "not in a study".
+    async_study = Column(Web2PyBoolean)
     kind = Column(String(128))
+    # When False this assignment is discoverable and importable by instructors
+    # in other courses. Nullable with no Python-side default, matching
+    # ``Question.is_private``: the sharing predicate tests ``== False``, which
+    # in SQL does not match NULL, so an unset value stays private. Sharing is
+    # only ever an explicit act.
+    is_private = Column(Web2PyBoolean)
+    # The assignment this one was imported from, or NULL when it was authored
+    # here. Only a breadcrumb -- the import browser reads it to say "you already
+    # have this" -- so it is nullable and ON DELETE SET NULL. Deleting a source
+    # must not reach into the importer's course, and an import chain (A imported
+    # from B, C imported from A's copy) records only the immediate source.
+    imported_from_assignment_id = Column(
+        ForeignKey("assignments.id", ondelete="SET NULL"), nullable=True
+    )
 
     questions = relationship("AssignmentQuestion", cascade="all, delete-orphan")
 
@@ -748,6 +818,15 @@ class QuestionGrade(Base, IdMixin):
             "sid",
             unique=True,
         ),
+        # The grader's per-question class stats. Production's unique index
+        # leads with sid, so without this a question shared by many courses
+        # reads every course's grades for it. INCLUDE makes it index-only.
+        Index(
+            "question_grades_course_div_idx",
+            "course_name",
+            "div_id",
+            postgresql_include=["sid", "score"],
+        ),
     )
 
     sid = Column(String(512), nullable=False, index=True)
@@ -823,6 +902,15 @@ SubChapterValidator: TypeAlias = sqlalchemy_to_pydantic(SubChapter)  # type: ign
 # ----------------------
 class UserSubChapterProgress(Base, IdMixin):
     __tablename__ = "user_sub_chapter_progress"
+    __table_args__ = (
+        Index(
+            "user_sub_chapter_progress_user_course_idx",
+            "user_id",
+            "course_name",
+            "chapter_id",
+            "sub_chapter_id",
+        ),
+    )
 
     user_id = Column(ForeignKey("auth_user.id", ondelete="CASCADE"), index=True)
     chapter_id = Column(String(512), index=True, nullable=False)
@@ -838,8 +926,43 @@ class UserSubChapterProgress(Base, IdMixin):
 UserSubChapterProgressValidator: TypeAlias = sqlalchemy_to_pydantic(UserSubChapterProgress)  # type: ignore
 
 
+# One row per (course, item, student): has this student touched this item, and
+# when.  A summary of ``useinfo`` kept up to date as events are logged, so that
+# questions like "who has opened this reading" read a small indexed table
+# instead of scanning the log.  Page views are stored under
+# ``page_interaction_key`` (see ``rsptx.db.crud.interactions``), not under their
+# URL path.  See notes/interaction_tracker_design.md.
+class UserInteraction(Base, IdMixin):
+    __tablename__ = "user_interactions"
+    __table_args__ = (
+        # The upsert target, and "this whole class, these items".
+        Index(
+            "user_interactions_course_div_sid_idx",
+            "course_name",
+            "div_id",
+            "sid",
+            unique=True,
+        ),
+        # "This student, this course".
+        Index("user_interactions_course_sid_idx", "course_name", "sid"),
+    )
+
+    course_name = Column(String(512), nullable=False)
+    div_id = Column(String(512), nullable=False)
+    sid = Column(String(512), nullable=False)
+    first_interaction = Column(DateTime, nullable=False)
+    last_interaction = Column(DateTime, nullable=False)
+    interactions = Column(Integer, nullable=False, server_default="1")
+
+
+UserInteractionValidator: TypeAlias = sqlalchemy_to_pydantic(UserInteraction)  # type: ignore
+
+
 class UserChapterProgress(Base, IdMixin):
     __tablename__ = "user_chapter_progress"
+    __table_args__ = (
+        Index("user_chapter_progress_user_id_chapter_id_idx", "user_id", "chapter_id"),
+    )
 
     user_id = Column(String(512), nullable=False)
     chapter_id = Column(String(512), nullable=False)
@@ -1123,6 +1246,8 @@ class Library(Base, IdMixin):
     repo_path = Column(String(512))  # path to the repository on disk
     prebuild_hook = Column(String(512))  # command to run before building the book
     postbuild_hook = Column(String(512))  # command to run after a successful build
+    # set by `rsmanage library retire` when the book is taken out of service
+    removed_on = Column(Date)
 
 
 LibraryValidator: TypeAlias = sqlalchemy_to_pydantic(Library)  # type: ignore

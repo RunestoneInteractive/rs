@@ -16,17 +16,20 @@ My Course
 
 {% set navitems %}
 {% if course_list|length > 1 %}
-<li class="nav-item">
-  <span class="nav-link">
-    Change course:
-    <select id="course_chooser" onchange="change_course()">
-      {% for c in course_list: %}
-      <option {% if c.course_name == course.course_name %}selected{% endif %} value="{{c.course_name}}">
-        {{c.course_name}}
-      </option>
-      {% endfor %}
-    </select>
-  </span>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle course-chooser-toggle" type="button" id="course_chooser_toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    Change course
+  </button>
+  <div class="dropdown-menu" aria-labelledby="course_chooser_toggle">
+    {% for c in course_list: %}
+      {% if c.course_name == course.course_name %}
+      <span class="dropdown-item active" aria-current="page">{{c.course_name}} (current)</span>
+      {% else %}
+      <button type="button" class="dropdown-item course-chooser-option" data-course-name="{{c.course_name}}">{{c.course_name}}</button>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <span id="course_chooser_status" class="sr-only" role="status" aria-live="polite"></span>
 </li>
 {% endif %}
 {% endset %}
@@ -108,14 +111,30 @@ My Course
 {% endif %}
 
 <script>
-async function change_course(course_name) {
-    let new_course = document.getElementById("course_chooser").value
-    let request = new Request(`/ns/course/changeCourse/${new_course}`, {
-        method: "GET",
-    });
-    await fetch(request);
-    window.location.href = "/ns/course/index"
+async function change_course(button) {
+    const newCourse = button.dataset.courseName;
+    const status = document.getElementById("course_chooser_status");
+
+    button.disabled = true;
+    status.textContent = "Changing course…";
+
+    try {
+        const response = await fetch("/ns/course/changeCourse/" + encodeURIComponent(newCourse), {
+            method: "GET",
+        });
+        if (!response.ok) {
+            throw new Error("Unable to change course");
+        }
+        window.location.assign("/ns/course/index");
+    } catch (error) {
+        status.textContent = "Unable to change course. Please try again.";
+        button.disabled = false;
+    }
 }
+
+document.querySelectorAll(".course-chooser-option").forEach((button) => {
+    button.addEventListener("click", () => change_course(button));
+});
 </script>
 </section>
 

@@ -153,15 +153,28 @@
   background: transparent !important;
 }
 
-.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box) {
+.calendar
+  :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box) {
   width: 88px !important;
 }
 
-.calendar :global(.react-datepicker__navigation--next--with-time:not(.react-datepicker__navigation--next--with-today-button)) {
+.calendar
+  :global(
+    .react-datepicker__navigation--next--with-time:not(
+        .react-datepicker__navigation--next--with-today-button
+      )
+  ) {
   right: 92px;
 }
 
-.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item) {
+.calendar
+  :global(
+    .react-datepicker__time-container
+      .react-datepicker__time
+      .react-datepicker__time-box
+      ul.react-datepicker__time-list
+      li.react-datepicker__time-list-item
+  ) {
   height: auto !important;
   padding: 6px 10px !important;
   font-size: var(--rs-font-size-sm) !important;
@@ -170,12 +183,26 @@
   transition: background-color var(--rs-transition-fast);
 }
 
-.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover) {
+.calendar
+  :global(
+    .react-datepicker__time-container
+      .react-datepicker__time
+      .react-datepicker__time-box
+      ul.react-datepicker__time-list
+      li.react-datepicker__time-list-item:hover
+  ) {
   background-color: var(--rs-neutral-100) !important;
   color: var(--rs-text) !important;
 }
 
-.calendar :global(.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected) {
+.calendar
+  :global(
+    .react-datepicker__time-container
+      .react-datepicker__time
+      .react-datepicker__time-box
+      ul.react-datepicker__time-list
+      li.react-datepicker__time-list-item--selected
+  ) {
   background-color: var(--rs-brand-600) !important;
   color: var(--rs-text-on-brand) !important;
   font-weight: var(--rs-font-weight-semibold) !important;

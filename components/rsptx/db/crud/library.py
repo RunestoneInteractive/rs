@@ -1,8 +1,9 @@
+import datetime
 from typing import List, Tuple, Dict, Any
 from sqlalchemy import select, update
 
 from ..models import Library, LibraryValidator, BookAuthor, Courses, UserCourse
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..async_session import async_session
 from rsptx.logging import rslogger
 
@@ -146,3 +147,36 @@ async def get_courses_per_basecourse() -> dict:
             retval[row[0]] = row[1]
 
         return retval
+
+
+async def fetch_unused_library_books(cutoff: datetime.date) -> list:
+    """
+    Find the library books that have not been used to create a custom course
+    since ``cutoff``, skipping books that were already retired.  A course's
+    ``term_start_date`` stands in for its creation date, which is not stored.
+
+    :param cutoff: books with a custom course starting on or after this date are kept
+    :return: rows of (basecourse, title, custom_courses_ever, last_custom_course_start),
+        never-used books first
+    """
+    last_start = func.max(Courses.term_start_date)
+    query = (
+        select(
+            Library.basecourse,
+            Library.title,
+            func.count(Courses.id).label("custom_courses_ever"),
+            last_start.label("last_custom_course_start"),
+        )
+        .outerjoin(
+            Courses,
+            (Courses.base_course == Library.basecourse)
+            & (Courses.course_name != Library.basecourse),
+        )
+        .where(Library.removed_on.is_(None))
+        .group_by(Library.basecourse, Library.title)
+        .having(or_(last_start.is_(None), last_start < cutoff))
+        .order_by(last_start.asc().nulls_first(), Library.basecourse)
+    )
+    async with async_session() as session:
+        res = await session.execute(query)
+        return res.all()

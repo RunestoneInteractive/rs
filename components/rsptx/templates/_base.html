@@ -37,11 +37,13 @@
         {% include "_navbar.html" %}
         {% endblock %}
 
-        <div class="container-fluid">
-            <!-- child template -->
-            {% block content %}
-            {% endblock %}
-        </div>
+        <main>
+            <div class="container-fluid">
+                <!-- child template -->
+                {% block content %}
+                {% endblock %}
+            </div>
+        </main>
 
         {% include 'footer.html' %}
 

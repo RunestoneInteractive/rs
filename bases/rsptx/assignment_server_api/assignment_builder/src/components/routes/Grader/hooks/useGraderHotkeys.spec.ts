@@ -1,11 +1,11 @@
 import { renderHook } from "@testing-library/react";
+
 import { useGraderHotkeys, GraderHotkeyHandlers } from "./useGraderHotkeys";
+import { detectPlatform } from "./usePlatform";
 
 vi.mock("./usePlatform", () => ({
   detectPlatform: vi.fn(() => "other")
 }));
-
-import { detectPlatform } from "./usePlatform";
 
 const mockDetectPlatform = detectPlatform as ReturnType<typeof vi.fn>;
 
@@ -15,6 +15,7 @@ const fireKeyDown = (
   target: EventTarget = document
 ) => {
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...opts });
+
   Object.defineProperty(event, "target", { value: target, writable: false });
   document.dispatchEvent(event);
   return event;
@@ -22,6 +23,15 @@ const fireKeyDown = (
 
 const makeInput = (tag: "INPUT" | "TEXTAREA" | "SELECT"): HTMLElement => {
   const el = document.createElement(tag);
+
+  return el;
+};
+
+const makeInteractive = (tag: "BUTTON" | "DIV", role?: string): HTMLElement => {
+  const el = document.createElement(tag);
+
+  if (role) el.setAttribute("role", role);
+  document.body.appendChild(el);
   return el;
 };
 
@@ -59,6 +69,7 @@ describe("useGraderHotkeys", () => {
   describe("navigation keys — non-input target", () => {
     it("calls next on j key", () => {
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j");
@@ -68,6 +79,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls next on ArrowDown key", () => {
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("ArrowDown");
@@ -77,6 +89,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls prev on k key", () => {
       const handlers: GraderHotkeyHandlers = { prev: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("k");
@@ -86,6 +99,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls prev on ArrowUp key", () => {
       const handlers: GraderHotkeyHandlers = { prev: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("ArrowUp");
@@ -95,6 +109,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls nextAttempt on ArrowRight key", () => {
       const handlers: GraderHotkeyHandlers = { nextAttempt: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("ArrowRight");
@@ -104,6 +119,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls prevAttempt on ArrowLeft key", () => {
       const handlers: GraderHotkeyHandlers = { prevAttempt: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("ArrowLeft");
@@ -113,6 +129,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls focusGrade on g key", () => {
       const handlers: GraderHotkeyHandlers = { focusGrade: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("g");
@@ -122,6 +139,7 @@ describe("useGraderHotkeys", () => {
 
     it("calls focusComment on c key", () => {
       const handlers: GraderHotkeyHandlers = { focusComment: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("c");
@@ -129,17 +147,19 @@ describe("useGraderHotkeys", () => {
       expect(handlers.focusComment).toHaveBeenCalledOnce();
     });
 
-    it("calls toggleHideGraded on h key", () => {
-      const handlers: GraderHotkeyHandlers = { toggleHideGraded: vi.fn() };
+    it("calls toggleHideFullCredit on h key", () => {
+      const handlers: GraderHotkeyHandlers = { toggleHideFullCredit: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("h");
 
-      expect(handlers.toggleHideGraded).toHaveBeenCalledOnce();
+      expect(handlers.toggleHideFullCredit).toHaveBeenCalledOnce();
     });
 
     it("calls openHelp on ? key", () => {
       const handlers: GraderHotkeyHandlers = { openHelp: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("?");
@@ -148,9 +168,10 @@ describe("useGraderHotkeys", () => {
     });
   });
 
-  describe("input target — keys are suppressed", () => {
+  describe("interactive target — keys are suppressed", () => {
     it("does not call next when target is INPUT", () => {
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j", {}, makeInput("INPUT"));
@@ -160,6 +181,7 @@ describe("useGraderHotkeys", () => {
 
     it("does not call prev when target is TEXTAREA", () => {
       const handlers: GraderHotkeyHandlers = { prev: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("k", {}, makeInput("TEXTAREA"));
@@ -169,6 +191,7 @@ describe("useGraderHotkeys", () => {
 
     it("does not call nextAttempt when target is SELECT", () => {
       const handlers: GraderHotkeyHandlers = { nextAttempt: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("ArrowRight", {}, makeInput("SELECT"));
@@ -178,11 +201,36 @@ describe("useGraderHotkeys", () => {
 
     it("does not call openHelp when target is INPUT and key is ?", () => {
       const handlers: GraderHotkeyHandlers = { openHelp: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("?", {}, makeInput("INPUT"));
 
       expect(handlers.openHelp).not.toHaveBeenCalled();
+    });
+
+    it("does not intercept ArrowDown from a menu button", () => {
+      const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+      const button = makeInteractive("BUTTON");
+
+      renderHook(() => useGraderHotkeys(handlers));
+
+      fireKeyDown("ArrowDown", {}, button);
+
+      expect(handlers.next).not.toHaveBeenCalled();
+      button.remove();
+    });
+
+    it("does not intercept arrows from a listbox option", () => {
+      const handlers: GraderHotkeyHandlers = { prev: vi.fn() };
+      const option = makeInteractive("DIV", "option");
+
+      renderHook(() => useGraderHotkeys(handlers));
+
+      fireKeyDown("ArrowUp", {}, option);
+
+      expect(handlers.prev).not.toHaveBeenCalled();
+      option.remove();
     });
   });
 
@@ -190,6 +238,7 @@ describe("useGraderHotkeys", () => {
     it("does not call next when ctrlKey is held on non-mac", () => {
       mockDetectPlatform.mockReturnValue("other");
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j", { ctrlKey: true });
@@ -200,6 +249,7 @@ describe("useGraderHotkeys", () => {
     it("does not call prev when ctrlKey is held on non-mac", () => {
       mockDetectPlatform.mockReturnValue("other");
       const handlers: GraderHotkeyHandlers = { prev: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("k", { ctrlKey: true });
@@ -209,6 +259,7 @@ describe("useGraderHotkeys", () => {
 
     it("does not call next when altKey is held", () => {
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j", { altKey: true });
@@ -221,6 +272,7 @@ describe("useGraderHotkeys", () => {
     it("does not call next when metaKey is held on mac", () => {
       mockDetectPlatform.mockReturnValue("mac");
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j", { metaKey: true });
@@ -231,6 +283,7 @@ describe("useGraderHotkeys", () => {
     it("calls next on j without metaKey on mac", () => {
       mockDetectPlatform.mockReturnValue("mac");
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j");
@@ -241,6 +294,7 @@ describe("useGraderHotkeys", () => {
     it("ctrlKey does not block keys on mac (only metaKey is modifier)", () => {
       mockDetectPlatform.mockReturnValue("mac");
       const handlers: GraderHotkeyHandlers = { next: vi.fn() };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("j", { ctrlKey: true });
@@ -275,7 +329,7 @@ describe("useGraderHotkeys", () => {
       expect(() => fireKeyDown("c")).not.toThrow();
     });
 
-    it("does not throw when toggleHideGraded is not provided", () => {
+    it("does not throw when toggleHideFullCredit is not provided", () => {
       renderHook(() => useGraderHotkeys({}));
       expect(() => fireKeyDown("h")).not.toThrow();
     });
@@ -290,9 +344,10 @@ describe("useGraderHotkeys", () => {
         prevAttempt: vi.fn(),
         focusGrade: vi.fn(),
         focusComment: vi.fn(),
-        toggleHideGraded: vi.fn(),
+        toggleHideFullCredit: vi.fn(),
         openHelp: vi.fn()
       };
+
       renderHook(() => useGraderHotkeys(handlers));
 
       fireKeyDown("z");

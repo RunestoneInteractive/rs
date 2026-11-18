@@ -2,8 +2,9 @@ import {
   BlankWithFeedback,
   GraderType
 } from "@/components/routes/AssignmentBuilder/components/exercises/components/CreateExercise/components/FillInTheBlankExercise/types";
-import { sanitizeId } from "../sanitize";
 import { DEFAULT_INCORRECT_FEEDBACK } from "@/utils/questionJson";
+
+import { sanitizeId } from "../sanitize";
 
 const escapeJsonString = (str: string): string => {
   return str.replace(/"/g, '\\"');

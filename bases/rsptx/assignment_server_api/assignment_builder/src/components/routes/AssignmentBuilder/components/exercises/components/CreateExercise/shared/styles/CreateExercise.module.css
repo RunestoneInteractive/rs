@@ -1,3 +1,12 @@
+/* The create/edit form is a flex child of the exercise pane, which is
+   `height: 100%; overflow: hidden`. Without these it sizes to its natural
+   height and anything past the bottom of the pane gets clipped instead of
+   letting the step body scroll. */
+.formStack {
+  flex: 1;
+  min-height: 0;
+}
+
 .questionContainer {
   display: flex;
   flex-direction: column;

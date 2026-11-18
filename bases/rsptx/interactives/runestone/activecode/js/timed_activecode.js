@@ -8,6 +8,7 @@ import { ActiveCode } from "./activecode";
 import JSActiveCode from "./activecode_js";
 import HTMLActiveCode from "./activecode_html";
 import SQLActiveCode from "./activecode_sql";
+import GodotActiveCode from "./activecode_gdscript";
 
 var TimedActiveCodeMixin = {
     timedInit: async function (opts) {
@@ -77,8 +78,8 @@ var TimedActiveCodeMixin = {
         this.editor.refresh();
         if (this.historyScrubber !== null) {
             // the scrubber is a range input; reset its bounds and position
-            this.historyScrubber.max = this.history.length - 1;
-            this.historyScrubber.value = this.history.length - 1;
+            this.historyScrubber.max = this.history.length;
+            this.historyScrubber.value = this.history.length;
             this.slideit(null);
         }
         if (taken) {
@@ -144,3 +145,11 @@ export class TimedSQLActiveCode extends SQLActiveCode {
     }
 }
 Object.assign(TimedSQLActiveCode.prototype, TimedActiveCodeMixin);
+
+export class TimedGodotActiveCode extends GodotActiveCode {
+    constructor(opts) {
+        super(opts);
+        this.timedInit(opts);
+    }
+}
+Object.assign(TimedGodotActiveCode.prototype, TimedActiveCodeMixin);

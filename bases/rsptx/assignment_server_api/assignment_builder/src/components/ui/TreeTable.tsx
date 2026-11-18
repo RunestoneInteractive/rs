@@ -1,11 +1,10 @@
-import { Checkbox, Table } from "@mantine/core";
+import { Checkbox, Table, VisuallyHidden } from "@mantine/core";
 import classNames from "classnames";
 import { ReactNode, RefCallback, useMemo, useState } from "react";
 
 import { SelectedKey, TreeNode } from "@/types/treeNode";
 
 import { Icon } from "./Icon";
-
 import styles from "./TreeTable.module.css";
 
 export interface TreeTableColumn {
@@ -71,6 +70,8 @@ export const TreeTable = ({
     setExpanded((prev) => {
       const next = new Set(prev);
 
+      // TODO(eslint): Replace the conditional expression with an explicit branch.
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
@@ -162,7 +163,7 @@ export const TreeTable = ({
                                 checked={checked}
                                 indeterminate={indeterminate}
                                 onChange={() => (checked ? onUnselect(node) : onSelect(node))}
-                                aria-label={`Select ${nodeLabel}`}
+                                label={<VisuallyHidden>{`Select ${nodeLabel}`}</VisuallyHidden>}
                               />
                             )}
                             {col.render(node)}

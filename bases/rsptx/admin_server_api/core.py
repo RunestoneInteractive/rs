@@ -12,6 +12,7 @@
 # ----------------
 import os
 import pathlib
+from contextlib import asynccontextmanager
 
 # Third-party imports
 # -------------------
@@ -20,20 +21,25 @@ from fastapi.staticfiles import StaticFiles
 
 # Local application imports
 # -------------------------
+from rsptx.auth.csrf import add_csrf_protection
+from rsptx.auth.session import auth_manager
+from rsptx.db.pool_monitor import start_pool_monitor
 from rsptx.exceptions.core import add_exception_handlers
 from rsptx.templates import template_folder
-from rsptx.auth.session import auth_manager
 
-from .routers import lti1p3
-from .routers import lti1p1
-from .routers import instructor
-from .routers import analytics
-from .routers import editor
-from .routers import auth
-from .routers import telemetry
-from .routers import legal
-from .routers import start
-from .routers import problem_report
+from .routers import (
+    analytics,
+    auth,
+    editor,
+    instructor,
+    legal,
+    lti1p1,
+    lti1p3,
+    problem_report,
+    root,
+    start,
+    telemetry,
+)
 
 # FastAPI setup
 # =============
@@ -41,7 +47,19 @@ from .routers import problem_report
 kwargs = {}
 if root_path := os.environ.get("ROOT_PATH"):
     kwargs["root_path"] = root_path
-app = FastAPI(**kwargs)  # type: ignore
+
+
+# Start and stop the connection pool / event-loop monitor with the app. See
+# rsptx.db.pool_monitor for what it records and how to read it.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    pool_monitor_task = start_pool_monitor()
+    yield
+    if pool_monitor_task:
+        pool_monitor_task.cancel()
+
+
+app = FastAPI(lifespan=lifespan, **kwargs)  # type: ignore
 
 # Anything that gets to this server with /staticAssets gets served from the staticAssets folder
 template_dir = pathlib.Path(template_folder)
@@ -61,6 +79,23 @@ app.include_router(telemetry.router)
 app.include_router(legal.router)
 app.include_router(start.router)
 app.include_router(problem_report.router)
+app.include_router(root.router)
 
 # load a common set of middleware/exception handlers
 add_exception_handlers(app)
+# An LMS posts these to us from its own origin by design; each carries a signed
+# launch (or is unauthenticated key material), not just the ambient cookie. The
+# 307 from /lti1p3/dynamic-linking to /lti1p3/rs-login re-posts cross-site too.
+add_csrf_protection(
+    app,
+    exempt_paths=(
+        "/lti1p1",
+        "/lti1p1/",
+        "/lti1p3/login",
+        "/lti1p3/launch",
+        "/lti1p3/register",
+        "/lti1p3/jwks",
+        "/lti1p3/dynamic-linking",
+        "/lti1p3/rs-login",
+    ),
+)
