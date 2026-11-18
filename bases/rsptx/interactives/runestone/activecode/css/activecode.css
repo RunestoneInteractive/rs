@@ -403,6 +403,41 @@
     display: none;
 }
 
+/* CodeTailor: callout under a subgoal-labels help puzzle's instructions */
+.labels-next-steps {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 4px 30px 12px;
+    padding: 10px 14px;
+    background-color: #fff8e1;
+    border: 2px solid #ffd54f;
+    border-left-width: 6px;
+    border-radius: 12px;
+    color: #191919;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.labels-next-steps.solved {
+    background-color: #e8f5e9;
+    border-color: #81c784;
+}
+
+.labels-next-steps .labels-icon {
+    font-size: 1.6em;
+    line-height: 1;
+}
+
+.labels-next-steps .labels-hint {
+    margin: 0;
+}
+
+.labels-next-steps.nudge {
+    background-color: #fff3e0;
+    border-color: #ef6c00;
+}
+
 /* open CodeTailor*/
 /* #ED7014 left the white label at 3.03:1; #BC580E keeps the orange at 4.63:1. */
 button.parsons-scaffolding-btn {

@@ -2198,6 +2198,11 @@ export default class Parsons extends RunestoneBase {
                     if (copyBtn) {
                         copyBtn.classList.remove("copy-button-hide");
                     }
+                    document.dispatchEvent(
+                        new CustomEvent("codetailor-help-solved", {
+                            detail: { divid: this.divid },
+                        }),
+                    );
                 }
                 localStorage.setItem(this.adaptiveId + "Solved", true);
                 this.recentAttempts = this.checkCount;
