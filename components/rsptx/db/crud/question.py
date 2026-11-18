@@ -809,6 +809,19 @@ async def replace_user_experiment_entries(
         )
 
 
+async def fetch_user_experiment_sids(ab: str) -> Set[str]:
+    """
+    Return the sids that have a condition recorded for the given AB experiment.
+
+    :param ab: str, the name of the AB experiment
+    :return: set of sids
+    """
+    query = select(UserExperiment.sid).where(UserExperiment.experiment_id == ab)
+    async with async_session() as session:
+        res = await session.execute(query)
+        return set(res.scalars().all())
+
+
 async def fetch_viewed_questions(sid: str, questionlist: List[str]) -> List[str]:
     """
     Retrieve a list of questions from the given questionlist that a student (sid)
