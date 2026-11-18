@@ -10,12 +10,21 @@ from rsptx.auth.grader_permissions import (
     GraderRole,
     resolve_grader_capabilities,
 )
-from rsptx.auth.grader_tokens import student_grading_token
+from rsptx.auth.grader_tokens import (
+    resolve_student_grading_token,
+    student_grading_token,
+)
 from rsptx.auth.session import auth_manager
 from rsptx.db.crud import fetch_course
 from rsptx.db.models import AuthUserValidator
 
-from .grader import load_question_answers
+from .grader import (
+    GradeUpdatePayload,
+    GraderAnswerHistoryItem,
+    load_question_answers,
+    load_student_answer_history,
+    save_question_grade,
+)
 
 router = APIRouter(
     prefix="/grader",
@@ -84,6 +93,53 @@ class AnonymousQuestionAnswersEnvelope(BaseModel):
     detail: AnonymousQuestionAnswersResponse
 
 
+class AnonymousGradeUpdatePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    student_token: str
+    score: float
+    comment: Optional[str] = ""
+
+
+class AnonymousGradeUpdateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    student_token: str
+    score: float
+    comment: str
+    recomputed_assignments: list[int]
+    totals: dict[int, Optional[float]]
+
+
+class AnonymousGradeUpdateEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    detail: AnonymousGradeUpdateResponse
+
+
+class AnonymousUseinfoItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: int
+    timestamp: Optional[str] = None
+    event: Optional[str] = None
+    act: Optional[str] = None
+
+
+class AnonymousQuestionHistoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    student_token: str
+    history: list[GraderAnswerHistoryItem]
+    useinfo: list[AnonymousUseinfoItem]
+
+
+class AnonymousQuestionHistoryEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    detail: AnonymousQuestionHistoryResponse
+
+
 async def require_assignment_grader(
     assignment_id: int,
     user: AuthUserValidator = Depends(auth_manager),
@@ -107,6 +163,26 @@ async def require_assignment_grader(
             detail="Grading access denied",
         )
     return capabilities
+
+
+async def _resolve_anonymous_student(
+    *, course, assignment_id: int, question_id: int, student_token: str
+):
+    """Resolve a token only among students visible for this assignment question."""
+
+    question_answers = await load_question_answers(course, assignment_id, question_id)
+    sid = resolve_student_grading_token(
+        course_id=course.id,
+        assignment_id=assignment_id,
+        token=student_token,
+        candidate_sids=(answer.sid for answer in question_answers["answers"]),
+    )
+    if sid is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Grading target not found",
+        )
+    return sid, question_answers
 
 
 @router.get(
@@ -178,5 +254,77 @@ async def get_anonymous_question_answers(
         "detail": AnonymousQuestionAnswersResponse(
             question=AnonymousQuestionResponse(**detail["question"]),
             answers=answers,
+        )
+    }
+
+
+@router.post(
+    "/assignments/{assignment_id}/questions/{question_id}/grade",
+    response_model=AnonymousGradeUpdateEnvelope,
+)
+async def update_anonymous_question_grade(
+    assignment_id: int,
+    question_id: int,
+    payload: AnonymousGradeUpdatePayload,
+    user: AuthUserValidator = Depends(auth_manager),
+    _capabilities: GraderCapabilities = Depends(require_assignment_grader),
+):
+    """Save a grade without accepting or returning a student username."""
+
+    course = await fetch_course(user.course_name)
+    sid, question_answers = await _resolve_anonymous_student(
+        course=course,
+        assignment_id=assignment_id,
+        question_id=question_id,
+        student_token=payload.student_token,
+    )
+
+    saved = await save_question_grade(
+        course,
+        GradeUpdatePayload(
+            sid=sid,
+            div_id=question_answers["question"]["name"],
+            score=payload.score,
+            comment=payload.comment,
+            assignment_id=assignment_id,
+        ),
+    )
+    return {
+        "detail": AnonymousGradeUpdateResponse(
+            student_token=payload.student_token,
+            score=saved["score"],
+            comment=saved["comment"],
+            recomputed_assignments=saved["recomputed_assignments"],
+            totals=saved["totals"],
+        )
+    }
+
+
+@router.get(
+    "/assignments/{assignment_id}/questions/{question_id}/history",
+    response_model=AnonymousQuestionHistoryEnvelope,
+)
+async def get_anonymous_question_history(
+    assignment_id: int,
+    question_id: int,
+    student_token: str,
+    user: AuthUserValidator = Depends(auth_manager),
+    _capabilities: GraderCapabilities = Depends(require_assignment_grader),
+):
+    """Return attempt history without accepting or returning a username."""
+
+    course = await fetch_course(user.course_name)
+    sid, _question_answers = await _resolve_anonymous_student(
+        course=course,
+        assignment_id=assignment_id,
+        question_id=question_id,
+        student_token=student_token,
+    )
+    history = await load_student_answer_history(course, assignment_id, question_id, sid)
+    return {
+        "detail": AnonymousQuestionHistoryResponse(
+            student_token=student_token,
+            history=history["history"],
+            useinfo=history["useinfo"],
         )
     }

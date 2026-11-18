@@ -226,3 +226,169 @@ async def test_anonymous_answers_reject_student(auth_student_client):
     )
 
     assert response.status_code == 403
+
+
+async def test_delegated_grader_saves_grade_with_anonymous_student_token(
+    auth_delegated_grader_client,
+):
+    assignment = await _make_assignment(blind_grading=True)
+    question = await _add_short_answer_question(assignment.id)
+    course, student = await _ensure_test_student_is_enrolled()
+    answer_text = f"Anonymous grade target {uuid.uuid4().hex}"
+    async with async_session.begin() as session:
+        session.add(
+            ShortanswerAnswers(
+                timestamp=canonical_utcnow(),
+                sid=student.username,
+                div_id=question.name,
+                course_name=course.course_name,
+                answer=answer_text,
+            )
+        )
+
+    answers_path = (
+        f"/grader/assignments/{assignment.id}/questions/{question.id}/answers"
+    )
+    answers_response = await auth_delegated_grader_client.get(answers_path)
+    target = next(
+        item
+        for item in answers_response.json()["detail"]["answers"]
+        if item["answer"] == answer_text
+    )
+
+    grade_response = await auth_delegated_grader_client.post(
+        f"/grader/assignments/{assignment.id}/questions/{question.id}/grade",
+        json={
+            "student_token": target["student_token"],
+            "score": 4.5,
+            "comment": "Clear reasoning.",
+        },
+    )
+
+    assert grade_response.status_code == 200
+    grade_detail = grade_response.json()["detail"]
+    assert grade_detail["student_token"] == target["student_token"]
+    assert grade_detail["score"] == 4.5
+    assert grade_detail["comment"] == "Clear reasoning."
+    assert {"sid", "div_id"}.isdisjoint(grade_detail)
+    assert student.username not in grade_response.text
+
+    repeated = await auth_delegated_grader_client.get(answers_path)
+    graded = next(
+        item
+        for item in repeated.json()["detail"]["answers"]
+        if item["student_token"] == target["student_token"]
+    )
+    assert graded["score"] == 4.5
+    assert graded["comment"] == "Clear reasoning."
+    assert graded["hand_graded"] is True
+
+
+async def test_anonymous_grade_rejects_token_from_another_assignment(
+    auth_delegated_grader_client,
+):
+    source_assignment = await _make_assignment(blind_grading=True)
+    source_question = await _add_short_answer_question(source_assignment.id)
+    target_assignment = await _make_assignment(blind_grading=True)
+    target_question = await _add_short_answer_question(target_assignment.id)
+
+    source_answers = await auth_delegated_grader_client.get(
+        f"/grader/assignments/{source_assignment.id}/questions/"
+        f"{source_question.id}/answers"
+    )
+    source_token = source_answers.json()["detail"]["answers"][0]["student_token"]
+
+    response = await auth_delegated_grader_client.post(
+        f"/grader/assignments/{target_assignment.id}/questions/"
+        f"{target_question.id}/grade",
+        json={"student_token": source_token, "score": 1, "comment": ""},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Grading target not found"
+
+
+async def test_anonymous_grade_rejects_identity_fields(
+    auth_delegated_grader_client,
+):
+    assignment = await _make_assignment(blind_grading=True)
+    question = await _add_short_answer_question(assignment.id)
+
+    response = await auth_delegated_grader_client.post(
+        f"/grader/assignments/{assignment.id}/questions/{question.id}/grade",
+        json={
+            "student_token": "not-a-real-token",
+            "sid": "testuser1",
+            "score": 1,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+async def test_delegated_grader_reads_history_with_anonymous_student_token(
+    auth_delegated_grader_client,
+):
+    assignment = await _make_assignment(blind_grading=True)
+    question = await _add_short_answer_question(assignment.id)
+    course, student = await _ensure_test_student_is_enrolled()
+    first_answer = f"First anonymous attempt {uuid.uuid4().hex}"
+    second_answer = f"Second anonymous attempt {uuid.uuid4().hex}"
+    timestamp = canonical_utcnow()
+    async with async_session.begin() as session:
+        session.add_all(
+            [
+                ShortanswerAnswers(
+                    timestamp=timestamp - datetime.timedelta(minutes=1),
+                    sid=student.username,
+                    div_id=question.name,
+                    course_name=course.course_name,
+                    answer=first_answer,
+                ),
+                ShortanswerAnswers(
+                    timestamp=timestamp,
+                    sid=student.username,
+                    div_id=question.name,
+                    course_name=course.course_name,
+                    answer=second_answer,
+                ),
+            ]
+        )
+
+    base_path = f"/grader/assignments/{assignment.id}/questions/{question.id}"
+    answers_response = await auth_delegated_grader_client.get(f"{base_path}/answers")
+    target = next(
+        item
+        for item in answers_response.json()["detail"]["answers"]
+        if item["answer"] == second_answer
+    )
+
+    response = await auth_delegated_grader_client.get(
+        f"{base_path}/history",
+        params={"student_token": target["student_token"]},
+    )
+
+    assert response.status_code == 200
+    detail = response.json()["detail"]
+    assert detail["student_token"] == target["student_token"]
+    assert [item["answer"] for item in detail["history"]] == [
+        first_answer,
+        second_answer,
+    ]
+    assert all(
+        {"sid", "first_name", "last_name", "email"}.isdisjoint(item)
+        for item in detail["history"]
+    )
+    assert student.username not in response.text
+    assert student.email not in response.text
+
+
+async def test_anonymous_history_rejects_student(auth_student_client):
+    assignment = await _make_assignment(blind_grading=True)
+
+    response = await auth_student_client.get(
+        f"/grader/assignments/{assignment.id}/questions/1/history",
+        params={"student_token": "not-a-real-token"},
+    )
+
+    assert response.status_code == 403

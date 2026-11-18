@@ -748,19 +748,10 @@ async def list_question_answers(
     )
 
 
-@router.get("/questions/history")
-@instructor_role_required()
-async def get_student_answer_history(
-    request: Request,
-    assignment_id: int = Query(...),
-    question_id: int = Query(...),
-    sid: str = Query(...),
-    user=Depends(auth_manager),
+async def load_student_answer_history(
+    course, assignment_id: int, question_id: int, sid: str
 ):
-    """Return every attempt a student made on a particular question so the
-    instructor can detect brute-force behaviour.
-    """
-    course = await fetch_course(user.course_name)
+    """Load one student's attempts after authorization resolves its identity."""
 
     rows = await fetch_assignment_questions(assignment_id)
     question = None
@@ -769,8 +760,9 @@ async def get_student_answer_history(
             question = row.Question
             break
     if question is None:
-        return make_json_response(
-            status=status.HTTP_404_NOT_FOUND, detail="Question not in assignment"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question not in assignment",
         )
 
     # See issue #1481: a selectquestion keeps its answers under the question the
@@ -896,13 +888,28 @@ async def get_student_answer_history(
             for u in res.scalars()
         ]
 
-    return make_json_response(
-        status=status.HTTP_200_OK,
-        detail={
-            "history": [h.dict() for h in history],
-            "useinfo": useinfo_rows,
-        },
-    )
+    return {
+        "history": [h.dict() for h in history],
+        "useinfo": useinfo_rows,
+    }
+
+
+@router.get("/questions/history")
+@instructor_role_required()
+async def get_student_answer_history(
+    request: Request,
+    assignment_id: int = Query(...),
+    question_id: int = Query(...),
+    sid: str = Query(...),
+    user=Depends(auth_manager),
+):
+    """Return every attempt a student made on a particular question so the
+    instructor can detect brute-force behaviour.
+    """
+
+    course = await fetch_course(user.course_name)
+    detail = await load_student_answer_history(course, assignment_id, question_id, sid)
+    return make_json_response(status=status.HTTP_200_OK, detail=detail)
 
 
 async def _assignments_to_recompute(course, payload: GradeUpdatePayload):
@@ -957,6 +964,18 @@ async def upsert_grade(
     showing the pre-grading total.
     """
     course = await fetch_course(user.course_name)
+    detail = await save_question_grade(course, payload)
+    return make_json_response(status=status.HTTP_200_OK, detail=detail)
+
+
+async def save_question_grade(course, payload: GradeUpdatePayload):
+    """Persist one authorized grade and update its assignment totals.
+
+    Authorization and identity resolution stay at the route boundary. This
+    helper is shared by the existing instructor route and the restricted blind
+    grading route so both workflows keep identical gradebook behavior.
+    """
+
     existing = await fetch_question_grade(
         payload.sid, course.course_name, payload.div_id
     )
@@ -1020,17 +1039,14 @@ async def upsert_grade(
         f"Grader saved grade sid={payload.sid} div={payload.div_id} "
         f"score={payload.score} recomputed={recomputed}"
     )
-    return make_json_response(
-        status=status.HTTP_200_OK,
-        detail={
-            "score": payload.score,
-            "comment": display_comment(comment) or "",
-            "sid": payload.sid,
-            "div_id": payload.div_id,
-            "recomputed_assignments": recomputed,
-            "totals": totals,
-        },
-    )
+    return {
+        "score": payload.score,
+        "comment": display_comment(comment) or "",
+        "sid": payload.sid,
+        "div_id": payload.div_id,
+        "recomputed_assignments": recomputed,
+        "totals": totals,
+    }
 
 
 class RegradeRequest(BaseModel):
