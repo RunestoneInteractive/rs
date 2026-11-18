@@ -487,6 +487,7 @@ export class ActiveCode extends RunestoneBase {
         // to Clipboard", CodeMirror inserts it verbatim: the first line lands at the
         // cursor's column and the rest start at column 0, which scrambles nested
         // code (very visible in Java). Shift every line to the cursor's indentation.
+        const acElement = this;
         editor.on("beforeChange", function (cm, change) {
             if (change.origin !== "paste" || !change.update) return;
             if (!acElement.copiedAnswer || change.text.length < 2) return;
