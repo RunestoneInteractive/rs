@@ -2,9 +2,8 @@
 
 ``_send_lti1p3_score_updates`` runs on every manual grade now that POST /grade
 rolls totals up, so a single malformed update must not cost the rest of the
-batch. These pin the three ways it used to go wrong: a student with no LTI
-mapping, an assignment worth zero points, and a computed total larger than the
-assignment's points (which the LMS rejects with a 422).
+batch. These cover submission timestamps, students with no LTI mapping,
+zero-point assignments, and totals exceeding the assignment's points.
 """
 
 import datetime
@@ -87,24 +86,64 @@ async def _send(
     return sent
 
 
-async def test_instructor_triggered_score_sets_submitted_at_before_deadline():
-    duedate = datetime.datetime(2026, 1, 2, 12, 0, 0)
+@pytest.mark.parametrize(
+    "duedate, expected_submitted_at",
+    [
+        pytest.param(
+            datetime.datetime(2026, 1, 3, 12),
+            "2026-01-02T12:00:00Z",
+            id="future-deadline",
+        ),
+        pytest.param(
+            datetime.datetime(2026, 1, 2, 12, 1),
+            "2026-01-02T12:00:00Z",
+            id="one-minute-before-deadline",
+        ),
+        pytest.param(
+            datetime.datetime(2026, 1, 2, 12, 0, 30),
+            "2026-01-02T11:59:30Z",
+            id="within-final-minute",
+        ),
+        pytest.param(
+            datetime.datetime(2026, 1, 2, 12),
+            "2026-01-02T11:59:00Z",
+            id="at-deadline",
+        ),
+        pytest.param(
+            datetime.datetime(2026, 1, 1, 12),
+            "2026-01-01T11:59:00Z",
+            id="past-deadline",
+        ),
+        pytest.param(None, "2026-01-02T12:00:00Z", id="no-deadline"),
+    ],
+)
+async def test_instructor_triggered_score_never_submits_in_the_future(
+    duedate, expected_submitted_at
+):
+    score_timestamp = "2026-01-02T12:00:00Z"
+    with patch.object(core, "time_now", return_value=score_timestamp):
+        sent = await _send(
+            [(_lti_user(), 5)],
+            lti_assign=_lti_assign(duedate=duedate),
+            return_payloads=True,
+            instructor_triggered=True,
+        )
 
-    sent = await _send(
-        [(_lti_user(), 5)],
-        lti_assign=_lti_assign(duedate=duedate),
-        return_payloads=True,
-        instructor_triggered=True,
-    )
-
-    assert sent[0]["submission"] == {"submittedAt": "2026-01-02T11:59:00Z"}
+    assert sent[0]["timestamp"] == score_timestamp
+    assert sent[0]["submission"] == {"submittedAt": expected_submitted_at}
 
 
-async def test_student_triggered_score_sets_submitted_at_to_timestamp():
-    sent = await _send(
-        [(_lti_user(), 5)],
-        return_payloads=True,
-    )
+@pytest.mark.parametrize(
+    "duedate",
+    [None, datetime.datetime(2026, 1, 1, 12), datetime.datetime(2026, 1, 3, 12)],
+)
+async def test_student_triggered_score_sets_submitted_at_to_timestamp(duedate):
+    with patch.object(core, "time_now", return_value="2026-01-02T12:00:00Z"):
+        sent = await _send(
+            [(_lti_user(), 5)],
+            lti_assign=_lti_assign(duedate=duedate),
+            return_payloads=True,
+        )
 
     assert sent[0]["submission"] == {"submittedAt": sent[0]["timestamp"]}
 
