@@ -28,6 +28,9 @@ const STEP_CONFIG = {
 
 var currentStep = null;
 const CHAT_MODALITIES = ['makep', 'facechat', 'makeabgroups'];
+// Set once the A/B split has run for this question, so Vote 2 can check for
+// students who voted after it.
+var abExperimentRan = false;
 
 function disableButton(btn) {
     if (btn) btn.disabled = true;
@@ -280,12 +283,24 @@ function connect(event) {
             if (!resp.ok) return;
             let phase = await resp.json();
             if (phase && phase.message) {
-                // Ignore a stored phase that belongs to a different question since
-                // it's leftover state from a previous session, not the current one.
                 if (typeof currentQuestion !== "undefined" && phase.div_id && phase.div_id !== currentQuestion) {
+                    let sameAssignment =
+                        phase.assignment_id != null &&
+                        String(phase.assignment_id) === String(assignmentId);
+                    let lastTry = null;
+                    try { lastTry = sessionStorage.getItem("piCatchupTarget"); } catch (e) { }
+                    let nextForm = document.getElementById("nextqform");
+                    if (sameAssignment && nextForm && lastTry !== phase.div_id) {
+                        console.log(`Catch-up: class is on ${phase.div_id}, moving there`);
+                        try { sessionStorage.setItem("piCatchupTarget", phase.div_id); } catch (e) { }
+                        $(window).off("beforeunload");
+                        nextForm.submit();
+                        return;
+                    }
                     console.log(`Catch-up: ignoring stale phase for ${phase.div_id}`);
                     return;
                 }
+                try { sessionStorage.removeItem("piCatchupTarget"); } catch (e) { }
                 console.log(`Catch-up: re-applying phase ${phase.message}`);
                 phase._catchup = true;
                 ws.onmessage({ data: JSON.stringify(phase) });
@@ -499,8 +514,11 @@ function connect(event) {
                 case "enableFaceChat":
                     console.log("got enableFaceChat message");
                     console.log(`group = ${mess.group}`);
+                    // The verbal instructions go in the right-hand panel, where
+                    // students look during discussion, not the banner at the top.
                     messarea = document.getElementById("imessage");
-                    messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
+                    messarea.innerHTML = "";
+                    showVerbalMessage(mess.group);
 
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
@@ -518,6 +536,13 @@ function connect(event) {
                         });
                     }
                     break; // incase default
+                case "abNoGroup":
+                    // The A/B split only includes students whose vote was in when
+                    // it ran, so explain why this student has no group.
+                    console.log("got abNoGroup message");
+                    messarea = document.getElementById("imessage");
+                    messarea.innerHTML = `<h3>You were not placed in a discussion group</h3><p>Your instructor made the groups before your answer was recorded, so you were left out of them for this question. This can happen if you answered late or your connection dropped. You can still vote again when your instructor starts Vote 2.</p>`;
+                    break;
                 default:
                     console.log("unknown control message");
             }
@@ -529,6 +554,33 @@ function connect(event) {
         ws.onclose = function () { }; // disable onclose handler first
         ws.close();
     };
+}
+
+// Fill the verbal discussion message in the right-hand panel. ``group`` is the
+// list of partner names the server sends in A/B mode; plain in-person chat
+// sends none, so students just get the general instruction.
+function showVerbalMessage(group) {
+    const box = document.getElementById("verbal-chat-message");
+    if (!box) return;
+    box.innerHTML = "";
+    const heading = document.createElement("h3");
+    heading.textContent = "Verbal Discussion";
+    box.appendChild(heading);
+    const p = document.createElement("p");
+    const names = Array.isArray(group) ? group.filter((n) => n) : [];
+    if (names.length) {
+        p.append("Please talk to ");
+        names.forEach((name, i) => {
+            if (i > 0) p.append(i === names.length - 1 ? " and " : ", ");
+            const strong = document.createElement("strong");
+            strong.textContent = name;
+            p.appendChild(strong);
+        });
+        p.append(".");
+    } else {
+        p.textContent = "Please have a verbal discussion with your group.";
+    }
+    box.appendChild(p);
 }
 
 function getVoteNum() {
@@ -684,6 +736,10 @@ function warnAndStopVote(event) {
         }
         const hideShowGraphButton = document.querySelector("#hideShowGraph");
         hideShowGraphButton.disabled = false;
+        if (abExperimentRan) {
+            // wait out the 5 second countdown so the last answers are in
+            setTimeout(showAbLateVoters, 8000);
+        }
     }
     event.srcElement.disabled = true;
 }
@@ -730,6 +786,7 @@ async function makePartners(event, is_ab) {
             batchDisable(CHAT_MODALITIES);
             disableButton(document.getElementById('makeabgroups'));
             setText('pi-session-status', 'A/B Experiment in Progress…');
+            abExperimentRan = true;
         }
         document.querySelector("#vote2").disabled = false;
     }
@@ -789,6 +846,28 @@ function startVote2(event) {
     document.querySelector("#vote3").disabled = false;
     let counterel = document.querySelector("#counter2");
     counterel.innerHTML = "<p>Vote 2 Answers: 0</p>";
+}
+
+async function showAbLateVoters() {
+    const note = document.getElementById("abLateNote");
+    if (!note) return;
+    try {
+        const resp = await fetch("/assignment/peer/api/ab_late_voters", {
+            method: "POST",
+            headers: { "Content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify({ div_id: currentQuestion, start_time: startTime }),
+        });
+        if (!resp.ok) return;
+        const spec = await resp.json();
+        const n = (spec.late || []).length;
+        if (n === 0) return;
+        note.textContent =
+            `${n} ${n === 1 ? "student" : "students"} voted after the A/B groups were made, ` +
+            "so they aren't in either condition and are left out of the A/B results.";
+        note.style.display = "block";
+    } catch (e) {
+        console.log(`could not check for late A/B voters: ${e}`);
+    }
 }
 
 async function clearPartners(event) {
