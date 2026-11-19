@@ -16,12 +16,14 @@ from rsptx.db.crud import (
     create_question,
     fetch_assignment_questions,
 )
+from rsptx.db.crud.assignment import add_assignment_question
 from rsptx.db.models import (
     AssignmentValidator,
     AssignmentQuestionValidator,
     QuestionValidator,
 )
 from rsptx.response_helpers.core import canonical_utcnow
+from rsptx.validation.schemas import CreateExercisesPayload
 
 COURSE_NAME = "test_course_1"
 ASSIGN_NAME = "crud_test_assignment"
@@ -166,6 +168,66 @@ async def test_fetch_assignment_questions_keeps_questions_outside_the_toc(
     assert row is not None, "question with an unresolvable chapter was dropped"
     assert row.Chapter is None
     assert row.SubChapter is None
+
+
+async def test_new_questions_keep_creation_order(test_course):
+    """Questions written in the builder stay in the order they were created.
+
+    add_assignment_question used to reuse the current max sorting_priority, so
+    every question written into an empty (typically peer) assignment got 0 and
+    came back in whatever order Postgres chose.
+    """
+    assignment = await create_assignment(
+        AssignmentValidator(
+            course=test_course.id,
+            name="crud_creation_order_assignment",
+            points=0,
+            released=False,
+            description="creation order",
+            duedate=datetime.datetime(2099, 1, 1),
+            visible=True,
+            from_source=False,
+            is_peer=True,
+            current_index=0,
+            peer_async_visible=False,
+        )
+    )
+    names = [f"crud_creation_order_q{i}" for i in range(3)]
+    for name in names:
+        question = await create_question(
+            QuestionValidator(
+                base_course=COURSE_NAME,
+                name=name,
+                chapter="ch1",
+                subchapter="sub1",
+                author="testuser1",
+                question="Creation order?",
+                timestamp=canonical_utcnow(),
+                question_type="mchoice",
+                is_private=False,
+                from_source=False,
+                review_flag=False,
+            )
+        )
+        await add_assignment_question(
+            CreateExercisesPayload(
+                name=name,
+                source="",
+                question_type="mchoice",
+                htmlsrc="",
+                question_json="{}",
+                points=1,
+                is_reading=False,
+                assignment_id=assignment.id,
+            ),
+            question,
+        )
+
+    rows = list(await fetch_assignment_questions(assignment.id))
+
+    assert [r.Question.name for r in rows] == names
+    priorities = [r.AssignmentQuestion.sorting_priority for r in rows]
+    assert len(set(priorities)) == len(priorities), priorities
 
 
 async def test_fetch_visible_assignments(test_assignment):

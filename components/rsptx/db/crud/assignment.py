@@ -1092,7 +1092,7 @@ async def add_assignment_question(
                 ),
                 which_to_grade="best_answer",
                 reading_assignment=data.is_reading,
-                sorting_priority=max_sort_priority,
+                sorting_priority=max_sort_priority + 1,
                 activities_required=None,
             )
         )

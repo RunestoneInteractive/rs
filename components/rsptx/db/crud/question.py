@@ -474,7 +474,8 @@ async def fetch_assignment_questions(
             & (SubChapter.chapter_id == Chapter.id),
         )
         .where(AssignmentQuestion.assignment_id == assignment_id)
-        .order_by(AssignmentQuestion.sorting_priority)
+        # id breaks ties so questions sharing a priority keep creation order
+        .order_by(AssignmentQuestion.sorting_priority, AssignmentQuestion.id)
     )
 
     async with async_session() as session:
