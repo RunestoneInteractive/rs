@@ -227,6 +227,14 @@ class Settings(BaseSettings):
     author_server_url: str = "https://author.runestone.academy/author"
     landing_page_url: str = "https://landing.runestone.academy"
 
+    # Root URL of the SageCell server that runs Sage cells on our own pages
+    # (assignments, the question editor, the builder). The proxy serves it at
+    # /sagecell/ (see projects/caddy/Caddyfile), so the browser stays
+    # same-origin and never needs to reach the SageCell host itself. PreTeXt
+    # books built for Runestone use the same path. Must end with a slash;
+    # set SAGECELL_URL=https://sagecell.sagemath.org/ when no proxy is in front.
+    sagecell_url: str = "/sagecell/"
+
     # LLM providers for the AI features (CodeTailor, peer instruction). A course
     # calls the provider it has an API token for (add_token.html); a course with
     # tokens for several uses the first one in ``llm_provider_order``. Each

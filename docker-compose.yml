@@ -86,6 +86,7 @@ x-container-env: &container-env
 x-web-env: &web-env
   <<: [*container-env, *db-env]
   AUTHOR_SERVER_URL: ${AUTHOR_SERVER_URL:-https://author.runestone.academy/author}
+  SAGECELL_URL: ${SAGECELL_URL:-/sagecell/}
 
 # Shared uvicorn tuning. UVICORN_WORKERS is per-service, so it is not here.
 x-uvicorn-env: &uvicorn-env
@@ -344,6 +345,10 @@ services:
       - CADDY_SITE_ADDRESS=${CADDY_SITE_ADDRESS:-:80}
       # Space-separated IPs/CIDRs that skip the maintenance page.
       - MAINTENANCE_BYPASS_IPS=${MAINTENANCE_BYPASS_IPS:-192.0.2.1}
+      # SageCell server for Sage cells in books, proxied at /sagecell/. It
+      # runs on its own host like the DB and redis, not in this compose file.
+      # Production points this at the private address of our SageCell host.
+      - SAGECELL_UPSTREAM=${SAGECELL_UPSTREAM:-https://sagecell.sagemath.org}
     ports:
       # ports are specified host:container
       - 80:80

@@ -210,6 +210,37 @@
 			}
 		}
 
+		# ----- SageCell (Sage cells in PreTeXt books) -----
+		# Books built for Runestone load /sagecell/static/embedded_sagecell.js,
+		# and the script uses its own URL as the server root for everything
+		# else (kernel, sockjs, permalink, static). So the browser talks to
+		# SageCell same-origin through here and never needs to reach the
+		# SageCell host itself. Like the DB and redis, the SageCell server is
+		# not part of the composed app: SAGECELL_UPSTREAM names it, and it
+		# defaults (in docker-compose.yml) to the public sagecell.sagemath.org.
+		handle /sagecell/* {
+			# Open to every reader, no login needed, but only from our own
+			# pages: a browser request whose Origin is another site gets a 403,
+			# so other sites can't embed our compute. Same-origin GETs (the
+			# script itself) send no Origin header and always pass.
+			@sagecell_foreign expression `{http.request.header.Origin} != "" && {http.request.header.Origin} != "https://" + {http.request.hostport} && {http.request.header.Origin} != "http://" + {http.request.hostport}`
+			respond @sagecell_foreign "Forbidden" 403
+
+			uri strip_prefix /sagecell
+			reverse_proxy {$SAGECELL_UPSTREAM:https://sagecell.sagemath.org} {
+				# Tornado accepts a websocket only when the Origin host matches
+				# Host. Origin has already been checked above, so present
+				# SageCell with a matching pair naming the upstream. That also
+				# gives an https upstream (the public server) the Host its
+				# vhost and certificate expect.
+				header_up Host {upstream_hostport}
+				header_up Origin https://{upstream_hostport}
+				header_up X-Forwarded-Proto https
+				# SockJS's xhr-streaming fallback needs unbuffered responses.
+				flush_interval -1
+			}
+		}
+
 		# ----- LTI 1.1 launch -> admin server -----
 		# Historically /runestone/lti was served by web2py; it now lives on the
 		# admin server at /lti1p1. Keep the public URL stable so existing LMS

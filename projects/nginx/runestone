@@ -35,6 +35,15 @@ log_format custom_log_format '$remote_addr - [$time_local] '
 
 access_log /var/log/nginx/access.log custom_log_format;
 
+# SageCell: 1 when a request's Origin names a site other than the one it was
+# sent to (see location /sagecell/ below). No Origin header (same-origin GETs)
+# is fine. The regex compares the Origin's host to Host with a backreference.
+map "$http_origin|$http_host" $sagecell_foreign {
+    default                    1;
+    "~^\|"                     0;
+    "~^https?://([^|]+)\|\1$"  0;
+}
+
 # Define the web2py and FastAPI servers.
 
 server {
@@ -155,6 +164,37 @@ include /etc/nginx/default.d/\*.conf;
        proxy_set_header X-Original-URI $request_uri;
        proxy_redirect off;
        proxy_pass $dserver$request_uri;
+    }
+
+    # route Sage cells (PreTeXt books) to the SageCell server. Books built for
+    # Runestone load /sagecell/static/embedded_sagecell.js and the script uses
+    # its own URL as the server root, so the browser talks to SageCell
+    # same-origin through here. Mirrors the /sagecell/ route in
+    # projects/caddy/Caddyfile. nginx has no env substitution in this config,
+    # so it always uses the public server; edit proxy_pass (and drop the
+    # proxy_ssl_* lines) to point at a private SageCell host.
+    location /sagecell/ {
+       # Open to every reader, but not to other sites' pages.
+       if ($sagecell_foreign) {
+           return 403;
+       }
+       resolver 127.0.0.11 valid=30s; # use the docker dns resolver
+       set $sagecell_upstream https://sagecell.sagemath.org;
+       # Tornado accepts a websocket only when the Origin host matches Host;
+       # Origin was checked above, so present a matching pair.
+       proxy_set_header Host sagecell.sagemath.org;
+       proxy_set_header Origin https://sagecell.sagemath.org;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+       proxy_ssl_server_name on;
+       proxy_ssl_name sagecell.sagemath.org;
+       proxy_buffering off;
+       proxy_read_timeout 3600s;
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
+       rewrite ^/sagecell(/.*)$ $1 break;
+       proxy_pass $sagecell_upstream;
     }
 
     # route author requests

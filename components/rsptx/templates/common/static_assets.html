@@ -137,7 +137,7 @@ I don't know if any of the following are needed anymore.
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
-    <script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
+    <script src="{{ settings.sagecell_url if settings is defined else '/sagecell/' }}static/embedded_sagecell.js"></script>
     <script src="https://pretextbook.org/js/lib/knowl.js"></script>
 {% endif %}
 
