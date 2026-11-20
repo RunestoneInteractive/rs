@@ -15,6 +15,9 @@ dependencies = [
     "fastapi>=0.115.0,<0.116",
     "greenlet>=3.2.2,<4",
     "celery[redis]>=5.2.7,<6",
+    # kombu 5.7 needs redis>=6.4 at runtime, but celery 5.4's redis extra
+    # doesn't route through kombu[redis], so pip won't see the conflict on its own.
+    "kombu>=5.3,<5.7",
     "aiofiles>=0.8.0,<0.9",
     "Jinja2>=3.0.0,<4",
     "redis>=4.3.4,<5",

@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ActionType } from "typesafe-actions";
 
-import { RootState } from "@/state/store";
+import { RootState } from "@/store/rootReducer";
 import { Exercise } from "@/types/exercises";
 
 export interface SearchExercisesState {

@@ -1,7 +1,8 @@
 import re
 import inspect
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple
 from sqlalchemy import select, and_, or_, func, asc, desc, not_, update, delete
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 
 from ..models import (
@@ -623,6 +624,92 @@ async def create_question_grade_entry(
         rslogger.error(f"IntegrityError: {e} id = {new_qg.id} called from {caller}")
         return None
     return QuestionGradeValidator.from_orm(new_qg)
+
+
+#: Comments meaning the autograder, not a person, set the score; a blank
+#: comment counts too. Mirrors ``rsptx.grading_helpers.comments`` (importing it
+#: here would be circular), and test_question.py checks that the two agree.
+AUTOGRADER_COMMENTS = ("autograded", "ungraded")
+
+#: How an autograded score meets a row that is already there:
+#: ``first`` keeps the existing score, ``last`` replaces it, and ``best``
+#: replaces it only when the new score is higher, or the old one is above
+#: ``max_score``.
+GradePolicy = Literal["first", "last", "best"]
+
+
+async def upsert_question_grade_entry(
+    sid: str,
+    course_name: str,
+    qid: str,
+    grade: float,
+    policy: GradePolicy,
+    max_score: Optional[float] = None,
+) -> Tuple[Optional[QuestionGradeValidator], bool]:
+    """
+    Store an autograded score for (sid, course_name, qid) in one statement.
+
+    The grader used to look the row up and then insert or update it. Two
+    submissions arriving together both found no row, both inserted, and the
+    second failed on the unique index and lost its score. ``INSERT ... ON
+    CONFLICT`` makes the decision inside the database, so concurrent saves
+    cannot collide.
+
+    A row a person graded by hand is never overwritten, whatever the policy.
+
+    The conflict target is the column list rather than an index name, because
+    production's unique index (``user_divid_course_idx``) is not named the way
+    ``models.py`` names it (``question_grades_key``).
+
+    :return: ``(row, written)``: the row as it stands after the statement, and
+        whether this call wrote it. When ``written`` is False the row holds
+        the score that won: the first answer, a better answer, or a hand grade.
+    """
+    stmt = pg_insert(QuestionGrade).values(
+        sid=sid,
+        course_name=course_name,
+        div_id=qid,
+        score=grade,
+        comment="autograded",
+    )
+    key = [QuestionGrade.sid, QuestionGrade.course_name, QuestionGrade.div_id]
+    if policy == "first":
+        stmt = stmt.on_conflict_do_nothing(index_elements=key)
+    else:
+        autograded = func.coalesce(
+            func.lower(func.trim(QuestionGrade.comment)), ""
+        ).in_(("",) + AUTOGRADER_COMMENTS)
+        allowed = autograded
+        if policy == "best":
+            improves = or_(
+                QuestionGrade.score.is_(None),
+                QuestionGrade.score < stmt.excluded.score,
+            )
+            if max_score is not None:
+                # A stale score above this assignment's maximum is replaced,
+                # not kept as the best; see grade_submission.
+                improves = or_(improves, QuestionGrade.score > max_score)
+            allowed = and_(autograded, improves)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=key,
+            set_={"score": stmt.excluded.score, "comment": stmt.excluded.comment},
+            where=allowed,
+        )
+    stmt = stmt.returning(QuestionGrade)
+
+    async with async_session.begin() as session:
+        res = await session.execute(stmt)
+        row = res.scalars().one_or_none()
+        if row is not None:
+            return QuestionGradeValidator.from_orm(row), True
+        res = await session.execute(
+            select(QuestionGrade).where(
+                (QuestionGrade.sid == sid)
+                & (QuestionGrade.course_name == course_name)
+                & (QuestionGrade.div_id == qid)
+            )
+        )
+        return QuestionGradeValidator.from_orm(res.scalars().one_or_none()), False
 
 
 async def update_question_grade_entry(

@@ -316,3 +316,4 @@ async def test_graded_event_returns_score_spec(auth_book_client, student_user):
     assert detail is not None
     assert "assigned" in detail
     assert detail["assigned"] is True
+    assert detail["total_score"] == 5

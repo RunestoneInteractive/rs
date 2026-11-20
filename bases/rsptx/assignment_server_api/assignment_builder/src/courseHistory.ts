@@ -82,7 +82,11 @@ export const reconcileServerCourse = (
   serverCourse: string | undefined,
   pathname: string
 ): string | null => {
-  if (!serverCourse || serverCourse === pageCourse) return null;
+  // The Vite development shell intentionally has no course metadata. In that
+  // environment the authenticated API can still report a current course, but
+  // treating it as a mismatch creates a redirect loop between the production
+  // route and the Vite client route.
+  if (!pageCourse || !serverCourse || serverCourse === pageCourse) return null;
 
   markCourseSwitch(serverCourse);
   return getCourseSwitchDestination(pathname);
@@ -93,6 +97,8 @@ export const reconcileServerCourse = (
  * from another course is stale and must not restore an assignment-specific URL.
  */
 export const syncCourseHistoryEntry = (currentCourse: string, pathname: string): string | null => {
+  if (!currentCourse) return null;
+
   const entryCourse = getHistoryState()[HISTORY_COURSE_KEY];
   const activeCourse = getStoredCourse();
 
@@ -137,7 +143,7 @@ export const getRestoredCourseDestination = (
   pageCourse: string,
   pathname: string
 ): string | null => {
-  if (!persisted) return null;
+  if (!persisted || !pageCourse) return null;
 
   const activeCourse = getStoredCourse();
   const activeCourseMismatch = Boolean(activeCourse && activeCourse !== pageCourse);

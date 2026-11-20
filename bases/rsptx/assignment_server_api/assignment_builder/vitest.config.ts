@@ -41,12 +41,7 @@ export default mergeConfig(
         reportOnFailure: true
       },
       pool: "threads",
-      poolOptions: {
-        threads: {
-          minThreads: 4,
-          maxThreads: 8
-        }
-      }
+      maxWorkers: 8
     }
   })
 );

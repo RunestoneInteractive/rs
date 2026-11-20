@@ -121,7 +121,23 @@ def _score_spec(**kw):
     return ScoringSpecification(**defaults)
 
 
-def _patch_scoring(existing_grade, score_spec=None):
+def _upsert_mock(stored=None):
+    """Stand in for ``upsert_question_grade_entry``.
+
+    By default the row takes the submitted score. Pass ``stored`` (a score) to
+    act as if the database kept a score that was already there, the way it does
+    when the first answer or a better one is already saved.
+    """
+
+    async def upsert(sid, course_name, qid, grade, policy, max_score=None):
+        if stored is None:
+            return SimpleNamespace(score=grade, comment="autograded"), True
+        return SimpleNamespace(score=stored, comment="autograded"), False
+
+    return AsyncMock(side_effect=upsert)
+
+
+def _patch_scoring(existing_grade, score_spec=None, stored=None):
     """Patch everything grade_submission touches around the question grade."""
     return (
         patch.object(core, "fetch_deadline_exception", AsyncMock(return_value=None)),
@@ -131,8 +147,7 @@ def _patch_scoring(existing_grade, score_spec=None):
         patch.object(
             core, "fetch_question_grade", AsyncMock(return_value=existing_grade)
         ),
-        patch.object(core, "update_question_grade_entry", AsyncMock()),
-        patch.object(core, "create_question_grade_entry", AsyncMock()),
+        patch.object(core, "upsert_question_grade_entry", _upsert_mock(stored)),
         patch.object(core, "compute_total_score", AsyncMock()),
         patch.object(core, "score_one_answer", AsyncMock(return_value=10)),
     )
@@ -142,14 +157,13 @@ async def test_student_submission_leaves_a_hand_entered_grade_alone():
     # Issue #1515: an instructor's grade was overwritten by the autograder the
     # next time the student saved the question.
     grade = SimpleNamespace(id=1, score=3, comment="see me after class")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(grade)
-    with dl, assigned, fetch, update as upd, create as crt, total as tot, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(grade)
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         spec = await core.grade_submission(_student(), _answer_submission())
 
     assert spec.score == 3
     assert spec.comment == "see me after class"
-    upd.assert_not_called()
-    crt.assert_not_called()
+    ups.assert_not_called()
     tot.assert_not_called()
 
 
@@ -158,23 +172,50 @@ async def test_a_grade_saved_with_no_comment_is_still_protected():
     from rsptx.grading_helpers.comments import MANUAL_COMMENT
 
     grade = SimpleNamespace(id=1, score=3, comment=MANUAL_COMMENT)
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(grade)
-    with dl, assigned, fetch, update as upd, create, total, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(grade)
+    with dl, assigned, fetch, upsert as ups, total, score_one:
         spec = await core.grade_submission(_student(), _answer_submission())
 
     assert spec.score == 3
-    upd.assert_not_called()
+    ups.assert_not_called()
 
 
 async def test_autograded_rows_are_still_rescored():
     grade = SimpleNamespace(id=1, score=3, comment="autograded")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(grade)
-    with dl, assigned, fetch, update as upd, create, total as tot, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(grade)
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         spec = await core.grade_submission(_student(), _answer_submission())
 
     assert spec.score == 10
-    upd.assert_awaited()
+    assert ups.await_args.kwargs["policy"] == "last"
     tot.assert_awaited()
+
+
+async def test_total_score_response_includes_reading_points_without_rounding():
+    from rsptx.validation.schemas import ScoringSpecification
+
+    spec = ScoringSpecification(assigned=True, assignment_id=42)
+    rows = [
+        (SimpleNamespace(score=3, comment="autograded"), 3),
+        (SimpleNamespace(score=1.24, comment="autograded"), 2),
+    ]
+    grade = SimpleNamespace(score=0)
+    with (
+        patch.object(
+            core, "fetch_assignment_scores_with_points", AsyncMock(return_value=rows)
+        ) as fetch,
+        patch.object(core, "fetch_grade", AsyncMock(return_value=grade)),
+        patch.object(core, "upsert_grade", AsyncMock()) as upsert,
+        patch.object(core, "attempt_lti1p3_score_update", AsyncMock()),
+        patch.object(core, "schedule_lti1p1_score_push", AsyncMock()),
+    ):
+        total = await core.compute_total_score(spec, _student())
+
+    assert fetch.await_args.args == (42, "course1", "student1")
+    assert total == 4.24
+    assert grade.score == 4.24
+    assert upsert.await_args.args[0] is grade
+    assert spec.model_dump()["total_score"] == 4.24
 
 
 async def test_last_answer_selectquestion_grade_is_stored_under_the_selector():
@@ -184,66 +225,78 @@ async def test_last_answer_selectquestion_grade_is_stored_under_the_selector():
     # hit the question_grades unique index.
     submission = _answer_submission(div_id="real_q")
     submission.selector_id = "selector_q"
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None)
-    with dl, assigned, fetch as fch, update, create as crt, total, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(None)
+    with dl, assigned, fetch as fch, upsert as ups, total, score_one:
         await core.grade_submission(_student(), submission)
 
     assert fch.await_args.args[2] == "selector_q"
-    assert crt.await_args.args[2] == "selector_q"
+    assert ups.await_args.args[2] == "selector_q"
 
 
 async def test_first_answer_scores_the_first_submission():
     # The book server saves the answer row before grading, so the first answer
     # must be recognised by the missing grade row, not an empty answer table.
     spec = _score_spec(which_to_grade="first_answer")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
-    with dl, assigned, fetch, update, create as crt, total as tot, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         result = await core.grade_submission(_student(), _answer_submission())
 
     assert result.score == 10
-    assert crt.await_args.args[2:] == ("q1", 10)
+    assert ups.await_args.args[2:] == ("q1", 10)
+    assert ups.await_args.kwargs["policy"] == "first"
     tot.assert_awaited()
 
 
 async def test_first_answer_keeps_the_first_score():
     grade = SimpleNamespace(id=1, score=4, comment="autograded")
     spec = _score_spec(which_to_grade="first_answer")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(grade, spec)
-    with dl, assigned, fetch, update as upd, create as crt, total as tot, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(grade, spec)
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         result = await core.grade_submission(_student(), _answer_submission())
 
     assert result.score == 4
-    upd.assert_not_called()
-    crt.assert_not_called()
+    ups.assert_not_called()
     tot.assert_not_called()
 
 
-async def test_best_answer_replaces_a_score_above_the_assignment_maximum():
-    # The question is worth 1 here, but its shared question_grades row holds a 2
-    # earned in another assignment where it is worth 2. A correct answer here
-    # must bring the row back down to 1 instead of keeping the 2 as "best".
-    grade = SimpleNamespace(id=1, score=2, comment="autograded")
+async def test_first_answer_that_loses_a_race_reports_the_stored_score():
+    # Two first submissions arrive together: both see no grade row, and the
+    # other one is stored first. This one must report the stored score, not its
+    # own, and leave the total to the request that wrote the row.
+    spec = _score_spec(which_to_grade="first_answer")
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(None, spec, 4)
+    with dl, assigned, fetch, upsert, total as tot, score_one:
+        result = await core.grade_submission(_student(), _answer_submission())
+
+    assert result.score == 4
+    tot.assert_not_called()
+
+
+async def test_best_answer_passes_the_assignment_maximum():
+    # The database replaces a stored score above the maximum (one earned where
+    # the question is worth more), so it has to be told the maximum.
     spec = _score_spec(which_to_grade="best_answer", max_score=1)
-    dl, assigned, fetch, update, create, total, _ = _patch_scoring(grade, spec)
+    grade = SimpleNamespace(id=1, score=2, comment="autograded")
+    dl, assigned, fetch, upsert, total, _ = _patch_scoring(grade, spec)
     score_one = patch.object(core, "score_one_answer", AsyncMock(return_value=1))
-    with dl, assigned, fetch, update as upd, create, total as tot, score_one:
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         result = await core.grade_submission(_student(), _answer_submission())
 
     assert result.score == 1
-    assert upd.await_args.args[3] == 1
+    assert ups.await_args.kwargs == {"policy": "best", "max_score": 1}
     tot.assert_awaited()
 
 
 async def test_best_answer_keeps_a_higher_score_within_the_maximum():
     grade = SimpleNamespace(id=1, score=8, comment="autograded")
     spec = _score_spec(which_to_grade="best_answer", max_score=10)
-    dl, assigned, fetch, update, create, total, _ = _patch_scoring(grade, spec)
+    dl, assigned, fetch, upsert, total, _ = _patch_scoring(grade, spec, 8)
     score_one = patch.object(core, "score_one_answer", AsyncMock(return_value=5))
-    with dl, assigned, fetch, update as upd, create, total, score_one:
+    with dl, assigned, fetch, upsert, total as tot, score_one:
         result = await core.grade_submission(_student(), _answer_submission())
 
     assert result.score == 8
-    upd.assert_not_called()
+    tot.assert_not_called()
 
 
 async def test_reading_page_score_leaves_a_hand_entered_grade_alone():
@@ -255,12 +308,12 @@ async def test_reading_page_score_leaves_a_hand_entered_grade_alone():
     )
     with (
         patch.object(core, "fetch_question_grade", AsyncMock(return_value=grade)),
-        patch.object(core, "update_question_grade_entry", AsyncMock()) as update,
+        patch.object(core, "upsert_question_grade_entry", AsyncMock()) as upsert,
     ):
         with patch.object(core, "compute_total_score", AsyncMock()) as total:
             await core.score_reading_page(reading, _student())
 
-    update.assert_not_called()
+    upsert.assert_not_called()
     total.assert_not_called()
 
 
@@ -282,34 +335,33 @@ async def test_a_run_scores_a_question_graded_on_interaction():
     # A program with no unit tests is only ever logged by runlog; scored on
     # interaction, running it is the whole requirement.
     spec = _score_spec(which_to_grade="first_answer", how_to_score="interact")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
-    with dl, assigned, fetch, update, create as crt, total as tot, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         result = await core.grade_submission(_student(), _run_submission())
 
     assert result.score == 10
-    assert crt.await_args.args[2:] == ("q1", 10)
+    assert ups.await_args.args[2:] == ("q1", 10)
     tot.assert_awaited()
 
 
 async def test_a_run_that_raised_still_counts_as_interaction():
     spec = _score_spec(which_to_grade="first_answer", how_to_score="interact")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
-    with dl, assigned, fetch, update, create as crt, total, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, upsert as ups, total, score_one:
         await core.grade_submission(
             _student(), _run_submission("ac_error", "NameError: x")
         )
 
-    crt.assert_awaited()
+    ups.assert_awaited()
 
 
 async def test_a_run_does_not_score_a_question_graded_on_correctness():
     # The unit test result arrives afterwards as its own event. Scoring the run
     # would store a 0 first, and first_answer would then keep it.
     spec = _score_spec(which_to_grade="first_answer", how_to_score="pct_correct")
-    dl, assigned, fetch, update, create, total, score_one = _patch_scoring(None, spec)
-    with dl, assigned, fetch, update as upd, create as crt, total as tot, score_one:
+    dl, assigned, fetch, upsert, total, score_one = _patch_scoring(None, spec)
+    with dl, assigned, fetch, upsert as ups, total as tot, score_one:
         await core.grade_submission(_student(), _run_submission())
 
-    upd.assert_not_called()
-    crt.assert_not_called()
+    ups.assert_not_called()
     tot.assert_not_called()

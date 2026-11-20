@@ -254,25 +254,20 @@ export default class RunestoneBase {
         if (scoreSpan) {
             scoreSpan.innerHTML = scoreSpec.score.toFixed(1);
         }
-        let allScores = document.getElementsByClassName("qscore");
-        let allmax = document.getElementsByClassName("qmaxscore");
-        let total = 0;
-        let max = 0;
-        for (let i = 0; i < allScores.length; i++) {
-            total += parseFloat(allScores[i].innerHTML);
-            max += parseFloat(allmax[i].innerHTML);
-        }
         let totalSpan = document.getElementById("total_score");
-        if (totalSpan) {
-            totalSpan.innerHTML = total.toFixed(1);
-        }
         let maxSpan = document.getElementById("total_max");
-        if (maxSpan) {
-            maxSpan.innerHTML = max;
-        }
         let percentSpan = document.getElementById("total_percent");
-        if (percentSpan) {
-            percentSpan.innerHTML = ((total / max) * 100).toFixed(2);
+        // Each response carries the server's unrounded assignment total,
+        // including reading pages. Never derive it from rounded DOM scores.
+        if (totalSpan && typeof scoreSpec.total_score === "number") {
+            let total = scoreSpec.total_score;
+            totalSpan.innerHTML = total.toFixed(1);
+            if (maxSpan && percentSpan) {
+                let max = parseFloat(maxSpan.innerHTML);
+                if (max > 0) {
+                    percentSpan.innerHTML = ((total / max) * 100).toFixed(2);
+                }
+            }
         }
     }
 

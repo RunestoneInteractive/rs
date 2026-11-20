@@ -12,16 +12,16 @@ const setCourseTimezone = (timezone: string | undefined) => {
 const setBrowserTimezone = (timeZone: string) => {
   const original = Intl.DateTimeFormat;
 
-  vi.spyOn(Intl, "DateTimeFormat").mockImplementation(((
+  vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (
     locales?: Intl.LocalesArgument,
     options?: Intl.DateTimeFormatOptions
-  ) => {
+  ) {
     const formatter = new original(locales, { timeZone, ...options });
     const resolved = formatter.resolvedOptions.bind(formatter);
 
     formatter.resolvedOptions = () => ({ ...resolved(), timeZone });
     return formatter;
-  }) as unknown as typeof Intl.DateTimeFormat);
+  } as unknown as typeof Intl.DateTimeFormat);
 };
 
 afterEach(() => {

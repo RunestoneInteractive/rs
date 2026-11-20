@@ -65,3 +65,17 @@ Set `CADDY_SITE_ADDRESS=https://your.domain` and make sure ports **80 and 443**
 are reachable from the internet. Caddy will obtain and auto-renew a Let's Encrypt
 certificate — no warnings, no manual trust. To receive expiry notices, add a
 global `email you@example.com` option block at the top of the `Caddyfile`.
+
+## SageCell (Sage cells in PreTeXt books)
+
+Books built for Runestone load SageCell from `/sagecell/static/embedded_sagecell.js`,
+and Caddy proxies `/sagecell/*` to the SageCell server, so the browser stays
+same-origin and never contacts the SageCell host itself. Like the database and
+redis, the SageCell server is not part of the compose file. Point
+`SAGECELL_UPSTREAM` in your `.env` at it, for example
+`SAGECELL_UPSTREAM=http://10.0.0.5:80`. When it's unset, Caddy uses the public
+`https://sagecell.sagemath.org`.
+
+Anyone reading a book can use it with no login, but Caddy returns a 403 for
+requests whose `Origin` is another site, so other sites can't use your
+server from their own pages.

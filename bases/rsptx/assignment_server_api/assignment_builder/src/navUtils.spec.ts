@@ -147,20 +147,20 @@ describe("buildNavBar", () => {
     it("opens http URLs in a new tab", () => {
       const items = buildNavBar(makeConfig());
       const helpMenu = items.find((i) => i.label === "Help");
-      const subItems = (helpMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (helpMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const guide = subItems.find((s) => s.label === "Instructor's guide");
 
-      guide?.command?.();
+      guide?.onClick?.();
       expect(openSpy).toHaveBeenCalledWith("https://guide.runestone.academy/", "_blank");
     });
 
     it("opens https URLs in a new tab", () => {
       const items = buildNavBar(makeConfig());
       const helpMenu = items.find((i) => i.label === "Help");
-      const subItems = (helpMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (helpMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const discord = subItems.find((s) => s.label === "Join our Discord");
 
-      discord?.command?.();
+      discord?.onClick?.();
       expect(openSpy).toHaveBeenCalledWith("https://discord.gg/f3Qmbk9P3U", "_blank");
     });
   });
@@ -170,17 +170,17 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig({ course: "cs101" }));
       const back = items.find((i) => i.label?.startsWith("Back to"));
 
-      back?.command?.();
+      back?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/ns/books/published/cs101/index.html");
     });
 
     it("sets window.location.href for /assignment paths", () => {
       const items = buildNavBar(makeConfig());
       const userMenu = items.find((i) => i.label === "User");
-      const subItems = (userMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (userMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const assignments = subItems.find((s) => s.label === "Assignments");
 
-      assignments?.command?.();
+      assignments?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/assignment/student/chooseAssignment");
     });
 
@@ -188,7 +188,7 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig());
       const dashboard = items.find((i) => i.label === "Dashboard");
 
-      dashboard?.command?.();
+      dashboard?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/admin/instructor/menu");
     });
   });
@@ -198,7 +198,7 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig());
       const grader = items.find((i) => i.label === "Grader");
 
-      grader?.command?.();
+      grader?.onClick?.();
       expect(hashSpy).toHaveBeenCalledWith("#/grader");
     });
 
@@ -206,7 +206,7 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig());
       const builder = items.find((i) => i.label === "Assignment Builder");
 
-      builder?.command?.();
+      builder?.onClick?.();
       expect(hashSpy).toHaveBeenCalledWith("#/builder");
     });
   });
@@ -217,7 +217,7 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig(), navigate);
       const grader = items.find((i) => i.label === "Grader");
 
-      grader?.command?.();
+      grader?.onClick?.();
       expect(navigate).toHaveBeenCalledWith("/grader");
     });
 
@@ -226,7 +226,7 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig(), navigate);
       const builder = items.find((i) => i.label === "Assignment Builder");
 
-      builder?.command?.();
+      builder?.onClick?.();
       expect(navigate).toHaveBeenCalledWith("/builder");
     });
 
@@ -235,7 +235,7 @@ describe("buildNavBar", () => {
       const items = buildNavBar(makeConfig({ course: "cs101" }), navigate);
       const back = items.find((i) => i.label?.startsWith("Back to"));
 
-      back?.command?.();
+      back?.onClick?.();
       expect(hrefSpy).toHaveBeenCalledWith("/ns/books/published/cs101/index.html");
       expect(navigate).not.toHaveBeenCalled();
     });
@@ -244,10 +244,10 @@ describe("buildNavBar", () => {
       const navigate = vi.fn();
       const items = buildNavBar(makeConfig(), navigate);
       const helpMenu = items.find((i) => i.label === "Help");
-      const subItems = (helpMenu?.items as Array<{ label?: string; command?: () => void }>) ?? [];
+      const subItems = (helpMenu?.items as Array<{ label?: string; onClick?: () => void }>) ?? [];
       const guide = subItems.find((s) => s.label === "Instructor's guide");
 
-      guide?.command?.();
+      guide?.onClick?.();
       expect(openSpy).toHaveBeenCalledWith("https://guide.runestone.academy/", "_blank");
       expect(navigate).not.toHaveBeenCalled();
     });
@@ -262,6 +262,24 @@ describe("buildNavBar", () => {
       expect(grader?.activePrefixes).toEqual(["/grader"]);
       expect(builder?.activePrefixes).toEqual(["/builder", "/"]);
     });
+  });
+
+  it("provides real destinations for navigation links", () => {
+    const items = buildNavBar(makeConfig());
+    const userItems = items.find((item) => item.label === "User")?.items;
+    const helpItems = items.find((item) => item.label === "Help")?.items;
+
+    expect(items.find((item) => item.label === "Grader")?.href).toBe(
+      "/assignment/instructor/grader"
+    );
+    expect(items.find((item) => item.label === "Assignment Builder")?.href).toBe(
+      "/assignment/instructor/builder"
+    );
+    expect(userItems?.find((item) => item.label === "Course home")?.href).toBe("/ns/course/index");
+    expect(helpItems?.find((item) => item.label === "Instructor's guide")?.href).toBe(
+      "https://guide.runestone.academy/"
+    );
+    expect(userItems?.find((item) => item.label === "Logout")?.href).toBeUndefined();
   });
 
   describe("course switcher", () => {
@@ -280,7 +298,7 @@ describe("buildNavBar", () => {
       expect(courseMenu?.items?.map((item) => item.label)).toEqual(["cs101", "cs102"]);
       expect(courseMenu?.items?.[0]).toMatchObject({ icon: "check", disabled: true });
 
-      courseMenu?.items?.[1].command?.();
+      courseMenu?.items?.[1].onClick?.();
       expect(onSwitch).toHaveBeenCalledWith("cs102");
     });
 

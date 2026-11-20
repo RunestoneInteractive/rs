@@ -1001,7 +1001,9 @@ export default class Parsons extends RunestoneBase {
             this.areaWidth += 25;
             //areaHeight += (blocks.length);
         }
-        if (indent > 0 && indent <= 4) {
+        // Lane styles exist for .answer1 through .answer6 (parsons.css); deeper
+        // problems fall back to the plain area.
+        if (indent > 0 && indent <= 6) {
             this.answerArea.classList.add("answer" + indent);
         } else {
             this.answerArea.classList.add("answer");
@@ -2270,7 +2272,7 @@ export default class Parsons extends RunestoneBase {
                         this.lastAnswerHash = answerHash;
                     }
                     // if time to offer help
-                    if (this.numDistinct == 3 && !this.gotHelp) {
+                    if (this.numDistinct >= 3 && !this.gotHelp) {
                         this.pendingHelpMessage = t("msg_parson_help_info");
                     } // end if
                 } // end if can help
@@ -2742,6 +2744,8 @@ export default class Parsons extends RunestoneBase {
             "answer2",
             "answer3",
             "answer4",
+            "answer5",
+            "answer6",
         );
         this.answerArea.classList.add("answer");
         this.indent = 0;

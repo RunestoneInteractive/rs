@@ -25,7 +25,7 @@ def get_parsons_help(api_token, language, dict_buggy_code, personalize_level):
     The main API to connect with coach.py when students request help.
     Get personalized Parsons scaffolding artifacts based on the provided buggy code and other parameters.
     Args:
-        api_token: The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language: The programming language of the code
         dict_buggy_code: A dictionary containing the current buggy code, problem description, unittest code, a predefined example, and (optionally) the question's data files
         personalize_level: The level of personalization to apply (e.g., "Solution", "Multiple")
@@ -141,7 +141,7 @@ def request_fixed_code_from_openai(
     """
     Request a fixed code from GenerativeAI based on the buggy code and other parameters.
     Inputs:
-        api_token (str): The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language (str): The programming language of the code - Python or Java
         problem_description (str): textual question description
         buggy_code (str): The buggy code provided by the student
@@ -250,7 +250,7 @@ def generate_example_solution(
     """
     Generate or retrieve an example solution based on the provided parameters.
     Inputs:
-        api_token (str): The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language (str): The programming language of the code - Python or Java
         problem_description (str): textual question description
         unittest_code (str): The unittest code for the question
@@ -283,7 +283,7 @@ def generate_personalized_fixed_code(
     """
     Generate a personalized fixed code based on the buggy code and other parameters.
     Inputs:
-        api_token (str): The API token for GenerativeAI -- now only support OpenAI
+        api_token (LLMToken): The course's LLM token and provider
         language (str): The programming language of the code - python or java
         problem_description (str): textual question description
         buggy_code (str): The buggy code provided by the student

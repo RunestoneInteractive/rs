@@ -64,6 +64,29 @@ CodeMirror.commands.autocomplete = function (cm) {
     cm.showHint({ hint: CodeMirror.hint.anyword });
 };
 
+// Expand tabs, drop blank leading/trailing lines and remove the indentation
+// shared by every line, so the text starts at column 0 with relative indents intact.
+export function normalizeIndentation(code, tabSize = 4) {
+    if (!code) return code;
+    let lines = code
+        .replace(/\r\n?/g, "\n")
+        .split("\n")
+        .map((l) => l.replace(/\t/g, " ".repeat(tabSize)).replace(/\s+$/, ""));
+    while (lines.length && lines[0] === "") lines.shift();
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+    const indents = lines
+        .filter((l) => l !== "")
+        .map((l) => l.match(/^ */)[0].length);
+    const common = indents.length ? Math.min(...indents) : 0;
+    return lines.map((l) => l.slice(common)).join("\n");
+}
+
+// Prefix every line of `lines` (already normalized to column 0) with `indent`,
+// except the first, which lands after the existing whitespace at the cursor.
+export function reindentPastedLines(lines, indent) {
+    return lines.map((l, i) => (i === 0 || l === "" ? l : indent + l));
+}
+
 const codeIndent = () =>
     Number(
         window
@@ -460,6 +483,43 @@ export class ActiveCode extends RunestoneBase {
                 e.preventDefault();
             });
         }
+
+        // When the student pastes the CodeTailor answer copied with "Copy Answer
+        // to Clipboard", CodeMirror inserts it verbatim: the first line lands at the
+        // cursor's column and the rest start at column 0, which scrambles nested
+        // code (very visible in Java). Shift every line to the cursor's indentation.
+        const acElement = this;
+        editor.on("beforeChange", function (cm, change) {
+            if (change.origin !== "paste" || !change.update) return;
+            if (!acElement.copiedAnswer || change.text.length < 2) return;
+            if (
+                normalizeIndentation(change.text.join("\n")) !==
+                acElement.copiedAnswer
+            ) {
+                return; // only adjust our own copied answer
+            }
+            const lineText = cm.getLine(change.from.line);
+            const before = lineText.slice(0, change.from.ch);
+            if (/\S/.test(before)) return; // pasting mid-line: leave it alone
+            let indent = before;
+            if (before === "" && change.from.line > 0) {
+                // Pasting at column 0: use the mode's indentation for this line,
+                // e.g. inside main() for Java.
+                const mode = cm.getMode();
+                if (mode.indent) {
+                    const state = cm.getStateAfter(change.from.line - 1, true);
+                    const col = mode.indent(state, "", lineText);
+                    if (typeof col === "number" && col > 0) {
+                        indent = " ".repeat(col);
+                    }
+                }
+            }
+            const lines = acElement.copiedAnswer.split("\n");
+            let newLines = reindentPastedLines(lines, indent);
+            if (indent !== before)
+                newLines[0] = indent.slice(before.length) + newLines[0];
+            change.update(change.from, change.to, newLines);
+        });
 
         // document level event handler for tab key to handle context switching
         // detect if tab key was used to get into the editor
@@ -1354,7 +1414,10 @@ export class ActiveCode extends RunestoneBase {
             this.parsonspersonalize === "movable" ||
             this.parsonspersonalize === "partial"
         ) {
-            temptextarea.value = this.codeAnswer;
+            temptextarea.value = normalizeIndentation(this.codeAnswer);
+            // Remember what was copied so pasting it into the editor can be
+            // re-indented to the cursor position (see handleAnswerPaste).
+            this.copiedAnswer = temptextarea.value;
         } else {
             temptextarea.value = "No solution available";
         }

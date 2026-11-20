@@ -342,6 +342,8 @@ class AssignmentsSearchRequest(BaseModel):
 class ScoringSpecification(BaseModel):
     assigned: bool = False
     score: Optional[Union[int, float]] = None
+    # Set when an answer recomputes the assignment grade.
+    total_score: Optional[Union[int, float]] = None
     max_score: Optional[int] = None
     question_id: Optional[int] = None
     assignment_id: Optional[int] = None

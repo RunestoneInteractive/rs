@@ -50,6 +50,13 @@ describe("course-aware browser history", () => {
     }
   );
 
+  it("does not redirect the Vite development shell without course metadata", () => {
+    expect(reconcileServerCourse("", "course-2", "/builder/22")).toBeNull();
+    expect(syncCourseHistoryEntry("", "/builder/22")).toBeNull();
+    expect(getRestoredCourseDestination(true, "", "/builder/22")).toBeNull();
+    expect(sessionStorage.getItem("assignment-builder.active-course")).toBeNull();
+  });
+
   it("redirects a stale grader entry to the grader assignment list", () => {
     syncCourseHistoryEntry("course-1", "/grader/22");
 

@@ -1,5 +1,5 @@
 import { Modal } from "@mantine/core";
-import { useState, cloneElement, MouseEvent, ReactElement } from "react";
+import { cloneElement, MouseEvent, ReactElement, useState } from "react";
 
 import { Exercise } from "@/types/exercises";
 
@@ -34,6 +34,7 @@ export const ExercisePreviewModal = ({
         size="auto"
         centered
         title={questionName ? <span className={styles.nameChip}>{questionName}</span> : undefined}
+        closeButtonProps={{ "aria-label": "Close exercise preview" }}
       >
         <div className={styles.stage}>
           <ExercisePreview htmlsrc={htmlsrc} />
