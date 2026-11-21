@@ -362,7 +362,6 @@
     position: fixed;
     right: 0px;
     max-height: 100%;
-    overflow-y: scroll;
     top: 0px;
     padding-top: 60px;
     z-index: 999;
