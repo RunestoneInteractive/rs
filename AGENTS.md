@@ -101,14 +101,6 @@ uv run build checkdb                               # migration status
 Always read the generated migration before applying it; autogenerate misses some
 changes and adds spurious ones.
 
-### Code quality
-
-```bash
-black .            # Python formatting (the build fails without it)
-flake8             # Python linting
-npm run prettier   # JavaScript formatting
-```
-
 ## Traps
 
 None of these are visible from the code alone.
@@ -160,7 +152,5 @@ None of these are visible from the code alone.
 
 ## Common issues
 
-- **DB connection errors**: check that the DB URL variables match your setup.
 - **Out-of-sync migrations**: run `alembic stamp head` after a fresh DB setup.
 - **Docker build failures**: check `build.log` in the project directory.
-- **Missing env vars**: run `uv run build env`.
