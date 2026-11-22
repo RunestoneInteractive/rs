@@ -308,7 +308,6 @@ export default class Timed extends RunestoneBase {
         this.flagButton = document.createElement("button");
         this.flagButton.classList.add("flagBtn");
         this.flagButton.innerHTML = "Flag Question"; // name on button
-        this.flagButton.setAttribute("aria-labelledby", "Flag");
         this.flagButton.tabIndex = 5;
         this.flagButton.setAttribute("role", "button");
         this.flagButton.id = "flag";
