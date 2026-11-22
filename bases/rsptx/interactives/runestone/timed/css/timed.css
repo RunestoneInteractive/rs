@@ -166,6 +166,20 @@ p.examwarning {
     cursor: pointer;
 }
 
+/* Prev/Next are truly disabled at the ends of the exam */
+.pagination>li>button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination>li>button:focus-visible,
+.flagBtn:focus-visible {
+    outline: 3px solid #2a6496;
+    outline-offset: 2px;
+    position: relative;
+    z-index: 2;
+}
+
 .timed-summary-style {
     width: 50%;
     margin: 0 auto;

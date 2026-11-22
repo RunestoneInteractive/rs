@@ -82,6 +82,8 @@ describe("construction", () => {
         expect(qnums()[0].classList.contains("active")).toBe(true);
         // Prev is disabled on the first question
         expect(exam.leftContainer.classList.contains("disabled")).toBe(true);
+        expect(exam.leftNavButton.disabled).toBe(true);
+        expect(exam.rightNavButton.disabled).toBe(false);
     });
 
     it("counts up when no time limit is given", async () => {
@@ -200,6 +202,17 @@ describe("flagging", () => {
         await tick();
         expect(qnums()[0].classList.contains("flagcolor")).toBe(false);
         expect(exam.flagButton.innerHTML).toBe("Flag Question");
+    });
+});
+
+describe("accessibility", () => {
+    it("truly disables Prev/Next", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        exam.rightNavButton.click();
+        await tick(60);
+        expect(exam.rightNavButton.disabled).toBe(true);
+        expect(exam.leftNavButton.disabled).toBe(false);
     });
 });
 

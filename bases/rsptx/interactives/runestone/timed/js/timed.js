@@ -294,10 +294,9 @@ export default class Timed extends RunestoneBase {
         this.pagNavList.classList.add("pagination");
         this.leftContainer = document.createElement("li");
         this.leftNavButton = document.createElement("button");
+        this.leftNavButton.type = "button";
         this.leftNavButton.innerHTML = "&#8249; Prev";
-        this.leftNavButton.setAttribute("aria-label", "Previous");
-        this.leftNavButton.tabIndex = 0;
-        this.leftNavButton.setAttribute("role", "button");
+        this.leftNavButton.setAttribute("aria-label", "Previous question");
         this.leftNavButton.classList.add("timed-cursor-pointer");
         this.leftContainer.appendChild(this.leftNavButton);
         this.pagNavList.appendChild(this.leftContainer);
@@ -317,9 +316,8 @@ export default class Timed extends RunestoneBase {
         // making "Next" button
         this.rightContainer = document.createElement("li");
         this.rightNavButton = document.createElement("button");
-        this.rightNavButton.setAttribute("aria-label", "Next");
-        this.rightNavButton.tabIndex = 0;
-        this.rightNavButton.setAttribute("role", "button");
+        this.rightNavButton.type = "button";
+        this.rightNavButton.setAttribute("aria-label", "Next question");
         this.rightNavButton.id = "next";
         this.rightNavButton.innerHTML = "Next &#8250;";
         this.rightNavButton.classList.add("timed-cursor-pointer");
@@ -393,23 +391,23 @@ export default class Timed extends RunestoneBase {
         }
     }
     async handleNextPrev(event) {
+        const button = event.target.closest("button");
+        let delta;
+        if (button === this.rightNavButton) {
+            delta = 1;
+        } else if (button === this.leftNavButton) {
+            delta = -1;
+        } else {
+            // click landed on the list padding, not a button
+            return;
+        }
+        if (button.disabled) {
+            return;
+        }
         if (!this.taken) {
             await this.navigateAway();
         }
-        var target = event.target.textContent;
-        if (target.match(/Next/)) {
-            // checks given text to match "Next"
-            if (this.rightContainer.classList.contains("disabled")) {
-                return;
-            }
-            this.currentQuestionIndex++;
-        } else if (target.match(/Prev/)) {
-            // checks given text to match "Prev"
-            if (this.leftContainer.classList.contains("disabled")) {
-                return;
-            }
-            this.currentQuestionIndex--;
-        }
+        this.currentQuestionIndex += delta;
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
         for (var i = 0; i < this.qNumList.childNodes.length; i++) {
@@ -430,6 +428,17 @@ export default class Timed extends RunestoneBase {
             this.flagButton.innerHTML = "Unflag Question"; // changes text on button
         } else {
             this.flagButton.innerHTML = "Flag Question"; // changes text on button
+        }
+        // A button that just became disabled drops keyboard focus to the
+        // page body; keep focus in the nav by moving it to the other button.
+        if (button.disabled) {
+            const other =
+                button === this.rightNavButton
+                    ? this.leftNavButton
+                    : this.rightNavButton;
+            if (!other.disabled) {
+                other.focus();
+            }
         }
     }
 
@@ -543,29 +552,17 @@ export default class Timed extends RunestoneBase {
         this.finishButton.classList.add("timed-hidden");
         this.timedDiv.appendChild(this.buttonContainer);
     }
+    // Enable/disable Prev and Next for the current position. The li keeps
+    // the "disabled" class for styling; the button gets the real disabled
+    // property so it is announced as unavailable and cannot be activated.
     ensureButtonSafety() {
-        if (this.currentQuestionIndex === 0) {
-            if (this.renderedQuestionArray.length != 1) {
-                this.rightContainer.classList.remove("disabled");
-            }
-            this.leftContainer.classList.add("disabled");
-        }
-        if (
-            this.currentQuestionIndex >=
-            this.renderedQuestionArray.length - 1
-        ) {
-            if (this.renderedQuestionArray.length != 1) {
-                this.leftContainer.classList.remove("disabled");
-            }
-            this.rightContainer.classList.add("disabled");
-        }
-        if (
-            this.currentQuestionIndex > 0 &&
-            this.currentQuestionIndex < this.renderedQuestionArray.length - 1
-        ) {
-            this.rightContainer.classList.remove("disabled");
-            this.leftContainer.classList.remove("disabled");
-        }
+        const atStart = this.currentQuestionIndex <= 0;
+        const atEnd =
+            this.currentQuestionIndex >= this.renderedQuestionArray.length - 1;
+        this.leftContainer.classList.toggle("disabled", atStart);
+        this.leftNavButton.disabled = atStart;
+        this.rightContainer.classList.toggle("disabled", atEnd);
+        this.rightNavButton.disabled = atEnd;
     }
     renderFeedbackContainer() {
         this.scoreDiv = document.createElement("P");
