@@ -82,11 +82,19 @@ def _format_lti_timestamp(value: datetime.datetime) -> str:
 def _submitted_at_for_score(
     rs_assignment: Assignment, score_timestamp: str, instructor_triggered: bool
 ) -> str:
+    """Keep instructor grades on time without reporting a future submission."""
     if not instructor_triggered:
         return score_timestamp
     if rs_assignment.duedate is None:
         return score_timestamp
-    return _format_lti_timestamp(rs_assignment.duedate - datetime.timedelta(minutes=1))
+
+    deadline_submission = rs_assignment.duedate - datetime.timedelta(minutes=1)
+    if deadline_submission.tzinfo is None:
+        deadline_submission = deadline_submission.replace(tzinfo=datetime.timezone.utc)
+    score_time = datetime.datetime.fromisoformat(score_timestamp)
+    # LMS might reject future submittedAt values. Clamp to the score's timestamp
+    # while keeping instructor-entered grades ahead of the deadline.
+    return _format_lti_timestamp(min(score_time, deadline_submission))
 
 
 async def attempt_lti1p3_score_update(
@@ -104,7 +112,8 @@ async def attempt_lti1p3_score_update(
     :param rs_assign_id: The Runestone assignment id
     :param score: The score to send
     :param force: If True, will send the score even if the grades are not yet released in RS or the course is set to not auto-update grades
-    :param instructor_triggered: If True, report submission.submittedAt as just before the assignment deadline.
+    :param instructor_triggered: If True, cap submission.submittedAt at one minute
+        before the assignment deadline, without exceeding the score timestamp.
     """
     rslogger.debug("LTI1p3 - attempt_lti1p3_score_update")
     lti_assign = await fetch_lti1p3_grading_data_for_assignment(rs_assign_id)
@@ -132,7 +141,8 @@ async def attempt_lti1p3_score_updates(
 
     :param rs_assign_id: The Runestone assignment id
     :param force: If True, will send the score even if the grades are not yet released in RS or the course is set to not auto-update grades
-    :param instructor_triggered: If True, report submission.submittedAt as just before the assignment deadline.
+    :param instructor_triggered: If True, cap submission.submittedAt at one minute
+        before the assignment deadline, without exceeding the score timestamp.
     """
     rslogger.debug("LTI1p3 - attempt_lti1p3_score_updates")
     lti_assign = await fetch_lti1p3_grading_data_for_assignment(rs_assign_id)
@@ -175,7 +185,8 @@ async def attempt_lti1p3_score_updates_for(
     :param rs_assign_id: The Runestone assignment id
     :param updates: List of tuples (rs_user_id, score) to send
     :param force: If True, will send the score even if the grades are not yet released in RS or the course is set to not auto-update grades
-    :param instructor_triggered: If True, report submission.submittedAt as just before the assignment deadline.
+    :param instructor_triggered: If True, cap submission.submittedAt at one minute
+        before the assignment deadline, without exceeding the score timestamp.
     """
     rslogger.debug("LTI1p3 - attempt_lti1p3_score_updates_for")
     if not updates:
@@ -209,7 +220,9 @@ async def _send_lti1p3_score_updates(
     :param lti_assign: The Lti1p3Assignment object - must have the LTI 1.3 course and rs assignment linked. LTIcourse should have rs_course and lti_config linked.
     :param updates: List of tuples (Lti1p3User, score) to send
     :param force: If True, will send the score even if the grades are not yet released in RS or the course is set to not auto-update grades
-    :param instructor_triggered: If True, set submission.submittedAt just before the assignment deadline so LMS late policies don't mark instructor-entered grades late.
+    :param instructor_triggered: If True, cap submission.submittedAt at one minute
+        before the assignment deadline so LMS late policies don't mark instructor
+        grades late, without exceeding the score timestamp.
     """
     rslogger.debug(f"LTI1p3 - _send_lti1p3_score_updates {updates}")
 
