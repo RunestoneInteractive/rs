@@ -77,10 +77,12 @@ ul.pagination>li:last-child>span,
 
 /* The following override styles in Bootstrap distribution file (bootstrap.min.css) */
 
+/* #2a6496 gives 6.3:1 contrast with white text (WCAG AA); the previous
+   #428bca was only 3.9:1. */
 .pagination>.active>a,
 .pagination>.active>span,
 .pagination>.active>button {
-    background-color: #428bca !important;
+    background-color: #2a6496 !important;
     color: #ffffff !important;
 }
 
