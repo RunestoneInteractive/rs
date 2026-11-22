@@ -23,7 +23,7 @@ ul.pagination>li {
 
 ul.pagination>li>a,
 ul.pagination>li>span,
-#pageNums ul.pagination>li>button {
+:where(#pageNums) ul.pagination>li>button {
     position: relative;
     float: left;
     padding: 6px 12px;
@@ -192,7 +192,7 @@ p.examwarning {
 
 .pagination>li>button:focus-visible,
 .flagBtn:focus-visible {
-    outline: 3px solid #2a6496;
+    outline: 3px solid var(--links, #2a6496);
     outline-offset: 2px;
     position: relative;
     z-index: 2;
