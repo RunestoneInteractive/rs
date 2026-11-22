@@ -207,6 +207,7 @@ describe("flagging", () => {
 
 describe("accessibility", () => {
     const qbtn = (i) => qnums()[i].querySelector("button");
+    const status = (exam) => exam.srStatus.textContent;
 
     it("labels numbered buttons and marks the current one", async () => {
         const exam = await makeTimed();
@@ -220,13 +221,25 @@ describe("accessibility", () => {
         expect(qbtn(0).hasAttribute("aria-current")).toBe(false);
     });
 
-    it("truly disables Prev/Next", async () => {
+    it("truly disables Prev/Next and announces navigation", async () => {
         const exam = await makeTimed();
         await startExam(exam);
         exam.rightNavButton.click();
         await tick(60);
         expect(exam.rightNavButton.disabled).toBe(true);
         expect(exam.leftNavButton.disabled).toBe(false);
+        expect(status(exam)).toBe("Question 2 of 2");
+    });
+
+    it("announces pause and resume", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        exam.pauseBtn.click();
+        await tick(60);
+        expect(status(exam)).toContain("Exam paused");
+        exam.pauseBtn.click();
+        await tick(60);
+        expect(status(exam)).toContain("Exam resumed");
     });
 });
 

@@ -206,8 +206,18 @@ export default class Timed extends RunestoneBase {
         }
         this.containerDiv.classList.add("runestone-sphinx");
         this.containerDiv.id = this.divid;
+        // Polite live region for screen reader announcements (navigation,
+        // flagging, pause/resume). It lives outside timedDiv so it is not
+        // hidden along with the questions while the exam is paused.
+        this.srStatus = document.createElement("div");
+        this.srStatus.setAttribute("role", "status");
+        this.srStatus.setAttribute("aria-live", "polite");
+        this.srStatus.setAttribute("aria-atomic", "true");
+        this.srStatus.classList.add("timed-sr-only");
+        this.containerDiv.appendChild(this.srStatus);
         this.timedDiv = document.createElement("div"); // div that will hold the questions for the timed assessment
-        this.navDiv = document.createElement("div"); // For navigation control
+        this.navDiv = document.createElement("nav"); // For navigation control
+        this.navDiv.setAttribute("aria-label", "Exam question navigation");
         this.navDiv.classList.add("timed-center");
         this.flagDiv = document.createElement("div"); // div that will hold the "Flag Question" button
         this.flagDiv.classList.add("timed-center");
@@ -399,6 +409,31 @@ export default class Timed extends RunestoneBase {
         }
     }
 
+    // Send a message to screen readers via the polite live region. The text
+    // is cleared first so that repeating the same message is re-announced.
+    announce(message) {
+        if (!this.srStatus) {
+            return;
+        }
+        this.srStatus.textContent = "";
+        setTimeout(() => {
+            this.srStatus.textContent = message;
+        }, 50);
+    }
+
+    // Announce which question is now showing (after any navigation).
+    announceCurrentQuestion() {
+        let msg = `Question ${this.currentQuestionIndex + 1} of ${this.renderedQuestionArray.length}`;
+        if (
+            this.qNumItem(this.currentQuestionIndex)?.classList.contains(
+                "flagcolor",
+            )
+        ) {
+            msg += ", flagged";
+        }
+        this.announce(msg);
+    }
+
     // Mark the current question active in the numbered strip and sync the
     // flag button text and the accessible labels.
     syncNavState() {
@@ -483,6 +518,7 @@ export default class Timed extends RunestoneBase {
                 other.focus();
             }
         }
+        this.announceCurrentQuestion();
     }
 
     async handleFlag(event) {
@@ -525,6 +561,7 @@ export default class Timed extends RunestoneBase {
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
         this.syncNavState();
+        this.announceCurrentQuestion();
     }
 
     // set up events for navigation
@@ -839,6 +876,9 @@ export default class Timed extends RunestoneBase {
                 this.paused = 1;
                 this.pauseBtn.innerHTML = "Resume";
                 this.timedDiv.classList.add("timed-hidden");
+                this.announce(
+                    "Exam paused. The timer is stopped and the questions are hidden. Press Resume to continue.",
+                );
             } else {
                 this.logBookEvent({
                     event: "timedExam",
@@ -850,6 +890,9 @@ export default class Timed extends RunestoneBase {
                 this.increment();
                 this.pauseBtn.innerHTML = "Pause";
                 this.timedDiv.classList.remove("timed-hidden");
+                this.announce(
+                    `Exam resumed. The timer is running. Showing question ${this.currentQuestionIndex + 1} of ${this.renderedQuestionArray.length}.`,
+                );
             }
         }
     }
