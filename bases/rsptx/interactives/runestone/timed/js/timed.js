@@ -265,11 +265,11 @@ export default class Timed extends RunestoneBase {
                 if (this.flagButton) {
                     this.flagButton.classList.remove("timed-hidden");
                 }
-                let mess = document.createElement("p");
-                mess.innerHTML =
+                // Filling the pre-existing (empty) alert region makes screen
+                // readers announce the warning as the exam starts.
+                this.warningDiv.innerHTML =
                     "<strong>Warning: You will not be able to continue the exam if you close this tab, close the window, or navigate away from this page!</strong>  Make sure you click the Finish Exam button when you are done to submit your work!";
-                this.controlDiv.appendChild(mess);
-                mess.classList.add("examwarning");
+                this.warningDiv.classList.add("examwarning");
                 await this.renderTimedQuestion();
                 this.startAssessment();
             }.bind(this),
@@ -294,6 +294,12 @@ export default class Timed extends RunestoneBase {
         if (!this.nopause) {
             this.controlDiv.appendChild(this.pauseBtn);
         }
+        // Start-of-exam warning sits above the timer. It is created empty so
+        // that it is already in the accessibility tree when its text is set;
+        // live regions inserted with content are not reliably announced.
+        this.warningDiv = document.createElement("p");
+        this.warningDiv.setAttribute("role", "alert");
+        this.containerDiv.appendChild(this.warningDiv);
         this.containerDiv.appendChild(this.wrapperDiv);
         this.containerDiv.appendChild(this.controlDiv);
     }

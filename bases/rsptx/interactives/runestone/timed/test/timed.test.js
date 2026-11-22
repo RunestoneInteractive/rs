@@ -78,6 +78,9 @@ describe("construction", () => {
         expect(isHidden(exam.timedDiv)).toBe(true);
         expect(isHidden(exam.finishButton)).toBe(true);
         expect(isHidden(exam.scoreDiv)).toBe(true);
+        // warning region exists (empty) before the exam starts
+        expect(exam.warningDiv.textContent).toBe("");
+        expect(exam.warningDiv.classList.contains("examwarning")).toBe(false);
         expect(qnums().length).toBe(2);
         expect(qnums()[0].classList.contains("active")).toBe(true);
         // Prev is disabled on the first question
@@ -118,6 +121,13 @@ describe("starting the exam", () => {
         expect(
             exam.containerDiv.querySelector(".examwarning").textContent,
         ).toContain("Warning");
+        // the warning is an alert region placed above the timer
+        const warning = exam.containerDiv.querySelector(".examwarning");
+        expect(warning.getAttribute("role")).toBe("alert");
+        expect(
+            warning.compareDocumentPosition(exam.timerContainer) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
         // the first question is rendered into the switch area
         expect(exam.switchDiv.classList.contains("runestone")).toBe(true);
         expect(exam.switchDiv.querySelector("textarea")).not.toBe(null);
