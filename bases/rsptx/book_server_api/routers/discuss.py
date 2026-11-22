@@ -65,6 +65,12 @@ from rsptx.validation.schemas import PeerMessage
 from ..localconfig import local_settings
 from rsptx.response_helpers.core import canonical_utcnow
 
+# Non-broadcast control messages meant for exactly the student named in ``to``,
+# rather than for the sender's chat partners.
+TARGETED_MESSAGES = ("enableChat", "enableFaceChat", "abNoGroup")
+# Of those, the ones sent to students who have no chat partners.
+NO_PARTNER_MESSAGES = ("enableFaceChat", "abNoGroup")
+
 # Routing
 # =======
 # See `APIRouter config` for an explanation of this approach.
@@ -282,13 +288,13 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                     partner_list = await r.hget(
                         f"partnerdb_{data['course_name']}", mess_from
                     )
-                    # enableFaceChat targets verbal-discussion students who are
-                    # intentionally not in partnerdb, so don't treat the missing
-                    # partner list as an error for it.
-                    is_facechat = data["message"] == "enableFaceChat"
+                    # enableFaceChat and abNoGroup target students who are
+                    # intentionally not in partnerdb (verbal discussion, or left
+                    # out of the A/B split), so a missing partner list is fine.
+                    no_partner_ok = data["message"] in NO_PARTNER_MESSAGES
                     if partner_list:
                         partner_list = json.loads(partner_list)
-                    elif not is_facechat:
+                    elif not no_partner_ok:
                         try:
                             mess = {
                                 "type": "text",
@@ -309,12 +315,12 @@ async def websocket_endpoint(websocket: WebSocket, uname: str):
                             f"PEERCOM {os.getpid()}: Failed to find a partner for {mess_from}"
                         )
                     if (
-                        data["message"] in ("enableChat", "enableFaceChat")
+                        data["message"] in TARGETED_MESSAGES
                         and data.get("to", None) == username
                     ):
                         await manager.send_personal_message(username, data)
                     elif (
-                        data["message"] not in ("enableChat", "enableFaceChat")
+                        data["message"] not in TARGETED_MESSAGES
                         and partner_list
                         and username in partner_list
                     ):

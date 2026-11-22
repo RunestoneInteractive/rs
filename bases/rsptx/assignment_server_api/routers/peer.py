@@ -45,6 +45,7 @@ from rsptx.db.crud import (
     fetch_recent_student_answers,
     fetch_student_answers_in_timerange,
     fetch_user_experiment,
+    fetch_user_experiment_sids,
     replace_user_experiment_entries,
     update_assignment,
 )
@@ -286,6 +287,7 @@ async def get_peer_dashboard(
             "broadcast": True,
             "course_name": course.course_name,
             "div_id": current_question.name,
+            "assignment_id": assignment_id,
         }
         r.publish("peermessages", json.dumps(mess))
         r.hset(f"{course.course_name}_state", "current_phase", json.dumps(mess))
@@ -956,6 +958,55 @@ def split_ab_conditions(
     return peeps_in_person, peeps_in_chat
 
 
+def verbal_partners(
+    sid: str,
+    in_person_groups: list[set[str]],
+    names: dict[str, str],
+    present: set[str],
+) -> list[str]:
+    """Return the display names of everyone ``sid`` should talk to verbally.
+
+    That is every student in any recorded verbal group that includes ``sid``,
+    not just the first one, and never ``sid`` themselves. Only students in
+    ``present`` (those who voted on this question) are named: the recorded
+    groups can be days old, so a past partner may not be in class today.
+    Usernames without a display name in ``names`` are shown as the username.
+    """
+    partners: set[str] = set()
+    for grp in in_person_groups:
+        if sid in grp:
+            partners |= grp
+    partners.discard(sid)
+    return sorted(names.get(x) or x for x in partners if x in present)
+
+
+def ab_unassigned_students(
+    roster: list[str],
+    peeps_in_person: list[str],
+    peeps_in_chat: list[str],
+    instructor: str,
+) -> list[str]:
+    """Return the enrolled students the A/B split put in neither condition."""
+    assigned = set(peeps_in_person) | set(peeps_in_chat)
+    return sorted(
+        sid for sid in set(roster) if sid not in assigned and sid != instructor
+    )
+
+
+def late_ab_voters(
+    answerers: list[str], in_experiment: set[str], instructor: str
+) -> list[str]:
+    """Return the students who voted but are in neither A/B condition.
+
+    make_pairs splits only the students who had voted when it ran, so anyone
+    who first voted after that (late in Vote 1, or only in Vote 2) has no
+    condition recorded.
+    """
+    return sorted(
+        sid for sid in set(answerers) if sid not in in_experiment and sid != instructor
+    )
+
+
 # API Endpoints
 # =============
 
@@ -1149,13 +1200,9 @@ async def make_pairs(
             }
 
             for p in peeps_in_person:
-                pgroup: set[str] = set()
-                for grp in in_person_groups:
-                    if p in grp:
-                        pgroup = grp
-                        break
-                # Convert usernames to display names when possible
-                display_group = [peeps_dict.get(x, x) for x in pgroup]
+                display_group = verbal_partners(
+                    p, in_person_groups, peeps_dict, set(sid_ans)
+                )
                 mess = {
                     "type": "control",
                     "from": p,
@@ -1174,10 +1221,32 @@ async def make_pairs(
                             "type": "control",
                             "message": "enableFaceChat",
                             "broadcast": False,
+                            "group": display_group,
                             "course_name": course.course_name,
                         }
                     ),
                 )
+
+        # Tell every student the split left out why they have no group, e.g. a
+        # student whose vote landed after the split because they were
+        # reconnecting. Stored per student so a reconnecting student sees it too.
+        if is_ab:
+            from rsptx.db.crud import fetch_course_students
+
+            roster = [s.username for s in await fetch_course_students(course.id)]
+            for sid in ab_unassigned_students(
+                roster, peeps_in_person, peeps_in_chat, user.username
+            ):
+                mess = {
+                    "type": "control",
+                    "from": sid,
+                    "to": sid,
+                    "message": "abNoGroup",
+                    "broadcast": False,
+                    "course_name": course.course_name,
+                }
+                r.publish("peermessages", json.dumps(mess))
+                r.hset(state_key, sid, json.dumps(mess))
 
         rslogger.info(f"Created {len(group_list)} chat groups (is_ab={is_ab})")
         return JSONResponse(content={"status": "success", "groups": len(group_list)})
@@ -1188,6 +1257,50 @@ async def make_pairs(
             status_code=500,
             content={"detail": f"Failed to create pairs: {str(e)}"},
         )
+
+
+@router.post("/api/ab_late_voters")
+@instructor_role_required()
+@with_course()
+async def ab_late_voters(
+    request: Request,
+    div_id: str = Body(...),
+    start_time: str = Body(...),
+    user=Depends(auth_manager),
+    course=None,
+):
+    """Find students who voted after the A/B split ran and log each one.
+
+    The dashboard calls this when Vote 2 stops after an A/B experiment. Each
+    late voter gets a ``peer`` useinfo event with act ``ab_excluded_late_vote``
+    so the exclusion shows up in the study data.
+    """
+    from dateutil.parser import parse
+
+    in_experiment = await fetch_user_experiment_sids(f"{div_id}_ab")
+    if not in_experiment:
+        # no A/B split for this question, so nobody can be late for it
+        return JSONResponse(content={"late": []})
+
+    start_time_dt = parse(start_time).replace(tzinfo=None)
+    rows = await fetch_recent_student_answers(div_id, course.course_name, start_time_dt)
+    late = late_ab_voters([sid for sid, _ans, _c in rows], in_experiment, user.username)
+
+    now = datetime.datetime.utcnow()
+    for sid in late:
+        await create_useinfo_entry(
+            UseinfoValidation(
+                sid=sid,
+                course_id=course.course_name,
+                div_id=div_id,
+                event="peer",
+                act="ab_excluded_late_vote",
+                timestamp=now,
+            )
+        )
+    if late:
+        rslogger.info(f"A/B {div_id}: {len(late)} late voters excluded: {late}")
+    return JSONResponse(content={"late": late})
 
 
 @router.post("/api/chart_data")
