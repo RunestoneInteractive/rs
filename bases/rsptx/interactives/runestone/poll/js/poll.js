@@ -74,6 +74,9 @@ export default class Poll extends RunestoneBase {
             return false;
         };
         this.pollFieldset = document.createElement("fieldset");
+        let legend = document.createElement("legend");
+        legend.innerHTML = "Choices:";
+        this.pollFieldset.appendChild(legend);
         this.pollForm.appendChild(this.pollFieldset);
         for (var i = 0; i < this.optionList.length; i++) {
             let label = document.createElement("label");
