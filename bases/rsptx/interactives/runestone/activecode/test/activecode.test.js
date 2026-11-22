@@ -955,3 +955,94 @@ describe("disableInteraction", () => {
         expect(ac.codeDiv.classList.contains("ac-disabled")).toBe(true);
     });
 });
+
+describe("CodeTailor Get More Help after a subgoal-labels puzzle", () => {
+    const starter = "def average(nums):\n    # your code here\n";
+
+    function labelsHelp() {
+        const ac = makeActiveCode({
+            code: starter,
+            attrs: 'data-parsonspersonalize="partial"',
+        });
+        ac.logBookEvent = vi.fn();
+        ac.prevHelpedCode = starter; // the code sent with this help request
+        const container = document.createElement("div");
+        container.id = `scaffolding-container-${ac.divid}`;
+        container.innerHTML = '<div class="parsons_question">Task</div>';
+        document.body.appendChild(container);
+        ac.showLabelNextSteps(true);
+        const callout = container.querySelector(".labels-next-steps");
+        const hint = () => callout.querySelector(".labels-hint").textContent;
+        const helpBtn = ac.outerDiv.querySelector(".parsons-scaffolding-btn");
+        return { ac, container, callout, hint, helpBtn };
+    }
+
+    it("puts the callout under the instructions and renames Get Help", () => {
+        const { container, callout, hint, helpBtn } = labelsHelp();
+        expect(container.querySelector(".parsons_question").nextSibling).toBe(
+            callout,
+        );
+        expect(hint()).toContain("Put them in order first");
+        expect(helpBtn.textContent).toBe("Get More Help");
+    });
+
+    it("tells the student what to do next once the puzzle is solved", () => {
+        const { ac, callout, hint } = labelsHelp();
+        document.dispatchEvent(
+            new CustomEvent("codetailor-help-solved", {
+                detail: { divid: "some_other_puzzle" },
+            }),
+        );
+        expect(callout.classList.contains("solved")).toBe(false);
+        document.dispatchEvent(
+            new CustomEvent("codetailor-help-solved", {
+                detail: { divid: ac.puzzleScaffoldingDivid },
+            }),
+        );
+        expect(callout.classList.contains("solved")).toBe(true);
+        expect(hint()).toContain("Copy these steps");
+    });
+
+    it("nudges instead of asking for help when only the labels were copied", async () => {
+        const { ac, callout, hint } = labelsHelp();
+        ac.getParsonsCodeTailor = vi.fn();
+        ac.editor.setValue(
+            "def average(nums):\n    # Add up the numbers\n    # Return it\n",
+        );
+        await ac.parsonsBtnHandler();
+        expect(ac.getParsonsCodeTailor).not.toHaveBeenCalled();
+        expect(callout.classList.contains("nudge")).toBe(true);
+        expect(hint()).toContain("haven't tried writing any code");
+        expect(ac.logBookEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                event: "gptparsons_more_help",
+                act: JSON.stringify({ type: "more_help", attempted: false }),
+            }),
+        );
+        // writing code clears the nudge
+        ac.editor.setValue("def average(nums):\n    total = sum(nums)\n");
+        expect(callout.classList.contains("nudge")).toBe(false);
+    });
+
+    it("asks for help with the student's code once they've written some", async () => {
+        const { ac } = labelsHelp();
+        ac.getParsonsCodeTailor = vi.fn().mockResolvedValue("");
+        ac.reopenHelpBtnHandler = vi.fn();
+        Element.prototype.scrollIntoView = vi.fn(); // not in jsdom
+        ac.editor.setValue("def average(nums):\n    total = sum(nums)\n");
+        await ac.parsonsBtnHandler();
+        expect(ac.getParsonsCodeTailor).toHaveBeenCalled();
+        expect(ac.logBookEvent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                act: JSON.stringify({ type: "more_help", attempted: true }),
+            }),
+        );
+    });
+
+    it("goes back to Regenerate Help and drops the callout for code puzzles", () => {
+        const { ac, container, helpBtn } = labelsHelp();
+        ac.showLabelNextSteps(false);
+        expect(container.querySelector(".labels-next-steps")).toBeNull();
+        expect(helpBtn.textContent).toBe("Regenerate Help");
+    });
+});

@@ -330,9 +330,132 @@ export class ActiveCode extends RunestoneBase {
             Prism.highlightAllUnder(this.containerDiv);
         }
 
-        // variables for CodeTailor
+        this.initCodeTailorHelp();
+    }
+
+    // CodeTailor: help state, plus the listeners that keep the
+    // subgoal-labels callout up to date.
+    initCodeTailorHelp() {
         this.helpLoaded = false;
         this.prevHelpedCode = null;
+        this.labelsSolved = false;
+        if (
+            this.parsonspersonalize !== "movable" &&
+            this.parsonspersonalize !== "partial"
+        ) {
+            return;
+        }
+        // parsons.js announces when a help puzzle is solved
+        document.addEventListener("codetailor-help-solved", (event) => {
+            if (event.detail?.divid !== this.puzzleScaffoldingDivid) {
+                return;
+            }
+            this.labelsSolved = true;
+            this.updateLabelNextSteps();
+        });
+        this.editor?.on("change", () => this.updateLabelNextSteps());
+    }
+
+    // CodeTailor: a subgoal-labels puzzle gets a callout right under its
+    // instructions that says what the steps are for and, once the puzzle is
+    // solved, what to do next. The Get Help button then reads "Get More Help";
+    // clicking it before writing any code (copying the steps in doesn't
+    // count) turns the callout into a nudge instead of asking for help again.
+    showLabelNextSteps(isLabelsHelp) {
+        this.lastHelpWasLabels = isLabelsHelp;
+        this.labelsSolved = false;
+        this.labelsNudge = false;
+        this.outerDiv
+            .querySelectorAll(".parsons-scaffolding-btn")
+            .forEach((el) => {
+                el.textContent = isLabelsHelp
+                    ? "Get More Help"
+                    : "Regenerate Help";
+            });
+        const container = document.getElementById(
+            `scaffolding-container-${this.divid}`,
+        );
+        if (!container) {
+            return;
+        }
+        container.querySelector(".labels-next-steps")?.remove();
+        if (!isLabelsHelp) {
+            return;
+        }
+        const nextSteps = document.createElement("div");
+        nextSteps.classList.add("labels-next-steps");
+        nextSteps.setAttribute("role", "status");
+
+        const icon = document.createElement("span");
+        icon.classList.add("labels-icon");
+        icon.setAttribute("aria-hidden", "true");
+        nextSteps.appendChild(icon);
+
+        const hint = document.createElement("p");
+        hint.classList.add("labels-hint");
+        nextSteps.appendChild(hint);
+
+        // right under the puzzle's instructions, where students look first
+        const instructions = container.querySelector(".parsons_question");
+        if (instructions) {
+            instructions.after(nextSteps);
+        } else {
+            container.appendChild(nextSteps);
+        }
+        this.updateLabelNextSteps();
+    }
+
+    // True when the editor has changed since the last help request in more
+    // than comments, so pasting in the subgoal labels alone doesn't count.
+    attemptedSinceHelp() {
+        const comment =
+            (this.language || "").toLowerCase() === "java" ? "//" : "#";
+        const codeOnly = (text) =>
+            (text || "")
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line && !line.startsWith(comment))
+                .join("\n");
+        return (
+            codeOnly(this.editor.getValue()) !== codeOnly(this.prevHelpedCode)
+        );
+    }
+
+    updateLabelNextSteps() {
+        const nextSteps = document.querySelector(
+            `#scaffolding-container-${this.divid} .labels-next-steps`,
+        );
+        if (!nextSteps) {
+            return;
+        }
+        if (this.labelsNudge && this.attemptedSinceHelp()) {
+            this.labelsNudge = false;
+        }
+        const state = this.labelsNudge
+            ? "nudge"
+            : this.labelsSolved
+              ? "solved"
+              : "start";
+        nextSteps.classList.toggle("nudge", state === "nudge");
+        nextSteps.classList.toggle("solved", state === "solved");
+        nextSteps.querySelector(".labels-icon").textContent = {
+            start: "🧭",
+            solved: "🎉",
+            nudge: "✍️",
+        }[state];
+        nextSteps.querySelector(".labels-hint").innerHTML = {
+            start:
+                "<strong>These are the steps your code needs.</strong> Put " +
+                "them in order first, then you'll write the code for each one.",
+            solved:
+                "<strong>Nice, that's your plan!</strong> Copy these steps " +
+                "into your code (<em>Copy Answer to Clipboard</em>, at the " +
+                "top), then write the code for each step right under it.",
+            nudge:
+                "<strong>You haven't tried writing any code yet.</strong> " +
+                "Write the code for at least one of these steps, then click " +
+                "<em>Get More Help</em> for help with it.",
+        }[state];
     }
 
     createSubheading(text) {
@@ -1401,6 +1524,7 @@ export class ActiveCode extends RunestoneBase {
             ).innerHTML =
                 "<div class='alert alert-warning'>No Parsons puzzle available.</div>";
         }
+        this.showLabelNextSteps(generationResultType === "subgoal_labels");
     }
 
     copyScaffoldingSolutionToClipboard() {
@@ -1459,6 +1583,24 @@ export class ActiveCode extends RunestoneBase {
     }
 
     async parsonsBtnHandler() {
+        // After a subgoal-labels puzzle this is "Get More Help": no new help
+        // until the student has written some code of their own.
+        if (this.lastHelpWasLabels) {
+            const attempted = this.attemptedSinceHelp();
+            this.logBookEvent({
+                event: "gptparsons_more_help",
+                act: JSON.stringify({ type: "more_help", attempted }),
+                div_id: this.divid,
+            });
+            if (!attempted) {
+                this.labelsNudge = true;
+                document
+                    .getElementById(`scaffolding-container-${this.divid}`)
+                    ?.classList.remove("hidden");
+                this.updateLabelNextSteps();
+                return;
+            }
+        }
         // Check if the button exists and hasn't been disabled already
         if (this.parsonsBtn && !this.parsonsBtn.disabled) {
             this.parsonsBtn.disabled = true;
