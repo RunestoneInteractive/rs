@@ -42,7 +42,7 @@ async function startExam(exam) {
 }
 
 const isHidden = (el) => el.classList.contains("timed-hidden");
-const qnums = () => [...document.querySelectorAll("ul#pageNums > ul > li")];
+const qnums = () => [...document.querySelectorAll("#pageNums > ul > li")];
 
 let logSpy;
 beforeEach(() => {
@@ -166,7 +166,7 @@ describe("navigation", () => {
     it("jumps directly via the numbered buttons", async () => {
         const exam = await makeTimed();
         await startExam(exam);
-        qnums()[1].querySelector("a").click();
+        qnums()[1].querySelector("button").click();
         await tick();
         expect(exam.currentQuestionIndex).toBe(1);
         expect(qnums()[1].classList.contains("active")).toBe(true);
@@ -206,6 +206,20 @@ describe("flagging", () => {
 });
 
 describe("accessibility", () => {
+    const qbtn = (i) => qnums()[i].querySelector("button");
+
+    it("labels numbered buttons and marks the current one", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        expect(qbtn(0).getAttribute("aria-label")).toBe("Question 1");
+        expect(qbtn(0).getAttribute("aria-current")).toBe("true");
+        expect(qbtn(1).hasAttribute("aria-current")).toBe(false);
+        qbtn(1).click();
+        await tick();
+        expect(qbtn(1).getAttribute("aria-current")).toBe("true");
+        expect(qbtn(0).hasAttribute("aria-current")).toBe(false);
+    });
+
     it("truly disables Prev/Next", async () => {
         const exam = await makeTimed();
         await startExam(exam);

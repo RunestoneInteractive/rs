@@ -329,24 +329,28 @@ export default class Timed extends RunestoneBase {
         this.break = document.createElement("br");
         this.navDiv.appendChild(this.break);
         // render the question number jump buttons
-        this.qNumList = document.createElement("ul");
+        this.qNumList = document.createElement("div");
         this.qNumList.id = "pageNums";
         this.qNumWrapperList = document.createElement("ul");
         this.qNumWrapperList.classList.add("pagination");
-        var tmpLi, tmpA;
+        this.qNumWrapperList.setAttribute("aria-label", "Questions");
+        var tmpLi, tmpBtn;
         for (var i = 0; i < this.renderedQuestionArray.length; i++) {
             tmpLi = document.createElement("li");
-            tmpA = document.createElement("a");
-            tmpA.innerHTML = i + 1;
-            tmpA.classList.add("timed-cursor-pointer");
+            tmpBtn = document.createElement("button");
+            tmpBtn.type = "button";
+            tmpBtn.textContent = i + 1;
+            tmpBtn.dataset.index = i;
+            tmpBtn.classList.add("timed-cursor-pointer");
             if (i === 0) {
                 tmpLi.classList.add("active");
             }
-            tmpLi.appendChild(tmpA);
+            tmpLi.appendChild(tmpBtn);
             this.qNumWrapperList.appendChild(tmpLi);
         }
         this.qNumList.appendChild(this.qNumWrapperList);
         this.navDiv.appendChild(this.qNumList);
+        this.updateQNumLabels();
         this.navBtnListeners();
         this.flagBtnListener(); // listens for click on flag button
         this.flagButton.classList.add("timed-hidden");
@@ -354,7 +358,64 @@ export default class Timed extends RunestoneBase {
 
     // The li for question number `index` in the numbered navigation strip.
     qNumItem(index) {
-        return document.querySelectorAll("ul#pageNums > ul > li")[index];
+        return this.qNumWrapperList?.children[index];
+    }
+
+    // Visual state of the numbered buttons is carried by classes on the li
+    // (colors only). Mirror that state into each button's accessible name and
+    // aria-current so screen reader users get the same information.
+    updateQNumLabels() {
+        if (!this.qNumWrapperList) {
+            return;
+        }
+        const stateWords = [
+            ["flagcolor", "flagged"],
+            ["answered", "answered"],
+            ["correctCount", "correct"],
+            ["incorrectCount", "incorrect"],
+            ["skippedCount", "skipped"],
+            ["broken", "failed to load"],
+            ["toolate", "not answered in time"],
+        ];
+        const items = this.qNumWrapperList.children;
+        for (let i = 0; i < items.length; i++) {
+            const li = items[i];
+            const btn = li.querySelector("button");
+            if (!btn) {
+                continue;
+            }
+            const parts = [`Question ${i + 1}`];
+            for (const [cls, word] of stateWords) {
+                if (li.classList.contains(cls)) {
+                    parts.push(word);
+                }
+            }
+            btn.setAttribute("aria-label", parts.join(", "));
+            if (li.classList.contains("active")) {
+                btn.setAttribute("aria-current", "true");
+            } else {
+                btn.removeAttribute("aria-current");
+            }
+        }
+    }
+
+    // Mark the current question active in the numbered strip and sync the
+    // flag button text and the accessible labels.
+    syncNavState() {
+        if (!this.qNumWrapperList) {
+            return;
+        }
+        for (const li of this.qNumWrapperList.children) {
+            li.classList.remove("active");
+        }
+        let currentItem = this.qNumItem(this.currentQuestionIndex);
+        currentItem?.classList.add("active");
+        if (currentItem?.classList.contains("flagcolor")) {
+            this.flagButton.innerHTML = "Unflag Question";
+        } else {
+            this.flagButton.innerHTML = "Flag Question";
+        }
+        this.updateQNumLabels();
     }
 
     // when moving off of a question in an active exam:
@@ -410,25 +471,7 @@ export default class Timed extends RunestoneBase {
         this.currentQuestionIndex += delta;
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
-        for (var i = 0; i < this.qNumList.childNodes.length; i++) {
-            for (
-                var j = 0;
-                j < this.qNumList.childNodes[i].childNodes.length;
-                j++
-            ) {
-                this.qNumList.childNodes[i].childNodes[j].classList.remove(
-                    "active",
-                );
-            }
-        }
-        let currentItem = this.qNumItem(this.currentQuestionIndex);
-        currentItem?.classList.add("active");
-        if (currentItem?.classList.contains("flagcolor")) {
-            // checking for class
-            this.flagButton.innerHTML = "Unflag Question"; // changes text on button
-        } else {
-            this.flagButton.innerHTML = "Flag Question"; // changes text on button
-        }
+        this.syncNavState();
         // A button that just became disabled drops keyboard focus to the
         // page body; keep focus in the nav by moving it to the other button.
         if (button.disabled) {
@@ -461,37 +504,27 @@ export default class Timed extends RunestoneBase {
     }
 
     async handleNumberedNav(event) {
+        const button = event.target.closest("button[data-index]");
+        if (!button) {
+            // click landed on the list padding, not a number
+            return;
+        }
+        const newIndex = parseInt(button.dataset.index);
+        if (
+            isNaN(newIndex) ||
+            newIndex < 0 ||
+            newIndex >= this.renderedQuestionArray.length
+        ) {
+            console.log(`Error: bad index for ${button.dataset.index}`);
+            return;
+        }
         if (!this.taken) {
             await this.navigateAway();
         }
-        for (var i = 0; i < this.qNumList.childNodes.length; i++) {
-            for (
-                var j = 0;
-                j < this.qNumList.childNodes[i].childNodes.length;
-                j++
-            ) {
-                this.qNumList.childNodes[i].childNodes[j].classList.remove(
-                    "active",
-                );
-            }
-        }
-
-        var target = event.target.textContent;
-        let oldIndex = this.currentQuestionIndex;
-        this.currentQuestionIndex = parseInt(target) - 1;
-        if (this.currentQuestionIndex > this.renderedQuestionArray.length) {
-            console.log(`Error: bad index for ${target}`);
-            this.currentQuestionIndex = oldIndex;
-        }
-        let currentItem = this.qNumItem(this.currentQuestionIndex);
-        currentItem?.classList.add("active");
-        if (currentItem?.classList.contains("flagcolor")) {
-            this.flagButton.innerHTML = "Unflag Question";
-        } else {
-            this.flagButton.innerHTML = "Flag Question";
-        }
+        this.currentQuestionIndex = newIndex;
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
+        this.syncNavState();
     }
 
     // set up events for navigation
@@ -1295,7 +1328,9 @@ export default class Timed extends RunestoneBase {
         correctCount = correctCount.replace(/ /g, "").split(",");
         incorrectCount = incorrectCount.replace(/ /g, "").split(",");
         skippedCount = skippedCount.replace(/ /g, "").split(",");
-        var numberedBtns = document.querySelectorAll("ul#pageNums > ul > li");
+        var numberedBtns = this.qNumWrapperList
+            ? [...this.qNumWrapperList.children]
+            : [];
         for (const btn of numberedBtns) {
             btn.classList.remove("answered");
         }
@@ -1311,6 +1346,7 @@ export default class Timed extends RunestoneBase {
         mark(correctCount, "correctCount");
         mark(incorrectCount, "incorrectCount");
         mark(skippedCount, "skippedCount");
+        this.updateQNumLabels();
     }
 }
 
