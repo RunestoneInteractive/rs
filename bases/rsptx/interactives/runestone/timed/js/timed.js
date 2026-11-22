@@ -508,7 +508,16 @@ export default class Timed extends RunestoneBase {
         if (!this.taken) {
             await this.navigateAway();
         }
-        this.currentQuestionIndex += delta;
+        // Recheck bounds: a rapid second click can pass the disabled check
+        // above before this await finishes and the first click disables it.
+        const nextIndex = this.currentQuestionIndex + delta;
+        if (
+            nextIndex < 0 ||
+            nextIndex >= this.renderedQuestionArray.length
+        ) {
+            return;
+        }
+        this.currentQuestionIndex = nextIndex;
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
         this.syncNavState();

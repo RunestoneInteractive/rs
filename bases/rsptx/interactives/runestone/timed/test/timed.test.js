@@ -164,6 +164,23 @@ describe("navigation", () => {
         expect(exam.currentQuestionIndex).toBe(0);
     });
 
+    it("does not run past either end on rapid repeated clicks", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        // Both clicks pass the disabled check before the first one's
+        // awaited answer save finishes and disables Next.
+        exam.rightNavButton.click();
+        exam.rightNavButton.click();
+        await tick();
+        expect(exam.currentQuestionIndex).toBe(1);
+        expect(exam.rightNavButton.disabled).toBe(true);
+        exam.leftNavButton.click();
+        exam.leftNavButton.click();
+        await tick();
+        expect(exam.currentQuestionIndex).toBe(0);
+        expect(exam.leftNavButton.disabled).toBe(true);
+    });
+
     it("reveals the Finish button once every question has been visited", async () => {
         const exam = await makeTimed();
         await startExam(exam);
