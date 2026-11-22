@@ -231,6 +231,24 @@ describe("accessibility", () => {
         expect(status(exam)).toBe("Question 2 of 2");
     });
 
+    it("announces flagging and exposes flagged state in labels", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        exam.flagButton.click();
+        await tick(60);
+        expect(status(exam)).toBe("Question 1 flagged");
+        expect(qbtn(0).getAttribute("aria-label")).toBe("Question 1, flagged");
+        exam.rightNavButton.click();
+        await tick(60);
+        exam.leftNavButton.click();
+        await tick(60);
+        expect(status(exam)).toBe("Question 1 of 2, flagged");
+        exam.flagButton.click();
+        await tick(60);
+        expect(status(exam)).toBe("Question 1 unflagged");
+        expect(qbtn(0).getAttribute("aria-label")).toBe("Question 1");
+    });
+
     it("announces pause and resume", async () => {
         const exam = await makeTimed();
         await startExam(exam);

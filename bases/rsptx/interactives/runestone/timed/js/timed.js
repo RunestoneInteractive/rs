@@ -315,10 +315,9 @@ export default class Timed extends RunestoneBase {
         this.flaggingPlace.classList.add("pagination");
         this.flagContainer = document.createElement("li");
         this.flagButton = document.createElement("button");
+        this.flagButton.type = "button";
         this.flagButton.classList.add("flagBtn");
         this.flagButton.innerHTML = "Flag Question"; // name on button
-        this.flagButton.tabIndex = 5;
-        this.flagButton.setAttribute("role", "button");
         this.flagButton.id = "flag";
         this.flagButton.classList.add("timed-cursor-pointer");
         this.flagContainer.appendChild(this.flagButton); // adding button to container
@@ -523,20 +522,21 @@ export default class Timed extends RunestoneBase {
 
     async handleFlag(event) {
         // called when flag button is clicked
-        var target = event.target.textContent;
-        if (target.match(/Flag Question/)) {
-            // class will change color of question block
-            this.qNumItem(this.currentQuestionIndex)?.classList.add(
-                "flagcolor",
-            );
-            this.flagButton.innerHTML = "Unflag Question";
-        } else {
-            // will restore current color of question block
-            this.qNumItem(this.currentQuestionIndex)?.classList.remove(
-                "flagcolor",
-            );
-            this.flagButton.innerHTML = "Flag Question"; // also sets name back
+        if (event.target.closest("button") !== this.flagButton) {
+            return;
         }
+        const item = this.qNumItem(this.currentQuestionIndex);
+        if (!item) {
+            return;
+        }
+        const flagged = item.classList.toggle("flagcolor");
+        this.flagButton.innerHTML = flagged
+            ? "Unflag Question"
+            : "Flag Question";
+        this.updateQNumLabels();
+        this.announce(
+            `Question ${this.currentQuestionIndex + 1} ${flagged ? "flagged" : "unflagged"}`,
+        );
     }
 
     async handleNumberedNav(event) {

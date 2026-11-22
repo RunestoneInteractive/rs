@@ -198,6 +198,12 @@ p.examwarning {
     z-index: 2;
 }
 
+/* Flagged questions get a glyph as well as a color, so the state does not
+   rely on color alone. The button's aria-label already says "flagged". */
+.pagination>.flagcolor>button::after {
+    content: " \2691";
+}
+
 /* Visually hidden but available to screen readers (live region) */
 .timed-sr-only {
     position: absolute;
