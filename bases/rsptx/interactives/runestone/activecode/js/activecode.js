@@ -306,24 +306,30 @@ export class ActiveCode extends RunestoneBase {
             Prism.highlightAllUnder(this.containerDiv);
         }
 
-        // variables for CodeTailor
+        this.initCodeTailorHelp();
+    }
+
+    // CodeTailor: help state, plus the listeners that keep the
+    // subgoal-labels callout up to date.
+    initCodeTailorHelp() {
         this.helpLoaded = false;
         this.prevHelpedCode = null;
         this.labelsSolved = false;
         if (
-            this.parsonspersonalize === "movable" ||
-            this.parsonspersonalize === "partial"
+            this.parsonspersonalize !== "movable" &&
+            this.parsonspersonalize !== "partial"
         ) {
-            // parsons.js announces when a help puzzle is solved
-            document.addEventListener("codetailor-help-solved", (event) => {
-                if (event.detail?.divid !== this.puzzleScaffoldingDivid) {
-                    return;
-                }
-                this.labelsSolved = true;
-                this.updateLabelNextSteps();
-            });
-            this.editor?.on("change", () => this.updateLabelNextSteps());
+            return;
         }
+        // parsons.js announces when a help puzzle is solved
+        document.addEventListener("codetailor-help-solved", (event) => {
+            if (event.detail?.divid !== this.puzzleScaffoldingDivid) {
+                return;
+            }
+            this.labelsSolved = true;
+            this.updateLabelNextSteps();
+        });
+        this.editor?.on("change", () => this.updateLabelNextSteps());
     }
 
     // CodeTailor: a subgoal-labels puzzle gets a callout right under its
