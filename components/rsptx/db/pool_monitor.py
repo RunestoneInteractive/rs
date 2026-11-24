@@ -377,21 +377,31 @@ async def _heartbeat(threshold_s: float) -> None:
         _state.last_beat = now
 
 
-def _request_of(frame) -> str:
-    """``METHOD /path`` of the HTTP request a frame stack is serving, if any.
+def _snapshot(frame) -> tuple[list, str]:
+    """The loop thread's frame chain (innermost first) and the request it serves.
 
-    Walks outward looking for an ASGI ``scope``. Only the path: the query string
-    can carry student data and adds nothing to finding the blocking code.
+    One quick walk, before anything slow. The loop thread keeps running in GIL
+    slices while the watchdog works, and once the endpoint coroutine returns or
+    suspends its ``f_back`` is None: a second walk done after formatting the
+    stack used to stop short of every frame holding the ASGI ``scope``, so the
+    request went unreported.
+
+    Only the path: the query string can carry student data and adds nothing to
+    finding the blocking code.
     """
+    frames = []
+    request = ""
     while frame is not None:
-        try:
-            scope = frame.f_locals.get("scope")
-        except Exception:
-            scope = None
-        if isinstance(scope, dict) and scope.get("type") == "http":
-            return f"{scope.get('method', '?')} {scope.get('path', '?')}"
+        frames.append((frame, frame.f_lineno))
+        if not request:
+            try:
+                scope = frame.f_locals.get("scope")
+            except Exception:
+                scope = None
+            if isinstance(scope, dict) and scope.get("type") == "http":
+                request = f"{scope.get('method', '?')} {scope.get('path', '?')}"
         frame = frame.f_back
-    return ""
+    return frames, request
 
 
 class _StallSamples:
@@ -456,8 +466,12 @@ class _StallWatchdog(threading.Thread):
         frame = sys._current_frames().get(self.loop_thread_id)
         if frame is None:
             return "", ""
-        stack = traceback.extract_stack(frame)[-STALL_STACK_FRAMES:]
-        return "".join(traceback.format_list(stack)), _request_of(frame)
+        frames, request = _snapshot(frame)
+        stack = traceback.StackSummary.extract(
+            iter(frames), limit=STALL_STACK_FRAMES, lookup_lines=False
+        )
+        stack.reverse()
+        return "".join(stack.format()), request
 
     def _report(
         self, blocked_ms: float, samples: Optional[_StallSamples], ongoing: bool
