@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from jinja2.utils import htmlsafe_json_dumps
 
-from rsptx.db.crud import is_author, is_editor
+from rsptx.db.crud import course_has_peer_assignments, is_author, is_editor
 
 
 async def ebook_config_override(
@@ -45,6 +45,13 @@ async def ebook_config_override(
     else:
         user_is_author = user_is_editor = False
 
+    # The "Peer Instruction (Student)" link is only useful to a logged-in
+    # reader, and anonymous readers are most of the page views, so skip the
+    # lookup for them.
+    has_peer_assignments = (
+        await course_has_peer_assignments(course.id) if user else False
+    )
+
     ebook_attrs = dict(
         useRunestoneServices=use_services,
         course=course.course_name,
@@ -62,6 +69,7 @@ async def ebook_config_override(
         course_attrs=course_attrs,
         isEditor=user_is_editor,
         isAuthor=user_is_author,
+        hasPeerAssignments=has_peer_assignments,
     )
     # htmlsafe_json_dumps escapes <, >, & and ' so a course attribute can't
     # close the <script> tag this lands in.

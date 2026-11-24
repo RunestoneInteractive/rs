@@ -13,8 +13,22 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 PREFIX = "ebook_config_override = "
 
 
+@pytest.fixture(autouse=True)
+def peer_lookups(monkeypatch):
+    """Stub the peer assignment lookup; returns the course ids it was asked about."""
+    calls = []
+
+    async def fake_has_peer(course_id):
+        calls.append(course_id)
+        return True
+
+    monkeypatch.setattr(ebook_config, "course_has_peer_assignments", fake_has_peer)
+    return calls
+
+
 def _course():
     return SimpleNamespace(
+        id=42,
         course_name="mycourse",
         base_course="mybook",
         term_start_date=datetime.date(2026, 9, 1),
@@ -105,6 +119,34 @@ async def test_group_lookups_only_for_instructors(monkeypatch):
     assert calls == [("author", 7), ("editor", 7)]
     assert instructor["isAuthor"] is True and instructor["isEditor"] is False
     assert instructor["username"] == "sue" and instructor["isLoggedIn"] is True
+
+
+async def test_peer_lookup_only_for_logged_in_readers(peer_lookups):
+    anonymous = _parse(
+        await ebook_config_override(
+            course=_course(),
+            user=None,
+            user_is_instructor=False,
+            course_attrs={},
+            readings=[],
+            activities={},
+        )
+    )
+    assert peer_lookups == []
+    assert anonymous["hasPeerAssignments"] is False
+
+    student = _parse(
+        await ebook_config_override(
+            course=_course(),
+            user=SimpleNamespace(id=7, username="sue", email="sue@example.com"),
+            user_is_instructor=False,
+            course_attrs={},
+            readings=[],
+            activities={},
+        )
+    )
+    assert peer_lookups == [42]
+    assert student["hasPeerAssignments"] is True
 
 
 async def test_course_attr_cannot_close_the_script_tag():

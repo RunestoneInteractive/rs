@@ -24,6 +24,7 @@ from rsptx.db.crud import (
     fetch_assignments,
     fetch_all_assignment_stats,
     course_attr_is_true,
+    course_has_peer_assignments,
     fetch_course,
     fetch_all_course_attributes,
     fetch_courses_for_user,
@@ -189,6 +190,8 @@ async def index(request: Request, user=Depends(auth_manager)):
             readings=None,
             activities={},
         )
+    else:
+        context["has_peer_assignments"] = await course_has_peer_assignments(course.id)
     return templates.TemplateResponse(
         request, "book/course/current_course.html", context
     )

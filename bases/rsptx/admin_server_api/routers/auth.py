@@ -11,6 +11,7 @@ from rsptx.auth.session import NotAuthenticatedException, auth_manager
 from rsptx.configuration import settings
 from rsptx.db.crud import (
     consume_reset_token,
+    course_has_peer_assignments,
     create_user,
     create_useinfo_entry,
     create_user_course_entry,
@@ -143,9 +144,15 @@ async def _navbar_context(user: AuthUserValidator) -> dict:
     """
     course = await fetch_course(user.course_name)
     is_instructor = False
+    has_peer_assignments = False
     if course and course.id:
         is_instructor = await is_course_instructor(user.id, course.id)
-    return {"course": course, "is_instructor": is_instructor}
+        has_peer_assignments = await course_has_peer_assignments(course.id)
+    return {
+        "course": course,
+        "is_instructor": is_instructor,
+        "has_peer_assignments": has_peer_assignments,
+    }
 
 
 # ---------------------------------------------------------------------------

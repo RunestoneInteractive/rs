@@ -1591,7 +1591,7 @@ window.addEventListener("load", function () {
 Course Home
 Assignments
 Progress
-Peer Instruction (Student)
+Peer Instruction (Student) (only if the course has a peer assignment)
 ------
 Instructor Dashboard
 Peer Instruction (Instructor)
@@ -1687,13 +1687,17 @@ window.addEventListener("DOMContentLoaded", function (event) {
     menuContentArea.appendChild(
         makeLink("/assignment/student/chooseAssignment", "Assignments", "edit"),
     );
-    menuContentArea.appendChild(
-        makeLink(
-            "/assignment/peer/student",
-            "Peer Instruction (Student)",
-            "groups_3",
-        ),
-    );
+    // Only courses with a peer assignment get this link. A server too old to
+    // send hasPeerAssignments leaves it undefined, so the link stays.
+    if (eBookConfig.hasPeerAssignments !== false) {
+        menuContentArea.appendChild(
+            makeLink(
+                "/assignment/peer/student",
+                "Peer Instruction (Student)",
+                "groups_3",
+            ),
+        );
+    }
     menuContentArea.appendChild(
         makeLink("/assignment/student/studentreport", "Progress"),
     );

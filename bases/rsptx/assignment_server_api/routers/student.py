@@ -38,6 +38,7 @@ from rsptx.logging import rslogger
 from rsptx.db.crud import (
     create_useinfo_entry,
     course_attr_is_true,
+    course_has_peer_assignments,
     fetch_assignments,
     fetch_all_assignment_stats,
     fetch_all_grades_for_assignment,
@@ -228,6 +229,8 @@ async def get_assignments(
             readings=None,  # force bookfuncs to not render assignment tracker
             activities={},
         )
+    else:
+        context["has_peer_assignments"] = await course_has_peer_assignments(course.id)
     return templates.TemplateResponse(
         request, "assignment/student/chooseAssignment.html", context
     )
@@ -444,6 +447,7 @@ async def studentreport(
         user=target_user,
         is_instructor=user_is_instructor,
         student_page=True,
+        has_peer_assignments=await course_has_peer_assignments(course.id),
         chapters=chapter_progress,
         assignments=grades,
         activity=activity,
@@ -1082,6 +1086,8 @@ async def doAssignment(
             readings=None,  # force bookfuncs to not render assignment tracker
             activities={},
         )
+    else:
+        context["has_peer_assignments"] = await course_has_peer_assignments(course.id)
     response = templates.TemplateResponse(
         request, "assignment/student/doAssignment.html", context
     )

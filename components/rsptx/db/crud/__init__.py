@@ -25,6 +25,7 @@ from .user import (
 )
 
 from .assignment import (
+    course_has_peer_assignments,
     create_assignment,
     fetch_assignment_for_preview,
     fetch_shareable_assignment_tree,
@@ -325,6 +326,7 @@ __all__ = []
 
 # from .assignment
 __all__ += [
+    "course_has_peer_assignments",
     "create_assignment",
     "fetch_assignment_for_preview",
     "fetch_shareable_assignment_tree",

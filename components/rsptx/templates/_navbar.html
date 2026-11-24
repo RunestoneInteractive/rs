@@ -35,7 +35,10 @@
           <a class="dropdown-item" href="/ns/course/index"><span class="caption-wrap"><i class="ti ti-home"></i><span>Course Home</span></span></a>
           <a class="dropdown-item" href="/assignment/student/chooseAssignment"><span class="caption-wrap"><i class="ti ti-pencil"></i><span>Assignments</span></span></a>
           <a class="dropdown-item" href="/runestone/assignments/practice"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Practice</span></span></a>
+          {# Student-facing routes pass has_peer_assignments; pages that don't keep the link. #}
+          {% if has_peer_assignments is not defined or has_peer_assignments %}
           <a class="dropdown-item" href="/assignment/peer/student"><span class="caption-wrap"><i class="ti ti-users-group"></i><span>Peer Instruction (Student)</span></span></a>
+          {% endif %}
           <a class="dropdown-item" href="/assignment/student/studentreport"><span class="caption-wrap"><i class="ti ti-placeholder" aria-hidden="true"></i><span>Progress</span></span></a>
           <div class="dropdown-divider"></div>
           <div class="dropdown-divider"></div>

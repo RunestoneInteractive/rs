@@ -29,7 +29,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from rsptx.auth.session import auth_manager
 from rsptx.configuration import settings
-from rsptx.db.crud import fetch_course, is_course_instructor
+from rsptx.db.crud import (
+    course_has_peer_assignments,
+    fetch_course,
+    is_course_instructor,
+)
 from rsptx.logging import rslogger
 from rsptx.response_helpers.core import canonical_utcnow
 from rsptx.templates import get_shared_templates
@@ -103,16 +107,20 @@ async def _base_context(request: Request, user) -> dict:
     """
     course = None
     is_instructor = False
+    has_peer_assignments = False
     if user and getattr(user, "course_name", None):
         course = await fetch_course(user.course_name)
-        if course and course.id and getattr(user, "id", None):
-            is_instructor = await is_course_instructor(user.id, course.id)
+        if course and course.id:
+            has_peer_assignments = await course_has_peer_assignments(course.id)
+            if getattr(user, "id", None):
+                is_instructor = await is_course_instructor(user.id, course.id)
     return {
         "request": request,
         "user": user,
         "page_title": "Report a Problem",
         "course": course,
         "is_instructor": is_instructor,
+        "has_peer_assignments": has_peer_assignments,
         "student_page": True,
         "support_email": _SUPPORT_EMAIL,
     }

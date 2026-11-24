@@ -13,7 +13,7 @@ from rsptx.data_types.autograde import AutogradeOptions, default_autograde_for
 from rsptx.response_helpers.core import canonical_utcnow
 
 import logging
-from sqlalchemy import select, update, delete, and_, or_, func, asc, desc, case
+from sqlalchemy import select, update, delete, and_, or_, func, asc, desc, case, exists
 from sqlalchemy.exc import IntegrityError
 from .question import fetch_question_count_per_subchapter
 
@@ -642,6 +642,30 @@ async def fetch_assignments(
         res = await session.execute(query)
         rslogger.debug(f"{res=}")
         return [AssignmentValidator.from_orm(a) for a in res.scalars()]
+
+
+async def course_has_peer_assignments(course_id: int) -> bool:
+    """Whether the course has any peer instruction assignment, visible or not.
+
+    The user menus show "Peer Instruction (Student)" only when this is true, so
+    courses that never use peer instruction don't offer it. Visibility is
+    deliberately ignored: an empty peer page is better than a missing link on
+    the day an instructor makes an assignment visible.
+
+    :param course_id: int, the course's id
+    :return: bool
+    """
+    query = select(
+        exists().where(
+            Assignment.course == course_id,
+            or_(
+                Assignment.is_peer == True,  # noqa: E712
+                Assignment.kind == "Peer",
+            ),
+        )
+    )
+    async with async_session() as session:
+        return bool((await session.execute(query)).scalar())
 
 
 # write a function that fetches all Assignment objects given a course name
