@@ -1,3 +1,4 @@
+import asyncio
 import re
 import inspect
 from typing import Dict, Iterable, List, Literal, Optional, Set, Tuple
@@ -952,8 +953,10 @@ async def fetch_questions_for_chapter_subchapter(
                 (
                     or_(
                         Question.owner == owner,
+                        # Web2PyBoolean binds False as 'F'. Comparing to the
+                        # string "F" binds 'T' (it is truthy), which listed
+                        # every instructor's private questions.
                         Question.is_private == False,  # noqa: E712
-                        Question.is_private == "F",
                         Question.is_private == None,  # noqa: E711
                         Question.owner == None,  # noqa: E711
                     )
@@ -975,106 +978,118 @@ async def fetch_questions_for_chapter_subchapter(
         f"{base_course=},{skipreading=},{from_source_only=},{pages_only=},{owner=}"
     )
     async with async_session() as session:
-        res = await session.execute(query)
-        rslogger.debug(f"{res=}")
-        # convert the result to a hierarchical json structure using the chapter and subchapter labels
-        questions = {}
-        chapters = {}
+        res = (await session.execute(query)).all()
+    rslogger.debug(f"{len(res)=}")
+    # Building the tree is plain Python over every question in the book, over a
+    # second per call on a busy production host, so it runs in a thread. The rows
+    # are fully loaded and have no lazy relationships, so it never touches the
+    # database.
+    return await asyncio.to_thread(_build_tree, res)
 
-        for row in res:
-            q = QuestionValidator.from_orm(row.Question)
-            c = ChapterValidator.from_orm(row.Chapter)
-            c.chapter_label = f"{c.chapter_label}"
-            sc = SubChapterValidator.from_orm(row.SubChapter)
-            sc.sub_chapter_label = f"{sc.sub_chapter_label}"
-            if c.chapter_label not in questions:
-                questions[c.chapter_label] = {}
-            if c.chapter_label not in chapters:
-                chapters[c.chapter_label] = {**c.dict(), "sub_chapters": {}}
-            if sc.sub_chapter_label not in questions[c.chapter_label]:
-                questions[c.chapter_label][sc.sub_chapter_label] = []
-            if sc.sub_chapter_label not in chapters[c.chapter_label]["sub_chapters"]:
-                chapters[c.chapter_label]["sub_chapters"][sc.sub_chapter_label] = {
-                    **sc.dict(),
-                }
-            del q.timestamp  # Does not convert to json
-            del q.question
-            questions[c.chapter_label][sc.sub_chapter_label].append(q)
 
-        # The SQL query above orders by Question.qnumber as a plain string, which
-        # sorts "3.10.1" before "3.2.1". Re-sort each subchapter's questions with a
-        # natural sort key so multi-part exercise numbers order the way a human expects.
-        for chapter_questions in questions.values():
-            for subchapter_questions in chapter_questions.values():
-                subchapter_questions.sort(
-                    key=lambda q: _natural_sort_key(q.qnumber or q.name)
-                )
+def _build_tree(res) -> List[dict]:
+    """The chooser query's rows as the hierarchical structure the builder uses.
 
-        # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
-        # This is the structure that is used by the React TreeTable component
-        def find_page_id(chapter, subchapter):
-            for q in questions[chapter][subchapter]:
-                if q.question_type == "page":
-                    return q.id
-            return None
+    Plain dicts, ready for JSON as they are.
+    """
+    # convert the result to a hierarchical json structure using the chapter and subchapter labels
+    questions = {}
+    chapters = {}
 
-        chaps = []
-        for chapter in questions:
-            subs = []
-            for subchapter in questions[chapter]:
-                subs.append(
-                    {
-                        "key": subchapter,
-                        "data": {
-                            "title": chapters[chapter]["sub_chapters"][subchapter][
-                                "sub_chapter_name"
-                            ],
-                            "num": chapters[chapter]["sub_chapters"][subchapter][
-                                "sub_chapter_num"
-                            ],
-                            "chapter_num": chapters[chapter]["chapter_num"],
-                            "sub_chapter_num": chapters[chapter]["sub_chapters"][
-                                subchapter
-                            ]["sub_chapter_num"],
-                            "chapter": chapter,
-                            "subchapter": subchapter,
-                            "id": find_page_id(chapter, subchapter),
-                            "numQuestions": len(
-                                [
-                                    q
-                                    for q in questions[chapter][subchapter]
-                                    if q.optional != True  # noqa: E712
-                                ]
-                            ),
-                        },
-                        "children": [
-                            {
-                                "key": q.name,
-                                "data": {
-                                    **q.dict(),
-                                    "chapter_num": chapters[chapter]["chapter_num"],
-                                    "sub_chapter_num": chapters[chapter][
-                                        "sub_chapters"
-                                    ][subchapter]["sub_chapter_num"],
-                                },
-                            }
-                            for q in questions[chapter][subchapter]
-                        ],
-                    }
-                )
-            chaps.append(
-                {
-                    "key": chapter,
-                    "data": {
-                        "title": chapters[chapter]["chapter_name"],
-                        "num": chapters[chapter]["chapter_num"],
-                        "chapter_num": chapters[chapter]["chapter_num"],
-                    },
-                    "children": subs,
-                }
+    for row in res:
+        q = QuestionValidator.from_orm(row.Question)
+        c = ChapterValidator.from_orm(row.Chapter)
+        c.chapter_label = f"{c.chapter_label}"
+        sc = SubChapterValidator.from_orm(row.SubChapter)
+        sc.sub_chapter_label = f"{sc.sub_chapter_label}"
+        if c.chapter_label not in questions:
+            questions[c.chapter_label] = {}
+        if c.chapter_label not in chapters:
+            chapters[c.chapter_label] = {**c.dict(), "sub_chapters": {}}
+        if sc.sub_chapter_label not in questions[c.chapter_label]:
+            questions[c.chapter_label][sc.sub_chapter_label] = []
+        if sc.sub_chapter_label not in chapters[c.chapter_label]["sub_chapters"]:
+            chapters[c.chapter_label]["sub_chapters"][sc.sub_chapter_label] = {
+                **sc.dict(),
+            }
+        del q.timestamp  # Does not convert to json
+        del q.question
+        questions[c.chapter_label][sc.sub_chapter_label].append(q)
+
+    # The SQL query above orders by Question.qnumber as a plain string, which
+    # sorts "3.10.1" before "3.2.1". Re-sort each subchapter's questions with a
+    # natural sort key so multi-part exercise numbers order the way a human expects.
+    for chapter_questions in questions.values():
+        for subchapter_questions in chapter_questions.values():
+            subchapter_questions.sort(
+                key=lambda q: _natural_sort_key(q.qnumber or q.name)
             )
 
-        return chaps
+    # Now create the hierarchical json structure where the keys are the chapter and subchapter labels
+    # This is the structure that is used by the React TreeTable component
+    def find_page_id(chapter, subchapter):
+        for q in questions[chapter][subchapter]:
+            if q.question_type == "page":
+                return q.id
+        return None
+
+    chaps = []
+    for chapter in questions:
+        subs = []
+        for subchapter in questions[chapter]:
+            subs.append(
+                {
+                    "key": subchapter,
+                    "data": {
+                        "title": chapters[chapter]["sub_chapters"][subchapter][
+                            "sub_chapter_name"
+                        ],
+                        "num": chapters[chapter]["sub_chapters"][subchapter][
+                            "sub_chapter_num"
+                        ],
+                        "chapter_num": chapters[chapter]["chapter_num"],
+                        "sub_chapter_num": chapters[chapter]["sub_chapters"][
+                            subchapter
+                        ]["sub_chapter_num"],
+                        "chapter": chapter,
+                        "subchapter": subchapter,
+                        "id": find_page_id(chapter, subchapter),
+                        "numQuestions": len(
+                            [
+                                q
+                                for q in questions[chapter][subchapter]
+                                if q.optional != True  # noqa: E712
+                            ]
+                        ),
+                    },
+                    "children": [
+                        {
+                            "key": q.name,
+                            "data": {
+                                **q.dict(),
+                                "chapter_num": chapters[chapter]["chapter_num"],
+                                "sub_chapter_num": chapters[chapter]["sub_chapters"][
+                                    subchapter
+                                ]["sub_chapter_num"],
+                            },
+                        }
+                        for q in questions[chapter][subchapter]
+                    ],
+                }
+            )
+        chaps.append(
+            {
+                "key": chapter,
+                "data": {
+                    "title": chapters[chapter]["chapter_name"],
+                    "num": chapters[chapter]["chapter_num"],
+                    "chapter_num": chapters[chapter]["chapter_num"],
+                },
+                "children": subs,
+            }
+        )
+
+    return chaps
 
 
 async def validate_question_name_unique(name: str, base_course: str) -> bool:
