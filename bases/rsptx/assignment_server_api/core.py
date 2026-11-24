@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
     yield
     if pool_monitor_task:
         pool_monitor_task.cancel()
+    await peer.close_peer_redis()
 
 
 app = FastAPI(lifespan=lifespan, **kwargs)  # type: ignore
