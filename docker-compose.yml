@@ -69,6 +69,7 @@ x-db-pool-env: &db-pool-env
   DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
   DB_SYNC_POOL_SIZE: ${DB_SYNC_POOL_SIZE:-5}
   DB_SYNC_MAX_OVERFLOW: ${DB_SYNC_MAX_OVERFLOW:-10}
+  LOOP_STALL_DUMP_MS: ${LOOP_STALL_DUMP_MS:-500}
 
 x-db-env: &db-env
   <<: [*db-url-env, *db-pool-env]
