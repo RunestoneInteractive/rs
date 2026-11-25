@@ -42,7 +42,7 @@ async function startExam(exam) {
 }
 
 const isHidden = (el) => el.classList.contains("timed-hidden");
-const qnums = () => [...document.querySelectorAll("ul#pageNums > ul > li")];
+const qnums = () => [...document.querySelectorAll("#pageNums > ul > li")];
 
 let logSpy;
 beforeEach(() => {
@@ -78,10 +78,15 @@ describe("construction", () => {
         expect(isHidden(exam.timedDiv)).toBe(true);
         expect(isHidden(exam.finishButton)).toBe(true);
         expect(isHidden(exam.scoreDiv)).toBe(true);
+        // warning region exists (empty) before the exam starts
+        expect(exam.warningDiv.textContent).toBe("");
+        expect(exam.warningDiv.classList.contains("examwarning")).toBe(false);
         expect(qnums().length).toBe(2);
         expect(qnums()[0].classList.contains("active")).toBe(true);
         // Prev is disabled on the first question
         expect(exam.leftContainer.classList.contains("disabled")).toBe(true);
+        expect(exam.leftNavButton.disabled).toBe(true);
+        expect(exam.rightNavButton.disabled).toBe(false);
     });
 
     it("counts up when no time limit is given", async () => {
@@ -116,6 +121,13 @@ describe("starting the exam", () => {
         expect(
             exam.containerDiv.querySelector(".examwarning").textContent,
         ).toContain("Warning");
+        // the warning is an alert region placed above the timer
+        const warning = exam.containerDiv.querySelector(".examwarning");
+        expect(warning.getAttribute("role")).toBe("alert");
+        expect(
+            warning.compareDocumentPosition(exam.timerContainer) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
         // the first question is rendered into the switch area
         expect(exam.switchDiv.classList.contains("runestone")).toBe(true);
         expect(exam.switchDiv.querySelector("textarea")).not.toBe(null);
@@ -152,6 +164,23 @@ describe("navigation", () => {
         expect(exam.currentQuestionIndex).toBe(0);
     });
 
+    it("does not run past either end on rapid repeated clicks", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        // Both clicks pass the disabled check before the first one's
+        // awaited answer save finishes and disables Next.
+        exam.rightNavButton.click();
+        exam.rightNavButton.click();
+        await tick();
+        expect(exam.currentQuestionIndex).toBe(1);
+        expect(exam.rightNavButton.disabled).toBe(true);
+        exam.leftNavButton.click();
+        exam.leftNavButton.click();
+        await tick();
+        expect(exam.currentQuestionIndex).toBe(0);
+        expect(exam.leftNavButton.disabled).toBe(true);
+    });
+
     it("reveals the Finish button once every question has been visited", async () => {
         const exam = await makeTimed();
         await startExam(exam);
@@ -164,7 +193,7 @@ describe("navigation", () => {
     it("jumps directly via the numbered buttons", async () => {
         const exam = await makeTimed();
         await startExam(exam);
-        qnums()[1].querySelector("a").click();
+        qnums()[1].querySelector("button").click();
         await tick();
         expect(exam.currentQuestionIndex).toBe(1);
         expect(qnums()[1].classList.contains("active")).toBe(true);
@@ -200,6 +229,62 @@ describe("flagging", () => {
         await tick();
         expect(qnums()[0].classList.contains("flagcolor")).toBe(false);
         expect(exam.flagButton.innerHTML).toBe("Flag Question");
+    });
+});
+
+describe("accessibility", () => {
+    const qbtn = (i) => qnums()[i].querySelector("button");
+    const status = (exam) => exam.srStatus.textContent;
+
+    it("labels numbered buttons and marks the current one", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        expect(qbtn(0).getAttribute("aria-label")).toBe("Question 1");
+        expect(qbtn(0).getAttribute("aria-current")).toBe("true");
+        expect(qbtn(1).hasAttribute("aria-current")).toBe(false);
+        qbtn(1).click();
+        await tick();
+        expect(qbtn(1).getAttribute("aria-current")).toBe("true");
+        expect(qbtn(0).hasAttribute("aria-current")).toBe(false);
+    });
+
+    it("truly disables Prev/Next and announces navigation", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        exam.rightNavButton.click();
+        await tick(60);
+        expect(exam.rightNavButton.disabled).toBe(true);
+        expect(exam.leftNavButton.disabled).toBe(false);
+        expect(status(exam)).toBe("Question 2 of 2");
+    });
+
+    it("announces flagging and exposes flagged state in labels", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        exam.flagButton.click();
+        await tick(60);
+        expect(status(exam)).toBe("Question 1 flagged");
+        expect(qbtn(0).getAttribute("aria-label")).toBe("Question 1, flagged");
+        exam.rightNavButton.click();
+        await tick(60);
+        exam.leftNavButton.click();
+        await tick(60);
+        expect(status(exam)).toBe("Question 1 of 2, flagged");
+        exam.flagButton.click();
+        await tick(60);
+        expect(status(exam)).toBe("Question 1 unflagged");
+        expect(qbtn(0).getAttribute("aria-label")).toBe("Question 1");
+    });
+
+    it("announces pause and resume", async () => {
+        const exam = await makeTimed();
+        await startExam(exam);
+        exam.pauseBtn.click();
+        await tick(60);
+        expect(status(exam)).toContain("Exam paused");
+        exam.pauseBtn.click();
+        await tick(60);
+        expect(status(exam)).toContain("Exam resumed");
     });
 });
 

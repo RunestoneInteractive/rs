@@ -206,8 +206,18 @@ export default class Timed extends RunestoneBase {
         }
         this.containerDiv.classList.add("runestone-sphinx");
         this.containerDiv.id = this.divid;
+        // Polite live region for screen reader announcements (navigation,
+        // flagging, pause/resume). It lives outside timedDiv so it is not
+        // hidden along with the questions while the exam is paused.
+        this.srStatus = document.createElement("div");
+        this.srStatus.setAttribute("role", "status");
+        this.srStatus.setAttribute("aria-live", "polite");
+        this.srStatus.setAttribute("aria-atomic", "true");
+        this.srStatus.classList.add("timed-sr-only");
+        this.containerDiv.appendChild(this.srStatus);
         this.timedDiv = document.createElement("div"); // div that will hold the questions for the timed assessment
-        this.navDiv = document.createElement("div"); // For navigation control
+        this.navDiv = document.createElement("nav"); // For navigation control
+        this.navDiv.setAttribute("aria-label", "Exam question navigation");
         this.navDiv.classList.add("timed-center");
         this.flagDiv = document.createElement("div"); // div that will hold the "Flag Question" button
         this.flagDiv.classList.add("timed-center");
@@ -255,11 +265,11 @@ export default class Timed extends RunestoneBase {
                 if (this.flagButton) {
                     this.flagButton.classList.remove("timed-hidden");
                 }
-                let mess = document.createElement("p");
-                mess.innerHTML =
+                // Filling the pre-existing (empty) alert region makes screen
+                // readers announce the warning as the exam starts.
+                this.warningDiv.innerHTML =
                     "<strong>Warning: You will not be able to continue the exam if you close this tab, close the window, or navigate away from this page!</strong>  Make sure you click the Finish Exam button when you are done to submit your work!";
-                this.controlDiv.appendChild(mess);
-                mess.classList.add("examwarning");
+                this.warningDiv.classList.add("examwarning");
                 await this.renderTimedQuestion();
                 this.startAssessment();
             }.bind(this),
@@ -284,6 +294,12 @@ export default class Timed extends RunestoneBase {
         if (!this.nopause) {
             this.controlDiv.appendChild(this.pauseBtn);
         }
+        // Start-of-exam warning sits above the timer. It is created empty so
+        // that it is already in the accessibility tree when its text is set;
+        // live regions inserted with content are not reliably announced.
+        this.warningDiv = document.createElement("p");
+        this.warningDiv.setAttribute("role", "alert");
+        this.containerDiv.appendChild(this.warningDiv);
         this.containerDiv.appendChild(this.wrapperDiv);
         this.containerDiv.appendChild(this.controlDiv);
     }
@@ -294,10 +310,9 @@ export default class Timed extends RunestoneBase {
         this.pagNavList.classList.add("pagination");
         this.leftContainer = document.createElement("li");
         this.leftNavButton = document.createElement("button");
+        this.leftNavButton.type = "button";
         this.leftNavButton.innerHTML = "&#8249; Prev";
-        this.leftNavButton.setAttribute("aria-label", "Previous");
-        this.leftNavButton.tabIndex = 0;
-        this.leftNavButton.setAttribute("role", "button");
+        this.leftNavButton.setAttribute("aria-label", "Previous question");
         this.leftNavButton.classList.add("timed-cursor-pointer");
         this.leftContainer.appendChild(this.leftNavButton);
         this.pagNavList.appendChild(this.leftContainer);
@@ -306,11 +321,9 @@ export default class Timed extends RunestoneBase {
         this.flaggingPlace.classList.add("pagination");
         this.flagContainer = document.createElement("li");
         this.flagButton = document.createElement("button");
+        this.flagButton.type = "button";
         this.flagButton.classList.add("flagBtn");
         this.flagButton.innerHTML = "Flag Question"; // name on button
-        this.flagButton.setAttribute("aria-labelledby", "Flag");
-        this.flagButton.tabIndex = 5;
-        this.flagButton.setAttribute("role", "button");
         this.flagButton.id = "flag";
         this.flagButton.classList.add("timed-cursor-pointer");
         this.flagContainer.appendChild(this.flagButton); // adding button to container
@@ -318,9 +331,8 @@ export default class Timed extends RunestoneBase {
         // making "Next" button
         this.rightContainer = document.createElement("li");
         this.rightNavButton = document.createElement("button");
-        this.rightNavButton.setAttribute("aria-label", "Next");
-        this.rightNavButton.tabIndex = 0;
-        this.rightNavButton.setAttribute("role", "button");
+        this.rightNavButton.type = "button";
+        this.rightNavButton.setAttribute("aria-label", "Next question");
         this.rightNavButton.id = "next";
         this.rightNavButton.innerHTML = "Next &#8250;";
         this.rightNavButton.classList.add("timed-cursor-pointer");
@@ -332,24 +344,28 @@ export default class Timed extends RunestoneBase {
         this.break = document.createElement("br");
         this.navDiv.appendChild(this.break);
         // render the question number jump buttons
-        this.qNumList = document.createElement("ul");
+        this.qNumList = document.createElement("div");
         this.qNumList.id = "pageNums";
         this.qNumWrapperList = document.createElement("ul");
         this.qNumWrapperList.classList.add("pagination");
-        var tmpLi, tmpA;
+        this.qNumWrapperList.setAttribute("aria-label", "Questions");
+        var tmpLi, tmpBtn;
         for (var i = 0; i < this.renderedQuestionArray.length; i++) {
             tmpLi = document.createElement("li");
-            tmpA = document.createElement("a");
-            tmpA.innerHTML = i + 1;
-            tmpA.classList.add("timed-cursor-pointer");
+            tmpBtn = document.createElement("button");
+            tmpBtn.type = "button";
+            tmpBtn.textContent = i + 1;
+            tmpBtn.dataset.index = i;
+            tmpBtn.classList.add("timed-cursor-pointer");
             if (i === 0) {
                 tmpLi.classList.add("active");
             }
-            tmpLi.appendChild(tmpA);
+            tmpLi.appendChild(tmpBtn);
             this.qNumWrapperList.appendChild(tmpLi);
         }
         this.qNumList.appendChild(this.qNumWrapperList);
         this.navDiv.appendChild(this.qNumList);
+        this.updateQNumLabels();
         this.navBtnListeners();
         this.flagBtnListener(); // listens for click on flag button
         this.flagButton.classList.add("timed-hidden");
@@ -357,7 +373,89 @@ export default class Timed extends RunestoneBase {
 
     // The li for question number `index` in the numbered navigation strip.
     qNumItem(index) {
-        return document.querySelectorAll("ul#pageNums > ul > li")[index];
+        return this.qNumWrapperList?.children[index];
+    }
+
+    // Visual state of the numbered buttons is carried by classes on the li
+    // (colors only). Mirror that state into each button's accessible name and
+    // aria-current so screen reader users get the same information.
+    updateQNumLabels() {
+        if (!this.qNumWrapperList) {
+            return;
+        }
+        const stateWords = [
+            ["flagcolor", "flagged"],
+            ["answered", "answered"],
+            ["correctCount", "correct"],
+            ["incorrectCount", "incorrect"],
+            ["skippedCount", "skipped"],
+            ["broken", "failed to load"],
+            ["toolate", "not answered in time"],
+        ];
+        const items = this.qNumWrapperList.children;
+        for (let i = 0; i < items.length; i++) {
+            const li = items[i];
+            const btn = li.querySelector("button");
+            if (!btn) {
+                continue;
+            }
+            const parts = [`Question ${i + 1}`];
+            for (const [cls, word] of stateWords) {
+                if (li.classList.contains(cls)) {
+                    parts.push(word);
+                }
+            }
+            btn.setAttribute("aria-label", parts.join(", "));
+            if (li.classList.contains("active")) {
+                btn.setAttribute("aria-current", "true");
+            } else {
+                btn.removeAttribute("aria-current");
+            }
+        }
+    }
+
+    // Send a message to screen readers via the polite live region. The text
+    // is cleared first so that repeating the same message is re-announced.
+    announce(message) {
+        if (!this.srStatus) {
+            return;
+        }
+        this.srStatus.textContent = "";
+        setTimeout(() => {
+            this.srStatus.textContent = message;
+        }, 50);
+    }
+
+    // Announce which question is now showing (after any navigation).
+    announceCurrentQuestion() {
+        let msg = `Question ${this.currentQuestionIndex + 1} of ${this.renderedQuestionArray.length}`;
+        if (
+            this.qNumItem(this.currentQuestionIndex)?.classList.contains(
+                "flagcolor",
+            )
+        ) {
+            msg += ", flagged";
+        }
+        this.announce(msg);
+    }
+
+    // Mark the current question active in the numbered strip and sync the
+    // flag button text and the accessible labels.
+    syncNavState() {
+        if (!this.qNumWrapperList) {
+            return;
+        }
+        for (const li of this.qNumWrapperList.children) {
+            li.classList.remove("active");
+        }
+        let currentItem = this.qNumItem(this.currentQuestionIndex);
+        currentItem?.classList.add("active");
+        if (currentItem?.classList.contains("flagcolor")) {
+            this.flagButton.innerHTML = "Unflag Question";
+        } else {
+            this.flagButton.innerHTML = "Flag Question";
+        }
+        this.updateQNumLabels();
     }
 
     // when moving off of a question in an active exam:
@@ -394,96 +492,91 @@ export default class Timed extends RunestoneBase {
         }
     }
     async handleNextPrev(event) {
+        const button = event.target.closest("button");
+        let delta;
+        if (button === this.rightNavButton) {
+            delta = 1;
+        } else if (button === this.leftNavButton) {
+            delta = -1;
+        } else {
+            // click landed on the list padding, not a button
+            return;
+        }
+        if (button.disabled) {
+            return;
+        }
         if (!this.taken) {
             await this.navigateAway();
         }
-        var target = event.target.textContent;
-        if (target.match(/Next/)) {
-            // checks given text to match "Next"
-            if (this.rightContainer.classList.contains("disabled")) {
-                return;
-            }
-            this.currentQuestionIndex++;
-        } else if (target.match(/Prev/)) {
-            // checks given text to match "Prev"
-            if (this.leftContainer.classList.contains("disabled")) {
-                return;
-            }
-            this.currentQuestionIndex--;
+        // Recheck bounds: a rapid second click can pass the disabled check
+        // above before this await finishes and the first click disables it.
+        const nextIndex = this.currentQuestionIndex + delta;
+        if (
+            nextIndex < 0 ||
+            nextIndex >= this.renderedQuestionArray.length
+        ) {
+            return;
         }
+        this.currentQuestionIndex = nextIndex;
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
-        for (var i = 0; i < this.qNumList.childNodes.length; i++) {
-            for (
-                var j = 0;
-                j < this.qNumList.childNodes[i].childNodes.length;
-                j++
-            ) {
-                this.qNumList.childNodes[i].childNodes[j].classList.remove(
-                    "active",
-                );
+        this.syncNavState();
+        // A button that just became disabled drops keyboard focus to the
+        // page body; keep focus in the nav by moving it to the other button.
+        if (button.disabled) {
+            const other =
+                button === this.rightNavButton
+                    ? this.leftNavButton
+                    : this.rightNavButton;
+            if (!other.disabled) {
+                other.focus();
             }
         }
-        let currentItem = this.qNumItem(this.currentQuestionIndex);
-        currentItem?.classList.add("active");
-        if (currentItem?.classList.contains("flagcolor")) {
-            // checking for class
-            this.flagButton.innerHTML = "Unflag Question"; // changes text on button
-        } else {
-            this.flagButton.innerHTML = "Flag Question"; // changes text on button
-        }
+        this.announceCurrentQuestion();
     }
 
     async handleFlag(event) {
         // called when flag button is clicked
-        var target = event.target.textContent;
-        if (target.match(/Flag Question/)) {
-            // class will change color of question block
-            this.qNumItem(this.currentQuestionIndex)?.classList.add(
-                "flagcolor",
-            );
-            this.flagButton.innerHTML = "Unflag Question";
-        } else {
-            // will restore current color of question block
-            this.qNumItem(this.currentQuestionIndex)?.classList.remove(
-                "flagcolor",
-            );
-            this.flagButton.innerHTML = "Flag Question"; // also sets name back
+        if (event.target.closest("button") !== this.flagButton) {
+            return;
         }
+        const item = this.qNumItem(this.currentQuestionIndex);
+        if (!item) {
+            return;
+        }
+        const flagged = item.classList.toggle("flagcolor");
+        this.flagButton.innerHTML = flagged
+            ? "Unflag Question"
+            : "Flag Question";
+        this.updateQNumLabels();
+        this.announce(
+            `Question ${this.currentQuestionIndex + 1} ${flagged ? "flagged" : "unflagged"}`,
+        );
     }
 
     async handleNumberedNav(event) {
+        const button = event.target.closest("button[data-index]");
+        if (!button) {
+            // click landed on the list padding, not a number
+            return;
+        }
+        const newIndex = parseInt(button.dataset.index);
+        if (
+            isNaN(newIndex) ||
+            newIndex < 0 ||
+            newIndex >= this.renderedQuestionArray.length
+        ) {
+            console.log(`Error: bad index for ${button.dataset.index}`);
+            return;
+        }
         if (!this.taken) {
             await this.navigateAway();
         }
-        for (var i = 0; i < this.qNumList.childNodes.length; i++) {
-            for (
-                var j = 0;
-                j < this.qNumList.childNodes[i].childNodes.length;
-                j++
-            ) {
-                this.qNumList.childNodes[i].childNodes[j].classList.remove(
-                    "active",
-                );
-            }
-        }
-
-        var target = event.target.textContent;
-        let oldIndex = this.currentQuestionIndex;
-        this.currentQuestionIndex = parseInt(target) - 1;
-        if (this.currentQuestionIndex > this.renderedQuestionArray.length) {
-            console.log(`Error: bad index for ${target}`);
-            this.currentQuestionIndex = oldIndex;
-        }
-        let currentItem = this.qNumItem(this.currentQuestionIndex);
-        currentItem?.classList.add("active");
-        if (currentItem?.classList.contains("flagcolor")) {
-            this.flagButton.innerHTML = "Unflag Question";
-        } else {
-            this.flagButton.innerHTML = "Flag Question";
-        }
+        this.currentQuestionIndex = newIndex;
         await this.renderTimedQuestion();
         this.ensureButtonSafety();
+        this.syncNavState();
+        this.announceCurrentQuestion();
     }
 
     // set up events for navigation
@@ -544,29 +637,17 @@ export default class Timed extends RunestoneBase {
         this.finishButton.classList.add("timed-hidden");
         this.timedDiv.appendChild(this.buttonContainer);
     }
+    // Enable/disable Prev and Next for the current position. The li keeps
+    // the "disabled" class for styling; the button gets the real disabled
+    // property so it is announced as unavailable and cannot be activated.
     ensureButtonSafety() {
-        if (this.currentQuestionIndex === 0) {
-            if (this.renderedQuestionArray.length != 1) {
-                this.rightContainer.classList.remove("disabled");
-            }
-            this.leftContainer.classList.add("disabled");
-        }
-        if (
-            this.currentQuestionIndex >=
-            this.renderedQuestionArray.length - 1
-        ) {
-            if (this.renderedQuestionArray.length != 1) {
-                this.leftContainer.classList.remove("disabled");
-            }
-            this.rightContainer.classList.add("disabled");
-        }
-        if (
-            this.currentQuestionIndex > 0 &&
-            this.currentQuestionIndex < this.renderedQuestionArray.length - 1
-        ) {
-            this.rightContainer.classList.remove("disabled");
-            this.leftContainer.classList.remove("disabled");
-        }
+        const atStart = this.currentQuestionIndex <= 0;
+        const atEnd =
+            this.currentQuestionIndex >= this.renderedQuestionArray.length - 1;
+        this.leftContainer.classList.toggle("disabled", atStart);
+        this.leftNavButton.disabled = atStart;
+        this.rightContainer.classList.toggle("disabled", atEnd);
+        this.rightNavButton.disabled = atEnd;
     }
     renderFeedbackContainer() {
         this.scoreDiv = document.createElement("P");
@@ -810,6 +891,9 @@ export default class Timed extends RunestoneBase {
                 this.paused = 1;
                 this.pauseBtn.innerHTML = "Resume";
                 this.timedDiv.classList.add("timed-hidden");
+                this.announce(
+                    "Exam paused. The timer is stopped and the questions are hidden. Press Resume to continue.",
+                );
             } else {
                 this.logBookEvent({
                     event: "timedExam",
@@ -821,6 +905,9 @@ export default class Timed extends RunestoneBase {
                 this.increment();
                 this.pauseBtn.innerHTML = "Pause";
                 this.timedDiv.classList.remove("timed-hidden");
+                this.announce(
+                    `Exam resumed. The timer is running. Showing question ${this.currentQuestionIndex + 1} of ${this.renderedQuestionArray.length}.`,
+                );
             }
         }
     }
@@ -1299,7 +1386,9 @@ export default class Timed extends RunestoneBase {
         correctCount = correctCount.replace(/ /g, "").split(",");
         incorrectCount = incorrectCount.replace(/ /g, "").split(",");
         skippedCount = skippedCount.replace(/ /g, "").split(",");
-        var numberedBtns = document.querySelectorAll("ul#pageNums > ul > li");
+        var numberedBtns = this.qNumWrapperList
+            ? [...this.qNumWrapperList.children]
+            : [];
         for (const btn of numberedBtns) {
             btn.classList.remove("answered");
         }
@@ -1315,6 +1404,7 @@ export default class Timed extends RunestoneBase {
         mark(correctCount, "correctCount");
         mark(incorrectCount, "incorrectCount");
         mark(skippedCount, "skippedCount");
+        this.updateQNumLabels();
     }
 }
 
