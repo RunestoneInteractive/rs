@@ -41,7 +41,7 @@ Progress Report: {{ user.first_name }} {{ user.last_name }} - {{ course.course_n
             <span class="{{ status }}">{{ status_marker(status) }} {{ status_label(status) }}</span>
             {% endfor %}
           </p>
-          <ul class="chapter-list">
+          <ul class="chapter-list" role="list">
             {% for chapter in chapters %}
             <li>
               {% if chapter['subchapters'] %}
@@ -50,7 +50,7 @@ Progress Report: {{ user.first_name }} {{ user.last_name }} - {{ course.course_n
                   {{ status_marker(chapter['status']) }}
                   <span class="chapter-name">{{ chapter['label'] }}</span>{{ status_sr(chapter['status']) }}
                 </summary>
-                <ul class="chapter-detail">
+                <ul class="chapter-detail" role="list">
                   {% for subchapter in chapter['subchapters'] %}
                   <li class="{{ subchapter['status'] }}">
                     {{ status_marker(subchapter['status']) }}
