@@ -90,6 +90,7 @@ const { treeHolder, previewHolder, importMock, importCourseMock, treeSkipSpy, tr
         already_imported: false,
         imported_as: null,
         skipped_readings: 0,
+        retired_exercises: 0,
         duedate_warning: null,
         questions: [
           {
@@ -100,7 +101,8 @@ const { treeHolder, previewHolder, importMock, importCourseMock, treeSkipSpy, tr
             chapter: "ch1",
             subchapter: "sub1",
             reading_assignment: false,
-            will_import: true
+            will_import: true,
+            retired: false
           }
         ]
       }
@@ -309,5 +311,28 @@ describe("ImportAssignmentModal", () => {
     await user.click(screen.getAllByRole("button", { name: "Preview" })[0]);
 
     expect(await screen.findByText("q_loop_1")).toBeInTheDocument();
+    expect(screen.queryByText("1 retired exercise")).not.toBeInTheDocument();
+  });
+
+  it("warns in the preview when an exercise has been retired", async () => {
+    const user = userEvent.setup();
+    const original = previewHolder.value;
+
+    previewHolder.value = {
+      ...original,
+      retired_exercises: 1,
+      questions: original.questions.map((question) => ({ ...question, retired: true }))
+    };
+
+    try {
+      renderWithMantine(<ImportAssignmentModal visible onHide={onHide} />);
+      await user.click(screen.getByRole("button", { name: "Expand cs101-fall" }));
+      await user.click(screen.getAllByRole("button", { name: "Preview" })[0]);
+
+      expect(await screen.findByText("1 retired exercise")).toBeInTheDocument();
+      expect(screen.getByText("retired")).toBeInTheDocument();
+    } finally {
+      previewHolder.value = original;
+    }
   });
 });

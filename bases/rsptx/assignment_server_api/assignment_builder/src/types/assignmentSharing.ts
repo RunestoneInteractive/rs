@@ -10,6 +10,8 @@ export type SharedAssignmentQuestion = {
   reading_assignment: boolean | null;
   /** False for a reading that cannot follow the assignment into your book. */
   will_import: boolean;
+  /** True when the book's editors have retired this exercise. */
+  retired: boolean;
 };
 
 export type SharedAssignmentPreview = {
@@ -36,6 +38,8 @@ export type SharedAssignmentPreview = {
   imported_as: string | null;
   /** How many readings will be left behind, which only happens cross-book. */
   skipped_readings: number;
+  /** How many exercises that will import have been retired by the book's editors. */
+  retired_exercises: number;
   /** Set when the due date could not be shifted because a course's timezone is invalid. */
   duedate_warning: string | null;
   questions: SharedAssignmentQuestion[];
@@ -48,6 +52,8 @@ export type ImportAssignmentResult = {
   skipped_readings: number;
   /** Set when the due date could not be shifted because a course's timezone is invalid. */
   duedate_warning: string | null;
+  /** How many imported exercises have been retired by the book's editors. */
+  retired_exercises: number;
 };
 
 /** One assignment under a course in the import tree. */
@@ -109,4 +115,6 @@ export type ImportCourseResult = {
   failed: string[];
   /** How many imports kept their original due date because a course timezone is invalid. */
   duedate_not_shifted: number;
+  /** How many imported exercises, over every assignment, have been retired. */
+  retired_exercises: number;
 };

@@ -1789,13 +1789,40 @@ class ImportedAssignment(NamedTuple):
     discover the gap themselves. ``duedate_warning`` is set when the due date
     could not be shifted to the target course's term because a course
     timezone is invalid -- the assignment still imports, with its original
-    due date.
+    due date. ``retired_exercises`` is how many of the imported exercises the
+    book's editors have retired: they come across and keep working, but the
+    instructor may want to replace them.
     """
 
     assignment: AssignmentValidator
     name: str
     skipped_readings: int
     duedate_warning: Optional[str] = None
+    retired_exercises: int = 0
+
+
+async def count_retired_exercises(assignment_id: int) -> int:
+    """Count the exercises in an assignment that the book's editors have retired.
+
+    A retired exercise keeps working wherever it is already assigned, and it
+    rides along when an assignment is duplicated or imported. This is what lets
+    those paths tell the instructor, who may want to swap it for something
+    still in circulation.
+
+    :param assignment_id: int, the assignment to look at
+    :return: int, how many of its questions have ``retired_on`` set
+    """
+    query = (
+        select(func.count())
+        .select_from(AssignmentQuestion)
+        .join(Question, Question.id == AssignmentQuestion.question_id)
+        .where(
+            (AssignmentQuestion.assignment_id == assignment_id)
+            & Question.retired_on.isnot(None)
+        )
+    )
+    async with async_session() as session:
+        return (await session.execute(query)).scalar() or 0
 
 
 def _searchable_column(field: str, joined_columns: dict):
@@ -2280,6 +2307,13 @@ async def fetch_assignment_for_preview(
         "already_imported": source_assignment_id in existing_imports,
         "imported_as": existing_imports.get(source_assignment_id),
         "skipped_readings": will_import.count(False),
+        # Retired exercises still import and still work; the count is there so
+        # the instructor can decide whether to replace them.
+        "retired_exercises": sum(
+            1
+            for row, imported in zip(rows, will_import)
+            if imported and row.Question.retired_on is not None
+        ),
         "duedate_warning": duedate_warning,
         "questions": [
             {
@@ -2291,6 +2325,7 @@ async def fetch_assignment_for_preview(
                 "subchapter": row.Question.subchapter,
                 "reading_assignment": row.AssignmentQuestion.reading_assignment,
                 "will_import": imported,
+                "retired": row.Question.retired_on is not None,
             }
             for row, imported in zip(rows, will_import)
         ],
@@ -2359,6 +2394,9 @@ async def import_assignment(
             if not (cross_book and _is_book_bound(row.AssignmentQuestion, row.Question))
         ]
         skipped_readings = len(source_rows) - len(rows_to_import)
+        retired_exercises = sum(
+            1 for row in rows_to_import if row.Question.retired_on is not None
+        )
 
         new_assignment = Assignment(
             course=target_course.id,
@@ -2422,9 +2460,12 @@ async def import_assignment(
     rslogger.info(
         f"Imported assignment {source_assignment_id} from {source_course.course_name} "
         f"into {target_course.course_name} as {result.id} ({new_name}) with "
-        f"{len(rows_to_import)} questions, {skipped_readings} readings skipped"
+        f"{len(rows_to_import)} questions, {skipped_readings} readings skipped, "
+        f"{retired_exercises} retired"
     )
-    return ImportedAssignment(result, new_name, skipped_readings, duedate_warning)
+    return ImportedAssignment(
+        result, new_name, skipped_readings, duedate_warning, retired_exercises
+    )
 
 
 class BulkImportResult(NamedTuple):
@@ -2443,6 +2484,8 @@ class BulkImportResult(NamedTuple):
     skipped_readings: int
     failed: List[str]
     duedate_not_shifted: int = 0
+    #: Retired exercises that came across, summed over every import.
+    retired_exercises: int = 0
 
 
 async def import_course_assignments(
@@ -2544,6 +2587,7 @@ async def import_course_assignments(
     failed: List[str] = []
     skipped_readings = 0
     duedate_not_shifted = 0
+    retired_exercises = 0
 
     for source in rows:
         if skip_existing and source.id in already_imported:
@@ -2563,6 +2607,7 @@ async def import_course_assignments(
             continue
         imported.append(result.name)
         skipped_readings += result.skipped_readings
+        retired_exercises += result.retired_exercises
         if result.duedate_warning:
             duedate_not_shifted += 1
 
@@ -2570,10 +2615,16 @@ async def import_course_assignments(
         f"Bulk imported {len(imported)} assignments from {source_course.course_name} "
         f"into {target_course.course_name}; {len(skipped_existing)} already present, "
         f"{len(failed)} failed, {skipped_readings} readings skipped, "
-        f"{duedate_not_shifted} due dates not shifted"
+        f"{duedate_not_shifted} due dates not shifted, "
+        f"{retired_exercises} retired exercises"
     )
     return BulkImportResult(
-        imported, skipped_existing, skipped_readings, failed, duedate_not_shifted
+        imported,
+        skipped_existing,
+        skipped_readings,
+        failed,
+        duedate_not_shifted,
+        retired_exercises,
     )
 
 

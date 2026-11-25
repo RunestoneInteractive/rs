@@ -5,6 +5,18 @@
   white-space: nowrap;
 }
 
+/* The name truncates; a badge beside it keeps its full width. */
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-2);
+  min-width: 0;
+}
+
+.nameRow > :not(.name) {
+  flex-shrink: 0;
+}
+
 .sub {
   color: var(--rs-text-muted);
   font-size: var(--rs-font-size-sm);

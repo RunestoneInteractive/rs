@@ -3,7 +3,7 @@ Functional tests for the editorial page routes on the admin server.
 
 These cover the port of the web2py ``admin/manage_exercises`` endpoint: listing
 the questions readers have flagged in the books an editor edits, clearing a
-flag, and deleting a question.
+flag, and deleting or retiring a question.
 """
 
 import datetime
@@ -20,6 +20,8 @@ from rsptx.db.crud import (  # noqa: E402
     fetch_assignment_by_name,
     fetch_course,
     fetch_question,
+    search_exercises,
+    unretire_question_by_name,
     update_question,
 )
 from rsptx.db.models import (  # noqa: E402
@@ -28,6 +30,7 @@ from rsptx.db.models import (  # noqa: E402
     QuestionValidator,
 )
 from rsptx.response_helpers.core import canonical_utcnow  # noqa: E402
+from rsptx.validation import schemas  # noqa: E402
 
 # The editor fixture edits ``overview``; ``fopp`` is a base course they do not.
 EDITED_BASE_COURSE = "overview"
@@ -48,7 +51,9 @@ async def _make_question(
         existing.question_json = question_json
         existing.review_flag = flagged
         await update_question(existing)
-        return existing
+        # A row left retired by an earlier run starts this one live again.
+        await unretire_question_by_name(name, base_course)
+        return await fetch_question(name, basecourse=base_course)
     return await create_question(
         QuestionValidator(
             base_course=base_course,
@@ -324,6 +329,9 @@ async def test_delete_assigned_question_is_rejected(auth_editor_client):
 
     page = await auth_editor_client.get("/editor/manage_exercises")
     assert "Assigned questions cannot be deleted" in page.text
+    # The page offers Retire in Delete's place for this question.
+    assert "retireQuestion('editor_test_assigned_delete'" in page.text
+    assert "deleteQuestion('editor_test_assigned_delete'" not in page.text
 
     resp = await auth_editor_client.post(
         "/editor/delete_question",
@@ -352,3 +360,165 @@ async def test_delete_rejects_unedited_base_course(auth_editor_client):
     assert await fetch_question(
         "editor_test_other_delete", basecourse=OTHER_BASE_COURSE
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /editor/retire_question
+# ---------------------------------------------------------------------------
+
+
+async def test_manage_exercises_offers_delete_or_retire(auth_editor_client):
+    """An unassigned question can be deleted; an assigned one only retired."""
+    await _make_question("editor_test_offer_delete")
+    assigned = await _make_question("editor_test_offer_retire")
+    await _assign_question(assigned)
+
+    page = await auth_editor_client.get("/editor/manage_exercises")
+
+    assert "deleteQuestion('editor_test_offer_delete'" in page.text
+    assert "retireQuestion('editor_test_offer_delete'" not in page.text
+    assert "retireQuestion('editor_test_offer_retire'" in page.text
+    assert "deleteQuestion('editor_test_offer_retire'" not in page.text
+
+
+async def test_retire_question(auth_editor_client):
+    """Retiring keeps the row -- and the assignment that uses it -- but stamps
+    retired_on and clears the review flag."""
+    question = await _make_question("editor_test_retire_me")
+    await _assign_question(question)
+
+    resp = await auth_editor_client.post(
+        "/editor/retire_question",
+        json={"name": "editor_test_retire_me", "base_course": EDITED_BASE_COURSE},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["detail"]["status"] == "Success"
+
+    q = await fetch_question("editor_test_retire_me", basecourse=EDITED_BASE_COURSE)
+    # The row survives on purpose -- courses already assigning it keep working.
+    assert q is not None
+    assert q.retired_on is not None
+    assert q.retired_by is not None
+    assert not q.review_flag
+    assert q.id in await fetch_assigned_question_ids([q.id])
+
+
+async def test_retire_reflagged_question(auth_editor_client):
+    """A retired question that gets flagged again can be retired again: the
+    flag is cleared and the original retirement date stands."""
+    question = await _make_question("editor_test_retire_twice")
+    await _assign_question(question)
+    body = {"name": "editor_test_retire_twice", "base_course": EDITED_BASE_COURSE}
+
+    await auth_editor_client.post("/editor/retire_question", json=body)
+    first = await fetch_question(
+        "editor_test_retire_twice", basecourse=EDITED_BASE_COURSE
+    )
+    first.review_flag = True
+    await update_question(first)
+
+    resp = await auth_editor_client.post("/editor/retire_question", json=body)
+
+    assert resp.status_code == 200
+    second = await fetch_question(
+        "editor_test_retire_twice", basecourse=EDITED_BASE_COURSE
+    )
+    assert not second.review_flag
+    assert second.retired_on == first.retired_on
+
+
+async def test_editing_a_retired_question_keeps_it_retired(auth_editor_client):
+    """An instructor can still edit a retired exercise their course assigns.
+
+    That route builds the question from the request, which knows nothing about
+    retirement, so the save must not put the exercise back into search.
+    """
+    question = await _make_question("editor_test_retire_then_edit")
+    await _assign_question(question)
+    await auth_editor_client.post(
+        "/editor/retire_question",
+        json={
+            "name": "editor_test_retire_then_edit",
+            "base_course": EDITED_BASE_COURSE,
+        },
+    )
+
+    # What an edit sends: the row as it was before anyone retired it.
+    question.htmlsrc = "<p>edited after retirement</p>"
+    await update_question(question)
+
+    q = await fetch_question(
+        "editor_test_retire_then_edit", basecourse=EDITED_BASE_COURSE
+    )
+    assert q.htmlsrc == "<p>edited after retirement</p>"
+    assert q.retired_on is not None
+    assert q.retired_by is not None
+
+
+async def test_retired_question_drops_out_of_search(auth_editor_client):
+    """The point of retiring: it stops showing up when instructors look for
+    exercises to assign, even though the row is still there."""
+    question = await _make_question("editor_test_retire_search")
+    await _assign_question(question)
+
+    criteria = schemas.ExercisesSearchRequest(
+        use_base_course=False,
+        base_course=EDITED_BASE_COURSE,
+        limit=1000,
+        filters={"name": {"value": "editor_test_retire_search", "matchMode": "equals"}},
+    )
+    before = await search_exercises(criteria, owner="test_editor")
+    assert [e.name for e in before["exercises"]] == ["editor_test_retire_search"]
+
+    await auth_editor_client.post(
+        "/editor/retire_question",
+        json={"name": "editor_test_retire_search", "base_course": EDITED_BASE_COURSE},
+    )
+
+    after = await search_exercises(criteria, owner="test_editor")
+    assert after["exercises"] == []
+
+
+async def test_retire_unassigned_question_is_rejected(auth_editor_client):
+    """Nothing depends on an unassigned question, so it is deleted, not retired."""
+    await _make_question("editor_test_retire_unassigned")
+
+    resp = await auth_editor_client.post(
+        "/editor/retire_question",
+        json={
+            "name": "editor_test_retire_unassigned",
+            "base_course": EDITED_BASE_COURSE,
+        },
+    )
+
+    assert resp.status_code == 409
+    q = await fetch_question(
+        "editor_test_retire_unassigned", basecourse=EDITED_BASE_COURSE
+    )
+    assert q.retired_on is None
+    assert q.review_flag is True
+
+
+async def test_retire_unknown_question(auth_editor_client):
+    """A question that does not exist is a 404, not a silent success."""
+    resp = await auth_editor_client.post(
+        "/editor/retire_question",
+        json={"name": "editor_test_no_such_q", "base_course": EDITED_BASE_COURSE},
+    )
+
+    assert resp.status_code == 404
+
+
+async def test_retire_rejects_unedited_base_course(auth_editor_client):
+    """An editor cannot retire out of a book they do not edit."""
+    await _make_question("editor_test_other_retire", base_course=OTHER_BASE_COURSE)
+
+    resp = await auth_editor_client.post(
+        "/editor/retire_question",
+        json={"name": "editor_test_other_retire", "base_course": OTHER_BASE_COURSE},
+    )
+
+    assert resp.status_code == 403
+    q = await fetch_question("editor_test_other_retire", basecourse=OTHER_BASE_COURSE)
+    assert q is not None and q.retired_on is None

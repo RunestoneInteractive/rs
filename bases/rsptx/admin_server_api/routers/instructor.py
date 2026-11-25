@@ -1205,6 +1205,20 @@ async def enroll_students(
 
 
 # Assignment Copy Models
+def _retired_exercises_note(count: int) -> str:
+    """A sentence for the copy message when retired exercises came across."""
+    if not count:
+        return ""
+    if count == 1:
+        subject = "1 copied exercise has"
+    else:
+        subject = f"{count} copied exercises have"
+    return (
+        f" {subject} been retired by the book's editors. Retired exercises "
+        "still work, but you may want to replace them."
+    )
+
+
 class CopyAssignmentRequest(BaseModel):
     source_course_id: int
     # None copies everything importable from the source course, which is what
@@ -1242,6 +1256,7 @@ async def copy_assignment(
             )
             if result.duedate_warning:
                 message += f" {result.duedate_warning}"
+            message += _retired_exercises_note(result.retired_exercises)
             return JSONResponse(
                 content={
                     "success": True,
@@ -1251,6 +1266,7 @@ async def copy_assignment(
                     "skipped_readings": result.skipped_readings,
                     "failed": [],
                     "duedate_warning": result.duedate_warning,
+                    "retired_exercises": result.retired_exercises,
                 }
             )
 
@@ -1282,6 +1298,7 @@ async def copy_assignment(
                 " Some due dates could not be adjusted because a course timezone "
                 "setting is invalid -- update it in Course Settings."
             )
+        message += _retired_exercises_note(bulk.retired_exercises)
 
         return JSONResponse(
             content={
@@ -1292,6 +1309,7 @@ async def copy_assignment(
                 "skipped_readings": bulk.skipped_readings,
                 "failed": bulk.failed,
                 "duedate_not_shifted": bulk.duedate_not_shifted,
+                "retired_exercises": bulk.retired_exercises,
             }
         )
 

@@ -1,5 +1,6 @@
 /* Editorial page (admin/editor/manage_exercises.html).
-   Edit or delete a flagged question, or clear its flag and leave it in the book.
+   Edit, delete or retire a flagged question, or clear its flag and leave it in
+   the book.
    showAlert/postJSON come from admin/common.js. */
 
 function removeCard(cardId) {
@@ -47,6 +48,25 @@ function deleteQuestion(qname, baseCourse, cardId) {
         baseCourse,
         cardId,
         `Deleted ${qname}.`
+    );
+}
+
+function retireQuestion(qname, baseCourse, cardId) {
+    if (
+        !confirm(
+            `Retire ${qname} from ${baseCourse}?\n\n` +
+                "It will no longer show up when instructors search for exercises, " +
+                "but courses that already assign it keep working."
+        )
+    ) {
+        return;
+    }
+    postQuestionAction(
+        "/admin/editor/retire_question",
+        qname,
+        baseCourse,
+        cardId,
+        `Retired ${qname}.`
     );
 }
 

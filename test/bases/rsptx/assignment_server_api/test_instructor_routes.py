@@ -868,6 +868,7 @@ async def test_import_of_a_shared_assignment_succeeds(
     # The client tells the instructor what was left behind, so the count is
     # part of the response even when nothing was.
     assert detail["skipped_readings"] == 0
+    assert detail["retired_exercises"] == 0
 
 
 async def test_import_of_a_private_foreign_assignment_is_refused(
