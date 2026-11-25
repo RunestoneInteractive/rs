@@ -44,8 +44,10 @@ main {
 .navbar {
 }
 
+/* max-width, not width: a fixed width overrides rs-core's `width: 100%` and
+   forces horizontal scrolling on narrow screens (WCAG 1.4.10 Reflow). */
 .container {
-  width: 45em;
+  max-width: 45em;
   margin-left: auto;
   margin-right: auto;
 }
