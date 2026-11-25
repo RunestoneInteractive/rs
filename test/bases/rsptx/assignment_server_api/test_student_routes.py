@@ -202,7 +202,7 @@ async def test_sync_assignment_total_preserves_manual_total(auth_assignment_clie
 # ---------------------------------------------------------------------------
 
 
-async def _scratch_assignment_in(course_name, name):
+async def _scratch_assignment_in(course_name, name, **overrides):
     """Create a bare assignment in ``course_name`` and return it."""
     import datetime
 
@@ -210,21 +210,21 @@ async def _scratch_assignment_in(course_name, name):
     from rsptx.db.models import AssignmentValidator
 
     course = await fetch_course(course_name)
-    return await create_assignment(
-        AssignmentValidator(
-            course=course.id,
-            name=name,
-            points=10,
-            released=False,
-            description="wrong course test",
-            duedate=datetime.datetime(2099, 1, 1),
-            visible=True,
-            from_source=False,
-            is_peer=False,
-            current_index=0,
-            peer_async_visible=False,
-        )
+    fields = dict(
+        course=course.id,
+        name=name,
+        points=10,
+        released=False,
+        description="wrong course test",
+        duedate=datetime.datetime(2099, 1, 1),
+        visible=True,
+        from_source=False,
+        is_peer=False,
+        current_index=0,
+        peer_async_visible=False,
     )
+    fields.update(overrides)
+    return await create_assignment(AssignmentValidator(**fields))
 
 
 @asyncio_session
@@ -268,3 +268,35 @@ async def test_do_assignment_own_course_not_redirected(auth_student_client):
     )
 
     assert "my_courses" not in resp.headers.get("location", "")
+
+
+@asyncio_session
+async def test_peer_link_follows_peer_assignments_on_shared_base(
+    auth_student_client, monkeypatch, tmp_path
+):
+    """With PreTeXt student pages on (the default) but no ``_base.html`` in the
+    book, the page falls back to the shared ``_base.html``, whose navbar
+    ignores ebook_config_override. It must still hide "Peer Instruction
+    (Student)" until the course has a peer assignment."""
+    from rsptx.configuration import settings
+    from rsptx.db.crud import fetch_user
+    from rsptx.db.crud.assignment import delete_assignment
+
+    # An empty book folder, so the book-first loader finds no _base.html.
+    monkeypatch.setattr(settings, "book_path", str(tmp_path))
+    user = await fetch_user("testuser1")
+
+    resp = await auth_student_client.get("/student/chooseAssignment")
+    assert resp.status_code == 200
+    assert "Peer Instruction (Student)" not in resp.text
+
+    # Hidden on purpose: any peer assignment brings the link back.
+    peer = await _scratch_assignment_in(
+        user.course_name, "peer_link_test", is_peer=True, visible=False
+    )
+    try:
+        resp = await auth_student_client.get("/student/chooseAssignment")
+        assert resp.status_code == 200
+        assert "Peer Instruction (Student)" in resp.text
+    finally:
+        await delete_assignment(peer.id)

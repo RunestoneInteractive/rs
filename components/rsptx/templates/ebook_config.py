@@ -25,6 +25,7 @@ async def ebook_config_override(
     readings: Optional[list],
     activities: dict,
     use_services: bool = True,
+    has_peer_assignments: Optional[bool] = None,
 ) -> str:
     """Return the ``ebook_config_override`` script statement for a page.
 
@@ -36,6 +37,9 @@ async def ebook_config_override(
         bookfuncs from drawing the assignment reading tracker
     :param activities: the activity counts for the progress bar
     :param use_services: False for a book page viewed in browsing mode
+    :param has_peer_assignments: the caller's ``course_has_peer_assignments``
+        result, so a page that also needs it for ``_navbar.html`` looks it up
+        once; None looks it up here
     """
     # The Author and Editor Dashboard links only appear in the instructor menu,
     # so only instructors pay for the group lookups.
@@ -48,9 +52,10 @@ async def ebook_config_override(
     # The "Peer Instruction (Student)" link is only useful to a logged-in
     # reader, and anonymous readers are most of the page views, so skip the
     # lookup for them.
-    has_peer_assignments = (
-        await course_has_peer_assignments(course.id) if user else False
-    )
+    if has_peer_assignments is None:
+        has_peer_assignments = (
+            await course_has_peer_assignments(course.id) if user else False
+        )
 
     ebook_attrs = dict(
         useRunestoneServices=use_services,

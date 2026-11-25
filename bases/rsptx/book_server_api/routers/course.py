@@ -179,6 +179,10 @@ async def index(request: Request, user=Depends(auth_manager)):
         "base_url": construct_course_url(course),
         "settings": settings,
     }
+    # Both menus need this: a book without its own _base.html falls back to the
+    # shared one, whose _navbar.html ignores ebook_config_override.
+    has_peer_assignments = await course_has_peer_assignments(course.id)
+    context["has_peer_assignments"] = has_peer_assignments
     if use_pretext_student_pages:
         context["ebook_config_override"] = await ebook_config_override(
             course=course,
@@ -189,9 +193,8 @@ async def index(request: Request, user=Depends(auth_manager)):
             # would draw a stale assignment's reading tracker here.
             readings=None,
             activities={},
+            has_peer_assignments=has_peer_assignments,
         )
-    else:
-        context["has_peer_assignments"] = await course_has_peer_assignments(course.id)
     return templates.TemplateResponse(
         request, "book/course/current_course.html", context
     )

@@ -149,6 +149,23 @@ async def test_peer_lookup_only_for_logged_in_readers(peer_lookups):
     assert student["hasPeerAssignments"] is True
 
 
+async def test_caller_supplied_peer_flag_skips_the_lookup(peer_lookups):
+    # Routes that also feed _navbar.html look the flag up once and pass it in.
+    cfg = _parse(
+        await ebook_config_override(
+            course=_course(),
+            user=SimpleNamespace(id=7, username="sue", email="sue@example.com"),
+            user_is_instructor=False,
+            course_attrs={},
+            readings=[],
+            activities={},
+            has_peer_assignments=False,
+        )
+    )
+    assert peer_lookups == []
+    assert cfg["hasPeerAssignments"] is False
+
+
 async def test_course_attr_cannot_close_the_script_tag():
     statement = await ebook_config_override(
         course=_course(),

@@ -220,6 +220,10 @@ async def get_assignments(
         origin=course_markup_system,
         **course_attrs,
     )
+    # Both menus need this: a book without its own _base.html falls back to the
+    # shared one, whose _navbar.html ignores ebook_config_override.
+    has_peer_assignments = await course_has_peer_assignments(course.id)
+    context["has_peer_assignments"] = has_peer_assignments
     if use_pretext_student_pages:
         context["ebook_config_override"] = await ebook_config_override(
             course=course,
@@ -228,9 +232,8 @@ async def get_assignments(
             course_attrs=course_attrs,
             readings=None,  # force bookfuncs to not render assignment tracker
             activities={},
+            has_peer_assignments=has_peer_assignments,
         )
-    else:
-        context["has_peer_assignments"] = await course_has_peer_assignments(course.id)
     return templates.TemplateResponse(
         request, "assignment/student/chooseAssignment.html", context
     )
@@ -1077,6 +1080,9 @@ async def doAssignment(
         allow_pairs="true" if course.allow_pairs else "false",
         **course_attrs,
     )
+    # Both menus need this; see chooseAssignment.
+    has_peer_assignments = await course_has_peer_assignments(course.id)
+    context["has_peer_assignments"] = has_peer_assignments
     if use_pretext_student_pages:
         context["ebook_config_override"] = await ebook_config_override(
             course=course,
@@ -1085,9 +1091,8 @@ async def doAssignment(
             course_attrs=course_attrs,
             readings=None,  # force bookfuncs to not render assignment tracker
             activities={},
+            has_peer_assignments=has_peer_assignments,
         )
-    else:
-        context["has_peer_assignments"] = await course_has_peer_assignments(course.id)
     response = templates.TemplateResponse(
         request, "assignment/student/doAssignment.html", context
     )
