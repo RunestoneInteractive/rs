@@ -2038,3 +2038,84 @@ async def test_question_stats_count_readers_per_reading(auth_instructor_client):
         q["name"]: q["answered_count"] for q in resp.json()["detail"]["questions"]
     }
     assert answered == {"rd_ch/rd_one": 2, "rd_ch/rd_two": 1, "rd_ch/rd_three": 0}
+
+
+async def test_answers_list_counts_attempts_and_shows_the_newest(
+    auth_instructor_client,
+):
+    """Each student's attempts are counted across the answer table and the code
+    table, and the answer shown is the newest -- by timestamp, not insert order.
+    Other questions' rows and other students' rows do not leak in."""
+    import datetime
+
+    from rsptx.db.crud import fetch_course
+    from rsptx.db.models import Code, MchoiceAnswers, UnittestAnswers
+
+    await _enroll_student("testuser1", COURSE_NAME)
+    course = await fetch_course(COURSE_NAME)
+    assignment_id = await _create_assignment(auth_instructor_client, "answers_newest")
+    mc_id = await _add_question(assignment_id, "newest_mc", "mchoice", 4, 1)
+    ac_id = await _add_question(assignment_id, "newest_ac", "activecode", 10, 2)
+
+    def t(minute):
+        return datetime.datetime(2024, 6, 1, 12, minute)
+
+    def mc(sid, div_id, minute, answer):
+        return MchoiceAnswers(
+            timestamp=t(minute),
+            sid=sid,
+            div_id=div_id,
+            course_name=COURSE_NAME,
+            answer=answer,
+            correct=False,
+            percent=0.0,
+        )
+
+    def code(sid, minute, text):
+        return Code(
+            timestamp=t(minute),
+            sid=sid,
+            acid="newest_ac",
+            course_id=course.id,
+            code=text,
+            language="python",
+        )
+
+    # Inserted out of timestamp order so "newest" cannot fall out of the ids.
+    await _add_rows(
+        mc("testuser1", "newest_mc", 3, "2"),
+        mc("testuser1", "newest_mc", 9, "newest"),
+        mc("testuser1", "newest_mc", 1, "0"),
+        mc("testuser1", "some_other_q", 30, "elsewhere"),
+        code("testuser1", 2, "print('old')"),
+        code("testuser1", 8, "print('new')"),
+        code("testuser1", 5, "print('middle')"),
+        UnittestAnswers(
+            timestamp=t(6),
+            sid="testuser1",
+            div_id="newest_ac",
+            course_name=COURSE_NAME,
+            answer="",
+            passed=1,
+            failed=0,
+            correct=True,
+            percent=100.0,
+        ),
+    )
+
+    async def answers_for(question_id):
+        resp = await auth_instructor_client.get(
+            "/instructor/grader/questions/answers",
+            params={"assignment_id": assignment_id, "question_id": question_id},
+        )
+        assert resp.status_code == 200
+        return {a["sid"]: a for a in resp.json()["detail"]["answers"]}
+
+    mc_answers = await answers_for(mc_id)
+    assert mc_answers["testuser1"]["attempts"] == 3
+    assert mc_answers["testuser1"]["answer"] == "newest"
+    assert mc_answers["testuser1"]["timestamp"].startswith("2024-06-01T12:09")
+
+    ac_answers = await answers_for(ac_id)
+    # One unittest row plus three code rows.
+    assert ac_answers["testuser1"]["attempts"] == 4

@@ -6,6 +6,9 @@
     border-bottom: 1px solid var(--rs-color-text-strong);
     margin: 0 0 0.5em 0;
     padding: 0.2em 0;
+    /* Course names are often one long token (e.g. foo_bar_summer25); let it
+       wrap instead of forcing the page to scroll sideways. */
+    overflow-wrap: anywhere;
 }
 
 #studentreport h2 {
@@ -25,9 +28,10 @@
     background-color: var(--rs-color-white);
 }
 
-.dash-section-header {
+#studentreport .dash-section-header {
     font-size: 1rem;
     font-weight: bold;
+    margin: 0;
     padding: 0.4em 0.6em;
     border-bottom: 1px solid var(--rs-color-text-strong);
     background-color: var(--rs-color-surface-muted);
@@ -54,17 +58,20 @@
     font-weight: bold;
 }
 
-.dash-section-content thead td {
-    border: 1px solid var(--rs-color-border-strong);
-    padding: 0.2em 0.5em;
-}
-
 .dash-section-content tbody tr {
     border-bottom: 1px solid var(--rs-color-surface-muted);
 }
 
+.dash-section-content th,
 .dash-section-content td {
     padding: 0.2em 0.5em;
+    text-align: left;
+    vertical-align: top;
+}
+
+/* Row headers (assignment names) keep the look of ordinary cells. */
+.dash-section-content tbody th {
+    font-weight: normal;
 }
 
 .dash-section-content .nodec tbody {
@@ -75,39 +82,89 @@
     border: none;
 }
 
-/* Book completion status colors */
+/* Activity ids are long file names / div ids with no spaces; wrap them
+   rather than clipping or scrolling sideways. */
+.dash-section-content .activity-item {
+    overflow-wrap: anywhere;
+}
+
+/* ---------- Book completion ---------- */
+
+/* Status colors. Each is at least 4.5:1 on white and on the #f3f3f3 hover
+   background, and status is also given by a symbol and screen-reader text,
+   so color is never the only cue. */
 #book-completion .completed {
-    color: #009900;
+    color: #007a00;
 }
 
 #book-completion .started {
-    color: #6e7a00;
+    color: #616b00;
 }
 
 #book-completion .notstarted {
     color: var(--rs-color-text-strong);
 }
 
-.chapter .clickable {
-    cursor: pointer;
+.status-symbol {
+    display: inline-block;
+    width: 1.2em;
+    text-align: center;
+}
+
+.status-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em 1.25em;
+    margin: 0 0 0.6em 0;
+    font-size: 0.9em;
+}
+
+.chapter-list,
+.chapter-detail {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.chapter summary,
+.chapter-empty {
     font-weight: bold;
     padding: 0.2em 0;
 }
 
-.chapter .clickable:hover {
-    background-color: #f3f3f3;
+.chapter summary {
+    cursor: pointer;
+    /* Replace the default marker with our own on the right, matching the
+       previous layout. */
+    list-style: none;
+    display: flex;
+    align-items: baseline;
 }
 
-.chapter .collapse-icon {
-    float: right;
+.chapter summary::-webkit-details-marker {
+    display: none;
 }
 
-.chapter .collapse-icon::after {
+.chapter summary .chapter-name {
+    flex: 1;
+}
+
+/* The triangles are decorative: <summary> already announces expanded /
+   collapsed. The `/ ""` alt text keeps them out of the accessible name;
+   the first declaration is the fallback for browsers without that syntax. */
+.chapter summary::after {
     content: "\25B8"; /* right-pointing triangle */
+    content: "\25B8" / "";
+    padding: 0 0.3em;
 }
 
-.chapter .clickable.expanded .collapse-icon::after {
+.chapter[open] > summary::after {
     content: "\25BE"; /* down-pointing triangle */
+    content: "\25BE" / "";
+}
+
+.chapter summary:hover {
+    background-color: #f3f3f3;
 }
 
 .chapter-detail {
@@ -117,10 +174,6 @@
     font-weight: normal;
 }
 
-.chapter-detail div {
+.chapter-detail li {
     margin-left: 0.5em;
-}
-
-.dhide {
-    display: none;
 }

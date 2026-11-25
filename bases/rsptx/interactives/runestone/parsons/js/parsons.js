@@ -537,7 +537,9 @@ export default class Parsons extends RunestoneBase {
                 var distractIndex;
                 var distractHelptext = "";
                 var tagIndex;
-                var tag;
+                // Reset per block (#1696): a bare `var tag;` keeps the previous
+                // block's value, so an untagged block inherited its tag.
+                var tag = "block-" + i;
                 var dependsIndex;
                 var depends = [];
                 if (textBlock.includes("#paired:")) {
@@ -754,7 +756,9 @@ export default class Parsons extends RunestoneBase {
                 var distractIndex;
                 var distractHelptext = "";
                 var tagIndex;
-                var tag;
+                // Reset per block (#1696): a bare `var tag;` keeps the previous
+                // block's value, so an untagged block inherited its tag.
+                var tag = "block-" + i;
                 var dependsIndex;
                 var depends = [];
                 if (textBlock.includes("#paired:")) {

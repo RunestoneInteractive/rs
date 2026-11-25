@@ -518,6 +518,44 @@ async def list_assignment_questions(
     )
 
 
+async def _latest_with_counts(model, div_col, *conditions) -> list:
+    """The newest row and the row count for each (sid, div_id) in ``model``.
+
+    Both are worked out in the database. Pulling every row and counting in
+    Python built an ORM object -- the full program text, for ``code`` -- for
+    every run of every student, all on the event loop, to keep one per student.
+    The ranking subquery reads only ids, sids, div_ids and timestamps, so the
+    full row is fetched just for the newest attempt.
+
+    :param model: the answer table, or ``Code``.
+    :param div_col: the column holding the div_id (``Code.acid`` for code).
+    :param conditions: the WHERE clauses selecting the question and course.
+    :return: ``(row, attempts)`` pairs, one per (sid, div_id).
+    """
+    partition = (model.sid, div_col)
+    ranked = (
+        select(
+            model.id.label("id"),
+            func.count().over(partition_by=partition).label("attempts"),
+            func.row_number()
+            .over(
+                partition_by=partition,
+                order_by=(model.timestamp.desc(), model.id.desc()),
+            )
+            .label("rn"),
+        )
+        .where(*conditions)
+        .subquery()
+    )
+    async with async_session() as session:
+        res = await session.execute(
+            select(model, ranked.c.attempts)
+            .join(ranked, ranked.c.id == model.id)
+            .where(ranked.c.rn == 1)
+        )
+        return res.all()
+
+
 @router.get("/questions/answers")
 @instructor_role_required()
 async def list_question_answers(
@@ -588,25 +626,18 @@ async def list_question_answers(
     for qtype, div_ids in by_type.items():
         tbl = _answer_table_for(qtype)
         if tbl is not None:
-            async with async_session() as session:
-                q = (
-                    select(tbl)
-                    .where(
-                        and_(
-                            tbl.div_id.in_(div_ids),
-                            tbl.course_name == course.course_name,
-                        )
-                    )
-                    .order_by(tbl.sid, tbl.timestamp.desc())
-                )
-                res = await session.execute(q)
-                for a in res.scalars():
-                    if not _wanted(a.sid, a.div_id):
-                        continue
-                    attempt_counts[a.sid] = attempt_counts.get(a.sid, 0) + 1
-                    if a.sid not in latest_by_sid:
-                        latest_by_sid[a.sid] = a
-                        answer_source[a.sid] = "answer_table"
+            for a, attempts in await _latest_with_counts(
+                tbl,
+                tbl.div_id,
+                tbl.div_id.in_(div_ids),
+                tbl.course_name == course.course_name,
+            ):
+                if not _wanted(a.sid, a.div_id):
+                    continue
+                attempt_counts[a.sid] = attempt_counts.get(a.sid, 0) + attempts
+                if a.sid not in latest_by_sid:
+                    latest_by_sid[a.sid] = a
+                    answer_source[a.sid] = "answer_table"
 
         interaction_events = interaction_events_for(qtype)
         if interaction_events:
@@ -627,25 +658,18 @@ async def list_question_answers(
                     answer_source[u.sid] = "useinfo"
 
         if qtype in CODE_TABLE_TYPES:
-            async with async_session() as session:
-                q = (
-                    select(Code)
-                    .where(
-                        and_(
-                            Code.acid.in_(div_ids),
-                            Code.course_id == course.id,
-                        )
-                    )
-                    .order_by(Code.sid, Code.timestamp.desc())
-                )
-                res = await session.execute(q)
-                for c in res.scalars():
-                    if not _wanted(c.sid, c.acid):
-                        continue
-                    attempt_counts[c.sid] = attempt_counts.get(c.sid, 0) + 1
-                    if c.sid not in latest_by_sid:
-                        latest_by_sid[c.sid] = c
-                        answer_source[c.sid] = "code_table"
+            for c, attempts in await _latest_with_counts(
+                Code,
+                Code.acid,
+                Code.acid.in_(div_ids),
+                Code.course_id == course.id,
+            ):
+                if not _wanted(c.sid, c.acid):
+                    continue
+                attempt_counts[c.sid] = attempt_counts.get(c.sid, 0) + attempts
+                if c.sid not in latest_by_sid:
+                    latest_by_sid[c.sid] = c
+                    answer_source[c.sid] = "code_table"
 
     # One query for the whole class rather than one per student: the roster is
     # the loop bound now, not the (usually shorter) list of submitters.

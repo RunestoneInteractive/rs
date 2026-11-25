@@ -926,7 +926,9 @@ async def fetch_chooser_data(
         pages_only=request_data.pages_only,
         owner=user.username,
     )
-    return make_json_response(status=status.HTTP_200_OK, detail={"questions": res})
+    # The tree is plain JSON-ready dicts: jsonable_encoder walking every question
+    # in the book was over a second of the event loop per call in production.
+    return JSONResponse(content={"detail": {"questions": res}})
 
 
 @router.post("/exercises/search")

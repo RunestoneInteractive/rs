@@ -1250,6 +1250,32 @@ describe("dag grading", () => {
         p.checkCurrentAnswer();
         expect(p.grade).toBe("correct");
     });
+
+    // #1696: an untagged block used to inherit the previous block's tag
+    // (`var tag;` is not reset per loop pass), so it could satisfy a
+    // dependency it has nothing to do with.
+    it("does not let an untagged block inherit the previous block's tag", async () => {
+        const p = await makeParsons({
+            blocks: "a = 1 #tag:a;depends:;\n---\nb = 2\n---\nc = a #tag:;depends:a;",
+            attrs: 'data-language="python" data-order="0,1,2" data-grader="dag"',
+        });
+        expect(p.lines[1].tag).toBe("block-1");
+        expect(p.lines[1].depends).toEqual([]);
+        answer(p, [1, 2, 0]); // C before A breaks C's dependency
+        p.checkCurrentAnswer();
+        expect(p.grade).toBe("incorrectMoveBlocks");
+    });
+
+    it("gives each untagged block its own tag", async () => {
+        const p = await makeParsons({
+            blocks: "x = 1\n---\ny = 2\n---\nz = 3 #tag:z;depends:;",
+            attrs: 'data-language="python" data-order="0,1,2" data-grader="dag"',
+        });
+        expect(p.lines.map((l) => l.tag)).toEqual(["block-0", "block-1", "z"]);
+        answer(p, [1, 0, 2]);
+        p.checkCurrentAnswer();
+        expect(p.grade).toBe("correct");
+    });
 });
 
 describe("timed parsons", () => {

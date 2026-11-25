@@ -24,12 +24,23 @@ synchronous is running on it and wants ``asyncio.to_thread``.
 
 Only when lag is *low* and the pool is *full* does adding worker processes
 help; the reverse means the fix is to get blocking work off the loop.
+
+Lag alone cannot say what blocked the loop, so a watchdog thread also samples
+the event loop thread's stack whenever the loop has been stuck for
+``LOOP_STALL_DUMP_MS`` (default 500ms) and logs it once the stall ends, as
+``db pool: event loop blocked for NNNms serving GET /path``. The stack's
+innermost frames are the code to fix.
 """
 
 from __future__ import annotations
 
 import asyncio
+import collections
+import os
+import sys
 import threading
+import time
+import traceback
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -56,6 +67,30 @@ SATURATION_WARN_FRACTION = 0.8
 
 # Lag above this is worth calling out on its own; see the module docstring.
 LOOP_LAG_WARN_MS = 250.0
+
+# --- Stall watchdog --------------------------------------------------------
+#
+# The lag numbers above say *that* the loop stalled, never *what* it was
+# doing. The watchdog answers that: a heartbeat task bumps a timestamp every
+# HEARTBEAT_SECONDS, and a separate thread notices when the heartbeat is
+# overdue and samples the event loop thread's Python stack while it is still
+# stuck. One warning per stall, naming the request and the line.
+#
+# Stalls at least this long get a stack dump. 0 disables the watchdog.
+STALL_DUMP_MS = float(os.environ.get("LOOP_STALL_DUMP_MS", "500"))
+HEARTBEAT_SECONDS = 0.05
+WATCHDOG_POLL_SECONDS = 0.1
+# Innermost frames kept per stack; the outer ones are uvicorn and asyncio.
+STALL_STACK_FRAMES = 25
+# Distinct stacks kept per stall. One blocking call samples the same stack
+# every time; many different stacks mean a busy loop, not a single culprit.
+MAX_STACKS_PER_STALL = 3
+# Cap on dumps per LOG_INTERVAL_SECONDS window, so a pathological stretch
+# cannot flood the logs. The window's summary says how many were skipped.
+MAX_STALL_REPORTS_PER_WINDOW = 20
+# A stall still in progress after this long is reported without waiting for
+# it to end -- it may never end.
+STALL_ONGOING_REPORT_SECONDS = 10.0
 
 
 @dataclass
@@ -91,6 +126,14 @@ class _State:
     lock: threading.Lock = field(default_factory=threading.Lock)
     #: whether the pool event listeners have been installed
     listeners_installed: bool = False
+    #: monotonic time of the last heartbeat; written only on the event loop
+    last_beat: float = 0.0
+    #: (beat the stall began after, stall length in ms), appended by the
+    #: heartbeat when it wakes late and drained by the watchdog thread
+    stall_gaps: collections.deque = field(default_factory=collections.deque)
+    #: stall dumps emitted / skipped (over the cap) in the current window
+    stall_reports: int = 0
+    stall_reports_skipped: int = 0
 
 
 _state = _State()
@@ -287,9 +330,197 @@ def _log_summary() -> None:
             f"{loop['lag_ms_max_recent']:.0f}ms in the last "
             f"{LOG_INTERVAL_SECONDS:.0f}s. Something synchronous is running on "
             "the loop; it belongs in asyncio.to_thread. Adding worker "
-            "processes hides this, it does not fix it."
+            "processes hides this, it does not fix it." + _stall_report_note()
         )
-    _state.window.reset()
+    with _state.lock:
+        _state.window.reset()
+        _state.stall_reports = 0
+        _state.stall_reports_skipped = 0
+
+
+def _stall_report_note() -> str:
+    """Point the lag warning at the watchdog's stack dumps, if any."""
+    if STALL_DUMP_MS <= 0:
+        return " (The stall watchdog is off; set LOOP_STALL_DUMP_MS to enable it.)"
+    note = (
+        f" Stalls over {STALL_DUMP_MS:.0f}ms are logged with the blocking "
+        "stack as 'event loop blocked for'."
+    )
+    if _state.stall_reports_skipped:
+        note += (
+            f" {_state.stall_reports_skipped} more stalls in this window were "
+            f"not dumped (cap {MAX_STALL_REPORTS_PER_WINDOW})."
+        )
+    return note
+
+
+# --- Stall watchdog ----------------------------------------------------------
+
+
+async def _heartbeat(threshold_s: float) -> None:
+    """Bump ``_state.last_beat`` on the loop, and record every late wakeup.
+
+    Measuring the gap here, rather than in the watchdog, keeps the stall length
+    exact, and it still catches a stall the watchdog never got to sample: a C
+    extension that holds the GIL (a huge regex, a big pydantic-core or json
+    serialization) starves the watchdog thread too.
+    """
+    _state.last_beat = time.monotonic()
+    while True:
+        await asyncio.sleep(HEARTBEAT_SECONDS)
+        now = time.monotonic()
+        gap = now - _state.last_beat - HEARTBEAT_SECONDS
+        if gap >= threshold_s:
+            # Appended before last_beat moves, so a watchdog that sees the new
+            # beat is guaranteed to find this gap when it drains the queue.
+            _state.stall_gaps.append((_state.last_beat, gap * 1000))
+        _state.last_beat = now
+
+
+def _snapshot(frame) -> tuple[list, str]:
+    """The loop thread's frame chain (innermost first) and the request it serves.
+
+    One quick walk, before anything slow. The loop thread keeps running in GIL
+    slices while the watchdog works, and once the endpoint coroutine returns or
+    suspends its ``f_back`` is None: a second walk done after formatting the
+    stack used to stop short of every frame holding the ASGI ``scope``, so the
+    request went unreported.
+
+    Only the path: the query string can carry student data and adds nothing to
+    finding the blocking code.
+    """
+    frames = []
+    request = ""
+    while frame is not None:
+        frames.append((frame, frame.f_lineno))
+        if not request:
+            try:
+                scope = frame.f_locals.get("scope")
+            except Exception:
+                scope = None
+            if isinstance(scope, dict) and scope.get("type") == "http":
+                request = f"{scope.get('method', '?')} {scope.get('path', '?')}"
+        frame = frame.f_back
+    return frames, request
+
+
+class _StallSamples:
+    """Distinct stacks sampled during one stall, with how often each was seen."""
+
+    def __init__(self) -> None:
+        self.stacks: dict[str, int] = {}
+        self.extra = 0
+        self.request = ""
+        self.reported_ongoing = False
+
+    def add(self, stack: str, request: str) -> None:
+        if stack in self.stacks:
+            self.stacks[stack] += 1
+        elif len(self.stacks) < MAX_STACKS_PER_STALL:
+            self.stacks[stack] = 1
+        else:
+            self.extra += 1
+        self.request = self.request or request
+
+
+class _StallWatchdog(threading.Thread):
+    """Daemon thread that dumps the loop thread's stack while it is blocked."""
+
+    def __init__(self, loop_thread_id: int, threshold_s: float) -> None:
+        super().__init__(name="loop-stall-watchdog", daemon=True)
+        self.loop_thread_id = loop_thread_id
+        self.threshold_s = threshold_s
+        self.stopped = threading.Event()
+        #: samples per stall, keyed by the heartbeat the stall began after
+        self.samples: dict[float, _StallSamples] = {}
+
+    def run(self) -> None:
+        while not self.stopped.wait(WATCHDOG_POLL_SECONDS):
+            try:
+                self._poll()
+            except Exception as e:  # pragma: no cover - diagnostics must not break
+                rslogger.warning(f"db pool monitor: stall watchdog failed ({e})")
+                self.samples.clear()
+
+    def _poll(self) -> None:
+        # Read the beat before draining: see _heartbeat for why that order
+        # never loses a gap.
+        beat = _state.last_beat
+        blocked = time.monotonic() - beat - HEARTBEAT_SECONDS
+        if blocked >= self.threshold_s:
+            samples = self.samples.setdefault(beat, _StallSamples())
+            samples.add(*self._loop_stack())
+            if blocked >= STALL_ONGOING_REPORT_SECONDS and not samples.reported_ongoing:
+                samples.reported_ongoing = True
+                self._report(blocked * 1000, samples, ongoing=True)
+
+        while _state.stall_gaps:
+            start, gap_ms = _state.stall_gaps.popleft()
+            self._report(gap_ms, self.samples.pop(start, None), ongoing=False)
+
+        # A stall that ended just under the threshold leaves samples but no gap.
+        for key in [k for k in self.samples if k != beat]:
+            del self.samples[key]
+
+    def _loop_stack(self) -> tuple[str, str]:
+        frame = sys._current_frames().get(self.loop_thread_id)
+        if frame is None:
+            return "", ""
+        frames, request = _snapshot(frame)
+        stack = traceback.StackSummary.extract(
+            iter(frames), limit=STALL_STACK_FRAMES, lookup_lines=False
+        )
+        stack.reverse()
+        return "".join(stack.format()), request
+
+    def _report(
+        self, blocked_ms: float, samples: Optional[_StallSamples], ongoing: bool
+    ) -> None:
+        with _state.lock:
+            if _state.stall_reports >= MAX_STALL_REPORTS_PER_WINDOW:
+                _state.stall_reports_skipped += 1
+                return
+            _state.stall_reports += 1
+
+        head = (
+            f"db pool: event loop blocked for {'over ' if ongoing else ''}"
+            f"{blocked_ms:.0f}ms{' and counting' if ongoing else ''}"
+        )
+        if samples and samples.request:
+            head += f" serving {samples.request}"
+        if not samples or not samples.stacks:
+            rslogger.warning(
+                f"{head}. No stack was captured: the watchdog thread could not "
+                "run either, which means the loop was inside C code holding the "
+                "GIL (a large regex, json or pydantic serialization, a C "
+                "extension) rather than in Python."
+            )
+            return
+
+        parts = [head + ". Event loop thread stack (innermost call last):"]
+        for i, (stack, count) in enumerate(
+            sorted(samples.stacks.items(), key=lambda kv: -kv[1])
+        ):
+            if len(samples.stacks) > 1:
+                parts.append(f"--- stack {i + 1}, seen in {count} samples:")
+            parts.append(stack.rstrip())
+        if len(samples.stacks) > 1 or samples.extra:
+            parts.append(
+                f"--- {len(samples.stacks) + samples.extra}+ different stacks: the "
+                "loop was busy with many callbacks, not stuck in a single call."
+            )
+        rslogger.warning("\n".join(parts))
+
+
+def _start_watchdog() -> tuple[Optional[asyncio.Task], Optional[_StallWatchdog]]:
+    """Start the heartbeat on the running loop and the watchdog thread."""
+    if STALL_DUMP_MS <= 0:
+        return None, None
+    threshold_s = STALL_DUMP_MS / 1000
+    heartbeat = asyncio.create_task(_heartbeat(threshold_s))
+    watchdog = _StallWatchdog(threading.get_ident(), threshold_s)
+    watchdog.start()
+    return heartbeat, watchdog
 
 
 async def monitor_loop() -> None:
@@ -301,20 +532,32 @@ async def monitor_loop() -> None:
     last_log = loop.time()
     rslogger.info(
         f"db pool monitor: sampling every {SAMPLE_INTERVAL_SECONDS}s, "
-        f"summarizing every {LOG_INTERVAL_SECONDS:.0f}s"
+        f"summarizing every {LOG_INTERVAL_SECONDS:.0f}s, "
+        + (
+            f"dumping stacks for stalls over {STALL_DUMP_MS:.0f}ms"
+            if STALL_DUMP_MS > 0
+            else "stall watchdog off"
+        )
     )
-    while True:
-        before = loop.time()
-        await asyncio.sleep(SAMPLE_INTERVAL_SECONDS)
-        # However much later than requested we woke up is the loop's backlog.
-        lag_ms = max(0.0, (loop.time() - before - SAMPLE_INTERVAL_SECONDS) * 1000)
-        try:
-            _sample(lag_ms)
-            if loop.time() - last_log >= LOG_INTERVAL_SECONDS:
-                _log_summary()
-                last_log = loop.time()
-        except Exception as e:  # pragma: no cover - diagnostics must not break
-            rslogger.warning(f"db pool monitor: sample failed ({e})")
+    heartbeat, watchdog = _start_watchdog()
+    try:
+        while True:
+            before = loop.time()
+            await asyncio.sleep(SAMPLE_INTERVAL_SECONDS)
+            # However much later than requested we woke up is the loop's backlog.
+            lag_ms = max(0.0, (loop.time() - before - SAMPLE_INTERVAL_SECONDS) * 1000)
+            try:
+                _sample(lag_ms)
+                if loop.time() - last_log >= LOG_INTERVAL_SECONDS:
+                    _log_summary()
+                    last_log = loop.time()
+            except Exception as e:  # pragma: no cover - diagnostics must not break
+                rslogger.warning(f"db pool monitor: sample failed ({e})")
+    finally:
+        if heartbeat:
+            heartbeat.cancel()
+        if watchdog:
+            watchdog.stopped.set()
 
 
 def start_pool_monitor() -> Optional[asyncio.Task]:

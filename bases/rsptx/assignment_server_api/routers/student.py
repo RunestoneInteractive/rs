@@ -258,6 +258,8 @@ def _build_chapter_progress(chapters, subchapters, progress):
         Note ``chapter_id`` here holds the chapter *label* and ``sub_chapter_id``
         holds the subchapter *label*.
     :return: A list of dicts with ``label``, ``status`` and ``subchapters``.
+        Every subchapter in the book is listed, in book order; one with no
+        progress row counts as not started.
     """
     # Map a chapter's numeric id -> its label, so we can group subchapters
     # (which reference Chapter.id) by the chapter label used in the progress
@@ -283,31 +285,31 @@ def _build_chapter_progress(chapters, subchapters, progress):
     for chapter in chapters:
         clabel = chapter.chapter_label
         chap_progress = progress_by_chapter.get(clabel, {})
+        sub_name_map = subnames_by_chapter.get(clabel, {})
 
-        # Determine the chapter-level status the same way the legacy dashboard
-        # did: completed only if every started subchapter is completed, started
-        # if any progress exists, otherwise not started.
-        highest = -1
-        lowest = 1
-        for prog in chap_progress.values():
-            lowest = min(lowest, prog)
-            highest = max(highest, prog)
-        if highest == -1:
+        # Book subchapters first, in book order, then any progress rows whose
+        # subchapter is no longer in the book.
+        statuses = {label: chap_progress.get(label, -1) for label in sub_name_map}
+        for label, prog in chap_progress.items():
+            statuses.setdefault(label, prog)
+
+        # Completed only if every subchapter is completed, not started if none
+        # has been touched, otherwise started.
+        values = list(statuses.values())
+        if not values or max(values) == -1:
             chapter_status = -1
-        elif lowest == 1:
+        elif min(values) == 1:
             chapter_status = 1
         else:
             chapter_status = 0
 
-        sub_name_map = subnames_by_chapter.get(clabel, {})
-        sub_list = []
-        for sub_label, prog in chap_progress.items():
-            sub_list.append(
-                {
-                    "label": sub_name_map.get(sub_label, sub_label),
-                    "status": _COMPLETION_STATUS_TEXT.get(prog, prog),
-                }
-            )
+        sub_list = [
+            {
+                "label": sub_name_map.get(label, label),
+                "status": _COMPLETION_STATUS_TEXT.get(prog, prog),
+            }
+            for label, prog in statuses.items()
+        ]
 
         result.append(
             {

@@ -998,3 +998,122 @@ async def test_download_assignment_without_an_rs_info_cookie(
     rows = await _download_rows(auth_instructor_client, download_assignment.id)
     assert len(rows) == 1
     assert rows[0]["Timestamp"] == "2026-03-10 02:00:00"
+
+
+# ---------------------------------------------------------------------------
+# POST /instructor/fetch_chooser_data
+# ---------------------------------------------------------------------------
+
+CHOOSER_CHAPTER = "chooser_ch"
+
+
+def _chooser_question(name, qnumber=None, **kw):
+    from rsptx.db.models import Question
+
+    fields = dict(
+        base_course=LATE_COURSE,
+        name=name,
+        qnumber=qnumber,
+        chapter=CHOOSER_CHAPTER,
+        subchapter="chooser_sub",
+        author="test_instructor",
+        question="the question source, which the chooser never sends",
+        htmlsrc=f"<div id='{name}'></div>",
+        timestamp=canonical_utcnow(),
+        question_type="mchoice",
+        is_private=False,
+        from_source=True,
+        review_flag=False,
+    )
+    fields.update(kw)
+    return Question(**fields)
+
+
+@pytest.fixture(scope="session")
+async def chooser_book(instructor_user):
+    """One chapter with one subchapter of questions in the instructor's book."""
+    from rsptx.db.async_session import async_session
+    from rsptx.db.models import Chapter, SubChapter
+
+    async with async_session.begin() as session:
+        chapter = Chapter(
+            chapter_name="Chooser Chapter",
+            course_id=LATE_COURSE,
+            chapter_label=CHOOSER_CHAPTER,
+            chapter_num=90,
+        )
+        session.add(chapter)
+        await session.flush()
+        session.add(
+            SubChapter(
+                sub_chapter_name="Chooser Section",
+                chapter_id=chapter.id,
+                sub_chapter_label="chooser_sub",
+                skipreading=False,
+                sub_chapter_num=3,
+            )
+        )
+        page = _chooser_question("chooser_page", question_type="page")
+        session.add_all(
+            [
+                # Q1.10 before Q1.2 in SQL's plain string order; the tree must
+                # put them in natural order.
+                _chooser_question("chooser_q10", "Q1.10"),
+                _chooser_question("chooser_q2", "Q1.2"),
+                _chooser_question("chooser_opt", "Q1.3", optional=True),
+                _chooser_question(
+                    "chooser_mine", "Q1.4", is_private=True, owner="test_instructor"
+                ),
+                _chooser_question(
+                    "chooser_theirs", "Q1.5", is_private=True, owner="someone_else"
+                ),
+                page,
+            ]
+        )
+    return page.id
+
+
+async def test_chooser_data_builds_the_chapter_tree(
+    auth_instructor_client, chooser_book
+):
+    """The tree nests questions under chapter and subchapter, in natural order,
+    with the section's page id and its count of required questions."""
+    resp = await auth_instructor_client.post(
+        "/instructor/fetch_chooser_data",
+        json={"skipreading": False, "from_source_only": True, "pages_only": False},
+    )
+    assert resp.status_code == 200
+    tree = resp.json()["detail"]["questions"]
+    chapter = next(c for c in tree if c["key"] == CHOOSER_CHAPTER)
+    assert chapter["data"] == {
+        "title": "Chooser Chapter",
+        "num": 90,
+        "chapter_num": 90,
+    }
+    [section] = chapter["children"]
+    assert section["key"] == "chooser_sub"
+    assert section["data"] == {
+        "title": "Chooser Section",
+        "num": 3,
+        "chapter_num": 90,
+        "sub_chapter_num": 3,
+        "chapter": CHOOSER_CHAPTER,
+        "subchapter": "chooser_sub",
+        "id": chooser_book,
+        # The page and every question but the optional one; someone else's
+        # private question is not listed at all.
+        "numQuestions": 4,
+    }
+    assert [q["key"] for q in section["children"]] == [
+        "chooser_page",
+        "chooser_q2",
+        "chooser_opt",
+        "chooser_mine",
+        "chooser_q10",
+    ]
+    data = section["children"][1]["data"]
+    assert data["name"] == "chooser_q2"
+    assert data["htmlsrc"] == "<div id='chooser_q2'></div>"
+    assert data["chapter_num"] == 90 and data["sub_chapter_num"] == 3
+    assert data["optional"] is None and data["from_source"] is True
+    assert "question" not in data and "timestamp" not in data

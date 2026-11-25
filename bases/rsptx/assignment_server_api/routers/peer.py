@@ -18,6 +18,7 @@ import sys
 from typing import Optional
 
 import pandas as pd
+import redis.asyncio as aioredis
 
 # Third-party imports
 # -------------------
@@ -135,6 +136,32 @@ router = APIRouter(
 )
 
 rslogger.info("Registering peer instruction API routes")
+
+# Redis
+# =====
+# One shared asyncio client for the whole process. The handlers used to build a
+# synchronous client per request, so every peer request opened a fresh TCP
+# connection (and did a blocking DNS lookup) on the event loop, and make_pairs
+# made one blocking round trip per student.
+_redis: Optional[aioredis.Redis] = None
+
+
+def peer_redis() -> aioredis.Redis:
+    """The process's shared Redis client; connects lazily on first use."""
+    global _redis
+    if _redis is None:
+        _redis = aioredis.from_url(settings.redis_uri)
+    return _redis
+
+
+async def close_peer_redis() -> None:
+    """Close the shared client. Called from the app's lifespan on shutdown."""
+    global _redis
+    if _redis is not None:
+        # redis-py 5 renamed close() to aclose(); 4.x only has close().
+        closer = getattr(_redis, "aclose", None) or _redis.close
+        await closer()
+        _redis = None
 
 
 # Instructor Routes
@@ -271,14 +298,9 @@ async def get_peer_dashboard(
     await create_useinfo_entry(log_entry)
 
     # Initialize Redis state and publish enableNext message
-    import json
     import os
 
-    import redis
-
     try:
-        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-        r.hset(f"{course.course_name}_state", "mess_count", "0")
         mess = {
             "sender": user.username,
             "type": "control",
@@ -287,9 +309,12 @@ async def get_peer_dashboard(
             "course_name": course.course_name,
             "div_id": current_question.name,
         }
-        r.publish("peermessages", json.dumps(mess))
-        r.hset(f"{course.course_name}_state", "current_phase", json.dumps(mess))
-        r.delete(f"assignment_{assignment_id}_state")
+        async with peer_redis().pipeline(transaction=False) as pipe:
+            pipe.hset(f"{course.course_name}_state", "mess_count", "0")
+            pipe.publish("peermessages", json.dumps(mess))
+            pipe.hset(f"{course.course_name}_state", "current_phase", json.dumps(mess))
+            pipe.delete(f"assignment_{assignment_id}_state")
+            await pipe.execute()
     except Exception as e:
         rslogger.error(f"Error initializing Redis: {e}")
 
@@ -979,16 +1004,13 @@ async def make_pairs(
     ``peergroup`` useinfo events) and chat groups to support A/B experimentation,
     mimicking the legacy web2py behavior.
     """
-    import os
-
-    import redis
     from dateutil.parser import parse
 
     rslogger.info(f"Making pairs for {div_id}, group_size={group_size}, is_ab={is_ab}")
 
     try:
-        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-        r.delete(f"partnerdb_{course.course_name}")
+        r = peer_redis()
+        await r.delete(f"partnerdb_{course.course_name}")
 
         # Get student answers from the database
         st = parse(start_time)
@@ -1083,11 +1105,13 @@ async def make_pairs(
                 partners = [partner for partner in group if partner != p]
                 gdict[p] = partners
 
-        # Save chat groups to Redis
-        for k, v in gdict.items():
-            r.hset(f"partnerdb_{course.course_name}", k, json.dumps(v))
-
-        r.hset(f"{course.course_name}_state", "mess_count", "0")
+        # Save chat groups to Redis. Pipelines below send each batch in one
+        # round trip, in order, instead of one round trip per student.
+        async with r.pipeline(transaction=False) as pipe:
+            for k, v in gdict.items():
+                pipe.hset(f"partnerdb_{course.course_name}", k, json.dumps(v))
+            pipe.hset(f"{course.course_name}_state", "mess_count", "0")
+            await pipe.execute()
 
         # Broadcast partner information for chat (enableChat).
         # Format matches web2py: "answer" is a JSON dict of {partner_sid: letter_answer}.
@@ -1101,20 +1125,6 @@ async def make_pairs(
                 return ",".join([chr(65 + int(x)) for x in ans.split(",")])
             return ans
 
-        for sid in gdict:
-            partners = gdict[sid]
-            pdict = {p: _to_letter(sid_ans.get(p)) for p in partners}
-            mess = {
-                "type": "control",
-                "from": sid,
-                "to": sid,
-                "message": "enableChat",
-                "broadcast": False,
-                "answer": json.dumps(pdict),
-                "course_name": course.course_name,
-            }
-            r.publish("peermessages", json.dumps(mess))
-
         # Store per-student phase so reconnecting students catch up to the right UI.
         # Text-chat and verbal (face-chat) students get different phases in A/B mode,
         # so we store per-student under an assignment-scoped key to avoid cross-session bleed.
@@ -1123,19 +1133,34 @@ async def make_pairs(
             if assignment_id
             else f"{course.course_name}_state"
         )
-        for sid in gdict:
-            r.hset(
-                state_key,
-                sid,
-                json.dumps(
-                    {
-                        "type": "control",
-                        "message": "enableChat",
-                        "broadcast": False,
-                        "course_name": course.course_name,
-                    }
-                ),
-            )
+        async with r.pipeline(transaction=False) as pipe:
+            for sid in gdict:
+                partners = gdict[sid]
+                pdict = {p: _to_letter(sid_ans.get(p)) for p in partners}
+                mess = {
+                    "type": "control",
+                    "from": sid,
+                    "to": sid,
+                    "message": "enableChat",
+                    "broadcast": False,
+                    "answer": json.dumps(pdict),
+                    "course_name": course.course_name,
+                }
+                pipe.publish("peermessages", json.dumps(mess))
+            for sid in gdict:
+                pipe.hset(
+                    state_key,
+                    sid,
+                    json.dumps(
+                        {
+                            "type": "control",
+                            "message": "enableChat",
+                            "broadcast": False,
+                            "course_name": course.course_name,
+                        }
+                    ),
+                )
+            await pipe.execute()
 
         # If doing A/B, also send face-chat groups based on in-person groups
         if is_ab and peeps_in_person:
@@ -1148,36 +1173,38 @@ async def make_pairs(
                 for s in students
             }
 
-            for p in peeps_in_person:
-                pgroup: set[str] = set()
-                for grp in in_person_groups:
-                    if p in grp:
-                        pgroup = grp
-                        break
-                # Convert usernames to display names when possible
-                display_group = [peeps_dict.get(x, x) for x in pgroup]
-                mess = {
-                    "type": "control",
-                    "from": p,
-                    "to": p,
-                    "message": "enableFaceChat",
-                    "broadcast": False,
-                    "group": display_group,
-                    "course_name": course.course_name,
-                }
-                r.publish("peermessages", json.dumps(mess))
-                r.hset(
-                    state_key,
-                    p,
-                    json.dumps(
-                        {
-                            "type": "control",
-                            "message": "enableFaceChat",
-                            "broadcast": False,
-                            "course_name": course.course_name,
-                        }
-                    ),
-                )
+            async with r.pipeline(transaction=False) as pipe:
+                for p in peeps_in_person:
+                    pgroup: set[str] = set()
+                    for grp in in_person_groups:
+                        if p in grp:
+                            pgroup = grp
+                            break
+                    # Convert usernames to display names when possible
+                    display_group = [peeps_dict.get(x, x) for x in pgroup]
+                    mess = {
+                        "type": "control",
+                        "from": p,
+                        "to": p,
+                        "message": "enableFaceChat",
+                        "broadcast": False,
+                        "group": display_group,
+                        "course_name": course.course_name,
+                    }
+                    pipe.publish("peermessages", json.dumps(mess))
+                    pipe.hset(
+                        state_key,
+                        p,
+                        json.dumps(
+                            {
+                                "type": "control",
+                                "message": "enableFaceChat",
+                                "broadcast": False,
+                                "course_name": course.course_name,
+                            }
+                        ),
+                    )
+                await pipe.execute()
 
         rslogger.info(f"Created {len(group_list)} chat groups (is_ab={is_ab})")
         return JSONResponse(content={"status": "success", "groups": len(group_list)})
@@ -1475,10 +1502,7 @@ async def publish_message(
     Publish a message to the Redis pub/sub for peer instruction.
     Used for both text chat and control messages.
     """
-    import json
-    import os
     from rsptx.auth.session import is_instructor
-    import redis
 
     try:
         data = await request.json()
@@ -1511,30 +1535,33 @@ async def publish_message(
             data["sender"] = user.username
 
         # Now that the permission is checked, we can publish
-        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-        r.publish("peermessages", json.dumps(data))
+        async with peer_redis().pipeline(transaction=False) as pipe:
+            pipe.publish("peermessages", json.dumps(data))
 
-        # Store phase-change control messages so reconnecting students can catch up
-        # countDownAndStop is stored so a student who reconnects after a vote
-        # ends sees voting closed instead of the stale enableVote reopening it.
-        if data.get("type") == "control" and data.get("message") in (
-            "enableVote",
-            "enableNext",
-            "enableChat",
-            "enableFaceChat",
-            "countDownAndStop",
-        ):
-            r.hset(f"{course.course_name}_state", "current_phase", json.dumps(data))
-            if data.get("message") in (
+            # Store phase-change control messages so reconnecting students can catch up
+            # countDownAndStop is stored so a student who reconnects after a vote
+            # ends sees voting closed instead of the stale enableVote reopening it.
+            if data.get("type") == "control" and data.get("message") in (
                 "enableVote",
                 "enableNext",
+                "enableChat",
+                "enableFaceChat",
                 "countDownAndStop",
-            ) and data.get("assignment_id"):
-                r.delete(f"assignment_{data['assignment_id']}_state")
+            ):
+                pipe.hset(
+                    f"{course.course_name}_state", "current_phase", json.dumps(data)
+                )
+                if data.get("message") in (
+                    "enableVote",
+                    "enableNext",
+                    "countDownAndStop",
+                ) and data.get("assignment_id"):
+                    pipe.delete(f"assignment_{data['assignment_id']}_state")
 
-        # Track message count for text messages
-        if data.get("type") == "text":
-            r.hincrby(f"{course.course_name}_state", "mess_count", 1)
+            # Track message count for text messages
+            if data.get("type") == "text":
+                pipe.hincrby(f"{course.course_name}_state", "mess_count", 1)
+            await pipe.execute()
 
         return JSONResponse(content={"status": "success"})
 
@@ -1555,12 +1582,8 @@ async def get_current_state(
 ):
     """Return the last phase-change control message for this student so a
     reconnecting student can catch up to the current session state."""
-    import os
-
-    import redis
-
     try:
-        r = redis.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
+        r = peer_redis()
         # Per-student key stored during make_pairs (handles A/B where phases differ per student).
         # Falls back to course-wide current_phase for broadcast phases (enableVote, enableNext).
         state_key = (
@@ -1568,7 +1591,7 @@ async def get_current_state(
             if assignment_id
             else f"{course.course_name}_state"
         )
-        raw = r.hget(state_key, user.username) or r.hget(
+        raw = await r.hget(state_key, user.username) or await r.hget(
             f"{course.course_name}_state", "current_phase"
         )
         if raw:
@@ -1635,12 +1658,7 @@ async def clear_pairs(
     Clear the partner assignments for the current course from Redis.
     Called when the instructor switches to face-chat mode.
     """
-    import os
-
-    import redis as redis_lib
-
-    r = redis_lib.from_url(os.environ.get("REDIS_URI", "redis://redis:6379/0"))
-    r.delete(f"partnerdb_{course.course_name}")
+    await peer_redis().delete(f"partnerdb_{course.course_name}")
     rslogger.info(f"Cleared pairs for course {course.course_name}")
     return JSONResponse(content="success")
 
