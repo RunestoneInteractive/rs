@@ -1,10 +1,28 @@
 {% extends "_base.html" %}
 {% block title %}
-Progress Report
+Progress Report: {{ user.first_name }} {{ user.last_name }} - {{ course.course_name }}
 {% endblock %}
 {% block css %}
 <link href="/staticAssets/css/studentreport.css" rel="stylesheet" media="screen" />
 {% endblock %}
+
+{# Completion status is shown by color, a symbol, and (for screen readers)
+   text, so it never depends on color alone (WCAG 1.4.1). #}
+{% macro status_marker(status) -%}
+<span class="status-symbol" aria-hidden="true">
+  {%- if status == "completed" %}✓{% elif status == "started" %}◐{% else %}○{% endif -%}
+</span>
+{%- endmacro %}
+{% macro status_label(status) -%}
+{% if status == "completed" %}Completed{% elif status == "started" %}In progress{% else %}Not started{% endif %}
+{%- endmacro %}
+{% macro status_sr(status) -%}
+<span class="sr-only">, {{ status_label(status)|lower }}</span>
+{%- endmacro %}
+{% macro na() -%}
+<span aria-hidden="true">N/A</span><span class="sr-only">not available</span>
+{%- endmacro %}
+
 {% block content %}
 <div id="studentreport" class="container">
   <h1>
@@ -15,46 +33,68 @@ Progress Report
   <div class="row">
     <div class="col-md-7">
       <div class="dash-section" id="book-completion">
-        <div class="dash-section-header">Book Completion</div>
+        <h3 class="dash-section-header" id="book-completion-heading">Book Completion</h3>
         <div class="dash-section-content">
-          {% for chapter in chapters %}
-          <div class="chapter">
-            <div class="clickable {{ chapter['status'] }}">
-              {{ chapter['label'] }}
-              <div class="collapse-icon"></div>
-            </div>
-            <div class="chapter-detail dhide">
-              {% for subchapter in chapter['subchapters'] %}
-              <div class="{{ subchapter['status'] }}">
-                {{ subchapter['label'] }}
+          {# Visual key only: every item below announces its own status. #}
+          <p class="status-legend" aria-hidden="true">
+            {% for status in ["completed", "started", "notstarted"] %}
+            <span class="{{ status }}">{{ status_marker(status) }} {{ status_label(status) }}</span>
+            {% endfor %}
+          </p>
+          <ul class="chapter-list" role="list">
+            {% for chapter in chapters %}
+            <li>
+              {% if chapter['subchapters'] %}
+              <details class="chapter">
+                <summary class="{{ chapter['status'] }}">
+                  {{ status_marker(chapter['status']) }}
+                  <span class="chapter-name">{{ chapter['label'] }}</span>{{ status_sr(chapter['status']) }}
+                </summary>
+                <ul class="chapter-detail" role="list">
+                  {% for subchapter in chapter['subchapters'] %}
+                  <li class="{{ subchapter['status'] }}">
+                    {{ status_marker(subchapter['status']) }}
+                    {{ subchapter['label'] }}{{ status_sr(subchapter['status']) }}
+                  </li>
+                  {% endfor %}
+                </ul>
+              </details>
+              {% else %}
+              <div class="chapter chapter-empty {{ chapter['status'] }}">
+                {{ status_marker(chapter['status']) }}
+                <span class="chapter-name">{{ chapter['label'] }}</span>{{ status_sr(chapter['status']) }}
               </div>
-              {% endfor %}
-            </div>
-          </div>
-          {% endfor %}
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
       <div class="dash-section">
-        <div class="dash-section-header">Grades</div>
-        <div class="dash-section-content scroll">
-          <table>
+        <h3 class="dash-section-header" id="grades-heading">Grades</h3>
+        {# tabindex makes the scroll box keyboard scrollable in every browser
+           (Chrome alone does this by default); role + label tell screen
+           reader users what they landed on. #}
+        <div class="dash-section-content scroll" role="region" aria-labelledby="grades-heading" tabindex="0">
+          <table aria-labelledby="grades-heading">
             <thead>
               <tr>
-                <th>Assignment</th>
-                <th>Due Date</th>
-                <th>Score</th>
-                <th>Percent</th>
-                <th>Avg Score</th>
+                <th scope="col">Assignment</th>
+                <th scope="col">Due Date</th>
+                <th scope="col">Score</th>
+                <th scope="col">Percent</th>
+                <th scope="col">Class Average</th>
               </tr>
             </thead>
             <tbody>
               {% for k in assignments.keys()|sort %}
+              {% set a = assignments[k] %}
               <tr>
-                <td>{{ k }}</td>
-                <td>{{ assignments[k]['due_date'] }}</td>
-                <td>{{ assignments[k]['score'] }}</td>
-                <td>{{ assignments[k]['pct'] }}</td>
-                <td>{{ assignments[k]['class_average'] }}</td>
+                <th scope="row">{{ k }}</th>
+                <td>{{ a['due_date'] }}</td>
+                <td>{% if a['score'] == "N/A" %}{{ na() }}{% else %}{{ a['score'] }}{% endif %}</td>
+                <td>{% if a['pct'] == "N/A" %}{{ na() }}{% else %}{{ a['pct'] }}%{% endif %}</td>
+                <td>{% if a['class_average'] == "N/A" %}{{ na() }}{% else %}{{ a['class_average'] }}{% endif %}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -64,28 +104,32 @@ Progress Report
     </div>
     <div class="col-md-5">
       <div class="dash-section">
-        <div class="dash-section-header">Profile</div>
+        <h3 class="dash-section-header" id="profile-heading">Profile</h3>
         <div class="dash-section-content">
           <div>Username: {{ user.username }}</div>
           <div>Email: {{ user.email }}</div>
         </div>
       </div>
       <div class="dash-section">
-        <div class="dash-section-header">Recent Activity (Time in UTC)</div>
-        <div class="dash-section-content scroll">
-          <table class="nodec">
-            <tr>
-              <th>Timestamp</th>
-              <th>Event</th>
-              <th>Div ID</th>
-            </tr>
-            {% for row in activity %}
-            <tr>
-              <td>{{ row.timestamp }}</td>
-              <td>{{ row.event }}</td>
-              <td>{{ row.div_id }}</td>
-            </tr>
-            {% endfor %}
+        <h3 class="dash-section-header" id="activity-heading">Recent Activity</h3>
+        <div class="dash-section-content scroll" role="region" aria-labelledby="activity-heading" tabindex="0">
+          <table class="nodec" aria-labelledby="activity-heading">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Event</th>
+                <th scope="col">Item</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in activity %}
+              <tr>
+                <td>{{ course_datetime_tag(row.timestamp, course.timezone, style="short") }}</td>
+                <td>{{ row.event }}</td>
+                <td class="activity-item">{{ row.div_id }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
           </table>
         </div>
         <div class="dash-section-content">
@@ -108,14 +152,5 @@ Progress Report
 {% endblock %}
 
 {% block js %}
-<script>
-  document.querySelectorAll(".chapter .clickable").forEach(function (el) {
-    el.addEventListener("click", function () {
-      el.classList.toggle("expanded");
-      el.parentElement.querySelectorAll(":scope > .chapter-detail").forEach(function (detail) {
-        detail.classList.toggle("dhide");
-      });
-    });
-  });
-</script>
+{% include 'common/localize_times.html' %}
 {% endblock %}
