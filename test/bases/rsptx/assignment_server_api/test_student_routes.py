@@ -27,8 +27,9 @@ asyncio_session = pytest.mark.asyncio(loop_scope="session")
 
 def test_build_chapter_progress_status_rollup():
     """Chapter status rolls up from subchapter progress: completed only when
-    every started subchapter is complete, started when any progress exists,
-    otherwise not started. Only subchapters with progress are listed."""
+    every subchapter is complete, started when any progress exists, otherwise
+    not started. Every book subchapter is listed; one with no progress row
+    counts as not started."""
     chapters = [
         SimpleNamespace(id=1, chapter_label="ch1", chapter_name="Chapter One"),
         SimpleNamespace(id=2, chapter_label="ch2", chapter_name="Chapter Two"),
@@ -39,14 +40,21 @@ def test_build_chapter_progress_status_rollup():
         SimpleNamespace(chapter_id=1, sub_chapter_label="s2", sub_chapter_name="Sub 2"),
         SimpleNamespace(chapter_id=2, sub_chapter_label="s3", sub_chapter_name="Sub 3"),
         SimpleNamespace(chapter_id=3, sub_chapter_label="s4", sub_chapter_name="Sub 4"),
+        SimpleNamespace(chapter_id=4, sub_chapter_label="s5", sub_chapter_name="Sub 5"),
+        SimpleNamespace(chapter_id=4, sub_chapter_label="s6", sub_chapter_name="Sub 6"),
     ]
+    chapters.append(
+        SimpleNamespace(id=4, chapter_label="ch4", chapter_name="Chapter Four")
+    )
     # ch1: one complete + one started -> "started"
     # ch2: all complete -> "completed"
     # ch3: no progress -> "notstarted"
+    # ch4: one complete, the other has no progress row -> "started"
     progress = [
         SimpleNamespace(chapter_id="ch1", sub_chapter_id="s1", status=1),
         SimpleNamespace(chapter_id="ch1", sub_chapter_id="s2", status=0),
         SimpleNamespace(chapter_id="ch2", sub_chapter_id="s3", status=1),
+        SimpleNamespace(chapter_id="ch4", sub_chapter_id="s5", status=1),
     ]
 
     result = _build_chapter_progress(chapters, subchapters, progress)
@@ -55,19 +63,27 @@ def test_build_chapter_progress_status_rollup():
         "Chapter One",
         "Chapter Two",
         "Chapter Three",
+        "Chapter Four",
     ]
-    assert result[0]["status"] == "started"
-    assert result[1]["status"] == "completed"
-    assert result[2]["status"] == "notstarted"
+    assert [c["status"] for c in result] == [
+        "started",
+        "completed",
+        "notstarted",
+        "started",
+    ]
 
-    # Subchapter labels are mapped to their human-readable names, and only
-    # subchapters that have progress rows are shown.
+    # Subchapter labels are mapped to their human-readable names, and every
+    # book subchapter is listed in book order.
     assert result[0]["subchapters"] == [
         {"label": "Sub 1", "status": "completed"},
         {"label": "Sub 2", "status": "started"},
     ]
     assert result[1]["subchapters"] == [{"label": "Sub 3", "status": "completed"}]
-    assert result[2]["subchapters"] == []
+    assert result[2]["subchapters"] == [{"label": "Sub 4", "status": "notstarted"}]
+    assert result[3]["subchapters"] == [
+        {"label": "Sub 5", "status": "completed"},
+        {"label": "Sub 6", "status": "notstarted"},
+    ]
 
 
 # ---------------------------------------------------------------------------
