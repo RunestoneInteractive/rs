@@ -22,7 +22,7 @@
     body.pi-hide-feedback .oneq * { outline: none !important; }
     body.pi-async-loading .oneq { opacity: 0; }
     .navbar { position: fixed !important; top: 0 !important; width: 100% !important; z-index: 1030 !important; margin-left: 0 !important; margin-right: 0 !important; }
-    h2 { font-size: 1.8em !important; margin-top: 4px !important; margin-bottom: 4px !important; }
+    h1 { font-size: 1.8em !important; margin-top: 4px !important; margin-bottom: 4px !important; }
     #stepBanner { padding: 4px 12px !important; margin-bottom: 4px !important; font-size: 15px !important; }
     #imessage { margin-bottom: 2px !important; }
     #imessage p { margin-bottom: 0 !important; }
@@ -85,7 +85,7 @@
       display:flex; align-items:center; justify-content:space-between;
       padding:12px 16px; border-bottom:1px solid var(--pi-line);
     }
-    .pi-panel-title { font-size:15px; font-weight:600; color:var(--pi-ink); }
+    .pi-panel-title { font-size:15px; font-weight:600; color:var(--pi-ink); margin:0; }
     .pi-pick-chip {
       background:var(--pi-blue-soft); border:1px solid #c3d9f0;
       border-radius:4px; padding:2px 10px;
@@ -338,10 +338,10 @@
     \( {{ latex_macros|safe }} \)
 </div>
 
-<h2>Peer Instruction (After Class): {{ assignment_name }}</h2>
+<h1>Peer Instruction (After Class): {{ assignment_name }}</h1>
 
 {% if not all_done %}
-<div id="stepBanner" style="
+<div id="stepBanner" role="status" style="
   background: #4A9FDE;
   color: #fff;
   padding: 10px 16px;
@@ -350,12 +350,13 @@
   font-size: 16px;
   font-weight: bold;
 ">
-  <span style="opacity:1">●</span> <span style="opacity:0.4">●</span> <span style="opacity:0.4">●</span> &nbsp;&nbsp;Step 1 of 3: Answer the question
+  <span aria-hidden="true"><span style="opacity:1">●</span> <span style="opacity:0.4">●</span> <span style="opacity:0.4">●</span></span> &nbsp;&nbsp;Step 1 of 3: Answer the question
 </div>
 {% endif %}
 
 <div id="imessage">
-    <p>This page is meant for you to use <i>after</i> the inclass peer instruction is over.
+    <h2 class="sr-only">Instructions</h2>
+    <p>This page is meant for you to use <i>after</i> the inclass peer instruction is over.</p>
         <ol>
             <li>Answer the question as best you can.</li>
             <li>Then, in the space provided write a justification for your answer.</li>
@@ -370,7 +371,6 @@
             {% endif %}
             <li>Answer the question <strong>again.</strong>  Even if you are not changing your answer from the first time.</li>
         </ol>
-    </p>
     {% if llm_enabled %}
     <p class="pi-ai-note">The peer is a chatbot, not a real classmate, and it can be wrong. It asks
         questions rather than giving answers, so it will keep going as long as you do. Chat as
@@ -381,11 +381,12 @@
 <div class="row">
     {% if not all_done %}
     <div class="oneq col-md-6 runestone-sphinx">
+        <h2 class="sr-only">Question</h2>
         {{ current_question.htmlsrc|safe }}
     </div>
     {% else %}
     <div class="oneq col-md-6">
-        <h3>Congratulations, you have completed this assignment!</h3>
+        <h2>Congratulations, you have completed this assignment!</h2>
     </div>
     {% endif %}
 
@@ -395,22 +396,23 @@
       <div class="pi-panel" style="position:relative;">
 
         <div id="panelVote1Lock" style="position:absolute; inset:0; background:rgba(255,255,255,0.80); backdrop-filter:blur(1px); z-index:20; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; padding:20px;">
-          <div style="font-size:15px; font-weight:600; color:var(--pi-ink);">Answer the question first</div>
+          <h2 style="font-size:15px; font-weight:600; color:var(--pi-ink); margin:0;">Answer the question first</h2>
           <div style="font-size:13px; color:var(--pi-ink3);">Submit your vote to unlock this panel.</div>
         </div>
 
-        <div class="pi-panel-head">
-          <span class="pi-panel-title">{% if llm_enabled %}Justify &amp; discuss your answer{% else %}Justify your answer{% endif %}</span>
+        {# inert until vote 1 is submitted, so screen readers skip what the lock covers #}
+        <div class="pi-panel-head pi-locked-content" inert>
+          <h2 class="pi-panel-title" aria-live="polite">{% if llm_enabled %}Justify &amp; discuss your answer{% else %}Justify your answer{% endif %}</h2>
           <span class="pi-pick-chip" id="pi_pick_chip">Your pick:&nbsp;—</span>
         </div>
 
-        <div class="pi-pane" id="piConversation">
+        <div class="pi-pane pi-locked-content" id="piConversation" inert>
           <div class="pi-pane-lock" id="justificationOverlay">
             <div class="pi-pane-lock-title">Answer the question first</div>
             <div class="pi-pane-lock-sub">Submit your first vote to write your justification.</div>
           </div>
 
-          <div id="llmChat"></div>
+          <div id="llmChat" role="log" aria-label="Discussion"></div>
 
           <div id="themePickerRow" style="display:none;">
             <div class="theme-picker">
@@ -445,7 +447,7 @@
           </div>
         </div>
 
-        <div class="pi-vote-bar" id="piVoteBar">
+        <div class="pi-vote-bar pi-locked-content" id="piVoteBar" inert>
           <div class="pi-vote-bar-inner">
             {% if llm_enabled %}
             <span class="pi-vote-disclaimer" id="llmDisclaimer">You are chatting with an LLM, not a real peer.</span>
@@ -456,7 +458,7 @@
         </div>
 
         <div class="pi-likert-panel" id="piLikertPanel">
-          <div class="pi-likert-title">Before you continue</div>
+          <h3 class="pi-likert-title">Before you continue</h3>
           <div class="pi-likert-sub">
             Please answer the following questions before moving to the next question.
           </div>
@@ -482,7 +484,7 @@
 {% if has_vote1 and has_reflection and llm_reply %}
 <hr>
 <div style="background:#f0f0f0; padding:10px; border-radius:4px;">
-  <strong>An LLM peer said:</strong>
+  <h2 style="font-size:16px; font-weight:bold; margin:0;">An LLM peer said:</h2>
   <p>{{ llm_reply }}</p>
 </div>
 {% endif %}
@@ -600,7 +602,7 @@
       label = hasNextQ ? "Done! Move to the next question." : "Done! You have completed this assignment.";
       bg = "#0E3D56";
     }
-    banner.innerHTML = dots(step > 3 ? 3 : step) + "&nbsp;&nbsp;" + label;
+    banner.innerHTML = '<span aria-hidden="true">' + dots(step > 3 ? 3 : step) + "</span>&nbsp;&nbsp;" + label;
     banner.style.background = bg;
   }
 
@@ -727,7 +729,7 @@ function appendYourReasoning(text) {
   const block = document.createElement("div");
   block.className = "pi-your-reasoning";
 
-  const label = document.createElement("div");
+  const label = document.createElement("h3");
   label.className = "pi-response-card-meta";
   label.textContent = "Your reasoning";
 
@@ -745,6 +747,7 @@ function showTypingIndicator() {
   const wrap = document.createElement("div");
   wrap.className = "pi-msg-wrap assistant";
   wrap.id = "piTypingIndicator";
+  wrap.setAttribute("aria-hidden", "true");
 
   const label = document.createElement("span");
   label.className = "pi-msg-label";
@@ -933,7 +936,7 @@ function collapseJustification(text) {
           if (spec.summary) {
             const sum = document.createElement('div');
             sum.className = 'pi-response-summary';
-            const meta = document.createElement('div');
+            const meta = document.createElement('h3');
             meta.className = 'pi-response-card-meta';
             meta.textContent = 'AI summary of classmate responses';
             const body = document.createElement('div');
@@ -956,7 +959,7 @@ function collapseJustification(text) {
           }
           const INITIAL = 4;
 
-          const countRow = document.createElement('div');
+          const countRow = document.createElement('h3');
           countRow.className = 'pi-responses-count-row';
           countRow.textContent = `${items.length} classmate response${items.length === 1 ? '' : 's'}`;
           panel.appendChild(countRow);
@@ -1341,10 +1344,13 @@ function renderLikertPanel() {
 
         const statementText = document.createElement("div");
         statementText.className = "pi-likert-statement";
+        statementText.id = "likert_text_" + statement.id;
         statementText.textContent = statement.text;
 
         const options = document.createElement("div");
         options.className = "pi-likert-options";
+        options.setAttribute("role", "radiogroup");
+        options.setAttribute("aria-labelledby", statementText.id);
 
         window.PI_LIKERT_CHOICES.forEach(function(choice) {
             const label = document.createElement("label");
@@ -1604,6 +1610,7 @@ function bindLikertSubmitHandler() {
               window._hasVote1 = true;
               const panelLock = document.getElementById("panelVote1Lock");
               if (panelLock) panelLock.style.display = "none";
+              document.querySelectorAll(".pi-locked-content").forEach(el => el.removeAttribute("inert"));
               setReflectionPanelEnabled(true);
               return;
             }

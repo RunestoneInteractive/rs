@@ -36,6 +36,10 @@ Review Peer Assignment
         display: none;
     }
 
+    .card-title { font-size: 1.5rem; }
+    .results-table { margin-bottom: 12px; }
+    .results-table th, .results-table td { padding: 4px 12px; text-align: left; }
+
     .vega-embed.has-actions {
         padding-right: 0;
     }
@@ -65,6 +69,8 @@ Review Peer Assignment
         <p style='max-width:90%; margin:auto;'>Description: {{ assignment_details.description }}</p>
     </div>
 
+    <div id="review-status" class="sr-only" aria-live="polite"></div>
+
     {% if questions|length > 0 %}
         <div id="questions" class="runestone-sphinx container-fluid">
             <style>
@@ -91,18 +97,21 @@ Review Peer Assignment
                     <div class="row question-statistics">
                         <div class="card mb-3">
                             <div class="card-body text-black" id="effectiveness-card-{{ loop.index }}">
-                                <h4 class="card-title mt-0">Question Effectiveness</h4>
+                                <h3 class="card-title mt-0">Question Effectiveness</h3>
                                 <p class="card-text">Percent Correct Votes in Vote 1: <strong><span id="effectiveness-percentage-{{ loop.index }}">N/A</span></strong></p>
                             </div>
                         </div>
 
                         <div class="card mb-3">
                             <div class="card-body text-black" id="normalized-change-card-{{ loop.index }}">
-                                <h4 class="card-title mt-0">Normalized Change</h4>
+                                <h3 class="card-title mt-0">Normalized Change</h3>
                                 <p class="card-text"><strong><span id="normalized-change-{{ loop.index }}">N/A</span></strong></p>
                             </div>
                         </div>
                     </div>
+                    <details class="results-table" id="results-table-{{ loop.index }}" hidden>
+                        <summary class="btn btn-secondary">Results table</summary>
+                    </details>
                     <div class="row question-details">
                         <div class="col-md-6 question-col">
                             {% if q.question_type == 'webwork' %}

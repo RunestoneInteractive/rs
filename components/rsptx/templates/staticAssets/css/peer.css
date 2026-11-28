@@ -36,7 +36,7 @@
     font-weight: 500;
 }
 
-#pi-instructor-interface h3 {
+#pi-instructor-interface h2 {
     margin-top: 0;
     margin-bottom: 0;
 }
@@ -214,8 +214,14 @@
     box-shadow: 0px 2px 2px 0px rgba(17, 17, 17, 0.06);
 }
 
-#discussion-panel-heading p {
+#discussion-panel-heading h2 {
     margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+#imessage h2 {
+    font-size: 1.75rem;
 }
 
 #discussion-panel-peer-votes {

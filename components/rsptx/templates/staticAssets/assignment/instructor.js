@@ -106,10 +106,23 @@ function showQuestion(index) {
     }
 }
 
+
+function announceQuestion(clicked, other) {
+    const num = currentQuestionIndex + 1;
+    let button = document.getElementById(`${clicked}-btn-${num}`);
+    if (button && button.disabled) {
+        button = document.getElementById(`${other}-btn-${num}`);
+    }
+    if (button) button.focus();
+    document.getElementById("review-status").textContent =
+        `Showing question ${num} of ${questions.length}`;
+}
+
 function showNextQuestion() {
     if (currentQuestionIndex < questions.length - 1) {
         currentQuestionIndex++;
         showQuestion(currentQuestionIndex);
+        announceQuestion("next", "prev");
     }
 }
 
@@ -117,6 +130,7 @@ function showPreviousQuestion() {
     if (currentQuestionIndex > 0) {
         currentQuestionIndex--;
         showQuestion(currentQuestionIndex);
+        announceQuestion("prev", "next");
     }
 }
 
@@ -221,7 +235,26 @@ function renderAltairChart(containerId, data, title) {
         "title": title
     };
 
-    vegaEmbed(`#${containerId}`, spec, { actions: false });
+    vegaEmbed(`#${containerId}`, spec, { actions: false }).then(() => {
+        const chart = document.getElementById(containerId);
+        chart.setAttribute("role", "img");
+        chart.setAttribute("aria-label", `${title} bar chart. The same results are in the results table.`);
+    });
+}
+
+// The same results as the two charts, as a table
+function renderResultsTable(questionIndex, vote1Data, vote2Data) {
+    const details = document.getElementById(`results-table-${questionIndex}`);
+    const cell = (d) => `${d.count} (${d.percentage || 0}%)`;
+    const rows = vote1Data.map((d, i) =>
+        `<tr><th scope="row">${d.option}${d.correct ? " (correct)" : ""}</th>` +
+        `<td>${cell(d)}</td><td>${cell(vote2Data[i])}</td></tr>`
+    );
+    details.insertAdjacentHTML("beforeend",
+        `<table><caption class="sr-only">Votes for question ${questionIndex}</caption>` +
+        `<thead><tr><th scope="col">Choice</th><th scope="col">Vote 1</th><th scope="col">Vote 2</th></tr></thead>` +
+        `<tbody>${rows.join("")}</tbody></table>`);
+    details.hidden = false;
 }
 
 // Have to divide this code into functions
@@ -285,6 +318,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     renderAltairChart(`chart-vote1-${questionIndex}`, vote1Data, `Vote 1 Results (n=${totalVote1})`);
                     renderAltairChart(`chart-vote2-${questionIndex}`, vote2Data, `Vote 2 Results (n=${totalVote2})`);
+                    renderResultsTable(questionIndex, vote1Data, vote2Data);
                 }
             }, 100);
         }
