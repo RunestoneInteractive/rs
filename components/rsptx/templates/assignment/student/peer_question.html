@@ -22,7 +22,7 @@ Peer Instruction - {{ assignment_name }}
         margin-bottom: 20px;
     }
 
-    .peer-header h2 {
+    .peer-header h1 {
         color: #1f2937;
         font-size: 2em;
         margin-bottom: 5px;
@@ -46,11 +46,11 @@ Peer Instruction - {{ assignment_name }}
 
 <div class="peer-container">
     <div class="peer-header">
-        <h2>Peer Instruction: {{ assignment_name }}</h2>
+        <h1>Peer Instruction: {{ assignment_name }}</h1>
     </div>
 
     <div id="pi-student-interface">
-        <div id="imessage"><h3>Time to make your 1st vote!</h3><p>Answer the question and click Submit.</p></div>
+        <div id="imessage" aria-live="polite" aria-atomic="true"><h2>Time to make your 1st vote!</h2><p>Answer the question and click Submit.</p></div>
 
         <div class="row">
             <div class="col-md-6">
@@ -67,7 +67,7 @@ Peer Instruction - {{ assignment_name }}
 
             <div id="discussion_panel" class='col-md-6' style="display: none">
                 <div id="discussion-panel-heading">
-                    <p>Peer Chat</p>
+                    <h2>Peer Chat</h2>
                 </div>
 
                 <div id="discussion-panel-peer-votes">
@@ -81,7 +81,7 @@ Peer Instruction - {{ assignment_name }}
                 </div>
 
                 <div id="discussion-panel-messages">
-                    <ul id="messages" class="conversation"></ul>
+                    <ul id="messages" class="conversation" aria-live="polite"></ul>
                     <div id="peer-message-box">
                         <input type="text" id="messageText" placeholder="Type your explanation here...">
                         <button

@@ -334,7 +334,7 @@ function connect(event) {
                             let qq = window.componentMap[currentQuestion];
                             qq.submitButton.disabled = true;
                             qq.disableInteraction();
-                            messarea.innerHTML = `<h3>Voting is closed.</h3>`;
+                            messarea.innerHTML = `<h2>Voting is closed.</h2>`;
                         }
                         break;
                     }
@@ -346,8 +346,9 @@ function connect(event) {
                     let itimerid = setInterval(async function () {
                         console.log(`count is ${count}`);
                         if (count > 0) {
-                            messarea.style.color = "red";
-                            messarea.innerHTML = `<h3>Finish up! Only ${count} seconds remaining.</h3>`;
+                            messarea.style.color = "var(--rs-color-danger-hover)";
+                            messarea.setAttribute("aria-live", count === 5 ? "polite" : "off");
+                            messarea.innerHTML = `<h2>Finish up! Only ${count} seconds remaining.</h2>`;
                             count = count - 1;
                         } else {
                             console.log("Timer expired. Clean up and get ready to chat!");
@@ -355,6 +356,7 @@ function connect(event) {
                             countdownTimer = null;
                             clearInterval(itimerid);
                             messarea.style.color = "black";
+                            messarea.setAttribute("aria-live", "polite");
                             if (!eBookConfig.isInstructor) {
                                 // Record the answer of a student who selected one but
                                 // never pressed Submit during this vote.  Students who
@@ -384,15 +386,15 @@ function connect(event) {
                             let currAnswer = window.componentMap[currentQuestion].answer;
                             if (typeof currAnswer === "undefined") {
                                 if (!eBookConfig.isInstructor) {
-                                    messarea.innerHTML = `<h3>You have not answered the question</h3><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
+                                    messarea.innerHTML = `<h2>You have not answered the question</h2><p>You will not be able to participate in any discussion unless you answer the question.</p>`;
                                 } else {
                                     messarea.innerHTML = ``;
                                 }
                             } else {
                                 if (getVoteNum() < 2) {
-                                    messarea.innerHTML = `<h3>Wait for your instructor to start the discussion.</h3>`;
+                                    messarea.innerHTML = `<h2>Wait for your instructor to start the discussion.</h2>`;
                                 } else {
-                                    messarea.innerHTML = `<h3>Voting for this question is complete.</h3>`;
+                                    messarea.innerHTML = `<h2>Voting for this question is complete.</h2>`;
                                     let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
                                     feedbackDiv.style.display = "none";
                                 }
@@ -453,7 +455,7 @@ function connect(event) {
                         }, 10000);
                     }
                     messarea = document.getElementById("imessage");
-                    messarea.innerHTML = `<h3>Time to make your 2nd vote!</h3>`;
+                    messarea.innerHTML = `<h2>Time to make your 2nd vote!</h2>`;
                     let feedbackDiv = document.getElementById(`${currentQuestion}_feedback`);
                     feedbackDiv.innerHTML = "";
                     feedbackDiv.className = "";
@@ -472,7 +474,7 @@ function connect(event) {
                 case "enableChat":
                     console.log(`got enableChat message with ${mess.answer}`);
                     messarea = document.getElementById("imessage");
-                    messarea.innerHTML = `<h3>Text Chat Ready</h3><p>Please discuss with your partner(s) in the chat panel to the right.</p>`;
+                    messarea.innerHTML = `<h2>Text Chat Ready</h2><p>Please discuss with your partner(s) in the chat panel to the right.</p>`;
                     let discPanel = document.getElementById("discussion_panel");
                     if (discPanel) {
                         discPanel.style.display = "block";
@@ -500,7 +502,7 @@ function connect(event) {
                     console.log("got enableFaceChat message");
                     console.log(`group = ${mess.group}`);
                     messarea = document.getElementById("imessage");
-                    messarea.innerHTML = `<h3>Current Verbal Discussion Group</h3><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
+                    messarea.innerHTML = `<h2>Current Verbal Discussion Group</h2><p>Please have a verbal discussion with your group, then select who you talked to below.</p>`;
 
                     let facechat = document.getElementById("group_select_panel");
                     if (facechat) {
